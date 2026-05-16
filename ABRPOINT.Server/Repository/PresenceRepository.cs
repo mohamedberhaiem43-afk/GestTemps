@@ -11,8 +11,8 @@ using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -1093,33 +1093,41 @@ namespace ABRPOINT.Server.Repository
             {
                 if (presence != null)
                 {
+                    // MIGRATION POSTGRES — TODO : la procédure stockée calcul_impupd existait
+                    // en T-SQL (`[dbo].[calcul_impupd]`). Pour PostgreSQL elle doit être
+                    // portée en PL/pgSQL (CREATE PROCEDURE calcul_impupd(...) LANGUAGE plpgsql).
+                    // Tant que la fonction n'est pas portée, cet appel échouera au runtime
+                    // (erreur "function calcul_impupd does not exist") — c'est intentionnel
+                    // pour éviter de masquer silencieusement la non-disponibilité du calcul.
                     var parameters = new[]
                     {
-                        new SqlParameter("@psoccod", presence.Soccod ?? (object)DBNull.Value),
-                        new SqlParameter("@psocmere", presence.Soccod ?? (object)DBNull.Value), // Assuming same as psoccod
-                        new SqlParameter("@psitcod", presence.Sitcod ?? (object)DBNull.Value),
-                        new SqlParameter("@pannee", presence.Predat?.Year.ToString() ?? (object)DBNull.Value),
-                        new SqlParameter("@pmois", presence.Predat?.Month.ToString("00") ?? (object)DBNull.Value),
-                        new SqlParameter("@pmodcod", presence.Preobs ?? "SYSTEM"), // Using Preobs as modcod?
-                        new SqlParameter("@puticod", "API"), // Or get from auth context
-                        new SqlParameter("@pempcod", presence.Empcod ?? (object)DBNull.Value),
-                        new SqlParameter("@pempreg", presence.Empreg ?? "0"),
-                        new SqlParameter("@pfontype", "1"), // Default value
-                        new SqlParameter("@pempnuit", "0"), // Default value
-                        new SqlParameter("@pempmaxhre", 10.0), // Default value or get from employee
-                        new SqlParameter("@pempminhjour", 4.0), // Default value or get from employee
-                        new SqlParameter("@pcaltype", "STANDARD"), // Default value
-                        new SqlParameter("@pdte", presence.Predat ?? DateTime.Now),
-                        new SqlParameter("@pcatcod", presence.Catcod ?? (object)DBNull.Value),
-                        new SqlParameter("@pcodposte", presence.Codposte ?? (object)DBNull.Value),
-                        new SqlParameter("@pdtedeb", presence.Predat ?? DateTime.Now), // Same as pdte
-                        new SqlParameter("@pdtefin", presence.Predat ?? DateTime.Now),
-            };
+                        new NpgsqlParameter("psoccod",     presence.Soccod ?? (object)DBNull.Value),
+                        new NpgsqlParameter("psocmere",    presence.Soccod ?? (object)DBNull.Value),
+                        new NpgsqlParameter("psitcod",     presence.Sitcod ?? (object)DBNull.Value),
+                        new NpgsqlParameter("pannee",      presence.Predat?.Year.ToString() ?? (object)DBNull.Value),
+                        new NpgsqlParameter("pmois",       presence.Predat?.Month.ToString("00") ?? (object)DBNull.Value),
+                        new NpgsqlParameter("pmodcod",     presence.Preobs ?? "SYSTEM"),
+                        new NpgsqlParameter("puticod",     "API"),
+                        new NpgsqlParameter("pempcod",     presence.Empcod ?? (object)DBNull.Value),
+                        new NpgsqlParameter("pempreg",     presence.Empreg ?? "0"),
+                        new NpgsqlParameter("pfontype",    "1"),
+                        new NpgsqlParameter("pempnuit",    "0"),
+                        new NpgsqlParameter("pempmaxhre",  10.0),
+                        new NpgsqlParameter("pempminhjour", 4.0),
+                        new NpgsqlParameter("pcaltype",    "STANDARD"),
+                        new NpgsqlParameter("pdte",        presence.Predat ?? DateTime.Now),
+                        new NpgsqlParameter("pcatcod",     presence.Catcod ?? (object)DBNull.Value),
+                        new NpgsqlParameter("pcodposte",   presence.Codposte ?? (object)DBNull.Value),
+                        new NpgsqlParameter("pdtedeb",     presence.Predat ?? DateTime.Now),
+                        new NpgsqlParameter("pdtefin",     presence.Predat ?? DateTime.Now),
+                    };
 
+                    // CALL procName(positional_args) — équivalent Postgres de EXEC. Les noms
+                    // de paramètres sont positionnels ici ; Npgsql gère $1, $2... derrière.
                     await _dbContext.Database.ExecuteSqlRawAsync(
-                        "EXEC [dbo].[calcul_impupd] @psoccod, @psocmere, @psitcod, @pannee, @pmois, @pmodcod, @puticod, " +
+                        "CALL calcul_impupd(@psoccod, @psocmere, @psitcod, @pannee, @pmois, @pmodcod, @puticod, " +
                         "@pempcod, @pempreg, @pfontype, @pempnuit, @pempmaxhre, @pempminhjour, @pcaltype, @pdte, @pcatcod, " +
-                        "@pcodposte, @pdtedeb, @pdtefin",
+                        "@pcodposte, @pdtedeb, @pdtefin)",
                         parameters);
 
                     await _dbContext.Entry(presence).ReloadAsync();

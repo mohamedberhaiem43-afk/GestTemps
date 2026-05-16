@@ -1,4 +1,4 @@
-using ABRPOINT.Server.Dtaos;
+﻿using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Tenancy;
 using FastReport;
@@ -6,7 +6,7 @@ using FastReport.Data;
 using FastReport.Export.PdfSimple;
 using System.Data;
 using Dapper;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 using System.Drawing;
 using System.Text.RegularExpressions;
 using DinkToPdf;
@@ -41,7 +41,7 @@ namespace ABRPOINT.Server.Repository
             {
                 connectionString = config.GetConnectionString("FastReportConnection")
                     ?? config.GetConnectionString("DefaultConnection")
-                    ?? throw new InvalidOperationException("Aucune chaîne de connexion configurée pour les rapports.");
+                    ?? throw new InvalidOperationException("Aucune chaÃ®ne de connexion configurÃ©e pour les rapports.");
             }
             _sqlConnection = new MsSqlDataConnection { ConnectionString = connectionString };
         }
@@ -87,11 +87,11 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                using var connection = new Microsoft.Data.SqlClient.SqlConnection(_sqlConnection.ConnectionString);
-                var leaveInfo = connection.QueryFirstOrDefault("SELECT top 1 soccod, empcod FROM conge WHERE concod = @concod", new { concod });
+                using var connection = new NpgsqlConnection(_sqlConnection.ConnectionString);
+                var leaveInfo = connection.QueryFirstOrDefault("SELECT soccod, empcod FROM conge WHERE concod = @concod", new { concod });
                 bool isApproved = leaveInfo != null;
                 if (leaveInfo == null)
-                    leaveInfo = connection.QueryFirstOrDefault("SELECT top 1 soccod, empcod FROM demconge WHERE concod = @concod", new { concod });
+                    leaveInfo = connection.QueryFirstOrDefault("SELECT soccod, empcod FROM demconge WHERE concod = @concod", new { concod });
                 if (leaveInfo != null)
                 {
                     string s = leaveInfo.soccod;
@@ -200,8 +200,8 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                using var connection = new Microsoft.Data.SqlClient.SqlConnection(_sqlConnection.ConnectionString);
-                var authInfo = connection.QueryFirstOrDefault("SELECT top 1 empcod FROM autoriser WHERE concod = @concod and soccod = @soccod", new { concod, soccod });
+                using var connection = new NpgsqlConnection(_sqlConnection.ConnectionString);
+                var authInfo = connection.QueryFirstOrDefault("SELECT empcod FROM autoriser WHERE concod = @concod and soccod = @soccod", new { concod, soccod });
                 if (authInfo != null)
                 {
                     string empcod = authInfo.empcod;
@@ -323,9 +323,9 @@ namespace ABRPOINT.Server.Repository
                     report.Export(new PDFSimpleExport(), ms);
                     return ms.ToArray();
                 }
-                throw new Exception($"Modèle introuvable pour {docName} (HTML ou FRX)");
+                throw new Exception($"ModÃ¨le introuvable pour {docName} (HTML ou FRX)");
             }
-            catch (Exception ex) { throw new Exception($"Erreur lors de la génération de {docName} : " + ex.Message, ex); }
+            catch (Exception ex) { throw new Exception($"Erreur lors de la gÃ©nÃ©ration de {docName} : " + ex.Message, ex); }
         }
 
         public byte[] GenerateEtatGlobalReport(EtatGlobalRequest data)
@@ -365,7 +365,7 @@ namespace ABRPOINT.Server.Repository
                 report.Export(new PDFSimpleExport(), ms);
                 return ms.ToArray();
             }
-            catch (Exception ex) { throw new Exception($"Erreur génération EtatDetailleReport: {ex.Message}", ex); }
+            catch (Exception ex) { throw new Exception($"Erreur gÃ©nÃ©ration EtatDetailleReport: {ex.Message}", ex); }
         }
 
         public byte[] GetEtatAbsenceReport(EtatAbsenceReport etatAbsence)
@@ -410,18 +410,18 @@ namespace ABRPOINT.Server.Repository
             catch (Exception ex) { throw new Exception("Error generating Allaitement report: " + ex.Message); }
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        //  GenerateFromHtml — Uses DinkToPdf (wkhtmltopdf) for proper
-        //  HTML/CSS → PDF rendering with tables, headers, footers, etc.
-        // ═══════════════════════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        //  GenerateFromHtml â€” Uses DinkToPdf (wkhtmltopdf) for proper
+        //  HTML/CSS â†’ PDF rendering with tables, headers, footers, etc.
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         public byte[] GenerateFromHtml(string html, string soccod, string empcod)
         {
             try
             {
                 // 1. Fetch employee + company data
-                //    ⚠ socimg ajouté (sinon ReplaceAllPlaceholders ne trouve pas le logo
-                //    téléversé via Paramètres société → [Logo_Entreprise] reste vide).
-                using var connection = new Microsoft.Data.SqlClient.SqlConnection(_sqlConnection.ConnectionString);
+                //    âš  socimg ajoutÃ© (sinon ReplaceAllPlaceholders ne trouve pas le logo
+                //    tÃ©lÃ©versÃ© via ParamÃ¨tres sociÃ©tÃ© â†’ [Logo_Entreprise] reste vide).
+                using var connection = new NpgsqlConnection(_sqlConnection.ConnectionString);
                 var emp = connection.QueryFirstOrDefault(@"
                     select e.*, s.soclib, s.socadr, s.soctel, s.socfax, s.socemail, s.socresp, s.socimg
                     from employe e
@@ -437,9 +437,10 @@ namespace ABRPOINT.Server.Repository
                 {
                     // For mockup, we could look up the latest signature for this employee in the vault
                     var lastSign = connection.QueryFirstOrDefault<string>(@"
-                        select top 1 signaturepath from documentvault 
-                        where empcod = @empcod and issigned = 1 
-                        order by signaturedate desc", new { empcod });
+                        SELECT signaturepath from documentvault
+                        where empcod = @empcod and issigned = 1
+                        order by signaturedate desc
+                        LIMIT 1", new { empcod });
                     
                     if (!string.IsNullOrEmpty(lastSign))
                     {
@@ -448,7 +449,7 @@ namespace ABRPOINT.Server.Repository
                         {
                             var sigBase64 = Convert.ToBase64String(System.IO.File.ReadAllBytes(fullSigPath));
                             processedHtml = processedHtml.Replace("[Signature_Collaborateur]", 
-                                $@"<div style='text-align:right;'><img src='data:image/png;base64,{sigBase64}' style='height:80px;' /><br><small>Signé électroniquement</small></div>");
+                                $@"<div style='text-align:right;'><img src='data:image/png;base64,{sigBase64}' style='height:80px;' /><br><small>SignÃ© Ã©lectroniquement</small></div>");
                         }
                     }
                 }
@@ -563,7 +564,7 @@ namespace ABRPOINT.Server.Repository
                             FooterSettings = new FooterSettings
                             {
                                 FontSize = 8,
-                                Center = "Document généré le " + DateTime.Now.ToString("dd/MM/yyyy"),
+                                Center = "Document gÃ©nÃ©rÃ© le " + DateTime.Now.ToString("dd/MM/yyyy"),
                                 Line = false,
                                 Spacing = 5
                             }
@@ -575,7 +576,7 @@ namespace ABRPOINT.Server.Repository
             }
             catch (Exception ex)
             {
-                throw new Exception("Erreur lors de la génération du PDF : " + ex.Message, ex);
+                throw new Exception("Erreur lors de la gÃ©nÃ©ration du PDF : " + ex.Message, ex);
             }
         }
 
@@ -587,12 +588,12 @@ namespace ABRPOINT.Server.Repository
             processedHtml = processedHtml.Replace("{{Signature_Employe}}", "[Signature_Collaborateur]")
                                          .Replace("[Signature.Employe]", "[Signature_Collaborateur]");
             
-            // Signature Société : on ne hardcode plus de nom (placeholder
-            // historique "Sarah Jenkins") — on laisse "Représentant légal"
-            // qui sera complété par la signature manuscrite réelle persistée
-            // côté coffre-fort.
+            // Signature SociÃ©tÃ© : on ne hardcode plus de nom (placeholder
+            // historique "Sarah Jenkins") â€” on laisse "ReprÃ©sentant lÃ©gal"
+            // qui sera complÃ©tÃ© par la signature manuscrite rÃ©elle persistÃ©e
+            // cÃ´tÃ© coffre-fort.
             const string signatureEntreprise =
-                "<br><br><b>Pour la Société :</b><br><div style='color:#0040a1; font-weight:bold;'>Représentant légal</div><small>Signé numériquement</small><br>";
+                "<br><br><b>Pour la SociÃ©tÃ© :</b><br><div style='color:#0040a1; font-weight:bold;'>ReprÃ©sentant lÃ©gal</div><small>SignÃ© numÃ©riquement</small><br>";
             processedHtml = processedHtml.Replace("{{Signature_Entreprise}}", signatureEntreprise)
                                          .Replace("[Signature.Entreprise]", signatureEntreprise);
 
@@ -624,19 +625,19 @@ namespace ABRPOINT.Server.Repository
                                          .Replace("[Periode_de_reference]", "...")
                                          .Replace("[Nombre_jours_delai_reponse]", "15");
 
-            // Remplacement du placeholder Logo par le logo réel de la société tenant.
+            // Remplacement du placeholder Logo par le logo rÃ©el de la sociÃ©tÃ© tenant.
             //
-            // Priorité de résolution :
-            //   1. emp.socimg si renseigné (chemin relatif type "/api/uploads/<uuid>.png"
-            //      saisi via le formulaire « Paramètres société » → résolu sur le volume
-            //      uploads/ du serveur, base64'isé inline pour DinkToPdf).
-            //   2. Aucun logo → on retire silencieusement le placeholder pour ne pas
+            // PrioritÃ© de rÃ©solution :
+            //   1. emp.socimg si renseignÃ© (chemin relatif type "/api/uploads/<uuid>.png"
+            //      saisi via le formulaire Â« ParamÃ¨tres sociÃ©tÃ© Â» â†’ rÃ©solu sur le volume
+            //      uploads/ du serveur, base64'isÃ© inline pour DinkToPdf).
+            //   2. Aucun logo â†’ on retire silencieusement le placeholder pour ne pas
             //      laisser de "[Logo_Entreprise]" en clair dans le PDF.
             //
-            // Avant ce correctif, le code pointait sur un chemin hardcodé
-            // `abrpoint.client/public/Societe.jpg` (relatif au cwd dev) — absent en
-            // container Docker ⇒ aucun logo n'apparaissait jamais sur les templates,
-            // peu importe ce que l'admin avait téléversé.
+            // Avant ce correctif, le code pointait sur un chemin hardcodÃ©
+            // `abrpoint.client/public/Societe.jpg` (relatif au cwd dev) â€” absent en
+            // container Docker â‡’ aucun logo n'apparaissait jamais sur les templates,
+            // peu importe ce que l'admin avait tÃ©lÃ©versÃ©.
             if (processedHtml.Contains("[Logo_Entreprise]"))
             {
                 string? logoDataUri = null;
@@ -651,15 +652,15 @@ namespace ABRPOINT.Server.Repository
                     }
                     if (!string.IsNullOrWhiteSpace(socimg))
                     {
-                        // Cas 1 : déjà une data URI inline (rare mais possible si saisi à la main)
+                        // Cas 1 : dÃ©jÃ  une data URI inline (rare mais possible si saisi Ã  la main)
                         if (socimg.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
                         {
                             logoDataUri = socimg;
                         }
                         else
                         {
-                            // Cas 2 : chemin relatif "/api/uploads/<uuid>.ext" — on retombe sur
-                            // le dossier réel (FileHelper.GetUploadsPath() gère Docker vs dev).
+                            // Cas 2 : chemin relatif "/api/uploads/<uuid>.ext" â€” on retombe sur
+                            // le dossier rÃ©el (FileHelper.GetUploadsPath() gÃ¨re Docker vs dev).
                             var fileName = socimg.Replace("/api/uploads/", "", StringComparison.OrdinalIgnoreCase)
                                                  .Replace("/uploads/", "", StringComparison.OrdinalIgnoreCase)
                                                  .TrimStart('/');
@@ -689,8 +690,8 @@ namespace ABRPOINT.Server.Repository
                 }
                 catch
                 {
-                    // Lecture du logo best-effort — on retombe sur "pas de logo" en cas
-                    // d'erreur disque pour ne pas faire échouer la génération PDF.
+                    // Lecture du logo best-effort â€” on retombe sur "pas de logo" en cas
+                    // d'erreur disque pour ne pas faire Ã©chouer la gÃ©nÃ©ration PDF.
                     logoDataUri = null;
                 }
 

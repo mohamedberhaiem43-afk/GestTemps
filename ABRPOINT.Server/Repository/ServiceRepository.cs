@@ -1,8 +1,8 @@
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -23,7 +23,9 @@ namespace ABRPOINT.Server.Repository
             }
             catch (DbUpdateException ex)
             {
-                if (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2627)
+                // Postgres : SQLSTATE 23505 = unique_violation (équivalent SQL Server 2627/2601).
+                // PostgresException.SqlState est la valeur 5-chars du standard SQL.
+                if (ex.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
                 {
                     throw new Exception("Le service avec ce code existe déjà. Veuillez utiliser un autre code..", ex);
                 }
