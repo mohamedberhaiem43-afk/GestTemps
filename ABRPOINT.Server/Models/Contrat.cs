@@ -22,7 +22,7 @@ public partial class Contrat : BaseEntity
     [StringLength(12)]
     public string Empcod { get; set; } = null!;
 
-    [Column("condat", TypeName = "datetime")]
+    [Column("condat", TypeName = "timestamp without time zone")]
     public DateTime? Condat { get; set; }
 
     [Column("contype")]
@@ -62,10 +62,10 @@ public partial class Contrat : BaseEntity
     [Unicode(false)]
     public string? Emptel { get; set; }
 
-    [Column("empemb", TypeName = "datetime")]
+    [Column("empemb", TypeName = "timestamp without time zone")]
     public DateTime? Empemb { get; set; }
 
-    [Column("empsort", TypeName = "datetime")]
+    [Column("empsort", TypeName = "timestamp without time zone")]
     public DateTime? Empsort { get; set; }
 
     [Column("condg")]
@@ -76,7 +76,7 @@ public partial class Contrat : BaseEntity
     [StringLength(100)]
     public string? Empmotif { get; set; }
 
-    [Column("empdcin", TypeName = "datetime")]
+    [Column("empdcin", TypeName = "timestamp without time zone")]
     public DateTime? Empdcin { get; set; }
 
     [Column("empacin")]

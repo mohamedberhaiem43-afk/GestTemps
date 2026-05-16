@@ -14,7 +14,7 @@ public partial class Rendjour : BaseEntity
     [StringLength(12)]
     public string? Empcod { get; set; }
 
-    [Column("rnddate", TypeName = "datetime")]
+    [Column("rnddate", TypeName = "timestamp without time zone")]
     public DateTime? Rnddate { get; set; }
 
     [Column("artcod")]

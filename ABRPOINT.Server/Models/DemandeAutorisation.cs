@@ -25,13 +25,13 @@ public class DemandeAutorisation : BaseEntity
     [StringLength(10)]
     public string? Concod { get; set; }
 
-    [Column("condat", TypeName = "datetime")]
+    [Column("condat", TypeName = "timestamp without time zone")]
     public DateTime? Condat { get; set; }
 
-    [Column("condep", TypeName = "datetime")]
+    [Column("condep", TypeName = "timestamp without time zone")]
     public DateTime? Condep { get; set; }
 
-    [Column("conret", TypeName = "datetime")]
+    [Column("conret", TypeName = "timestamp without time zone")]
     public DateTime? Conret { get; set; }
 
     [Column("connbjour")]
@@ -45,14 +45,14 @@ public class DemandeAutorisation : BaseEntity
     [StringLength(20)]
     public string Statut { get; set; } = "En attente";
 
-    [Column("date_demande", TypeName = "datetime")]
+    [Column("date_demande", TypeName = "timestamp without time zone")]
     public DateTime? DateDemande { get; set; }
 
     [Column("traite_par")]
     [StringLength(12)]
     public string? TraitePar { get; set; }
 
-    [Column("date_traitement", TypeName = "datetime")]
+    [Column("date_traitement", TypeName = "timestamp without time zone")]
     public DateTime? DateTraitement { get; set; }
 
     [Column("commentaire")]

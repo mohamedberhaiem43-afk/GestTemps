@@ -41,13 +41,13 @@ public partial class Salaire : BaseEntity
     [Column("salacc")]
     public float? Salacc { get; set; }
 
-    [Column("saldatac", TypeName = "datetime")]
+    [Column("saldatac", TypeName = "timestamp without time zone")]
     public DateTime? Saldatac { get; set; }
 
     [Column("salmens")]
     public float? Salmens { get; set; }
 
-    [Column("saldat", TypeName = "datetime")]
+    [Column("saldat", TypeName = "timestamp without time zone")]
     public DateTime? Saldat { get; set; }
 
     [Column("salreg")]
@@ -120,10 +120,10 @@ public partial class Salaire : BaseEntity
     [Column("salmal")]
     public float? Salmal { get; set; }
 
-    [Column("joudeb", TypeName = "datetime")]
+    [Column("joudeb", TypeName = "timestamp without time zone")]
     public DateTime? Joudeb { get; set; }
 
-    [Column("joufin", TypeName = "datetime")]
+    [Column("joufin", TypeName = "timestamp without time zone")]
     public DateTime? Joufin { get; set; }
 
     [Column("salpoint")]

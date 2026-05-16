@@ -18,10 +18,10 @@ public partial class Empcat : BaseEntity
     [StringLength(12)]
     public string? Empcod { get; set; }
 
-    [Column("catdeb", TypeName = "datetime")]
+    [Column("catdeb", TypeName = "timestamp without time zone")]
     public DateTime? Catdeb { get; set; }
 
-    [Column("catfin", TypeName = "datetime")]
+    [Column("catfin", TypeName = "timestamp without time zone")]
     public DateTime? Catfin { get; set; }
 
     [Column("catcod")]

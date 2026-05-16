@@ -16,7 +16,7 @@ public partial class TAmort : BaseEntity
 
     public int? NoEcheance { get; set; }
 
-    [Column(TypeName = "datetime")]
+    [Column(TypeName = "timestamp without time zone")]
     public DateTime? DateEcheance { get; set; }
 
     public double? MontantCapitalDu { get; set; }
@@ -31,7 +31,7 @@ public partial class TAmort : BaseEntity
 
     public int? NombreDeReports { get; set; }
 
-    [Column(TypeName = "datetime")]
+    [Column(TypeName = "timestamp without time zone")]
     public DateTime? DateEcheancePrevue { get; set; }
 
     public int? FlagagePret { get; set; }

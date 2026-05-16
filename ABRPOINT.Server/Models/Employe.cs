@@ -75,10 +75,10 @@ public partial class Employe : BaseEntity
     [Column("empmob", TypeName = "text")]
     public string? Empmob { get; set; }
 
-    [Column("empemb", TypeName = "datetime")]
+    [Column("empemb", TypeName = "timestamp without time zone")]
     public DateTime? Empemb { get; set; }
 
-    [Column("empsort", TypeName = "datetime")]
+    [Column("empsort", TypeName = "timestamp without time zone")]
     public DateTime? Empsort { get; set; }
 
     [Column("empmotif")]
@@ -101,7 +101,7 @@ public partial class Employe : BaseEntity
     [StringLength(256)]
     public string? Empcin { get; set; }
 
-    [Column("empdcin", TypeName = "datetime")]
+    [Column("empdcin", TypeName = "timestamp without time zone")]
     public DateTime? Empdcin { get; set; }
 
     [Column("empacin")]
@@ -151,14 +151,14 @@ public partial class Employe : BaseEntity
     [Column("empmaxhre")]
     public double? Empmaxhre { get; set; }
 
-    [Column("empoptim", TypeName = "datetime")]
+    [Column("empoptim", TypeName = "timestamp without time zone")]
     public DateTime? Empoptim { get; set; }
 
     [Column("dircod")]
     [StringLength(10)]
     public string? Dircod { get; set; }
 
-    [Column("empretraite", TypeName = "datetime")]
+    [Column("empretraite", TypeName = "timestamp without time zone")]
     public DateTime? Empretraite { get; set; }
 
     [Column("caltype")]
@@ -212,7 +212,7 @@ public partial class Employe : BaseEntity
     [StringLength(1)]
     public string? Empnuit { get; set; }
 
-    [Column("empminhjour", TypeName = "float")]
+    [Column("empminhjour", TypeName = "double precision")]
     public double? Empminhjour { get; set; }
 
     [Column("emppanier")]

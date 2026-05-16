@@ -6,23 +6,10 @@
 -- - sitrad         : rayon en mètres
 -- - NULL sur les 3 colonnes = aucun geofence pour ce site (comportement legacy)
 --
--- À exécuter sur chaque base tenant ainsi que sur la base legacy (DefaultConnection).
+-- À exécuter via psql sur chaque base tenant ainsi que sur la base legacy.
+-- Migré T-SQL → PostgreSQL : COL_LENGTH → ADD COLUMN IF NOT EXISTS.
 -- =============================================================================
 
-IF COL_LENGTH('site', 'sitlat') IS NULL
-BEGIN
-    ALTER TABLE site ADD sitlat DECIMAL(10, 7) NULL;
-END
-GO
-
-IF COL_LENGTH('site', 'sitlon') IS NULL
-BEGIN
-    ALTER TABLE site ADD sitlon DECIMAL(10, 7) NULL;
-END
-GO
-
-IF COL_LENGTH('site', 'sitrad') IS NULL
-BEGIN
-    ALTER TABLE site ADD sitrad INT NULL;
-END
-GO
+ALTER TABLE site ADD COLUMN IF NOT EXISTS sitlat DECIMAL(10, 7) NULL;
+ALTER TABLE site ADD COLUMN IF NOT EXISTS sitlon DECIMAL(10, 7) NULL;
+ALTER TABLE site ADD COLUMN IF NOT EXISTS sitrad INTEGER          NULL;

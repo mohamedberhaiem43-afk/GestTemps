@@ -38,13 +38,13 @@ namespace ABRPOINT.Server.Models
         [Column("docsize")]
         public long DocSize { get; set; }
 
-        [Column("docdate", TypeName = "datetime")]
+        [Column("docdate", TypeName = "timestamp without time zone")]
         public DateTime DocDate { get; set; } = DateTime.UtcNow;
 
         [Column("issigned")]
         public bool IsSigned { get; set; } = false;
 
-        [Column("signaturedate", TypeName = "datetime")]
+        [Column("signaturedate", TypeName = "timestamp without time zone")]
         public DateTime? SignatureDate { get; set; }
 
         [Column("signaturepath")]

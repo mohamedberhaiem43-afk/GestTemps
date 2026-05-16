@@ -14,7 +14,7 @@ public partial class Pointacce : BaseEntity
     [StringLength(6)]
     public string? Empcod { get; set; }
 
-    [Column("predat", TypeName = "datetime")]
+    [Column("predat", TypeName = "timestamp without time zone")]
     public DateTime? Predat { get; set; }
 
     [Column("ordre")]
@@ -58,10 +58,10 @@ public partial class Pointacce : BaseEntity
     [StringLength(6)]
     public string? Pntsortie { get; set; }
 
-    [Column("predatent", TypeName = "datetime")]
+    [Column("predatent", TypeName = "timestamp without time zone")]
     public DateTime? Predatent { get; set; }
 
-    [Column("predatsort", TypeName = "datetime")]
+    [Column("predatsort", TypeName = "timestamp without time zone")]
     public DateTime? Predatsort { get; set; }
 
     [Column("valider")]

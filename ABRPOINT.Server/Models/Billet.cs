@@ -18,7 +18,7 @@ public partial class Billet : BaseEntity
     [StringLength(2)]
     public string? Soccod { get; set; }
 
-    [Column("predat", TypeName = "datetime")]
+    [Column("predat", TypeName = "timestamp without time zone")]
     public DateTime? Predat { get; set; }
 
     [Column("ordre")]

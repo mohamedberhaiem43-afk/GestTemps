@@ -30,7 +30,7 @@ public partial class Cloture : BaseEntity
     [StringLength(1)]
     public string? Titcod { get; set; }
 
-    [Column("clodat", TypeName = "datetime")]
+    [Column("clodat", TypeName = "timestamp without time zone")]
     public DateTime? Clodat { get; set; }
 
     [Column("clousr")]

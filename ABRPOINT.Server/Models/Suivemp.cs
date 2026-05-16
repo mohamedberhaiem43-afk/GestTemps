@@ -14,7 +14,7 @@ public partial class Suivemp : BaseEntity
     [StringLength(20)]
     public string? Empcod { get; set; }
 
-    [Column("date", TypeName = "datetime")]
+    [Column("date", TypeName = "timestamp without time zone")]
     public DateTime? Date { get; set; }
 
     [Column("soccod")]

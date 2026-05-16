@@ -173,7 +173,7 @@ public partial class Parametre : BaseEntity
     [StringLength(10)]
     public string? Jourrepos { get; set; }
 
-    [Column("optimise", TypeName = "datetime")]
+    [Column("optimise", TypeName = "timestamp without time zone")]
     public DateTime? Optimise { get; set; }
 
     [Column("repasnuit")]

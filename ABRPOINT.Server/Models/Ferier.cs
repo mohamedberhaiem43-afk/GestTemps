@@ -17,7 +17,7 @@ public partial class Ferier : BaseEntity
     [StringLength(6)]
     public string? Soccod { get; set; }
 
-    [Column("ferdate", TypeName = "datetime")]
+    [Column("ferdate", TypeName = "timestamp without time zone")]
     public DateTime? Ferdate { get; set; }
 
     [Column("fermotif")]
@@ -39,6 +39,6 @@ public partial class Ferier : BaseEntity
     [StringLength(1)]
     public string? Fernpaye { get; set; }
 
-    [Column("fertrv", TypeName = "datetime")]
+    [Column("fertrv", TypeName = "timestamp without time zone")]
     public DateTime? Fertrv { get; set; }
 }

@@ -24,10 +24,10 @@ public partial class Lcategorie : BaseEntity
     [StringLength(2)]
     public string? Codposte { get; set; }
 
-    [Column("catdu", TypeName = "datetime")]
+    [Column("catdu", TypeName = "timestamp without time zone")]
     public DateTime? Catdu { get; set; }
 
-    [Column("catau", TypeName = "datetime")]
+    [Column("catau", TypeName = "timestamp without time zone")]
     public DateTime? Catau { get; set; }
 
     [Column("catfixe")]

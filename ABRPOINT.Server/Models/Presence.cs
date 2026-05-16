@@ -13,7 +13,7 @@ public partial class Presence : BaseEntity
     [StringLength(12)]
     public string? Empcod { get; set; }
 
-    [Column("predat", TypeName = "datetime")]
+    [Column("predat", TypeName = "timestamp without time zone")]
     public DateTime? Predat { get; set; }
 
     [Column("ordre")]
@@ -105,28 +105,28 @@ public partial class Presence : BaseEntity
     [Column("prerepas")]
     public float? Prerepas { get; set; }
 
-    [Column("preretmate", TypeName = "datetime")]
+    [Column("preretmate", TypeName = "timestamp without time zone")]
     public DateTime? Preretmate { get; set; }
 
-    [Column("preretmats", TypeName = "datetime")]
+    [Column("preretmats", TypeName = "timestamp without time zone")]
     public DateTime? Preretmats { get; set; }
 
-    [Column("preretame", TypeName = "datetime")]
+    [Column("preretame", TypeName = "timestamp without time zone")]
     public DateTime? Preretame { get; set; }
 
-    [Column("preretams", TypeName = "datetime")]
+    [Column("preretams", TypeName = "timestamp without time zone")]
     public DateTime? Preretams { get; set; }
 
-    [Column("preretmateup", TypeName = "datetime")]
+    [Column("preretmateup", TypeName = "timestamp without time zone")]
     public DateTime? Preretmateup { get; set; }
 
-    [Column("preretmatsup", TypeName = "datetime")]
+    [Column("preretmatsup", TypeName = "timestamp without time zone")]
     public DateTime? Preretmatsup { get; set; }
 
-    [Column("preretameup", TypeName = "datetime")]
+    [Column("preretameup", TypeName = "timestamp without time zone")]
     public DateTime? Preretameup { get; set; }
 
-    [Column("preretamsup", TypeName = "datetime")]
+    [Column("preretamsup", TypeName = "timestamp without time zone")]
     public DateTime? Preretamsup { get; set; }
 
     [Column("preavantent")]
@@ -161,7 +161,7 @@ public partial class Presence : BaseEntity
     [StringLength(20)]
     public string? Preobs { get; set; }
 
-    [Column("dmdate", TypeName = "datetime")]
+    [Column("dmdate", TypeName = "timestamp without time zone")]
     public DateTime? Dmdate { get; set; }
 
     [Column("catcod")]

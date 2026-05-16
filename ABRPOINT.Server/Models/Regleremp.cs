@@ -32,16 +32,16 @@ public partial class Regleremp : BaseEntity
     [Column("nopret")]
     public int? Nopret { get; set; }
 
-    [Column("datecheance", TypeName = "datetime")]
+    [Column("datecheance", TypeName = "timestamp without time zone")]
     public DateTime? Datecheance { get; set; }
 
     [Column("pretmnt")]
     public int? Pretmnt { get; set; }
 
-    [Column("regech", TypeName = "datetime")]
+    [Column("regech", TypeName = "timestamp without time zone")]
     public DateTime? Regech { get; set; }
 
-    [Column("regdat", TypeName = "datetime")]
+    [Column("regdat", TypeName = "timestamp without time zone")]
     public DateTime? Regdat { get; set; }
 
     [Column("regmnt")]

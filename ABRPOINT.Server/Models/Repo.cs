@@ -14,7 +14,7 @@ public partial class Repo : BaseEntity
     [StringLength(12)]
     public string? Empcod { get; set; }
 
-    [Column("predat", TypeName = "datetime")]
+    [Column("predat", TypeName = "timestamp without time zone")]
     public DateTime? Predat { get; set; }
 
     [Column("soccod")]
