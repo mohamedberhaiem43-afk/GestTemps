@@ -12,7 +12,6 @@ using ABRPOINT.Server.Models;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -1073,74 +1072,6 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
-
-        // PERF / SEC — `async void` était dangereux ici : les exceptions remontaient
-        // au SynchronizationContext (pouvant crasher le process) et le caller croyait
-        // l'opération synchrone, partant avant le SaveChanges. Conversion en
-        // `async Task` pour que les rares appelants puissent l'await proprement.
-        public async Task Update(Presence presence)
-        {
-            if (presence is null) return;
-            await CalculatePresenceAsync(presence);
-            _dbContext.Presences.Update(presence);
-            await _dbContext.SaveChangesAsync();
-        }
-        public async Task CalculatePresenceAsync(Presence presence)
-        {
-            var transaction = await _dbContext.Database.BeginTransactionAsync();
-
-            try
-            {
-                if (presence != null)
-                {
-                    // MIGRATION POSTGRES — calcul_impupd est installée idempotemment par
-                    // BaseDataSchemaMigrator.EnsureCalculImpupdProcedureAsync sur chaque
-                    // base tenant. ⚠ STUB : corps PL/pgSQL NOOP (RAISE WARNING uniquement),
-                    // les colonnes calculées de presence (tothre, tothsup, tothabs…) ne
-                    // sont pas mises à jour. Voir EnsureCalculImpupdProcedureAsync pour
-                    // la procédure de portage depuis le T-SQL [dbo].[calcul_impupd] original.
-                    var parameters = new[]
-                    {
-                        new NpgsqlParameter("psoccod",     presence.Soccod ?? (object)DBNull.Value),
-                        new NpgsqlParameter("psocmere",    presence.Soccod ?? (object)DBNull.Value),
-                        new NpgsqlParameter("psitcod",     presence.Sitcod ?? (object)DBNull.Value),
-                        new NpgsqlParameter("pannee",      presence.Predat?.Year.ToString() ?? (object)DBNull.Value),
-                        new NpgsqlParameter("pmois",       presence.Predat?.Month.ToString("00") ?? (object)DBNull.Value),
-                        new NpgsqlParameter("pmodcod",     presence.Preobs ?? "SYSTEM"),
-                        new NpgsqlParameter("puticod",     "API"),
-                        new NpgsqlParameter("pempcod",     presence.Empcod ?? (object)DBNull.Value),
-                        new NpgsqlParameter("pempreg",     presence.Empreg ?? "0"),
-                        new NpgsqlParameter("pfontype",    "1"),
-                        new NpgsqlParameter("pempnuit",    "0"),
-                        new NpgsqlParameter("pempmaxhre",  10.0),
-                        new NpgsqlParameter("pempminhjour", 4.0),
-                        new NpgsqlParameter("pcaltype",    "STANDARD"),
-                        new NpgsqlParameter("pdte",        presence.Predat ?? DateTime.Now),
-                        new NpgsqlParameter("pcatcod",     presence.Catcod ?? (object)DBNull.Value),
-                        new NpgsqlParameter("pcodposte",   presence.Codposte ?? (object)DBNull.Value),
-                        new NpgsqlParameter("pdtedeb",     presence.Predat ?? DateTime.Now),
-                        new NpgsqlParameter("pdtefin",     presence.Predat ?? DateTime.Now),
-                    };
-
-                    // CALL procName(positional_args) — équivalent Postgres de EXEC. Les noms
-                    // de paramètres sont positionnels ici ; Npgsql gère $1, $2... derrière.
-                    await _dbContext.Database.ExecuteSqlRawAsync(
-                        "CALL calcul_impupd(@psoccod, @psocmere, @psitcod, @pannee, @pmois, @pmodcod, @puticod, " +
-                        "@pempcod, @pempreg, @pfontype, @pempnuit, @pempmaxhre, @pempminhjour, @pcaltype, @pdte, @pcatcod, " +
-                        "@pcodposte, @pdtedeb, @pdtefin)",
-                        parameters);
-
-                    await _dbContext.Entry(presence).ReloadAsync();
-                    await transaction.CommitAsync();
-                }
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                throw new Exception("Error calculating presence", ex);
-            }
-        }
-
 
         private async Task<(double? nbHeurSupp, int nbRetard)> CalculateDayWorkMetrics(PresenceDto presence)
         {

@@ -9,7 +9,6 @@ namespace ABRPOINT.Server.Interfaces
         Task<IEnumerable<EtatEmpPresence>> GetAllAsync(string soccod, DateTime dateDebut, DateTime dateFin, string regime, List<string>empcods);
         Task<IEnumerable<Presence>> GetEmpEtatPeriodiqueAsync(string soccod, string empcod);
         Task<IEnumerable<PresenceDto>> GetEmpEtatPeriodiqueAsync(string soccod, string empcod, DateTime dateDebut, DateTime dateFin);
-        Task CalculatePresenceAsync(Presence presence);
         Task UpdateAsync(PresenceDto dbpresence);
         Task<PresenceDto> AddPresenceAsync(string soccod, string empcod, DateTime date, string poicod);
         Task<double?> GetPreRepasAsync(string empcod, DateTime? predate);
