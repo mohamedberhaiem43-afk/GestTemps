@@ -49,7 +49,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "docker-compose.yml,nginx.conf"
-          target: "/root/"
+          target: "/home/ubuntu/"
 
       # Secrets ATTENDUS côté GitHub (Settings → Secrets and variables → Actions) :
       #   POSTGRES_PASSWORD    — superuser PG (utilisé par le conteneur abrpoint.database
@@ -67,7 +67,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             umask 077
-            cat > /root/.env <<EOF
+            cat > /home/ubuntu/.env <<EOF
             POSTGRES_PASSWORD=$POSTGRES_PASSWORD
             OPENROUTER_API_KEY=$OPENROUTER_API_KEY
             SMTP_HOST=$SMTP_HOST
@@ -80,7 +80,7 @@ jobs:
             RAG_SIDECAR_KEY=$RAG_SIDECAR_KEY
             APK_URL=$APK_URL
             EOF
-            chmod 600 /root/.env
+            chmod 600 /home/ubuntu/.env
         env:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
@@ -104,5 +104,6 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/abrpoint-server:latest
             docker pull ${{ secrets.DOCKER_USERNAME }}/abrpoint-client:latest
             docker pull ${{ secrets.DOCKER_USERNAME }}/abrpoint-rag-svc:latest
-            docker compose --env-file /root/.env -f /root/docker-compose.yml down
-            docker compose --env-file /root/.env -f /root/docker-compose.yml up -d --force-recreate
+            docker compose --env-file /home/ubuntu/.env -f /home/ubuntu/docker-compose.yml down
+            docker compose --env-file /home/ubuntu/.env -f /home/ubuntu/docker-compose.yml up -d --force-recreate
+            docker image prune -f        # ← removes dangling images after each deploy
