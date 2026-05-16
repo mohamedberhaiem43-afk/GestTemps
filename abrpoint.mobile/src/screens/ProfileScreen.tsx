@@ -381,7 +381,7 @@ export default function ProfileScreen({ navigation, route }: any) {
                 </View>
               )}
             </View>
-            <Text style={styles.logoText}>Concorde Workforce</Text>
+            <Text style={styles.logoText}>Concorde Workly</Text>
           </View>
         ) : (
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.topAppLeft} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
