@@ -52,7 +52,7 @@ public sealed class ProvisioningService : IProvisioningService
         ValidateDbName(dbName);
         var connStr = GetTenantConnection(dbName);
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer(connStr, sql => sql.EnableRetryOnFailure())
+            .UseNpgsql(connStr, npg => npg.EnableRetryOnFailure())
             .Options;
 
         await using var db = new ApplicationDbContext(options);
@@ -71,7 +71,7 @@ public sealed class ProvisioningService : IProvisioningService
         ValidateDbName(tenant.DbName);
         var connStr = GetTenantConnection(tenant.DbName);
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer(connStr, sql => sql.EnableRetryOnFailure())
+            .UseNpgsql(connStr, npg => npg.EnableRetryOnFailure())
             .Options;
 
         await using var db = new ApplicationDbContext(options);

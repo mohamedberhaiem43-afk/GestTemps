@@ -25,7 +25,7 @@ public sealed class TenantDbContextFactory : ITenantDbContextFactory
 
     // PERF — Cache statique des DbContextOptions par connection string. Sans ça,
     // chaque Create() reconstruisait l'OptionsBuilder complet (parse de la connection
-    // string, configuration UseSqlServer, callbacks de retry) — coût mesurable quand
+    // string, configuration UseNpgsql, callbacks de retry) — coût mesurable quand
     // KnownDeviceService ou les hosted services appellent Create() en boucle.
     private static readonly ConcurrentDictionary<string, DbContextOptions<ApplicationDbContext>> _optionsCache
         = new(StringComparer.Ordinal);
@@ -51,7 +51,7 @@ public sealed class TenantDbContextFactory : ITenantDbContextFactory
 
         var options = _optionsCache.GetOrAdd(connStr, cs =>
             new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseSqlServer(cs, sql => sql.EnableRetryOnFailure())
+                .UseNpgsql(cs, npg => npg.EnableRetryOnFailure())
                 .Options);
 
         return new ApplicationDbContext(options);

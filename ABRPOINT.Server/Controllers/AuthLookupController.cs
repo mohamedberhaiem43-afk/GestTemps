@@ -81,7 +81,7 @@ public class AuthLookupController : ControllerBase
                 {
                     var connStr = template.Replace("{DbName}", t.DbName);
                     var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-                        .UseSqlServer(connStr, sql => sql.EnableRetryOnFailure())
+                        .UseNpgsql(connStr, npg => npg.EnableRetryOnFailure())
                         .Options;
                     await using var tdb = new ApplicationDbContext(options);
 
@@ -304,7 +304,7 @@ public class AuthLookupController : ControllerBase
             ?? throw new InvalidOperationException("TenantTemplate connection string manquante.");
         var connStr = template.Replace("{DbName}", dbName);
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer(connStr, sql => sql.EnableRetryOnFailure())
+            .UseNpgsql(connStr, npg => npg.EnableRetryOnFailure())
             .Options;
         return new ApplicationDbContext(options);
     }

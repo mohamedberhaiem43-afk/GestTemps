@@ -27,15 +27,29 @@
     <PackageReference Include="Microsoft.AspNetCore.SpaProxy">
       <Version>8.*-*</Version>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.7" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.7">
+    <!-- EF Core bumped 8.0.7 → 8.0.10 pour aligner sur la version requise par
+         Npgsql.EntityFrameworkCore.PostgreSQL 8.0.10 (sinon NU1605 downgrade). -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.7" />
+    <!-- Migration SQL Server → PostgreSQL : provider EF Core officiel maintenu par
+         Npgsql. La version doit suivre la majeure d'EF Core (EF 8 → Npgsql 8.x). -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.10" />
+    <!-- TRANSITION : ces deux packages étaient des transitives de
+         Microsoft.EntityFrameworkCore.SqlServer. On les garde EXPLICITEMENT pour
+         que le code raw-SQL (ProvisioningService, BaseDataSchemaMigrator,
+         ReportsGenerationService, PresenceRepository) continue de compiler le
+         temps de Stage 2/3 de la migration Postgres. Une fois ces fichiers
+         réécrits en Postgres natif (Npgsql + information_schema), ces deux
+         références doivent être SUPPRIMÉES — sinon Microsoft.Data.SqlClient
+         reste embarqué dans l'image pour rien (~12 Mo). -->
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.5" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.61.3" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.10.0" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.7">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.10">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

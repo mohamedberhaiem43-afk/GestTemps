@@ -28,11 +28,15 @@ builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new 
 var dbHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
 var dbName = Environment.GetEnvironmentVariable("DB_NAME");
 var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
-var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? "sa";
+// Postgres : superuser par défaut "postgres". Anciennement "sa" pour SQL Server.
+var dbUser = Environment.GetEnvironmentVariable("DB_USER") ?? "postgres";
 
 
+// Format Npgsql : Host=...;Database=...;Username=...;Password=...
+// Plus de TrustServerCertificate (option SQL Server-only). Pour TLS Postgres,
+// utiliser "SSL Mode=Require;Trust Server Certificate=True" (espace, pas underscore).
 var connectionString = !string.IsNullOrWhiteSpace(dbName) && !string.IsNullOrWhiteSpace(dbPassword)
-    ? $"Server={dbHost};Database={dbName};User Id={dbUser};Password={dbPassword};TrustServerCertificate=True;"
+    ? $"Host={dbHost};Database={dbName};Username={dbUser};Password={dbPassword}"
     : builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("A database connection string could not be resolved.");
 
@@ -44,7 +48,7 @@ var connectionString = !string.IsNullOrWhiteSpace(dbName) && !string.IsNullOrWhi
 //
 // PERF — Pooling des DbContextOptions par connection string. Avant, chaque requête HTTP
 // reconstruisait un `DbContextOptionsBuilder<>` complet (parse de la connection string,
-// configuration UseSqlServer, callbacks de retry) — coût mesurable sur ~100 req/s ×
+// configuration UseNpgsql, callbacks de retry) — coût mesurable sur ~100 req/s ×
 // 50 tenants. Maintenant on cache les `DbContextOptions` finis dans un ConcurrentDictionary
 // indexé par connection string : lookup O(1), construction unique par tenant.
 var _dbOptionsCache = new System.Collections.Concurrent.ConcurrentDictionary<string, DbContextOptions<ApplicationDbContext>>(StringComparer.Ordinal);
@@ -67,7 +71,7 @@ builder.Services.AddScoped<ApplicationDbContext>(sp =>
 
     var options = _dbOptionsCache.GetOrAdd(resolvedConnStr, cs =>
         new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer(cs, sql => sql.EnableRetryOnFailure())
+            .UseNpgsql(cs, npg => npg.EnableRetryOnFailure())
             .Options);
     return new ApplicationDbContext(options);
 });
@@ -85,7 +89,7 @@ var masterConnection = builder.Configuration.GetConnectionString("MasterConnecti
 if (!string.IsNullOrWhiteSpace(masterConnection))
 {
     builder.Services.AddDbContextFactory<MasterDbContext>(options =>
-        options.UseSqlServer(masterConnection, sql => sql.EnableRetryOnFailure()));
+        options.UseNpgsql(masterConnection, npg => npg.EnableRetryOnFailure()));
 
     builder.Services.AddSingleton<ICurrentTenant, AsyncLocalCurrentTenant>();
     builder.Services.AddScoped<ITenantStore, TenantStore>();
