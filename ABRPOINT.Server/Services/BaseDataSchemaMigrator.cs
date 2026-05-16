@@ -112,7 +112,76 @@ public static class BaseDataSchemaMigrator
         // PERF — Indexes critiques sur les hot-paths.
         await EnsurePerformanceIndexesAsync(db, ct);
 
+        // STUB calcul_impupd : procédure stockée appelée par PresenceRepository.CalculatePresenceAsync.
+        // Tant que le source T-SQL original n'a pas été porté, on installe un stub NOOP qui RAISE
+        // WARNING — le pointage fonctionne, mais les heures calculées ne sont pas mises à jour.
+        await EnsureCalculImpupdProcedureAsync(db, ct);
+
         return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission, rttColumnsAdded, ragTablesCreated, missionDevise, nfDevise, siteGeofenceAdded, refreshTokenColumnsAdded);
+    }
+
+    /// <summary>
+    /// MIGRATION POSTGRES — Installe un STUB NOOP de la procédure stockée `calcul_impupd`,
+    /// appelée par <see cref="ABRPOINT.Server.Repository.PresenceRepository.CalculatePresenceAsync"/>.
+    ///
+    /// La procédure T-SQL originale (`[dbo].[calcul_impupd]`) n'a jamais été commitée dans
+    /// le repo — elle vivait directement sur le serveur SQL. Sans elle, chaque pointage
+    /// crashait avec "function calcul_impupd does not exist". Ce stub évite le crash, mais
+    /// les colonnes calculées de `presence` (tothre, tothsup, tothabs, etc.) ne sont plus
+    /// mises à jour — l'utilisateur voit "0 heures" pour les pointages du jour.
+    ///
+    /// QUAND TU AURAS LE SOURCE T-SQL :
+    ///   1. `SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.calcul_impupd'))` sur l'ancienne SQL Server.
+    ///   2. Traduire en PL/pgSQL : DECLARE/BEGIN inchangés, mais
+    ///      - `[dbo].table` → `table` (pas de schéma `dbo` en PG)
+    ///      - `@var` (T-SQL local) → `var` (PG sans préfixe)
+    ///      - `IF @x = 1 BEGIN ... END` → `IF x = 1 THEN ... END IF;`
+    ///      - `GETUTCDATE()` → `(NOW() AT TIME ZONE 'UTC')`
+    ///      - `ISNULL(a, b)` → `COALESCE(a, b)`
+    ///      - `LEN(s)` → `length(s)`, `SUBSTRING` → `substring`
+    ///      - `SELECT @x = col FROM t WHERE …` → `SELECT col INTO x FROM t WHERE … LIMIT 1;`
+    ///      - cursors `DECLARE c CURSOR FOR …` → `FOR rec IN SELECT … LOOP … END LOOP;` (plus PG-idiomatique)
+    ///   3. Remplacer le body de cette méthode par le CREATE OR REPLACE PROCEDURE complet.
+    ///   4. Tester sur une base tenant_dev avant de push.
+    ///
+    /// Signature (19 paramètres) inférée depuis l'appel C# dans PresenceRepository.cs:1102.
+    /// </summary>
+    private static async Task EnsureCalculImpupdProcedureAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        // Idempotent — CREATE OR REPLACE PROCEDURE rejoue silencieusement à chaque boot.
+        // Types PG choisis pour matcher Npgsql.NET → PG par défaut :
+        //   string → TEXT ; double → DOUBLE PRECISION ; DateTime → TIMESTAMP.
+        // Pas de TEXT vs VARCHAR ici : PG les traite de façon équivalente en paramètres.
+        const string stub = @"
+CREATE OR REPLACE PROCEDURE calcul_impupd(
+    psoccod      TEXT,
+    psocmere     TEXT,
+    psitcod      TEXT,
+    pannee       TEXT,
+    pmois        TEXT,
+    pmodcod      TEXT,
+    puticod      TEXT,
+    pempcod      TEXT,
+    pempreg      TEXT,
+    pfontype     TEXT,
+    pempnuit     TEXT,
+    pempmaxhre   DOUBLE PRECISION,
+    pempminhjour DOUBLE PRECISION,
+    pcaltype     TEXT,
+    pdte         TIMESTAMP,
+    pcatcod      TEXT,
+    pcodposte    TEXT,
+    pdtedeb      TIMESTAMP,
+    pdtefin      TIMESTAMP
+)
+LANGUAGE plpgsql AS $stub$
+BEGIN
+    -- STUB temporaire — corps réel à porter depuis l'ancienne T-SQL [dbo].[calcul_impupd].
+    -- Voir BaseDataSchemaMigrator.EnsureCalculImpupdProcedureAsync pour la procédure de remplacement.
+    RAISE WARNING '[STUB calcul_impupd] empcod=% date=% — heures NON calculées (procédure pas encore portée depuis T-SQL)', pempcod, pdte;
+END;
+$stub$;";
+        await db.Database.ExecuteSqlRawAsync(stub, ct);
     }
 
     /// <summary>

@@ -1093,12 +1093,12 @@ namespace ABRPOINT.Server.Repository
             {
                 if (presence != null)
                 {
-                    // MIGRATION POSTGRES — TODO : la procédure stockée calcul_impupd existait
-                    // en T-SQL (`[dbo].[calcul_impupd]`). Pour PostgreSQL elle doit être
-                    // portée en PL/pgSQL (CREATE PROCEDURE calcul_impupd(...) LANGUAGE plpgsql).
-                    // Tant que la fonction n'est pas portée, cet appel échouera au runtime
-                    // (erreur "function calcul_impupd does not exist") — c'est intentionnel
-                    // pour éviter de masquer silencieusement la non-disponibilité du calcul.
+                    // MIGRATION POSTGRES — calcul_impupd est installée idempotemment par
+                    // BaseDataSchemaMigrator.EnsureCalculImpupdProcedureAsync sur chaque
+                    // base tenant. ⚠ STUB : corps PL/pgSQL NOOP (RAISE WARNING uniquement),
+                    // les colonnes calculées de presence (tothre, tothsup, tothabs…) ne
+                    // sont pas mises à jour. Voir EnsureCalculImpupdProcedureAsync pour
+                    // la procédure de portage depuis le T-SQL [dbo].[calcul_impupd] original.
                     var parameters = new[]
                     {
                         new NpgsqlParameter("psoccod",     presence.Soccod ?? (object)DBNull.Value),
