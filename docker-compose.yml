@@ -101,7 +101,7 @@ services:
       DatabaseInitialization__AdminEmail: "admin@abrpoint.local"
       DatabaseInitialization__AdminPassword: "123"
       DatabaseInitialization__ApplicationCode: "GRH"
-      OpenRouter__ApiKey: "${OPENROUTER_API_KEY:-}"
+      OpenRouter__ApiKey: "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"
       Rag__Enabled: "true"
       Rag__Sidecar__BaseUrl: "http://rag-svc:8080"
       Rag__Sidecar__ApiKey: "${RAG_SIDECAR_KEY:-}"
@@ -110,7 +110,7 @@ services:
       Smtp__Host: "${SMTP_HOST:-ssl0.ovh.net}"
       Smtp__Port: "${SMTP_PORT:-587}"
       Smtp__Username: "${SMTP_USERNAME:-}"
-      Smtp__Password: "${SMTP_PASSWORD:-}"
+      Smtp__Password: "Concorde@2026!"
       Smtp__FromName: "${SMTP_FROM_NAME:-Concorde Work Force}"
       Smtp__FromEmail: "${SMTP_FROM_EMAIL:-}"
       Smtp__EnableSsl: "true"
@@ -122,7 +122,7 @@ services:
       Encryption__AesKey: "Uek5dDP1/DJxgkx732A1AZ1VvgHFByCIZH1ZXEo7pUs="
       Stripe__SecretKey: "sk_test_51TNzqyFhqIQIXNC2vuCjOBNzypZjyYB36mhcHUM0awKv3xXVjmTVSeg53XCpY8qeST41rqK1SUEn0qOo13mZB1v000qq6Wkthi"
       Stripe__WebhookSecret: "sk_test_51TNzqyFhqIQIXNC2vuCjOBNzypZjyYB36mhcHUM0awKv3xXVjmTVSeg53XCpY8qeST41rqK1SUEn0qOo13mZB1v000qq6Wkthi"
-      Gemini__ApiKey: "AIza..."
+      Gemini__ApiKey: "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"
     depends_on:
       abrpoint.database:
         condition: service_healthy
