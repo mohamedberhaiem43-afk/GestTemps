@@ -343,6 +343,282 @@ public sealed class StripeBillingService : IBillingService
         }
     }
 
+    public async Task<PlanChangePreview> PreviewPlanChangeAsync(
+        Tenant tenant,
+        string newPlanCode,
+        string billingCycle,
+        int billedSeats,
+        CancellationToken ct = default)
+    {
+        var canonicalNew = ABRPOINT.Server.Tenancy.PlanCatalog.Normalize(newPlanCode);
+        var newPlan = ABRPOINT.Server.Tenancy.PlanCatalog.GetPlan(canonicalNew);
+        if (newPlan == null)
+            return new PlanChangePreview(false, tenant.PlanCode ?? "", newPlanCode,
+                null, null, null, null, "Plan inconnu.");
+
+        if (!_opts.IsConfigured)
+            return new PlanChangePreview(false, tenant.PlanCode ?? "", canonicalNew,
+                null, null, null, null, "Stripe non configuré.");
+
+        if (string.IsNullOrEmpty(tenant.StripeSubscriptionId))
+            return new PlanChangePreview(false, tenant.PlanCode ?? "", canonicalNew,
+                null, null, null, null, "Aucun abonnement Stripe actif (passez par /checkout).");
+
+        if (string.Equals(canonicalNew, ABRPOINT.Server.Tenancy.PlanCatalog.Normalize(tenant.PlanCode), StringComparison.OrdinalIgnoreCase))
+            return new PlanChangePreview(false, tenant.PlanCode ?? "", canonicalNew,
+                null, null, null, null, "Vous êtes déjà sur ce plan.");
+
+        var newBasePriceId = ResolvePriceId(canonicalNew, "base", billingCycle);
+        var newSeatPriceId = ResolvePriceId(canonicalNew, "seat", billingCycle);
+        if (string.IsNullOrEmpty(newBasePriceId))
+            return new PlanChangePreview(false, tenant.PlanCode ?? "", canonicalNew,
+                null, null, null, null, "Prix Stripe manquant pour ce plan.");
+
+        try
+        {
+            // On reconstruit le mapping (base, seat) → (item.Id existant) pour pouvoir muter
+            // en place sans créer de nouveaux items orphelins. Sans l'expand items.data.price,
+            // Stripe ne renvoie pas le Recurring.Interval ni le metadata du Price.
+            var sub = await _subscriptions.GetAsync(
+                tenant.StripeSubscriptionId,
+                new SubscriptionGetOptions { Expand = new List<string> { "items.data.price" } },
+                cancellationToken: ct);
+
+            var proposedItems = BuildProposedItems(sub, newPlan, newBasePriceId, newSeatPriceId, billedSeats);
+
+            // InvoiceService.UpcomingAsync simule la prochaine facture comme si la sub avait
+            // déjà été update avec ces items + proration. Sans cet endpoint, on devrait
+            // calculer le proration à la main (durée restante × différentiel) — fragile.
+            var invoiceService = new InvoiceService();
+            var upcoming = await invoiceService.UpcomingAsync(new UpcomingInvoiceOptions
+            {
+                Customer = tenant.StripeCustomerId,
+                Subscription = tenant.StripeSubscriptionId,
+                SubscriptionItems = proposedItems
+                    .Select(i => new InvoiceSubscriptionItemOptions
+                    {
+                        Id = i.Id,
+                        Price = i.Price,
+                        Quantity = i.Quantity,
+                        Deleted = i.Deleted,
+                    })
+                    .ToList(),
+                SubscriptionProrationBehavior = "create_prorations",
+                SubscriptionProrationDate = DateTime.UtcNow,
+            }, cancellationToken: ct);
+
+            // Proration = somme des lignes proration (positives = à facturer, négatives = crédit).
+            // Le reste = lignes du nouveau cycle qui sont reproduites sur l'upcoming. On les exclut.
+            var prorationMinor = upcoming.Lines?.Data?
+                .Where(l => l.Proration)
+                .Sum(l => l.Amount) ?? 0;
+
+            return new PlanChangePreview(
+                Available: true,
+                CurrentPlan: ABRPOINT.Server.Tenancy.PlanCatalog.Normalize(tenant.PlanCode),
+                NewPlan: canonicalNew,
+                ProrationAmount: prorationMinor / 100m,
+                Currency: upcoming.Currency,
+                NextInvoiceAt: upcoming.PeriodEnd != default ? upcoming.PeriodEnd : (DateTime?)null,
+                NextInvoiceTotal: upcoming.AmountDue / 100m,
+                UnavailableReason: null);
+        }
+        catch (StripeException ex)
+        {
+            _log.LogWarning(ex, "Preview plan change failed pour tenant {Slug}. Code={Code}", tenant.Slug, ex.StripeError?.Code);
+            return new PlanChangePreview(false, tenant.PlanCode ?? "", canonicalNew,
+                null, null, null, null, "Stripe a refusé la simulation : " + (ex.StripeError?.Code ?? "erreur inconnue"));
+        }
+    }
+
+    public async Task<ChangePlanResult> ChangePlanAsync(
+        Tenant tenant,
+        string newPlanCode,
+        string billingCycle,
+        int billedSeats,
+        CancellationToken ct = default)
+    {
+        var canonicalNew = ABRPOINT.Server.Tenancy.PlanCatalog.Normalize(newPlanCode);
+        var newPlan = ABRPOINT.Server.Tenancy.PlanCatalog.GetPlan(canonicalNew);
+        if (newPlan == null)
+            return new ChangePlanResult(false, tenant.PlanCode, newPlanCode, null, null, null, "Plan inconnu.");
+
+        if (!_opts.IsConfigured)
+            return new ChangePlanResult(false, tenant.PlanCode, canonicalNew, null, null, null, "Stripe non configuré.");
+
+        if (string.IsNullOrEmpty(tenant.StripeSubscriptionId))
+            return new ChangePlanResult(false, tenant.PlanCode, canonicalNew, null, null, null,
+                "Aucun abonnement actif. Lancez un Stripe Checkout pour ce plan.");
+
+        if (string.Equals(canonicalNew, ABRPOINT.Server.Tenancy.PlanCatalog.Normalize(tenant.PlanCode), StringComparison.OrdinalIgnoreCase))
+            return new ChangePlanResult(false, tenant.PlanCode, canonicalNew, null, null, null, "Vous êtes déjà sur ce plan.");
+
+        var newBasePriceId = ResolvePriceId(canonicalNew, "base", billingCycle);
+        var newSeatPriceId = ResolvePriceId(canonicalNew, "seat", billingCycle);
+        if (string.IsNullOrEmpty(newBasePriceId))
+            return new ChangePlanResult(false, tenant.PlanCode, canonicalNew, null, null, null,
+                "Prix Stripe manquant pour ce plan.");
+
+        try
+        {
+            var sub = await _subscriptions.GetAsync(
+                tenant.StripeSubscriptionId,
+                new SubscriptionGetOptions { Expand = new List<string> { "items.data.price" } },
+                cancellationToken: ct);
+
+            var proposedItems = BuildProposedItems(sub, newPlan, newBasePriceId, newSeatPriceId, billedSeats);
+
+            // proration_behavior=create_prorations : Stripe AJOUTE les lignes de proration à
+            // la prochaine facture régulière (pas de prélèvement immédiat). Alternative
+            // "always_invoice" facture tout de suite — on l'évite pour éviter une fenêtre
+            // de paiement qui peut échouer (3DS, fonds insuffisants…) entre l'admin qui
+            // clique et la confirmation Stripe.
+            var idempotencyKey = ComputePlanChangeIdempotencyKey(tenant.Id, canonicalNew, billingCycle, billedSeats);
+
+            var updated = await _subscriptions.UpdateAsync(
+                tenant.StripeSubscriptionId,
+                new SubscriptionUpdateOptions
+                {
+                    Items = proposedItems,
+                    ProrationBehavior = "create_prorations",
+                    ProrationDate = DateTime.UtcNow,
+                    Metadata = new Dictionary<string, string>
+                    {
+                        ["plan"] = canonicalNew,
+                        ["cycle"] = (billingCycle ?? "monthly").ToLowerInvariant(),
+                        ["last_change_at"] = DateTime.UtcNow.ToString("o", System.Globalization.CultureInfo.InvariantCulture),
+                    },
+                },
+                new RequestOptions { IdempotencyKey = idempotencyKey },
+                cancellationToken: ct);
+
+            // On lit la facture upcoming une seconde fois POUR EXTRAIRE le net du proration,
+            // qui n'est pas renvoyé directement par Subscription.UpdateAsync. Coût : 1 appel
+            // API en plus, mais ça permet de renvoyer un montant chiffré à l'UI ("différentiel
+            // de 18.40€ ajouté à votre prochaine facture du 12 juin").
+            decimal? netMajor = null;
+            string? currency = null;
+            DateTime? nextInvoiceAt = null;
+            try
+            {
+                var invoiceService = new InvoiceService();
+                var upcoming = await invoiceService.UpcomingAsync(new UpcomingInvoiceOptions
+                {
+                    Customer = tenant.StripeCustomerId,
+                    Subscription = tenant.StripeSubscriptionId,
+                }, cancellationToken: ct);
+                var prorationMinor = upcoming.Lines?.Data?
+                    .Where(l => l.Proration)
+                    .Sum(l => l.Amount) ?? 0;
+                netMajor = prorationMinor / 100m;
+                currency = upcoming.Currency;
+                nextInvoiceAt = upcoming.PeriodEnd != default ? upcoming.PeriodEnd : (DateTime?)null;
+            }
+            catch (StripeException ex)
+            {
+                // Le change a réussi ; on n'a juste pas pu lire la preview après. Log et continue.
+                _log.LogWarning(ex,
+                    "ChangePlan : update OK mais lecture upcoming invoice échouée pour {Slug}.",
+                    tenant.Slug);
+            }
+
+            // Mise à jour locale du Tenant.PlanCode. Le webhook customer.subscription.updated
+            // pourrait faire ça aussi, mais on le fait synchrone ici pour que la prochaine
+            // requête voit le bon PlanCode (sinon fenêtre 1-10s où l'UI affiche encore l'ancien).
+            var previousPlan = tenant.PlanCode;
+            await using (var master = await _masterFactory.CreateDbContextAsync(ct))
+            {
+                var managed = await master.Tenants.FirstOrDefaultAsync(t => t.Id == tenant.Id, ct);
+                if (managed != null)
+                {
+                    managed.PlanCode = canonicalNew;
+                    if (updated.CurrentPeriodEnd != default) managed.CurrentPeriodEndsAt = updated.CurrentPeriodEnd;
+                    await master.SaveChangesAsync(ct);
+                    _store.Invalidate(managed.Slug);
+                }
+            }
+
+            _log.LogInformation(
+                "Tenant {Slug} : plan {Prev} → {Next} (subscription={SubId}, proration={Net} {Cur}).",
+                tenant.Slug, previousPlan, canonicalNew, tenant.StripeSubscriptionId, netMajor, currency ?? "-");
+
+            return new ChangePlanResult(
+                Success: true,
+                PreviousPlan: previousPlan,
+                NewPlan: canonicalNew,
+                NetAmountOnNextInvoice: netMajor,
+                Currency: currency,
+                NextInvoiceAt: nextInvoiceAt,
+                ErrorMessage: null);
+        }
+        catch (StripeException ex)
+        {
+            _log.LogError(ex, "ChangePlan Stripe échoué pour tenant {Slug}. Code={Code}",
+                tenant.Slug, ex.StripeError?.Code);
+            return new ChangePlanResult(false, tenant.PlanCode, canonicalNew, null, null, null,
+                "Stripe a refusé le changement de plan. Réessayez plus tard ou contactez le support.");
+        }
+    }
+
+    /// <summary>
+    /// Construit la liste d'items à passer à Subscription.UpdateAsync (et à
+    /// Invoice.UpcomingAsync). On mute IN PLACE les items existants (Id préservé) pour
+    /// changer leur Price et Quantity sans en créer de nouveaux ni orphelinser les
+    /// anciens. Les items présents dans la subscription mais absents du nouveau plan
+    /// sont marqués Deleted=true.
+    /// </summary>
+    private static List<SubscriptionItemOptions> BuildProposedItems(
+        Subscription sub,
+        ABRPOINT.Server.Tenancy.PlanDefinition newPlan,
+        string newBasePriceId,
+        string? newSeatPriceId,
+        int billedSeats)
+    {
+        var existingItems = sub.Items?.Data ?? new List<SubscriptionItem>();
+        // Heuristique : on identifie les items existants par recurring usage_type / interval
+        // n'est pas disponible — on s'appuie sur l'ordre commercial historique (1er item = base,
+        // 2e = seat). Plus robuste : inspecter le nom du price ou un metadata, mais le modèle
+        // V2 garantit que toutes les subs créées via CreateCustomerAndTrialAsync ont items[0]=base
+        // et items[1]=seat (cf. ce fichier l. 80-83).
+        var baseItem = existingItems.FirstOrDefault();
+        var seatItem = existingItems.Skip(1).FirstOrDefault();
+
+        var newSeatQty = Math.Max(0, billedSeats - newPlan.IncludedEmployees);
+
+        var result = new List<SubscriptionItemOptions>();
+        if (baseItem != null)
+            result.Add(new SubscriptionItemOptions { Id = baseItem.Id, Price = newBasePriceId, Quantity = 1 });
+        else
+            result.Add(new SubscriptionItemOptions { Price = newBasePriceId, Quantity = 1 });
+
+        if (!string.IsNullOrEmpty(newSeatPriceId))
+        {
+            if (seatItem != null)
+                result.Add(new SubscriptionItemOptions { Id = seatItem.Id, Price = newSeatPriceId, Quantity = newSeatQty });
+            else if (newSeatQty > 0)
+                result.Add(new SubscriptionItemOptions { Price = newSeatPriceId, Quantity = newSeatQty });
+        }
+        else if (seatItem != null)
+        {
+            // Le nouveau plan n'a pas de price seat configuré → on supprime l'item existant.
+            result.Add(new SubscriptionItemOptions { Id = seatItem.Id, Deleted = true });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Idempotency-Key Stripe pour ChangePlan, équivalent de la clé Checkout. Bucket
+    /// 1 minute = un double-clic produit la même clé, deux changements espacés produisent
+    /// des clés distinctes.
+    /// </summary>
+    private static string ComputePlanChangeIdempotencyKey(Guid tenantId, string planCode, string cycle, int seats)
+    {
+        var bucket = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 60;
+        var raw = $"chgplan:{tenantId}:{planCode}:{cycle}:{seats}:{bucket}";
+        var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(raw));
+        return Convert.ToHexString(bytes).Substring(0, 32).ToLowerInvariant();
+    }
+
     public async Task<bool> ResumeSubscriptionAsync(Tenant tenant, CancellationToken ct = default)
     {
         if (!_opts.IsConfigured || string.IsNullOrEmpty(tenant.StripeSubscriptionId))

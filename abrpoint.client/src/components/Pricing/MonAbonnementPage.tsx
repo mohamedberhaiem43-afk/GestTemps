@@ -9,6 +9,7 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { useNavigate } from 'react-router-dom';
 import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
+import ChangePlanModal from './ChangePlanModal';
 
 interface SubscriptionInfo {
   slug: string;
@@ -54,6 +55,7 @@ export default function MonAbonnementPage() {
   const [cancelReason, setCancelReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [changePlanOpen, setChangePlanOpen] = useState(false);
 
   const fetchInfo = async () => {
     setLoading(true);
@@ -261,7 +263,16 @@ export default function MonAbonnementPage() {
             <Button
               variant="contained"
               startIcon={<RocketLaunchIcon />}
-              onClick={() => navigate('/dashboard/plan-configuration')}
+              onClick={() => {
+                // Active/Trialing avec subscription Stripe : on mute en place via le modal
+                // (Subscription.UpdateAsync + proration). Sinon (PendingPayment, Suspended,
+                // ou pas de subscription) : on relance un Checkout complet.
+                const canMutateInPlace =
+                  info?.hasActiveStripeSubscription === true &&
+                  (info?.status === 'Active' || info?.status === 'Trialing');
+                if (canMutateInPlace) setChangePlanOpen(true);
+                else navigate('/dashboard/plan-configuration');
+              }}
               sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3 }}
             >
               Changer de formule
@@ -390,6 +401,17 @@ export default function MonAbonnementPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ChangePlanModal
+        open={changePlanOpen}
+        onClose={() => setChangePlanOpen(false)}
+        currentPlan={info?.planCode ?? null}
+        onSuccess={(newPlan) => {
+          setChangePlanOpen(false);
+          setSuccessMsg(`Votre formule a été changée pour ${newPlan}. Le différentiel est ajusté sur votre prochaine facture.`);
+          fetchInfo();
+        }}
+      />
     </Box>
   );
 }

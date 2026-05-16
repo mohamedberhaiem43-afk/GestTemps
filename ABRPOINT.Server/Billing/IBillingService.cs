@@ -58,6 +58,35 @@ public interface IBillingService
     /// est définitivement supprimée par Stripe et seul un nouveau Checkout peut la recréer.
     /// </summary>
     Task<bool> ResumeSubscriptionAsync(Tenant tenant, CancellationToken ct = default);
+
+    /// <summary>
+    /// Change le plan d'un tenant avec abonnement Stripe actif. Met à jour en place les
+    /// items de la subscription (price de base + price seat + quantité seat recalculée
+    /// pour le nouvel "included") avec <c>proration_behavior=create_prorations</c> : Stripe
+    /// crédite ou facture le différentiel sur la PROCHAINE facture (pas de prélèvement
+    /// immédiat). L'accès aux features change instantanément côté app via Tenant.PlanCode.
+    /// Upgrade et downgrade utilisent le même endpoint — la sémantique commerciale dépend
+    /// du sens (montant > 0 = à payer, montant &lt; 0 = crédité).
+    /// </summary>
+    Task<ChangePlanResult> ChangePlanAsync(
+        Tenant tenant,
+        string newPlanCode,
+        string billingCycle,
+        int billedSeats,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Calcule (sans appliquer) le coût du changement de plan. Appelle Stripe
+    /// <c>Invoice.UpcomingAsync</c> avec les items proposés + proration. Permet au
+    /// frontend d'afficher "Vous serez crédité 12.40 EUR sur votre prochaine facture
+    /// du 15 juin" AVANT que l'admin clique sur Confirmer.
+    /// </summary>
+    Task<PlanChangePreview> PreviewPlanChangeAsync(
+        Tenant tenant,
+        string newPlanCode,
+        string billingCycle,
+        int billedSeats,
+        CancellationToken ct = default);
 }
 
 public sealed record BillingProvisionResult(
@@ -75,3 +104,32 @@ public sealed record CancellationResult(
     bool Prorated = false,
     decimal? RefundedAmount = null,
     string? RefundCurrency = null);
+
+/// <summary>
+/// Résultat de l'application d'un changement de plan. <c>NetAmountOnNextInvoice</c>
+/// est en unité majeure (EUR, pas centimes) et signé : positif si l'admin sera
+/// facturé du différentiel sur la prochaine facture (upgrade), négatif si du crédit
+/// est appliqué (downgrade).
+/// </summary>
+public sealed record ChangePlanResult(
+    bool Success,
+    string? PreviousPlan,
+    string? NewPlan,
+    decimal? NetAmountOnNextInvoice,
+    string? Currency,
+    DateTime? NextInvoiceAt,
+    string? ErrorMessage);
+
+/// <summary>
+/// Preview chiffré d'un changement de plan, calculé sans modifier la subscription.
+/// Reflète exactement ce que Stripe facturera/créditera si l'admin confirme.
+/// </summary>
+public sealed record PlanChangePreview(
+    bool Available,
+    string CurrentPlan,
+    string NewPlan,
+    decimal? ProrationAmount,
+    string? Currency,
+    DateTime? NextInvoiceAt,
+    decimal? NextInvoiceTotal,
+    string? UnavailableReason);
