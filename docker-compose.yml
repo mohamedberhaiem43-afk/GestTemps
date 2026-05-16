@@ -51,7 +51,7 @@ services:
 
   abrpoint.server:
     container_name: abrpoint.server
-    image: mohamedbenrhaiem2003/abrpoint-server:latest
+    image: mohamedbenrhaiem2003/abrpoint-server
     volumes:
       - uploads_data:/app/uploads
     environment:
