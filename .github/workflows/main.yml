@@ -106,3 +106,4 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/abrpoint-rag-svc:latest
             docker compose --env-file /root/.env -f /root/docker-compose.yml down
             docker compose --env-file /root/.env -f /root/docker-compose.yml up -d --force-recreate
+            docker image prune -f        # ← removes dangling images after each deploy
