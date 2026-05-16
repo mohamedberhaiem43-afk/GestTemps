@@ -1,30 +1,37 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Backup quotidien : volume uploads_data + SQL master + tous les SQL tenants
+# Backup quotidien : volume uploads_data + dump master + dump tous les tenants
 #
 # - Pré-requis : exécuté sur l'hôte Docker, avec accès au socket docker.
 # - Sortie : fichiers dans BACKUP_DIR (env var ou /var/backups/abrpoint par défaut)
 # - Rotation : conserve les 7 derniers jours quotidiens + 4 hebdo + 6 mensuels.
 # - À planifier via cron : `0 3 * * * /opt/abrpoint/scripts/backup.sh >> /var/log/abrpoint-backup.log 2>&1`
 #
+# Migré SQL Server → PostgreSQL :
+#   - sqlcmd BACKUP DATABASE → pg_dump (format custom -Fc, le plus compact + portable)
+#   - SA_PASSWORD → POSTGRES_PASSWORD
+#   - sys.databases LIKE 'ABRPOINT%' → pg_database lookup avec préfixe tenant_ ou nom master
+#
 # Variables d'environnement :
-#   BACKUP_DIR        Dossier de sortie (défaut: /var/backups/abrpoint)
-#   SQL_SA_PASSWORD   Mot de passe SA SQL Server (depuis docker-compose.yml)
-#   DB_CONTAINER      Nom du conteneur SQL (défaut: abrpoint.database)
-#   SERVER_CONTAINER  Nom du conteneur backend (défaut: abrpoint.server)
+#   BACKUP_DIR          Dossier de sortie (défaut: /var/backups/abrpoint)
+#   POSTGRES_PASSWORD   Mot de passe du superuser Postgres (depuis docker-compose.yml)
+#   POSTGRES_USER       User Postgres (défaut: abrpoint)
+#   DB_CONTAINER        Nom du conteneur Postgres (défaut: abrpoint.database)
+#   SERVER_CONTAINER    Nom du conteneur backend (défaut: abrpoint.server)
 # =============================================================================
 
 set -euo pipefail
 
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/abrpoint}"
-SQL_SA_PASSWORD="${SQL_SA_PASSWORD:-}"
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-}"
+POSTGRES_USER="${POSTGRES_USER:-abrpoint}"
 DB_CONTAINER="${DB_CONTAINER:-abrpoint.database}"
 SERVER_CONTAINER="${SERVER_CONTAINER:-abrpoint.server}"
 TIMESTAMP="$(date +%F_%H%M%S)"
 DAY_DIR="${BACKUP_DIR}/daily/${TIMESTAMP}"
 
-if [[ -z "$SQL_SA_PASSWORD" ]]; then
-  echo "[ERR] SQL_SA_PASSWORD env var requise — abandon." >&2
+if [[ -z "$POSTGRES_PASSWORD" ]]; then
+  echo "[ERR] POSTGRES_PASSWORD env var requise — abandon." >&2
   exit 1
 fi
 
@@ -42,29 +49,32 @@ docker run --rm \
   alpine:3 \
   sh -c "tar czf /backup/uploads.tar.gz -C /data ."
 
-# ── 2. SQL : list databases (master + tous les tenants ABRPOINT*) ─────────────
-echo "[$(date -Iseconds)] Énumération bases SQL"
-DBS=$(docker exec -i "$DB_CONTAINER" /opt/mssql-tools18/bin/sqlcmd \
-  -S localhost -U sa -P "$SQL_SA_PASSWORD" -C -h -1 -W \
-  -Q "SET NOCOUNT ON; SELECT name FROM sys.databases WHERE name LIKE 'ABRPOINT%' OR name = 'ABRPOINT_master'" \
-  | tr -d '\r' | grep -v '^$' | grep -v '^---' | grep -v 'rows affected')
+# ── 2. Postgres : list databases (master + tous les tenants_*) ───────────────
+echo "[$(date -Iseconds)] Énumération bases Postgres"
+# pg_database = catalog Postgres listant les DB du cluster. On filtre :
+#   - abrpoint_master (master multi-tenant)
+#   - tenant_* (bases provisionnées par tenant)
+# On exclut postgres/template0/template1 (systèmes) et tout ce qui ne matche pas.
+DBS=$(docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" -i "$DB_CONTAINER" \
+  psql -h localhost -U "$POSTGRES_USER" -d postgres -t -A \
+  -c "SELECT datname FROM pg_database WHERE datname = 'abrpoint_master' OR datname LIKE 'tenant_%' ORDER BY datname;")
 
 if [[ -z "$DBS" ]]; then
-  echo "[WARN] Aucune base ABRPOINT trouvée" >&2
+  echo "[WARN] Aucune base abrpoint_master ni tenant_* trouvée" >&2
 fi
 
 for DB in $DBS; do
   DB="$(echo "$DB" | xargs)"
   [[ -z "$DB" ]] && continue
-  BAK_FILE="/var/opt/sql-backup/${DB}_${TIMESTAMP}.bak"
-  echo "[$(date -Iseconds)] BACKUP DATABASE [$DB]"
-  docker exec -i "$DB_CONTAINER" /opt/mssql-tools18/bin/sqlcmd \
-    -S localhost -U sa -P "$SQL_SA_PASSWORD" -C \
-    -Q "BACKUP DATABASE [$DB] TO DISK = N'$BAK_FILE' WITH FORMAT, INIT, COMPRESSION, NAME = N'${DB} full'"
-
-  # Le volume sql-backup est bind-mounté côté host → on copie depuis le mount path
-  # connu (./sql-backup dans docker-compose.yml).
-  cp "./sql-backup/${DB}_${TIMESTAMP}.bak" "$DAY_DIR/" || true
+  DUMP_FILE="${DB}_${TIMESTAMP}.dump"
+  echo "[$(date -Iseconds)] pg_dump $DB → $DUMP_FILE"
+  # -Fc : format custom (compact, supporte pg_restore --jobs= en parallèle).
+  # -Z 6 : compression zlib niveau 6 (équilibre vitesse/ratio).
+  # --no-owner --no-acl : portable entre clusters (re-créera avec l'owner du restore).
+  docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" -i "$DB_CONTAINER" \
+    pg_dump -h localhost -U "$POSTGRES_USER" -d "$DB" \
+    -Fc -Z 6 --no-owner --no-acl \
+    > "$DAY_DIR/$DUMP_FILE"
 done
 
 # ── 3. Checksum manifest ──────────────────────────────────────────────────────

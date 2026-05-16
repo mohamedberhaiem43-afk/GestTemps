@@ -527,107 +527,65 @@ using (var scope = app.Services.CreateScope())
                 await masterDb.Database.EnsureCreatedAsync();
                 // EnsureCreatedAsync ne crée pas les tables manquantes quand la base existe déjà :
                 // pour les ajouts post-déploiement comme TenantEmailIndex on émet un CREATE idempotent.
+                //
+                // Migré T-SQL → PostgreSQL : CREATE TABLE IF NOT EXISTS / ADD COLUMN IF NOT EXISTS /
+                // CREATE INDEX IF NOT EXISTS sont natifs et idempotents — plus besoin de wrap dans
+                // un IF NOT EXISTS (SELECT ... sys.*) BEGIN ... END.
+                //
+                // Notes nommage :
+                //   - PG folde les identifiants non-quoted en lowercase. Pour conserver la casse
+                //     PascalCase historique (TenantEmailIndex, Tenants), on entoure de "double quotes".
+                //   - Les noms de contraintes (DF_*, PK_*) ne sont pas reproduits : PG nomme
+                //     automatiquement les contraintes anonymes — c'est suffisant ici.
                 await masterDb.Database.ExecuteSqlRawAsync(@"
-IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'TenantEmailIndex')
-BEGIN
-    CREATE TABLE [TenantEmailIndex] (
-        [Email] NVARCHAR(255) NOT NULL CONSTRAINT [PK_TenantEmailIndex] PRIMARY KEY,
-        [Slug] NVARCHAR(30) NOT NULL,
-        [CreatedAt] DATETIME2 NOT NULL CONSTRAINT [DF_TenantEmailIndex_CreatedAt] DEFAULT SYSUTCDATETIME()
-    );
-    CREATE INDEX [IX_TenantEmailIndex_Slug] ON [TenantEmailIndex]([Slug]);
-END");
+CREATE TABLE IF NOT EXISTS ""TenantEmailIndex"" (
+    ""Email""     VARCHAR(255) NOT NULL PRIMARY KEY,
+    ""Slug""      VARCHAR(30)  NOT NULL,
+    ""CreatedAt"" TIMESTAMP    NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
+);
+CREATE INDEX IF NOT EXISTS ""IX_TenantEmailIndex_Slug"" ON ""TenantEmailIndex""(""Slug"");");
 
-                // PlanCode ajouté post-déploiement : idempotent. Sans cet ALTER, les bases master
-                // existantes ne connaîtraient pas la colonne et les SELECT EF échoueraient.
-                await masterDb.Database.ExecuteSqlRawAsync(@"
-IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'PlanCode' AND Object_ID = Object_ID(N'Tenants'))
-BEGIN
-    ALTER TABLE [Tenants] ADD [PlanCode] NVARCHAR(20) NULL;
-END");
-                // TrialReminderSentAt : flag horodaté servant d'anti-doublon pour le rappel
-                // "fin d'essai imminente" (J-4). Idempotent — appliqué aux bases master existantes.
-                await masterDb.Database.ExecuteSqlRawAsync(@"
-IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'TrialReminderSentAt' AND Object_ID = Object_ID(N'Tenants'))
-BEGIN
-    ALTER TABLE [Tenants] ADD [TrialReminderSentAt] DATETIME2 NULL;
-END");
+                // PlanCode ajouté post-déploiement : idempotent.
+                await masterDb.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE \"Tenants\" ADD COLUMN IF NOT EXISTS \"PlanCode\" VARCHAR(20) NULL;");
+                // TrialReminderSentAt : flag horodaté servant d'anti-doublon pour le rappel J-4.
+                await masterDb.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE \"Tenants\" ADD COLUMN IF NOT EXISTS \"TrialReminderSentAt\" TIMESTAMP NULL;");
                 // Résiliation : 3 colonnes ajoutées en 2026-05 pour gérer le flow "annuler mon
                 // abonnement" (immédiat ou en fin de période courante). Idempotents.
                 await masterDb.Database.ExecuteSqlRawAsync(@"
-IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'CancellationRequestedAt' AND Object_ID = Object_ID(N'Tenants'))
-BEGIN
-    ALTER TABLE [Tenants] ADD [CancellationRequestedAt] DATETIME2 NULL;
-END
-IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'CancelAtPeriodEnd' AND Object_ID = Object_ID(N'Tenants'))
-BEGIN
-    ALTER TABLE [Tenants] ADD [CancelAtPeriodEnd] BIT NOT NULL CONSTRAINT [DF_Tenants_CancelAtPeriodEnd] DEFAULT 0;
-END
-IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'CurrentPeriodEndsAt' AND Object_ID = Object_ID(N'Tenants'))
-BEGIN
-    ALTER TABLE [Tenants] ADD [CurrentPeriodEndsAt] DATETIME2 NULL;
-END");
-                // Migration 2026-05 : rename commercial Essentiel → Starter. Les tenants
-                // signés avant ce changement ont PlanCode='Essentiel' en base ; on aligne
-                // pour que PlanCatalog.GetPlan retourne directement Starter sans passer
-                // par Normalize() à chaque requête.
+ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""CancellationRequestedAt"" TIMESTAMP NULL;
+ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""CancelAtPeriodEnd""       BOOLEAN   NOT NULL DEFAULT FALSE;
+ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""CurrentPeriodEndsAt""     TIMESTAMP NULL;");
+                // Migration 2026-05 : rename commercial Essentiel → Starter.
                 await masterDb.Database.ExecuteSqlRawAsync(
-                    "UPDATE [Tenants] SET [PlanCode] = 'Starter' WHERE [PlanCode] = 'Essentiel';");
+                    "UPDATE \"Tenants\" SET \"PlanCode\" = 'Starter' WHERE \"PlanCode\" = 'Essentiel';");
                 // SIRET anti-fraude (2026-05) : colonne nullable + index filtré unique pour
-                // empêcher qu'un même SIRET souscrive plusieurs essais gratuits. Les lignes
-                // 'Failed' et 'Cancelled' sont exclues du filtre — une 'Failed' peut être
-                // recyclée par le même SIRET (retry après crash provisioning), et une
-                // 'Cancelled' au-delà de la rétention sera nettoyée par le flow signup.
-                // Tous les ALTER/CREATE sont idempotents pour rester safe au redémarrage.
+                // empêcher qu'un même SIRET souscrive plusieurs essais gratuits.
+                await masterDb.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE \"Tenants\" ADD COLUMN IF NOT EXISTS \"Siret\" VARCHAR(20) NULL;");
+                // Multi-pays (2026-05) : élargit Siret historique 14→20 chars. PG : ALTER COLUMN
+                // TYPE est idempotent quand la cible est déjà la bonne taille → safe à rejouer.
+                await masterDb.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE \"Tenants\" ALTER COLUMN \"Siret\" TYPE VARCHAR(20);");
+                await masterDb.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE \"Tenants\" ADD COLUMN IF NOT EXISTS \"CountryCode\" VARCHAR(2) NULL;");
+                await masterDb.Database.ExecuteSqlRawAsync(
+                    "CREATE INDEX IF NOT EXISTS \"IX_Tenants_Siret\" ON \"Tenants\"(\"Siret\");");
+                // Index filtré unique : PG accepte le NOT IN dans WHERE des partial indexes
+                // (contrairement à SQL Server qui le refuse — d'où l'éclatement en deux <>
+                // dans l'ancienne version). On peut donc revenir à un NOT IN plus lisible.
                 await masterDb.Database.ExecuteSqlRawAsync(@"
-IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'Siret' AND Object_ID = Object_ID(N'Tenants'))
-BEGIN
-    ALTER TABLE [Tenants] ADD [Siret] NVARCHAR(20) NULL;
-END");
-                // Multi-pays (2026-05) : élargit Siret 14→20 chars pour accommoder ICE (15 chiffres)
-                // et ajoute CountryCode. Migration in-place idempotente pour les bases déjà déployées
-                // avec Siret NVARCHAR(14). ALTER COLUMN safe car on agrandit (pas de truncation).
-                await masterDb.Database.ExecuteSqlRawAsync(@"
-IF EXISTS (SELECT 1 FROM sys.columns c JOIN sys.types t ON c.user_type_id = t.user_type_id
-           WHERE c.Object_ID = Object_ID(N'Tenants') AND c.Name = N'Siret' AND c.max_length = 28)
-BEGIN
-    ALTER TABLE [Tenants] ALTER COLUMN [Siret] NVARCHAR(20) NULL;
-END");
-                await masterDb.Database.ExecuteSqlRawAsync(@"
-IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE Name = N'CountryCode' AND Object_ID = Object_ID(N'Tenants'))
-BEGIN
-    ALTER TABLE [Tenants] ADD [CountryCode] NVARCHAR(2) NULL;
-END");
-                await masterDb.Database.ExecuteSqlRawAsync(@"
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Tenants_Siret' AND object_id = OBJECT_ID('Tenants'))
-BEGIN
-    CREATE INDEX [IX_Tenants_Siret] ON [Tenants]([Siret]);
-END");
-                // Note SQL Server : un prédicat d'index filtré n'accepte PAS `NOT IN`
-                // (parser refuse — Erreur 102 "Incorrect syntax near 'NOT'"). On éclate
-                // donc l'exclusion en deux comparaisons `<>` chaînées par AND, sémantique
-                // identique mais syntaxe acceptée.
-                await masterDb.Database.ExecuteSqlRawAsync(@"
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_Tenants_Siret_Active' AND object_id = OBJECT_ID('Tenants'))
-BEGIN
-    CREATE UNIQUE INDEX [UX_Tenants_Siret_Active] ON [Tenants]([Siret])
-        WHERE [Siret] IS NOT NULL AND [Status] <> 'Failed' AND [Status] <> 'Cancelled';
-END");
+CREATE UNIQUE INDEX IF NOT EXISTS ""UX_Tenants_Siret_Active"" ON ""Tenants""(""Siret"")
+    WHERE ""Siret"" IS NOT NULL AND ""Status"" NOT IN ('Failed', 'Cancelled');");
                 // Stripe webhook replay protection : table des événements déjà traités.
-                // Stripe rejoue un webhook si le récepteur a renvoyé !=2xx ou timeout 30s.
-                // Sans dédoublonnage, on risque de créer deux subscriptions, débloquer
-                // deux fois un tenant, etc. On enregistre l'event_id en début de handler
-                // et on early-return s'il existe déjà.
                 await masterDb.Database.ExecuteSqlRawAsync(@"
-IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'StripeWebhookSeen')
-BEGIN
-    CREATE TABLE [StripeWebhookSeen] (
-        [EventId]     NVARCHAR(80) NOT NULL CONSTRAINT [PK_StripeWebhookSeen] PRIMARY KEY,
-        [EventType]   NVARCHAR(80) NULL,
-        [ProcessedAt] DATETIME2    NOT NULL CONSTRAINT [DF_StripeWebhookSeen_ProcessedAt] DEFAULT SYSUTCDATETIME()
-    );
-    CREATE INDEX [IX_StripeWebhookSeen_ProcessedAt] ON [StripeWebhookSeen]([ProcessedAt]);
-END");
+CREATE TABLE IF NOT EXISTS ""StripeWebhookSeen"" (
+    ""EventId""     VARCHAR(80) NOT NULL PRIMARY KEY,
+    ""EventType""   VARCHAR(80) NULL,
+    ""ProcessedAt"" TIMESTAMP   NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
+);
+CREATE INDEX IF NOT EXISTS ""IX_StripeWebhookSeen_ProcessedAt"" ON ""StripeWebhookSeen""(""ProcessedAt"");");
                 startupLogger.LogInformation("Master DB prête (EnsureCreated).");
             }
         }
