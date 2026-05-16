@@ -1,8 +1,8 @@
 volumes:
   sqlserver-data:
   uploads_data:
-  letsencrypt_data:  # certificat SSL partagé nginx ⇄ certbot
-  qdrant_data:       # index vectoriel persistant (RAG)
+  letsencrypt_data:
+  qdrant_data:
 
 networks:
   app-network:
@@ -51,10 +51,7 @@ services:
 
   abrpoint.server:
     container_name: abrpoint.server
-    build:
-      context: .
-      dockerfile: Dockerfile.server
-    image: abrpoint-server:local
+    image: mohamedbenrhaiem2003/abrpoint-server:latest
     volumes:
       - uploads_data:/app/uploads
     environment:
@@ -77,34 +74,12 @@ services:
       DatabaseInitialization__AdminEmail: "admin@abrpoint.local"
       DatabaseInitialization__AdminPassword: "123"
       DatabaseInitialization__ApplicationCode: "GRH"
-      # ── RAG ACTIVÉ ────────────────────────────────────────────────────
-      # OpenRouter — utilisé par : RAG (assistant IA), DocumentScan (OCR/extract
-      # employé), AiService (génération de templates HTML). La clé d'API DOIT
-      # être fournie via le fichier .env (variable OPENROUTER_API_KEY), sinon
-      # appsettings.json contient juste un placeholder "REPLACE_WITH_..." qui
-      # est envoyé tel quel à OpenRouter → 401 Missing Authentication header.
-      # Récupérer une clé sur https://openrouter.ai/keys (compte payant ou
-      # crédit gratuit). Pour basculer sur Anthropic direct, mettre
-      # Rag__Anthropic__UseOpenRouter à "false" + fournir ANTHROPIC_API_KEY.
       OpenRouter__ApiKey: "${OPENROUTER_API_KEY:-}"
       Rag__Enabled: "true"
       Rag__Sidecar__BaseUrl: "http://rag-svc:8080"
       Rag__Sidecar__ApiKey: "${RAG_SIDECAR_KEY:-}"
       Rag__Anthropic__ApiKey: "${ANTHROPIC_API_KEY:-}"
-      # Modèle LLM via OpenRouter. Gemini 2.0 Flash est stable et très bon marché.
-      # Les modèles `:free` (llama-3.3, etc.) sont régulièrement rate-limited 429
-      # en amont — éviter en prod.
       Rag__Anthropic__OpenRouterModel: "google/gemini-2.0-flash-001"
-      # ── SMTP (OVH ssl0.ovh.net) ───────────────────────────────────────
-      # Sans ces variables, les emails de réinit. mot de passe, validations
-      # de demandes, etc. échouent silencieusement (le contrôleur logge mais
-      # renvoie 200 par anti-énumération). Renseigner via fichier .env :
-      #   SMTP_HOST=ssl0.ovh.net
-      #   SMTP_PORT=587
-      #   SMTP_USERNAME=contact@concorde-tech.fr
-      #   SMTP_PASSWORD=...
-      #   SMTP_FROM_EMAIL=contact@concorde-tech.fr  (DOIT = SMTP_USERNAME sur OVH)
-      #   SMTP_FROM_NAME=Concorde Work Force
       Smtp__Host: "${SMTP_HOST:-ssl0.ovh.net}"
       Smtp__Port: "${SMTP_PORT:-587}"
       Smtp__Username: "${SMTP_USERNAME:-}"
@@ -112,11 +87,6 @@ services:
       Smtp__FromName: "${SMTP_FROM_NAME:-Concorde Work Force}"
       Smtp__FromEmail: "${SMTP_FROM_EMAIL:-}"
       Smtp__EnableSsl: "true"
-      # ─── Distribution APK Android ─────────────────────────────────────
-      # ApkUrl pointe sur l'artefact EAS Expo (build "preview"). Le contrôleur
-      # /api/download/android fait un 302 vers cette URL. Pour publier une
-      # nouvelle version : `eas build --platform android --profile preview`,
-      # copier la nouvelle URL ici, et `docker compose up -d abrpoint.server`.
       Download__ApkUrl: "${APK_URL:-https://expo.dev/artifacts/eas/ihKV2zK34JH6UVG6aXgVJh.apk}"
       Download__ApkVersion: "${APK_VERSION:-1.0.0}"
       Download__ApkSizeMb: "${APK_SIZE_MB:-}"
@@ -141,11 +111,6 @@ services:
     networks:
       - app-network
 
-  # ──────────────────────────────────────────────────────────────────────
-  # RAG : vector store + sidecar Python (LangChain + multilingual-e5-large)
-  # Le backend .NET parle au sidecar via http://rag-svc:8080 (réseau interne).
-  # Aucune exposition publique — toujours derrière nginx-proxy si besoin.
-  # ──────────────────────────────────────────────────────────────────────
   qdrant:
     image: qdrant/qdrant:v1.12.0
     container_name: abrpoint.qdrant
@@ -159,10 +124,7 @@ services:
 
   rag-svc:
     container_name: abrpoint.rag-svc
-    build:
-      context: ./services/rag
-      dockerfile: Dockerfile
-    image: abrpoint-rag-svc:local
+    image: mohamedbenrhaiem2003/abrpoint-rag-svc:latest
     environment:
       QDRANT_URL: "http://qdrant:6333"
       EMBED_MODEL: "intfloat/multilingual-e5-large"
