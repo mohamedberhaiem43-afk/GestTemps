@@ -106,8 +106,10 @@ if (!string.IsNullOrWhiteSpace(masterConnection))
     builder.Services.AddScoped<ITenantDbContextFactory, TenantDbContextFactory>();
     builder.Services.AddScoped<IProvisioningService, ProvisioningService>();
     builder.Services.AddScoped<IBillingService, StripeBillingService>();
+    builder.Services.AddScoped<ABRPOINT.Server.Billing.IStorageQuotaGuard, ABRPOINT.Server.Billing.StorageQuotaGuard>();
     builder.Services.AddHostedService<TrialExpirationHostedService>();
     builder.Services.AddHostedService<ABRPOINT.Server.Billing.EmployeeBillingSyncService>();
+    builder.Services.AddHostedService<ABRPOINT.Server.Billing.StorageUsageHostedService>();
 }
 
 builder.Services.Configure<DatabaseInitializationOptions>(
@@ -596,6 +598,13 @@ CREATE TABLE IF NOT EXISTS ""StripeWebhookSeen"" (
     ""ProcessedAt"" TIMESTAMP   NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
 );
 CREATE INDEX IF NOT EXISTS ""IX_StripeWebhookSeen_ProcessedAt"" ON ""StripeWebhookSeen""(""ProcessedAt"");");
+                // Quota stockage par tenant (2026-05). Deux colonnes nullables/0-default ⇒
+                // safe à déployer sur une master DB existante. Le quota lui-même n'est PAS
+                // stocké (dérivé de PlanCode via PlanCatalog.GetStorageQuotaMb), ce qui évite
+                // toute désync quand on change le pack d'un tenant.
+                await masterDb.Database.ExecuteSqlRawAsync(@"
+ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""StorageUsedMb""        BIGINT    NOT NULL DEFAULT 0;
+ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""StorageUsageCheckedAt"" TIMESTAMP NULL;");
                 startupLogger.LogInformation("Master DB prête (EnsureCreated).");
             }
         }

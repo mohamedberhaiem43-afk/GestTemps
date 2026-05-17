@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using ABRPOINT.Server.Annotations.AdminAttributes;
+using ABRPOINT.Server.Billing;
 using ABRPOINT.Server.Services.Rag;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,10 +21,17 @@ namespace ABRPOINT.Server.Controllers;
 public class DocumentsController : ControllerBase
 {
     private readonly IDocumentVaultService _vault;
+    private readonly IStorageQuotaGuard _quotaGuard;
+    private readonly ICurrentTenant _currentTenant;
 
-    public DocumentsController(IDocumentVaultService vault)
+    public DocumentsController(
+        IDocumentVaultService vault,
+        IStorageQuotaGuard quotaGuard,
+        ICurrentTenant currentTenant)
     {
         _vault = vault;
+        _quotaGuard = quotaGuard;
+        _currentTenant = currentTenant;
     }
 
     /// <summary>POST /api/Documents/upload — multipart : file + category.</summary>
@@ -32,6 +41,24 @@ public class DocumentsController : ControllerBase
     {
         try
         {
+            // Garde quota : on bloque AVANT d'invoquer _vault.UploadAsync (qui écrit
+            // le fichier + indexe dans Qdrant). 507 Insufficient Storage côté HTTP.
+            if (file is not null && file.Length > 0 && _currentTenant.Current is { } tenant)
+            {
+                var snap = await _quotaGuard.CheckAsync(tenant.Id, file.Length, ct);
+                if (snap.WouldExceed)
+                {
+                    return StatusCode(507, new
+                    {
+                        code = "storage_quota_exceeded",
+                        message = $"Quota de stockage atteint ({snap.UsedMb} Mo / {snap.QuotaMb} Mo). " +
+                                  "Supprimez des documents ou passez à un pack supérieur.",
+                        usedMb = snap.UsedMb,
+                        quotaMb = snap.QuotaMb,
+                        percentUsed = snap.PercentUsed,
+                    });
+                }
+            }
             var uploadedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var dto = await _vault.UploadAsync(file, category ?? "autre", uploadedBy, ct);
             return Ok(dto);
