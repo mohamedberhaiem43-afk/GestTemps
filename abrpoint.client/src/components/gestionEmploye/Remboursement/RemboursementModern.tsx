@@ -6,8 +6,9 @@ import dayjs from 'dayjs';
 import {
     Box, Typography, Snackbar, Alert, CircularProgress,
     Dialog, DialogTitle, DialogContent, DialogActions,
-    Button, Divider, Tooltip,
+    Button, Divider, Tooltip, IconButton, TextField, MenuItem,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import {
     UploadCloud, Info,
     Receipt, Trash2, ChevronLeft, ChevronRight, Download,
@@ -16,7 +17,9 @@ import {
 import './RemboursementModern.css';
 import { useAuth } from '../../helper/AuthProvider';
 import { resolveAssetUrl } from '../../../helpers/assetUrl';
-import { useMissionsByEmp, useMissionsBySoc } from '../../../hooks/missionHooks/useMissions';
+import { useMissionsByEmp, useMissionsBySoc, useFormationMissionNatures, useCreateMission } from '../../../hooks/missionHooks/useMissions';
+import type { MissionUpsertRequest } from '../../../models/Mission';
+import { AnimatedNumber } from '../../shared/AnimatedNumber';
 import { useTranslation, Trans } from 'react-i18next';
 const ROWS_PER_PAGE = 10;
 
@@ -150,6 +153,69 @@ function RemboursementModernContent() {
     const { data: missionsSoc = [], isLoading: loadingMissionsSoc } = useMissionsBySoc(!isEmp ? currentSoccod : '');
     const missions = isEmp ? missionsEmp : missionsSoc;
     const missionsLoading = isEmp ? loadingMissionsEmp : loadingMissionsSoc;
+
+    // Quick-add mission (cf. bouton "+" à droite du select Mission) — évite à
+    // l'utilisateur de quitter le formulaire NDF pour aller créer la mission
+    // depuis la page Missions, puis revenir. Le dialog ouvre un formulaire
+    // minimal (objet + nature + dates + destination). Au succès, la nouvelle
+    // mission est auto-sélectionnée dans le select via setMissionId.
+    const { data: missionNatures = [] } = useFormationMissionNatures(currentSoccod);
+    const createMissionMut = useCreateMission();
+    const [quickMissionOpen, setQuickMissionOpen] = useState(false);
+    const [quickMissionSubmitting, setQuickMissionSubmitting] = useState(false);
+    const [quickMission, setQuickMission] = useState<MissionUpsertRequest>({
+        soccod: currentSoccod,
+        empcod: currentEmpcod || '',
+        misobj: '',
+        misdest: '',
+        misdatedeb: dayjs().format('YYYY-MM-DD'),
+        misdatefin: dayjs().add(1, 'day').format('YYYY-MM-DD'),
+        misetat: 'Pending',
+        misdevise: 'EUR',
+        misbudget: undefined,
+        abscod: '',
+    });
+    const openQuickMission = () => {
+        // Reset à chaque ouverture pour repartir d'un état propre (au cas où un
+        // précédent submit a laissé des valeurs en place).
+        setQuickMission({
+            soccod: currentSoccod,
+            empcod: currentEmpcod || '',
+            misobj: '',
+            misdest: '',
+            misdatedeb: dayjs().format('YYYY-MM-DD'),
+            misdatefin: dayjs().add(1, 'day').format('YYYY-MM-DD'),
+            misetat: 'Pending',
+            misdevise: 'EUR',
+            misbudget: undefined,
+            abscod: missionNatures[0]?.abscod ?? '',
+        });
+        setQuickMissionOpen(true);
+    };
+    const submitQuickMission = async () => {
+        if (!quickMission.misobj?.trim() || !quickMission.abscod || !quickMission.misdatedeb || !quickMission.misdatefin || !quickMission.empcod) {
+            showSnack(t('mission.msg.requiredFields', 'Objet, nature, dates et collaborateur requis.'), 'error');
+            return;
+        }
+        if (dayjs(quickMission.misdatefin).isBefore(quickMission.misdatedeb)) {
+            showSnack(t('mission.msg.invalidDateRange', 'La date de fin doit être après la date de début.'), 'error');
+            return;
+        }
+        setQuickMissionSubmitting(true);
+        try {
+            const created = await createMissionMut.mutateAsync(quickMission);
+            // Auto-sélectionne la mission fraîchement créée — c'est tout le point
+            // de l'UX inline : pas besoin de ré-ouvrir le select et chercher.
+            setMissionId(created.id);
+            setQuickMissionOpen(false);
+            showSnack(t('mission.msg.created', 'Mission créée et sélectionnée.'), 'success');
+        } catch (err: any) {
+            const msg = err?.response?.data?.message || err?.message || t('mission.msg.createError', 'Impossible de créer la mission.');
+            showSnack(msg, 'error');
+        } finally {
+            setQuickMissionSubmitting(false);
+        }
+    };
     const [dateDepense, setDateDepense] = useState(dayjs().format('YYYY-MM-DD'));
     const [formSuccess, setFormSuccess] = useState(false);
 
@@ -413,26 +479,39 @@ function RemboursementModernContent() {
 
                 {/* ─── Right Column ─── */}
                 <div className="rmb-right">
-                    {/* Stats */}
+                    {/* Stats — chiffres animés (count-up easeOutCubic) au mount et
+                        à chaque changement (filtre statut, nouveau remboursement validé, etc.). */}
                     <div className="rmb-stats-grid">
                         <div className="rmb-stat-card rmb-stat-card--pending">
                             <div className="rmb-stat-label">{t('remboursement.stats.pending')}</div>
                             <div className="rmb-stat-value rmb-stat-value--pending">
-                                {formatMontant(pendingTotal)}
+                                <AnimatedNumber
+                                    value={pendingTotal}
+                                    as="span"
+                                    formatValue={formatMontant}
+                                />
                                 <span className="rmb-stat-currency">€</span>
                             </div>
                         </div>
                         <div className="rmb-stat-card rmb-stat-card--reimbursed">
                             <div className="rmb-stat-label">{t('remboursement.stats.reimbursed')}</div>
                             <div className="rmb-stat-value rmb-stat-value--reimbursed">
-                                {formatMontant(reimbursedTotal)}
+                                <AnimatedNumber
+                                    value={reimbursedTotal}
+                                    as="span"
+                                    formatValue={formatMontant}
+                                />
                                 <span className="rmb-stat-currency">€</span>
                             </div>
                         </div>
                         <div className="rmb-stat-card rmb-stat-card--total">
                             <div className="rmb-stat-label">{t('remboursement.stats.totalYear')}</div>
                             <div className="rmb-stat-value rmb-stat-value--total">
-                                {formatMontant(ytdTotal)}
+                                <AnimatedNumber
+                                    value={ytdTotal}
+                                    as="span"
+                                    formatValue={formatMontant}
+                                />
                                 <span className="rmb-stat-currency">€</span>
                             </div>
                         </div>
@@ -1007,26 +1086,53 @@ function RemboursementModernContent() {
                             </div>
                             <div className="rmb-form-group">
                                 <label className="rmb-form-label">{t('remboursement.form.linkedMission')}</label>
-                                <select
-                                    className="rmb-form-select"
-                                    value={missionId === '' ? '' : String(missionId)}
-                                    onChange={e => setMissionId(e.target.value === '' ? '' : Number(e.target.value))}
-                                    required
-                                    disabled={missionsLoading || missions.length === 0}
-                                >
-                                    <option value="">
-                                        {missionsLoading
-                                            ? t('remboursement.form.loading')
-                                            : missions.length === 0
-                                                ? t('remboursement.form.noMission')
-                                                : t('remboursement.form.selectMission')}
-                                    </option>
-                                    {missions.map(m => (
-                                        <option key={m.id} value={m.id}>
-                                            {m.misobj} ({dayjs(m.misdatedeb).format('DD/MM/YY')} → {dayjs(m.misdatefin).format('DD/MM/YY')})
+                                {/* Select + bouton "+" côte à côte. Le bouton ouvre le mini-formulaire
+                                    de création de mission inline — l'utilisateur n'a plus besoin
+                                    de quitter la NDF pour aller créer la mission depuis sa page
+                                    dédiée puis revenir. Au succès la mission est auto-sélectionnée. */}
+                                <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 1 }}>
+                                    <select
+                                        className="rmb-form-select"
+                                        value={missionId === '' ? '' : String(missionId)}
+                                        onChange={e => setMissionId(e.target.value === '' ? '' : Number(e.target.value))}
+                                        required
+                                        disabled={missionsLoading}
+                                        style={{ flex: 1 }}
+                                    >
+                                        <option value="">
+                                            {missionsLoading
+                                                ? t('remboursement.form.loading')
+                                                : missions.length === 0
+                                                    ? t('remboursement.form.noMission')
+                                                    : t('remboursement.form.selectMission')}
                                         </option>
-                                    ))}
-                                </select>
+                                        {missions.map(m => (
+                                            <option key={m.id} value={m.id}>
+                                                {m.misobj} ({dayjs(m.misdatedeb).format('DD/MM/YY')} → {dayjs(m.misdatefin).format('DD/MM/YY')})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <Tooltip title={t('remboursement.form.addMission', 'Créer une nouvelle mission')}>
+                                        <span>
+                                            <IconButton
+                                                onClick={openQuickMission}
+                                                disabled={!currentEmpcod}
+                                                sx={{
+                                                    background: '#0040a1',
+                                                    color: '#fff',
+                                                    borderRadius: '8px',
+                                                    width: 40,
+                                                    height: 40,
+                                                    '&:hover': { background: '#003285' },
+                                                    '&.Mui-disabled': { background: '#cbd5e1', color: '#fff' },
+                                                }}
+                                                aria-label={t('remboursement.form.addMission', 'Créer une nouvelle mission')}
+                                            >
+                                                <AddIcon fontSize="small" />
+                                            </IconButton>
+                                        </span>
+                                    </Tooltip>
+                                </Box>
                             </div>
                             <div className="rmb-form-group">
                                 <label className="rmb-form-label">{t('remboursement.form.project')}</label>
@@ -1099,6 +1205,140 @@ function RemboursementModernContent() {
                     {snackbar.message}
                 </Alert>
             </Snackbar>
+
+            {/* Dialog de création rapide d'une mission depuis le formulaire NDF.
+                Champs minimums : objet, nature (abscod), dates, destination, budget,
+                devise. État par défaut = Pending. empcod hérité du contexte courant
+                (employé self-service = son uticod ; admin = collab choisi via le
+                NDF dialog). */}
+            <Dialog
+                open={quickMissionOpen}
+                onClose={() => !quickMissionSubmitting && setQuickMissionOpen(false)}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <AddIcon sx={{ color: '#0040a1' }} />
+                    {t('remboursement.quickMission.title', 'Créer une nouvelle mission')}
+                </DialogTitle>
+                <DialogContent>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 1 }}>
+                        <TextField
+                            label={t('mission.fields.misobj', 'Objet')}
+                            value={quickMission.misobj}
+                            onChange={(e) => setQuickMission(m => ({ ...m, misobj: e.target.value }))}
+                            required
+                            fullWidth
+                            size="small"
+                            sx={{ gridColumn: '1 / -1' }}
+                        />
+                        <TextField
+                            select
+                            label={t('mission.fields.abscod', 'Nature')}
+                            value={quickMission.abscod}
+                            onChange={(e) => setQuickMission(m => ({ ...m, abscod: e.target.value }))}
+                            required
+                            fullWidth
+                            size="small"
+                            disabled={missionNatures.length === 0}
+                            helperText={missionNatures.length === 0
+                                ? t('mission.msg.noNature', 'Aucune nature configurée (Données de base → Absences, imputation 1 ou 5).')
+                                : undefined}
+                        >
+                            {missionNatures.map((n) => (
+                                <MenuItem key={n.abscod} value={n.abscod}>
+                                    {n.abslib}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                        <TextField
+                            label={t('mission.fields.misdest', 'Destination')}
+                            value={quickMission.misdest ?? ''}
+                            onChange={(e) => setQuickMission(m => ({ ...m, misdest: e.target.value }))}
+                            fullWidth
+                            size="small"
+                        />
+                        <TextField
+                            label={t('mission.fields.misdatedeb', 'Date début')}
+                            type="date"
+                            value={quickMission.misdatedeb}
+                            onChange={(e) => setQuickMission(m => ({ ...m, misdatedeb: e.target.value }))}
+                            required
+                            fullWidth
+                            size="small"
+                            InputLabelProps={{ shrink: true }}
+                        />
+                        <TextField
+                            label={t('mission.fields.misdatefin', 'Date fin')}
+                            type="date"
+                            value={quickMission.misdatefin}
+                            onChange={(e) => setQuickMission(m => ({ ...m, misdatefin: e.target.value }))}
+                            required
+                            fullWidth
+                            size="small"
+                            InputLabelProps={{ shrink: true }}
+                        />
+                        <TextField
+                            label={t('mission.fields.misbudget', 'Budget')}
+                            type="number"
+                            value={quickMission.misbudget ?? ''}
+                            onChange={(e) => setQuickMission(m => ({
+                                ...m,
+                                misbudget: e.target.value === '' ? undefined : Number(e.target.value),
+                            }))}
+                            fullWidth
+                            size="small"
+                            inputProps={{ step: '0.01', min: 0 }}
+                        />
+                        <TextField
+                            select
+                            label={t('mission.fields.misdevise', 'Devise')}
+                            value={quickMission.misdevise ?? 'EUR'}
+                            onChange={(e) => setQuickMission(m => ({ ...m, misdevise: e.target.value }))}
+                            fullWidth
+                            size="small"
+                        >
+                            <MenuItem value="EUR">EUR</MenuItem>
+                            <MenuItem value="USD">USD</MenuItem>
+                            <MenuItem value="GBP">GBP</MenuItem>
+                            <MenuItem value="CHF">CHF</MenuItem>
+                            <MenuItem value="TND">TND</MenuItem>
+                            <MenuItem value="MAD">MAD</MenuItem>
+                            <MenuItem value="DZD">DZD</MenuItem>
+                            <MenuItem value="CAD">CAD</MenuItem>
+                            <MenuItem value="XOF">XOF</MenuItem>
+                            <MenuItem value="AED">AED</MenuItem>
+                        </TextField>
+                        <TextField
+                            label={t('mission.fields.misnote', 'Note')}
+                            value={quickMission.misnote ?? ''}
+                            onChange={(e) => setQuickMission(m => ({ ...m, misnote: e.target.value }))}
+                            multiline
+                            rows={2}
+                            fullWidth
+                            size="small"
+                            sx={{ gridColumn: '1 / -1' }}
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button
+                        onClick={() => setQuickMissionOpen(false)}
+                        disabled={quickMissionSubmitting}
+                    >
+                        {t('common.cancel', 'Annuler')}
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={submitQuickMission}
+                        disabled={quickMissionSubmitting}
+                        startIcon={quickMissionSubmitting ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <AddIcon />}
+                        sx={{ background: '#0040a1', '&:hover': { background: '#003285' } }}
+                    >
+                        {t('remboursement.quickMission.submit', 'Créer et sélectionner')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </div>
     );
 }

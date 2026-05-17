@@ -845,6 +845,108 @@ public sealed class StripeBillingService : IBillingService
         }
         return null;
     }
+
+    /// <summary>
+    /// Résout le price_id Stripe du produit unique <c>user_supp</c> pour un plan et un
+    /// cycle donnés. Clé de config attendue : <c>Stripe:Prices:UserSupp:{Plan}:{cycle}</c>.
+    /// Retourne null si non configuré (l'admin Stripe n'a pas créé le price), ce qui
+    /// fera fail-open l'ajout du collab supplémentaire avec un log warn (cf. caller).
+    /// </summary>
+    private string? ResolveUserSuppPriceId(string? planCode, string? billingCycle)
+    {
+        if (string.IsNullOrWhiteSpace(planCode)) return null;
+        var cycle = string.IsNullOrWhiteSpace(billingCycle) ? "monthly" : billingCycle.ToLowerInvariant();
+        var key = $"UserSupp:{planCode}:{cycle}";
+        if (_opts.Prices.TryGetValue(key, out var pid) && !string.IsNullOrWhiteSpace(pid) && !pid.Contains("REPLACE"))
+            return pid;
+        return null;
+    }
+
+    /// <summary>
+    /// Détecte le cycle de facturation (monthly/annual) d'une subscription Stripe en
+    /// inspectant l'intervalle du premier price récurrent. Sert quand on ajoute un
+    /// item <c>user_supp</c> à la subscription : on aligne automatiquement le cycle
+    /// sur celui de l'abonnement existant, sans avoir à stocker le cycle sur Tenant.
+    /// </summary>
+    private static string DetectBillingCycle(Stripe.Subscription sub)
+    {
+        var first = sub.Items?.Data?.FirstOrDefault();
+        var interval = first?.Price?.Recurring?.Interval;
+        return string.Equals(interval, "year", System.StringComparison.OrdinalIgnoreCase) ? "annual" : "monthly";
+    }
+
+    public async Task<int?> SyncSupplementaryEmployeesAsync(
+        Tenant tenant,
+        int activeEmployeeCount,
+        CancellationToken ct = default)
+    {
+        // Pas de Stripe configuré → skip silencieusement (dev / preview). Le sync horaire
+        // re-essaiera plus tard quand l'admin aura mis les clés. Le collab a quand même
+        // été créé côté tenant DB par le caller — on ne bloque pas l'usage en dev.
+        if (!_opts.IsConfigured) return null;
+        if (string.IsNullOrWhiteSpace(tenant.StripeSubscriptionId)) return null;
+
+        var plan = PlanCatalog.GetPlan(tenant.PlanCode);
+        if (plan is null) return null;
+
+        var supplementary = PlanCatalog.ComputeSupplementaryCount(plan, activeEmployeeCount);
+
+        Stripe.StripeConfiguration.ApiKey = _opts.SecretKey;
+        var subService = new Stripe.SubscriptionService();
+        var sub = await subService.GetAsync(tenant.StripeSubscriptionId, cancellationToken: ct);
+        if (sub is null)
+        {
+            _log.LogWarning("Tenant {Slug} : subscription {Sub} introuvable, skip user_supp sync.", tenant.Slug, tenant.StripeSubscriptionId);
+            return null;
+        }
+
+        var cycle = DetectBillingCycle(sub);
+        var userSuppPriceId = ResolveUserSuppPriceId(tenant.PlanCode, cycle);
+        if (string.IsNullOrEmpty(userSuppPriceId))
+        {
+            _log.LogWarning(
+                "Tenant {Slug} : price UserSupp:{Plan}:{Cycle} non configuré, skip sync. " +
+                "Configurer Stripe:Prices:UserSupp:{Plan}:{Cycle} pour activer la facturation des collabs supplémentaires.",
+                tenant.Slug, tenant.PlanCode, cycle, tenant.PlanCode, cycle);
+            return null;
+        }
+
+        // Item existant ? On match par price_id. Stripe garde plusieurs items distincts par
+        // subscription donc on évite tout amalgame avec l'ancien item per-plan "seat".
+        var existing = sub.Items.Data.FirstOrDefault(i =>
+            string.Equals(i.Price?.Id, userSuppPriceId, System.StringComparison.Ordinal));
+
+        var itemService = new Stripe.SubscriptionItemService();
+        if (existing is null)
+        {
+            // Pas encore d'item user_supp sur cette subscription. On le crée seulement s'il
+            // y a un overage à facturer — inutile de polluer la subscription avec un item à 0.
+            if (supplementary == 0) return 0;
+            await itemService.CreateAsync(new Stripe.SubscriptionItemCreateOptions
+            {
+                Subscription = tenant.StripeSubscriptionId,
+                Price = userSuppPriceId,
+                Quantity = supplementary,
+                ProrationBehavior = "create_prorations",
+            }, cancellationToken: ct);
+            _log.LogInformation(
+                "Tenant {Slug} ({Plan}) : item user_supp créé sur subscription avec qty={Qty}.",
+                tenant.Slug, tenant.PlanCode, supplementary);
+            return supplementary;
+        }
+
+        // Idempotence : ne push que si la quantité change.
+        if (existing.Quantity == supplementary) return supplementary;
+        await itemService.UpdateAsync(existing.Id, new Stripe.SubscriptionItemUpdateOptions
+        {
+            Quantity = supplementary,
+            ProrationBehavior = "create_prorations",
+        }, cancellationToken: ct);
+        _log.LogInformation(
+            "Tenant {Slug} ({Plan}) : user_supp {Old} → {New} (employés={Count}, inclus={Included})",
+            tenant.Slug, tenant.PlanCode, existing.Quantity, supplementary, activeEmployeeCount, plan.IncludedEmployees);
+        return supplementary;
+    }
 }
 
 internal sealed class StripeOptions

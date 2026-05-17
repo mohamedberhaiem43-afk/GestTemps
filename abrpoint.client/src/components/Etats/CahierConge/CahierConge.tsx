@@ -3,6 +3,7 @@ import { Autocomplete, CircularProgress, TextField } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../helper/AuthProvider';
+import { AnimatedNumber } from '../../shared/AnimatedNumber';
 import AccessDenied from '../../helper/AccessDenied';
 import { useEmployeeFilter } from '../../../hooks/employeHooks/useEmployeeFilter';
 import apiInstance from '../../API/apiInstance';
@@ -478,7 +479,7 @@ function CahierCongePage() {
             </div>
           </div>
           <div className="cc-summary-value">
-            {cahierData.length}
+            <AnimatedNumber value={cahierData.length} as="span" />
           </div>
           <div className="cc-summary-footer">{t('cahierConge.summary.filteredData')}</div>
         </div>
@@ -491,7 +492,11 @@ function CahierCongePage() {
             </div>
           </div>
           <div className="cc-summary-value">
-            {totalSoldini.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+            <AnimatedNumber
+              value={totalSoldini}
+              as="span"
+              formatValue={(n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            />
             <span className="cc-summary-unit">{t('cahierConge.summary.daysShort')}</span>
           </div>
           <div className="cc-summary-footer">{t('cahierConge.summary.cumulative')}</div>
@@ -505,7 +510,11 @@ function CahierCongePage() {
             </div>
           </div>
           <div className="cc-summary-value">
-            {totalCongedu.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+            <AnimatedNumber
+              value={totalCongedu}
+              as="span"
+              formatValue={(n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            />
             <span className="cc-summary-unit">{t('cahierConge.summary.daysShort')}</span>
           </div>
           <div className="cc-summary-footer">{t('cahierConge.summary.currentPeriod')}</div>
@@ -519,7 +528,11 @@ function CahierCongePage() {
             </div>
           </div>
           <div className="cc-summary-value">
-            {totalTotdupres.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
+            <AnimatedNumber
+              value={totalTotdupres}
+              as="span"
+              formatValue={(n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            />
             <span className="cc-summary-unit">{t('cahierConge.summary.currency')}</span>
           </div>
           <div className="cc-summary-footer">

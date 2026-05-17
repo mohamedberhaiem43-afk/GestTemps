@@ -48,27 +48,30 @@ const PlanConfigurationPage: React.FC = () => {
     ? (initialState.plan as PlanKey)
     : 'Standard');
   const plan = PLAN_CATALOG[planCode];
-  // Par défaut, on pré-remplit avec le nombre de salariés *inclus* dans le plan choisi
-  // (10 / 25 / 50). Avant on hardcodait 50, ce qui donnait un overage faux sur Starter.
-  const [userCount, setUserCount] = useState(initialState.userCount ?? plan.includedEmployees);
+  // Par défaut + cap dur : le nombre de salariés est borné par l'inclus du pack
+  // (10 / 25 / 50). Les collaborateurs supplémentaires (au-delà du quota inclus) sont
+  // ajoutés UNIQUEMENT depuis la fiche collaborateur — l'admin confirme alors un
+  // supplément facturé via le produit Stripe unique 'user_supp'. Voir
+  // ABRPOINT.Server.Controllers.EmployesController.Post (param confirmOverage).
+  const [userCount, setUserCount] = useState(() => {
+    const requested = initialState.userCount ?? plan.includedEmployees;
+    return Math.min(requested, plan.includedEmployees);
+  });
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialState.cycle ?? 'annual');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Tarification réelle : forfait mensuel fixe + overage par salarié au-delà du seuil
-  // inclus. C'est strictement la même formule que PlanCatalog.ComputeMonthlyTotal côté
-  // backend ; cette page reste un simulateur — Stripe applique le prix réel via les
-  // price_id configurés dans appsettings.json (`Stripe:Prices:{Plan}:{base|seat}:monthly`).
+  // Tarification : forfait mensuel fixe au quota inclus. Pas d'overage à ce stade —
+  // l'admin l'active à la création d'un collab via la fiche (cf. AjoutEmploye). Le
+  // simulateur reste indicatif ; Stripe applique le prix réel des price_id
+  // `Stripe:Prices:{Plan}:base:{cycle}` côté backend.
   const { extraEmployees, overageCost, baseMonthly, monthlyTotal, annualDiscountPerMonth } = useMemo(() => {
-    const extra = Math.max(0, userCount - plan.includedEmployees);
-    const over = extra * plan.overageRatePerEmployeeEur;
-    const baseM = plan.flatPriceMonthlyEur + over;
-    // Annuel = remise 20% sur le total annuel, recalculé en équivalent mensuel.
+    const baseM = plan.flatPriceMonthlyEur;
     const monthly = billingCycle === 'annual' ? baseM * 0.80 : baseM;
     const discountPerMonth = billingCycle === 'annual' ? baseM * 0.20 : 0;
-    return { extraEmployees: extra, overageCost: over, baseMonthly: baseM, monthlyTotal: monthly, annualDiscountPerMonth: discountPerMonth };
-  }, [userCount, plan, billingCycle]);
+    return { extraEmployees: 0, overageCost: 0, baseMonthly: baseM, monthlyTotal: monthly, annualDiscountPerMonth: discountPerMonth };
+  }, [plan, billingCycle]);
 
   const handleConfirmCheckout = async () => {
     // Utilisateur connecté → on lance directement la session Stripe Checkout.
@@ -122,24 +125,39 @@ const PlanConfigurationPage: React.FC = () => {
                   <h2 className="text-xl font-black tracking-tight font-headline uppercase">Configuration du compte</h2>
                 </div>
                 <div className="bg-white p-8 rounded-3xl border border-surface-container-high shadow-sm">
-                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-outline mb-6">Nombre d'utilisateurs</label>
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-outline mb-6">
+                    Nombre d'utilisateurs (max {plan.includedEmployees} pour le pack {plan.displayName})
+                  </label>
                   <div className="flex items-center gap-6 max-w-md">
                     <div className="relative flex-1">
                       <input
                         className="w-full bg-surface-container-low border-none focus:ring-2 focus:ring-primary/20 text-3xl font-black p-6 rounded-2xl transition-all outline-none"
                         type="number"
+                        min={1}
+                        max={plan.includedEmployees}
                         value={userCount}
-                        onChange={(e) => setUserCount(parseInt(e.target.value) || 0)}
+                        onChange={(e) => {
+                          // Cap dur côté UI : on borne au quota inclus du pack. Les
+                          // collaborateurs supplémentaires se créent ensuite à l'unité
+                          // depuis la fiche collaborateur, avec confirmation explicite
+                          // du supplément (produit Stripe user_supp).
+                          const raw = parseInt(e.target.value) || 0;
+                          setUserCount(Math.min(Math.max(0, raw), plan.includedEmployees));
+                        }}
                       />
                       <span className="absolute right-6 top-1/2 -translate-y-1/2 text-outline material-symbols-outlined text-3xl">groups</span>
                     </div>
                     <div className="text-on-surface font-black text-lg">Collaborateurs</div>
                   </div>
-                  <p className="mt-6 text-sm text-outline italic flex items-center gap-2">
-                    <CheckCircle2 size={16} className="text-tertiary" />
-                    Le pack <strong className="not-italic font-black">{plan.displayName}</strong> inclut
-                    {' '}{plan.includedEmployees} salariés au forfait{' '}({formatPrice(plan.flatPriceMonthlyEur)} € / mois).
-                    Au-delà, chaque salarié supplémentaire est facturé {formatPrice(plan.overageRatePerEmployeeEur)} €.
+                  <p className="mt-6 text-sm text-outline italic flex items-start gap-2">
+                    <CheckCircle2 size={16} className="text-tertiary mt-0.5 flex-shrink-0" />
+                    <span>
+                      Le pack <strong className="not-italic font-black">{plan.displayName}</strong> inclut
+                      {' '}<strong className="not-italic font-black">{plan.includedEmployees} collaborateurs</strong>
+                      {' '}au forfait ({formatPrice(plan.flatPriceMonthlyEur)} € / mois).
+                      Pour en ajouter au-delà, créez chaque collaborateur supplémentaire depuis sa fiche :
+                      vous confirmerez alors un supplément de {formatPrice(plan.overageRatePerEmployeeEur)} € / mois facturé via Stripe.
+                    </span>
                   </p>
                 </div>
               </section>
@@ -243,11 +261,10 @@ const PlanConfigurationPage: React.FC = () => {
                     <span className="font-black text-on-surface">{plan.includedEmployees}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-outline font-bold">Salariés supplémentaires</span>
-                    <span className="font-black text-on-surface">
-                      {extraEmployees > 0
-                        ? `${extraEmployees} × ${formatPrice(plan.overageRatePerEmployeeEur)} € = ${formatPrice(overageCost)} €`
-                        : '0'}
+                    <span className="text-outline font-bold">Collaborateurs sup.</span>
+                    <span className="font-black text-on-surface text-right text-xs">
+                      {formatPrice(plan.overageRatePerEmployeeEur)} € / mois<br />
+                      <span className="text-outline font-medium">à l'unité depuis la fiche</span>
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">

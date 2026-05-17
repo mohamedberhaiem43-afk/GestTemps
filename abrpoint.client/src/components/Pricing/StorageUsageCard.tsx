@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Box, Paper, Typography, LinearProgress, Alert, Stack, CircularProgress } from '@mui/material';
+import { Box, Paper, Typography, LinearProgress, Alert, Stack, CircularProgress, Button } from '@mui/material';
 import StorageIcon from '@mui/icons-material/Storage';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import apiInstance from '../API/apiInstance';
 
 /**
@@ -49,10 +50,30 @@ function formatRelativeTime(iso: string | null): string {
   }
 }
 
-export default function StorageUsageCard() {
+interface StorageUsageCardProps {
+  // Callback optionnel — déclenché par le CTA "Changer de pack" quand le quota
+  // est dépassé ou approche. Si non fourni, le widget fait juste un scroll en
+  // haut de la page (MonAbonnementPage expose déjà un bouton "Changer de pack").
+  // Permet à un parent de prendre la main (ouvrir un modal, naviguer, etc.).
+  onUpgradeClick?: () => void;
+}
+
+export default function StorageUsageCard({ onUpgradeClick }: StorageUsageCardProps = {}) {
   const [data, setData] = useState<StorageUsage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Premium est déjà au plafond — on ne propose pas d'upgrade dans ce cas.
+  // L'admin doit alors faire le ménage (supprimer des documents) plutôt que
+  // de payer plus, et le CTA serait trompeur.
+  const isPremium = (data?.planCode ?? '').toLowerCase() === 'premium';
+  const handleUpgrade = () => {
+    if (onUpgradeClick) {
+      onUpgradeClick();
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -119,19 +140,49 @@ export default function StorageUsageCard() {
       />
 
       {overQuota && (
-        <Alert severity="error" sx={{ mt: 2, borderRadius: '14px' }}>
+        <Alert
+          severity="error"
+          sx={{ mt: 2, borderRadius: '14px' }}
+          action={!isPremium ? (
+            <Button
+              variant="contained"
+              color="error"
+              size="small"
+              startIcon={<RocketLaunchIcon />}
+              onClick={handleUpgrade}
+              sx={{ whiteSpace: 'nowrap', fontWeight: 700 }}
+            >
+              Passer à un pack supérieur
+            </Button>
+          ) : null}
+        >
           <Typography sx={{ fontWeight: 700 }}>Quota dépassé</Typography>
           <Typography sx={{ fontSize: 14, mt: 0.3 }}>
             Vous ne pouvez plus téléverser de nouveaux documents. Supprimez des fichiers du coffre-fort
-            ou passez à un pack supérieur pour augmenter la capacité.
+            {isPremium ? ' pour libérer de l\'espace.' : ' ou passez à un pack supérieur pour augmenter la capacité.'}
           </Typography>
         </Alert>
       )}
       {nearQuota && (
-        <Alert severity="warning" sx={{ mt: 2, borderRadius: '14px' }}>
+        <Alert
+          severity="warning"
+          sx={{ mt: 2, borderRadius: '14px' }}
+          action={!isPremium ? (
+            <Button
+              variant="outlined"
+              color="warning"
+              size="small"
+              startIcon={<RocketLaunchIcon />}
+              onClick={handleUpgrade}
+              sx={{ whiteSpace: 'nowrap', fontWeight: 700 }}
+            >
+              Changer de pack
+            </Button>
+          ) : null}
+        >
           <Typography sx={{ fontSize: 14 }}>
-            Vous approchez la limite de votre pack. Pensez à faire le ménage ou à passer à un pack
-            supérieur avant d'être bloqué.
+            Vous approchez la limite de votre pack. Pensez à faire le ménage
+            {isPremium ? ' (Premium est déjà au plafond).' : ' ou à passer à un pack supérieur avant d\'être bloqué.'}
           </Typography>
         </Alert>
       )}

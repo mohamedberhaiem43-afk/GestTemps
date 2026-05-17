@@ -75,8 +75,17 @@ public sealed class EmployeeBillingSyncService : BackgroundService
             _log.LogInformation("EmployeeBillingSync : Stripe non configuré (clé absente), sync ignorée.");
             return;
         }
-        StripeConfiguration.ApiKey = stripeKey;
-        var subItems = new SubscriptionItemService();
+
+        // Délègue le push Stripe à IBillingService.SyncSupplementaryEmployeesAsync —
+        // logique de upsert d'item user_supp + idempotence + détection de cycle de
+        // facturation centralisée. Le job ne fait plus que la collecte du compte
+        // d'employés actifs par tenant et appelle le service.
+        var billing = scope.ServiceProvider.GetService<IBillingService>();
+        if (billing is null)
+        {
+            _log.LogWarning("EmployeeBillingSync : IBillingService non résolu, sync impossible.");
+            return;
+        }
 
         await using var master = await masterFactory.CreateDbContextAsync(ct);
         var tenants = await master.Tenants
@@ -111,14 +120,6 @@ public sealed class EmployeeBillingSyncService : BackgroundService
 
                 try
                 {
-                    var plan = PlanCatalog.GetPlan(tenant.PlanCode);
-                    if (plan is null)
-                    {
-                        _log.LogDebug("Tenant {Slug} : plan inconnu ({Plan}), skip.", tenant.Slug, tenant.PlanCode);
-                        Interlocked.Increment(ref skipped);
-                        return;
-                    }
-
                     // 1. Compte les salariés actifs sur la base du tenant.
                     var connStr = template.Replace("{DbName}", tenant.DbName);
                     var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -130,62 +131,27 @@ public sealed class EmployeeBillingSyncService : BackgroundService
                         employeeCount = await tenantDb.Employes.CountAsync(e => e.Actif == "A", innerCt);
                     }
 
-                    var overage = Math.Max(0, employeeCount - plan.IncludedEmployees);
-
-                    // 2. Récupère la souscription Stripe pour trouver l'item "seat".
-                    var subscriptionService = new SubscriptionService();
-                    var subscription = await subscriptionService.GetAsync(tenant.StripeSubscriptionId!, cancellationToken: innerCt);
-                    if (subscription is null)
+                    // 2. Délègue le push (idempotent). Retour null = sync skip (plan/price
+                    // non configuré), valeur = qty finale poussée. Pas d'incrément "updated"
+                    // strict puisque le service push silencieusement quand la qty change ;
+                    // le log de StripeBillingService trace les vrais updates.
+                    var pushed = await billing.SyncSupplementaryEmployeesAsync(tenant, employeeCount, innerCt);
+                    if (pushed is null)
                     {
-                        _log.LogWarning("Tenant {Slug} : souscription Stripe {SubId} introuvable.", tenant.Slug, tenant.StripeSubscriptionId);
                         Interlocked.Increment(ref skipped);
                         return;
                     }
-
-                    var seatPriceId = _cfg[$"Stripe:Prices:{plan.Code}:seat:monthly"];
-                    if (string.IsNullOrWhiteSpace(seatPriceId) || seatPriceId.Contains("REPLACE"))
-                    {
-                        _log.LogDebug("Tenant {Slug} : price_id seat non configuré pour {Plan}, skip.", tenant.Slug, plan.Code);
-                        Interlocked.Increment(ref skipped);
-                        return;
-                    }
-                    var seatItem = subscription.Items.Data.FirstOrDefault(i =>
-                        string.Equals(i.Price?.Id, seatPriceId, StringComparison.Ordinal));
-                    if (seatItem is null)
-                    {
-                        _log.LogWarning("Tenant {Slug} : item seat absent de la souscription (price={Price}). Manuel à corriger côté Stripe.",
-                            tenant.Slug, seatPriceId);
-                        Interlocked.Increment(ref skipped);
-                        return;
-                    }
-
-                    // 3. Idempotence : ne push que si la quantité a changé.
-                    if (seatItem.Quantity == overage)
-                    {
-                        _log.LogDebug("Tenant {Slug} : seat={Seat} déjà à jour, skip.", tenant.Slug, overage);
-                        return;
-                    }
-
-                    await subItems.UpdateAsync(seatItem.Id, new SubscriptionItemUpdateOptions
-                    {
-                        Quantity = overage,
-                        ProrationBehavior = "create_prorations",
-                    }, cancellationToken: innerCt);
-
                     Interlocked.Increment(ref updated);
-                    _log.LogInformation(
-                        "Tenant {Slug} ({Plan}) : seats {Old} → {New} (employés={Count}, inclus={Included})",
-                        tenant.Slug, plan.Code, seatItem.Quantity, overage, employeeCount, plan.IncludedEmployees);
                 }
                 catch (Exception ex)
                 {
                     Interlocked.Increment(ref errored);
-                    _log.LogError(ex, "Tenant {Slug} : erreur lors du sync seat.", tenant.Slug);
+                    _log.LogError(ex, "Tenant {Slug} : erreur lors du sync user_supp.", tenant.Slug);
                 }
             });
 
         _log.LogInformation(
-            "EmployeeBillingSync : {Processed} tenants traités ({Updated} mis à jour, {Skipped} ignorés, {Errored} en erreur).",
+            "EmployeeBillingSync : {Processed} tenants traités ({Updated} synchronisés, {Skipped} ignorés, {Errored} en erreur).",
             processed, updated, skipped, errored);
     }
 }

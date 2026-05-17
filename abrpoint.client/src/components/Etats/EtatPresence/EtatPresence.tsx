@@ -3,6 +3,7 @@ import { CircularProgress } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { AnimatedNumber } from '../../shared/AnimatedNumber';
 
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
@@ -375,7 +376,10 @@ function EtatPresence() {
             <span className="ea-summary-label">{t('etats.presence.kpiLateRate')}</span>
             <div className="ea-summary-icon ea-icon-bg-red"><TrendingUpIcon sx={{ fontSize: 19 }} /></div>
           </div>
-          <div className="ea-summary-value">{kpis.lateRate}<span className="ea-summary-unit">%</span></div>
+          <div className="ea-summary-value">
+            <AnimatedNumber value={kpis.lateRate} as="span" />
+            <span className="ea-summary-unit">%</span>
+          </div>
           <div className="ea-summary-footer">{t('etats.presence.summary.lateRateFooter')}</div>
         </div>
 
@@ -384,7 +388,9 @@ function EtatPresence() {
             <span className="ea-summary-label">{t('etats.presence.kpiTotalLate')}</span>
             <div className="ea-summary-icon ea-icon-bg-blue"><TimerIcon sx={{ fontSize: 19 }} /></div>
           </div>
-          <div className="ea-summary-value">{kpis.totalLate}</div>
+          <div className="ea-summary-value">
+            <AnimatedNumber value={kpis.totalLate} as="span" />
+          </div>
           <div className="ea-summary-footer">{t('etats.presence.summary.totalLateFooter')}</div>
         </div>
 
@@ -393,7 +399,10 @@ function EtatPresence() {
             <span className="ea-summary-label">{t('etats.presence.kpiAvgLate')}</span>
             <div className="ea-summary-icon ea-icon-bg-orange"><GroupIcon sx={{ fontSize: 19 }} /></div>
           </div>
-          <div className="ea-summary-value">{kpis.avgLate}<span className="ea-summary-unit">min</span></div>
+          <div className="ea-summary-value">
+            <AnimatedNumber value={kpis.avgLate} as="span" />
+            <span className="ea-summary-unit">min</span>
+          </div>
           <div className="ea-summary-footer">
             {t('etats.presence.summary.avgFooter', { count: kpis.totalEmps })}
           </div>
@@ -404,7 +413,9 @@ function EtatPresence() {
             <span className="ea-summary-label">{t('etats.presence.kpiTotalNight')}</span>
             <div className="ea-summary-icon ea-icon-bg-purple"><NightsStayIcon sx={{ fontSize: 19 }} /></div>
           </div>
-          <div className="ea-summary-value">{kpis.totalNight}</div>
+          <div className="ea-summary-value">
+            <AnimatedNumber value={kpis.totalNight} as="span" />
+          </div>
           <div className="ea-summary-footer">{t('etats.presence.summary.nightFooter')}</div>
         </div>
       </div>

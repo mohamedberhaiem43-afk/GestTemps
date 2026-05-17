@@ -16,12 +16,14 @@ namespace ABRPOINT.Server.Controllers
         private readonly string _reportsPath;
         private readonly string _vaultPath;
         private readonly IReportsGenerationService _reportsService;
+        private readonly ILogger<TemplatesController> _log;
 
-        public TemplatesController(IWebHostEnvironment env, IReportsGenerationService reportsService)
+        public TemplatesController(IWebHostEnvironment env, IReportsGenerationService reportsService, ILogger<TemplatesController> log)
         {
             _reportsPath = Path.Combine(env.ContentRootPath, "Reports");
             _vaultPath = Path.Combine(env.ContentRootPath, "VaultTemplates");
             _reportsService = reportsService;
+            _log = log;
 
             if (!Directory.Exists(_vaultPath)) Directory.CreateDirectory(_vaultPath);
         }
@@ -324,7 +326,15 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = "Erreur lors de la génération de l'aperçu : " });
+                // SEC-19 : on ne fuit pas ex.Message vers le client mais on log avec
+                // la stack trace complète + le contexte (template, soccod, empcod).
+                // Avant ce log, l'admin voyait juste un 400 opaque côté navigateur et
+                // ZÉRO trace serveur — impossible de diagnostiquer (collab absent en
+                // base, wkhtmltopdf manquant, placeholder NRE, etc.).
+                _log.LogError(ex,
+                    "PreviewTemplate échoué — template={Name} soccod={Soccod} empcod={Empcod}",
+                    name, soccod, empcod);
+                return BadRequest(new { message = "Erreur lors de la génération de l'aperçu (voir logs serveur)." });
             }
         }
 

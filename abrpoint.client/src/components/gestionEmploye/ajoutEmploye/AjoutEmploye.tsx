@@ -2,7 +2,8 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import './AjoutEmploye.css'
 import EmployeDetails from '../EmployeDetails/EmployeDetails';
-import { Button, IconButton, Tooltip } from '@mui/material';
+import { Button, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, CircularProgress, Box as MuiBox } from '@mui/material';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import { useContext, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
@@ -14,11 +15,14 @@ import useAddEmploye from '../../../hooks/employeHooks/useAddEmploye';
 import useUpdateEmploye from '../../../hooks/employeHooks/useUpdateEmploye';
 import { useAuth } from '../../helper/AuthProvider';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import EmployeService from '../../../services/EmployeService/EmployeService';
 
 export default function BasicGrid() {
   const { soccod, sitcod } = useAuth();
   const { t } = useTranslation();
   const feedback = useFeedbackSnackbar();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<'save' | 'update'>('save');
 
   const { selectedEmp } = useContext(EmployeeContext);
@@ -87,6 +91,39 @@ export default function BasicGrid() {
   const [employeData, setEmployeData] = useState<Employe>(getDefaultEmployeData());
   const [combinedData, setCombinedData] = useState<Employe>(getDefaultEmployeData());
 
+  // Modal de confirmation "supplément payant" : ouvert quand le backend retourne
+  // 402 avec code "employee_quota_exceeded" (quota inclus du pack atteint). L'admin
+  // doit confirmer explicitement que le nouveau collaborateur sera facturé en
+  // supplément avant que la requête soit re-soumise avec ?confirmOverage=true.
+  const [overageDialog, setOverageDialog] = useState<{
+    open: boolean;
+    currentCount: number;
+    includedMax: number;
+    planName: string;
+    overageRateEur: number;
+    pendingEmploye: Employe | null;
+  }>({
+    open: false,
+    currentCount: 0,
+    includedMax: 0,
+    planName: '',
+    overageRateEur: 0,
+    pendingEmploye: null,
+  });
+  const [overageSubmitting, setOverageSubmitting] = useState(false);
+
+  // Dialog dédié quand le tenant est en essai gratuit et atteint le quota inclus
+  // (code "trial_employee_limit_reached"). Pas d'opt-in payant possible en trial —
+  // l'admin DOIT d'abord souscrire un plan payant. On lui propose un CTA direct
+  // vers /dashboard/mon-abonnement (gestion plan + Stripe Checkout) plutôt qu'un
+  // snackbar texte sans action.
+  const [trialLimitDialog, setTrialLimitDialog] = useState<{
+    open: boolean;
+    currentCount: number;
+    includedMax: number;
+    planCode: string;
+  }>({ open: false, currentCount: 0, includedMax: 0, planCode: '' });
+
   useEffect(() => {
     if (selectedEmp && selectedEmp.empcod) {
       setEmployeData(selectedEmp);
@@ -145,6 +182,33 @@ export default function BasicGrid() {
           feedback.showSuccess(res?.message || t('employe.addSuccess'));
         },
         onError: (error: any) => {
+          // 402 + code "employee_quota_exceeded" = quota inclus atteint sur un
+          // plan payant. On ouvre le modal d'opt-in plutôt que de remonter une
+          // erreur — l'admin choisit consciemment de payer le supplément.
+          const data = error?.response?.data;
+          if (error?.response?.status === 402 && data?.code === 'employee_quota_exceeded') {
+            setOverageDialog({
+              open: true,
+              currentCount: data.currentCount ?? 0,
+              includedMax: data.includedMax ?? 0,
+              planName: data.planName ?? data.planCode ?? 'votre pack',
+              overageRateEur: data.overageRateEur ?? 0,
+              pendingEmploye: employeToSave,
+            });
+            return;
+          }
+          // 402 + code "trial_employee_limit_reached" = même quota dur, mais en
+          // essai gratuit. Pas de bypass possible : l'admin doit basculer en
+          // payant avant. Dialog dédié avec CTA vers /dashboard/mon-abonnement.
+          if (error?.response?.status === 402 && data?.code === 'trial_employee_limit_reached') {
+            setTrialLimitDialog({
+              open: true,
+              currentCount: data.currentCount ?? 0,
+              includedMax: data.includedMax ?? 0,
+              planCode: data.planCode ?? '',
+            });
+            return;
+          }
           console.error('Error saving employee:', error);
           feedback.showError(error, t('employe.addError'));
         },
@@ -152,6 +216,28 @@ export default function BasicGrid() {
     } catch (error) {
       console.error('Error preparing employee data:', error);
       feedback.showError(error, t('employe.prepareError'));
+    }
+  };
+
+  // Confirmation de l'opt-in : re-soumet la création du collab avec
+  // ?confirmOverage=true. Le backend (EmployesController.Post) accepte, crée le
+  // collab, puis pousse +1 sur l'item Stripe user_supp (facturation au prochain
+  // cycle, prorata immédiat).
+  const confirmOverageAndSave = async () => {
+    if (!overageDialog.pendingEmploye) return;
+    setOverageSubmitting(true);
+    try {
+      const res: any = await EmployeService.postWithQuery(
+        overageDialog.pendingEmploye,
+        { confirmOverage: true }
+      );
+      feedback.showSuccess(res?.message || t('employe.addSuccess'));
+      setOverageDialog((d) => ({ ...d, open: false, pendingEmploye: null }));
+    } catch (error: any) {
+      console.error('Error confirming overage:', error);
+      feedback.showError(error, t('employe.addError'));
+    } finally {
+      setOverageSubmitting(false);
     }
   };
 
@@ -210,6 +296,102 @@ export default function BasicGrid() {
             </Grid>
           </Grid>
           {feedback.element}
+
+          {/* Modal opt-in : quota inclus du pack atteint, l'admin choisit de
+              facturer un collab supplémentaire via le produit Stripe user_supp. */}
+          <Dialog
+            open={overageDialog.open}
+            onClose={() => !overageSubmitting && setOverageDialog((d) => ({ ...d, open: false, pendingEmploye: null }))}
+            maxWidth="sm"
+            fullWidth
+          >
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <WarningAmberIcon sx={{ color: '#f59e0b' }} />
+              Collaborateur supplémentaire — facturation
+            </DialogTitle>
+            <DialogContent>
+              <DialogContentText component="div">
+                <MuiBox sx={{ mb: 2 }}>
+                  Vous avez atteint le quota de <strong>{overageDialog.includedMax} collaborateurs</strong>
+                  {' '}inclus dans le pack <strong>{overageDialog.planName}</strong>
+                  {' '}({overageDialog.currentCount} actuellement actifs).
+                </MuiBox>
+                <MuiBox sx={{ mb: 2, p: 2, bgcolor: '#fef3c7', border: '1px solid #fde68a', borderRadius: 1.5 }}>
+                  Confirmer l'ajout de ce collaborateur facturera
+                  {' '}<strong>{overageDialog.overageRateEur.toFixed(2)} € HT / mois</strong>
+                  {' '}en supplément (article <code>user_supp</code> sur votre abonnement Stripe).
+                  Une proration sera appliquée sur votre prochaine facture.
+                </MuiBox>
+                <MuiBox sx={{ fontSize: 13, color: '#64748b' }}>
+                  Le montant s'ajoute automatiquement à votre abonnement existant ; aucun débit immédiat.
+                  Vous pouvez désactiver ce collaborateur à tout moment, le supplément sera retiré au prochain cycle.
+                </MuiBox>
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+              <Button
+                onClick={() => setOverageDialog((d) => ({ ...d, open: false, pendingEmploye: null }))}
+                disabled={overageSubmitting}
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={confirmOverageAndSave}
+                disabled={overageSubmitting}
+                startIcon={overageSubmitting ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : undefined}
+              >
+                Confirmer et facturer le supplément
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Dialog quota essai gratuit atteint — pas d'opt-in possible, CTA direct
+              vers la page Mon abonnement (admin choisit un plan + Stripe Checkout). */}
+          <Dialog
+            open={trialLimitDialog.open}
+            onClose={() => setTrialLimitDialog((d) => ({ ...d, open: false }))}
+            maxWidth="sm"
+            fullWidth
+          >
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <WarningAmberIcon sx={{ color: '#f59e0b' }} />
+              Limite de l'essai gratuit atteinte
+            </DialogTitle>
+            <DialogContent>
+              <DialogContentText component="div">
+                <MuiBox sx={{ mb: 2 }}>
+                  Vous avez atteint le quota de <strong>{trialLimitDialog.includedMax} collaborateurs</strong>
+                  {' '}inclus dans l'essai gratuit ({trialLimitDialog.currentCount} actuellement actifs).
+                </MuiBox>
+                <MuiBox sx={{ mb: 2, p: 2, bgcolor: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 1.5 }}>
+                  Pour ajouter des collaborateurs supplémentaires, souscrivez à un plan payant
+                  (<strong>Starter / Standard / Premium</strong>). Vous serez ensuite débité à l'unité
+                  pour chaque collaborateur au-delà du quota inclus de votre pack.
+                </MuiBox>
+                <MuiBox sx={{ fontSize: 13, color: '#64748b' }}>
+                  L'essai gratuit reste actif jusqu'à votre passage au paiement —
+                  aucune donnée n'est perdue.
+                </MuiBox>
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+              <Button onClick={() => setTrialLimitDialog((d) => ({ ...d, open: false }))}>
+                Plus tard
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => {
+                  setTrialLimitDialog((d) => ({ ...d, open: false }));
+                  navigate('/dashboard/mon-abonnement');
+                }}
+              >
+                Passer à un plan payant
+              </Button>
+            </DialogActions>
+          </Dialog>
         </Box>
       </EmployeeProvider>
   );

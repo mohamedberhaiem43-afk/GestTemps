@@ -21,6 +21,7 @@ import { Conge } from '../../../../models/Conge';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import './SoldeCongeModern.css';
+import { AnimatedNumber } from '../../../shared/AnimatedNumber';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const fmtDate = (d: Date | string | null | undefined) => {
@@ -59,7 +60,9 @@ function BalanceCard({ icon, iconBg, label, balance, acquired, taken, barColor, 
         <Typography className="scm-card-label">{label}</Typography>
       </Box>
       <Box className="scm-card-value">
-        <Typography className="scm-card-number">{balance.toFixed(1)}</Typography>
+        {/* Animation count-up sur le solde restant : le chiffre principal de la
+            carte. Décimales forcées à 1 (matching .toFixed(1)). */}
+        <AnimatedNumber value={balance} decimals={1} className="scm-card-number" />
         <Typography className="scm-card-unit">{t('conge.soldeConge.card.days')}</Typography>
       </Box>
       {emptyMsg && balance === 0 ? (
@@ -68,14 +71,14 @@ function BalanceCard({ icon, iconBg, label, balance, acquired, taken, barColor, 
         <Box className="scm-card-stats">
           <Box className="scm-card-stat-row">
             <Typography className="scm-stat-label">{t('conge.soldeConge.card.acquired')}</Typography>
-            <Typography className="scm-stat-value">{acquired.toFixed(1)}</Typography>
+            <AnimatedNumber value={acquired} decimals={1} className="scm-stat-value" />
           </Box>
           <Box className="scm-progress-bar">
             <Box className="scm-progress-fill" style={{ width: `${pct}%`, backgroundColor: barColor }} />
           </Box>
           <Box className="scm-card-stat-row">
             <Typography className="scm-stat-label">{t('conge.soldeConge.card.takenPlaced')}</Typography>
-            <Typography className="scm-stat-value scm-stat-taken">{taken.toFixed(1)}</Typography>
+            <AnimatedNumber value={taken} decimals={1} className="scm-stat-value scm-stat-taken" />
           </Box>
         </Box>
       )}

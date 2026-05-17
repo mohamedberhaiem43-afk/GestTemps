@@ -48,79 +48,14 @@ import RenewContractDialog from '../gestionEmploye/GestionContrats/RenewContract
 import { Contrat } from '../../models/Contrat';
 import OnboardingGuide from './OnboardingGuide';
 import React from 'react';
+import { AnimatedNumber } from '../shared/AnimatedNumber';
 
 const AVATAR_COLORS = ['#0040a1', '#047857', '#b45309', '#6d28d9', '#065f46'];
 
 // Hook : anime un nombre de 0 (ou de la valeur précédente) vers `target` sur
-// `durationMs` via requestAnimationFrame avec une courbe easeOutCubic. Utilisé
-// pour donner du dynamisme aux chiffres KPI quand ils apparaissent ou changent
-// (ex : passage de 'today' à 'this week' sur le dashboard).
-function useCountUp(target: number, durationMs = 900): number {
-  const [display, setDisplay] = React.useState(target);
-  const fromRef = React.useRef(target);
-  const rafRef = React.useRef<number | null>(null);
-
-  React.useEffect(() => {
-    if (!Number.isFinite(target)) {
-      setDisplay(target);
-      return;
-    }
-    const from = fromRef.current;
-    const to = target;
-    if (from === to) {
-      setDisplay(to);
-      return;
-    }
-    const start = performance.now();
-    const tick = (now: number) => {
-      const elapsed = now - start;
-      const t = Math.min(1, elapsed / durationMs);
-      // easeOutCubic : démarre vite, ralentit en fin de course → "compteur"
-      const eased = 1 - Math.pow(1 - t, 3);
-      const current = from + (to - from) * eased;
-      setDisplay(current);
-      if (t < 1) {
-        rafRef.current = requestAnimationFrame(tick);
-      } else {
-        fromRef.current = to;
-      }
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-    };
-  }, [target, durationMs]);
-
-  return display;
-}
-
-// Sépare une valeur affichée ("85.2%", "12.3 hrs", "1247", "--") en partie
-// numérique et suffixe pour pouvoir n'animer que le chiffre. Si la valeur n'a
-// pas de partie numérique parseable (ex: "--"), retourne null pour fallback.
-function splitNumeric(value: string | number): { num: number; suffix: string; decimals: number } | null {
-  if (typeof value === 'number') {
-    return { num: value, suffix: '', decimals: 0 };
-  }
-  const m = String(value).match(/^\s*(-?\d+(?:[.,]\d+)?)(.*)$/);
-  if (!m) return null;
-  const numStr = m[1].replace(',', '.');
-  const num = parseFloat(numStr);
-  if (!Number.isFinite(num)) return null;
-  const decimals = numStr.includes('.') ? numStr.split('.')[1].length : 0;
-  return { num, suffix: m[2], decimals };
-}
-
-// Composant qui affiche une valeur en l'animant si elle est numérique.
-function AnimatedNumber({ value, className, sx }: { value: string | number; className?: string; sx?: any }) {
-  const parsed = splitNumeric(value);
-  const target = parsed ? parsed.num : 0;
-  const animated = useCountUp(target);
-  if (!parsed) {
-    return <Typography className={className} sx={sx}>{value}</Typography>;
-  }
-  const display = animated.toFixed(parsed.decimals) + parsed.suffix;
-  return <Typography className={className} sx={sx}>{display}</Typography>;
-}
+// Le hook `useCountUp` + composant `AnimatedNumber` sont extraits dans
+// components/shared/AnimatedNumber.tsx (réutilisés par SoldeConge, Remboursement,
+// Etats, etc.). On les ré-exporte ici pour ne pas casser les imports existants.
 
 function KpiCard({ icon, label, value, trend, trendLabel, trendPositive, iconBg, iconColor }: {
   icon: React.ReactNode; label: string; value: string | number;
