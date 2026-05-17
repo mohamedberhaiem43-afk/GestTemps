@@ -17,6 +17,16 @@ using DinkToPdf.Contracts;
 // ✅ Fix: Set timezone to Europe/Paris so DateTime.Now returns correct local time (important for Docker containers that default to UTC)
 Environment.SetEnvironmentVariable("TZ", "Europe/Paris");
 
+// Npgsql 6+ refuse par défaut DateTime(Kind=UTC) → `timestamp without time zone` et
+// DateTime(Kind=Local/Unspecified) → `timestamptz`. La codebase historique (migrée
+// depuis SQL Server) utilise massivement `timestamp` (sans fuseau) avec des
+// DateTime.UtcNow Kind=UTC — convention "UTC stocké en naïf" comme dans le master
+// DDL (`NOW() AT TIME ZONE 'UTC'`). Plutôt que de re-typer toutes les colonnes et
+// stripper Kind à chaque appel, on réactive le comportement legacy globalement.
+// Doc Npgsql : https://www.npgsql.org/doc/types/datetime.html — section "Timestamp
+// behavior changes in 6.0". Ce switch DOIT être posé AVANT toute connexion Npgsql.
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // OWASP : ne pas divulguer la version du serveur dans le header "Server".
