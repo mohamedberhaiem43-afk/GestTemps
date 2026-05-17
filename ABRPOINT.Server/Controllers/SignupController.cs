@@ -30,6 +30,48 @@ public class SignupController : ControllerBase
         "master", "auth", "login", "signup", "stripe", "test", "demo", "staging", "prod",
     };
 
+    // Domaines d'emails personnels / jetables refusés à l'inscription. Synchronisé
+    // avec PERSONAL_EMAIL_DOMAINS côté SignupPage.tsx — toute modif ici doit être
+    // propagée là-bas (et vice-versa). Le client filtre pour UX immédiate ; ici on
+    // re-vérifie pour empêcher tout contournement par appel API direct.
+    private static readonly HashSet<string> PersonalEmailDomains = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // Google
+        "gmail.com", "googlemail.com",
+        // Microsoft
+        "hotmail.com", "hotmail.fr", "hotmail.co.uk", "outlook.com", "outlook.fr",
+        "live.com", "live.fr", "msn.com",
+        // Yahoo
+        "yahoo.com", "yahoo.fr", "yahoo.co.uk", "ymail.com", "rocketmail.com",
+        // Apple
+        "icloud.com", "me.com", "mac.com",
+        // AOL / Verizon
+        "aol.com", "aim.com",
+        // Proton / GMX / Tutanota / Zoho / Fastmail / Mail.com
+        "protonmail.com", "proton.me", "pm.me",
+        "gmx.com", "gmx.fr", "gmx.net", "gmx.de",
+        "tutanota.com", "tutamail.com", "tuta.io",
+        "zoho.com", "fastmail.com", "mail.com",
+        // FAI français
+        "free.fr", "orange.fr", "wanadoo.fr", "laposte.net", "sfr.fr",
+        "neuf.fr", "bbox.fr", "numericable.fr", "aliceadsl.fr", "club-internet.fr",
+        // Yandex / Mail.ru
+        "yandex.com", "yandex.ru", "mail.ru", "bk.ru", "list.ru", "inbox.ru",
+        // Asie
+        "163.com", "126.com", "qq.com", "sina.com", "sina.cn", "139.com",
+        // Jetables
+        "mailinator.com", "yopmail.com", "10minutemail.com", "tempmail.com",
+        "guerrillamail.com", "guerrillamail.net", "throwaway.email", "sharklasers.com",
+        "getnada.com", "temp-mail.org", "dispostable.com", "maildrop.cc",
+    };
+
+    private static bool IsPersonalEmail(string email)
+    {
+        var at = email.LastIndexOf('@');
+        if (at < 0) return false;
+        return PersonalEmailDomains.Contains(email[(at + 1)..]);
+    }
+
     private readonly IDbContextFactory<MasterDbContext> _masterFactory;
     private readonly IProvisioningService _provisioning;
     private readonly IBillingService _billing;
@@ -128,6 +170,10 @@ public class SignupController : ControllerBase
         email = (email ?? string.Empty).Trim().ToLowerInvariant();
         if (string.IsNullOrEmpty(email) || !email.Contains('@'))
             return Ok(new { available = false, reason = "format" });
+        // Refuse les emails grand public / jetables. La règle métier est dupliquée
+        // dans POST /api/signup pour empêcher le contournement par appel direct.
+        if (IsPersonalEmail(email))
+            return Ok(new { available = false, reason = "personal" });
 
         await using var master = await _masterFactory.CreateDbContextAsync(ct);
         var taken = await master.TenantEmailIndex.AsNoTracking()
@@ -175,6 +221,14 @@ public class SignupController : ControllerBase
             return BadRequest(new { error = "Ce slug est réservé." });
         if (string.IsNullOrWhiteSpace(req.AdminEmail) || !req.AdminEmail.Contains('@'))
             return BadRequest(new { error = "Email administrateur invalide." });
+        // Anti-contournement client : on bloque ici les emails grand public / jetables
+        // même si le frontend ne le faisait pas. Cf. PersonalEmailDomains pour la liste.
+        if (IsPersonalEmail(req.AdminEmail.Trim().ToLowerInvariant()))
+            return BadRequest(new
+            {
+                error = "Merci d'utiliser une adresse email professionnelle (liée au domaine de votre entreprise). Les adresses Gmail, Outlook, Yahoo, etc. ne sont pas acceptées.",
+                code = "email_personal",
+            });
         if (string.IsNullOrWhiteSpace(req.AdminPassword) || req.AdminPassword.Length < 8)
             return BadRequest(new { error = "Mot de passe trop court (8 caractères minimum)." });
         if (string.IsNullOrWhiteSpace(req.CompanyName))

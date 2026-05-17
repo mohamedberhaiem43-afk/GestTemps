@@ -21,7 +21,50 @@ import GetRestCountries from '../../services/RestCountriesService/GetRestCountri
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$/;
 
 type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'reserved';
-type EmailStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
+// 'personal' → adresse acceptée techniquement mais hébergée par un fournisseur grand
+// public (Gmail, Outlook, Yahoo…) ou un service jetable. Bloque la soumission : un
+// compte SaaS B2B se souscrit avec un email pro lié au domaine de l'entreprise.
+type EmailStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'personal';
+
+// Liste des domaines d'emails personnels / jetables refusés à l'inscription. Couvre
+// les principaux fournisseurs grand public FR/EU/US/MA + quelques jetables courants.
+// La liste vit ici en dur (pas d'API tierce) parce qu'elle change rarement et qu'on
+// veut un feedback instantané sans round-trip réseau. Le backend duplique le check.
+const PERSONAL_EMAIL_DOMAINS = new Set<string>([
+  // Google
+  'gmail.com', 'googlemail.com',
+  // Microsoft
+  'hotmail.com', 'hotmail.fr', 'hotmail.co.uk', 'outlook.com', 'outlook.fr',
+  'live.com', 'live.fr', 'msn.com',
+  // Yahoo
+  'yahoo.com', 'yahoo.fr', 'yahoo.co.uk', 'ymail.com', 'rocketmail.com',
+  // Apple
+  'icloud.com', 'me.com', 'mac.com',
+  // AOL / Verizon
+  'aol.com', 'aim.com',
+  // Proton / GMX / Tutanota / Zoho / Fastmail
+  'protonmail.com', 'proton.me', 'pm.me',
+  'gmx.com', 'gmx.fr', 'gmx.net', 'gmx.de',
+  'tutanota.com', 'tutamail.com', 'tuta.io',
+  'zoho.com', 'fastmail.com', 'mail.com',
+  // FAI français
+  'free.fr', 'orange.fr', 'wanadoo.fr', 'laposte.net', 'sfr.fr',
+  'neuf.fr', 'bbox.fr', 'numericable.fr', 'aliceadsl.fr', 'club-internet.fr',
+  // Yandex / Mail.ru
+  'yandex.com', 'yandex.ru', 'mail.ru', 'bk.ru', 'list.ru', 'inbox.ru',
+  // Asie
+  '163.com', '126.com', 'qq.com', 'sina.com', 'sina.cn', '139.com',
+  // Jetables
+  'mailinator.com', 'yopmail.com', '10minutemail.com', 'tempmail.com',
+  'guerrillamail.com', 'guerrillamail.net', 'throwaway.email', 'sharklasers.com',
+  'getnada.com', 'temp-mail.org', 'dispostable.com', 'maildrop.cc',
+]);
+
+function isPersonalEmailDomain(email: string): boolean {
+  const at = email.lastIndexOf('@');
+  if (at < 0) return false;
+  return PERSONAL_EMAIL_DOMAINS.has(email.slice(at + 1).toLowerCase());
+}
 // Statuts SIRET — reflètent les codes renvoyés par /api/signup/check-siret :
 //   format/checksum → ID mal formé localement (format dépend du pays) ;
 //   not_found/closed → API Sirene ne reconnaît pas l'établissement ou il est fermé ;
@@ -239,6 +282,9 @@ export default function SignupPage() {
     const trimmed = email.trim();
     if (!trimmed) { setEmailStatus('idle'); return; }
     if (!EMAIL_REGEX.test(trimmed)) { setEmailStatus('invalid'); return; }
+    // Bloque les emails grand public / jetables AVANT l'appel réseau — UX immédiate.
+    // Le backend revérifie côté POST /signup pour empêcher tout contournement.
+    if (isPersonalEmailDomain(trimmed)) { setEmailStatus('personal'); return; }
 
     setEmailStatus('checking');
     const controller = new AbortController();
@@ -362,6 +408,10 @@ export default function SignupPage() {
       case 'available': return { color: 'success' as const, text: 'Email disponible.' };
       case 'taken': return { color: 'error' as const, text: 'Cet email est déjà utilisé.' };
       case 'invalid': return { color: 'error' as const, text: 'Format d\'email invalide.' };
+      case 'personal': return {
+        color: 'error' as const,
+        text: 'Merci d\'utiliser une adresse email professionnelle (liée au domaine de votre entreprise). Les adresses Gmail, Outlook, Yahoo… ne sont pas acceptées.',
+      };
       default: return null;
     }
   }, [emailStatus]);
@@ -412,6 +462,7 @@ export default function SignupPage() {
     /.+@.+\..+/.test(email) &&
     emailStatus !== 'taken' &&
     emailStatus !== 'invalid' &&
+    emailStatus !== 'personal' &&
     password.length >= 8 &&
     captchaChallengeId.length > 0 &&
     captchaAnswer.trim() !== '';
@@ -535,16 +586,10 @@ export default function SignupPage() {
         </Box>
 
         <Stack spacing={2.5}>
-          <TextField
-            fullWidth
-            label="Nom de l'entreprise"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            InputProps={{ startAdornment: <InputAdornment position="start"><BusinessIcon /></InputAdornment> }}
-          />
-
-          {/* Sélecteur de pays — placé AVANT l'ID parce que le format de l'ID change
-              avec le pays. Limité aux 4 pays cibles de la commercialisation 2026. */}
+          {/* Ordre des champs (2026-05) : Pays + ID entreprise EN PREMIER, puis email
+              pro, puis nom de société (souvent auto-rempli depuis l'API Sirene/BCE),
+              puis slug, identité de l'admin, mot de passe. Le pays détermine le format
+              de l'ID demandé ; l'ID valide auto-remplit nom + adresse de l'entreprise. */}
           <TextField
             fullWidth
             select
@@ -623,6 +668,43 @@ export default function SignupPage() {
           <Box>
             <TextField
               fullWidth
+              type="email"
+              label="Email professionnel"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><MailIcon /></InputAdornment>,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {emailStatus === 'checking' && <CircularProgress size={18} />}
+                    {emailStatus === 'available' && <CheckCircleIcon color="success" fontSize="small" />}
+                    {(emailStatus === 'taken' || emailStatus === 'invalid' || emailStatus === 'personal') && (
+                      <ErrorIcon color="error" fontSize="small" />
+                    )}
+                  </InputAdornment>
+                ),
+              }}
+              helperText="Adresse liée au domaine de votre entreprise (pas Gmail/Outlook/Yahoo…)."
+            />
+            {emailHelper && (
+              <Typography variant="caption" color={`${emailHelper.color}.main`} sx={{ display: 'block', mt: 0.5, ml: 1 }}>
+                {emailHelper.text}
+              </Typography>
+            )}
+          </Box>
+
+          <TextField
+            fullWidth
+            label="Nom de l'entreprise"
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+            InputProps={{ startAdornment: <InputAdornment position="start"><BusinessIcon /></InputAdornment> }}
+            helperText="Auto-rempli depuis l'API officielle quand l'identifiant est reconnu."
+          />
+
+          <Box>
+            <TextField
+              fullWidth
               label="Adresse de votre espace"
               value={slug}
               onChange={(e) => { setSlugTouched(true); setSlug(slugify(e.target.value)); }}
@@ -663,33 +745,6 @@ export default function SignupPage() {
               InputProps={{ startAdornment: <InputAdornment position="start"><PersonIcon /></InputAdornment> }}
             />
           </Stack>
-
-          <Box>
-            <TextField
-              fullWidth
-              type="email"
-              label="Email professionnel"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              InputProps={{
-                startAdornment: <InputAdornment position="start"><MailIcon /></InputAdornment>,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    {emailStatus === 'checking' && <CircularProgress size={18} />}
-                    {emailStatus === 'available' && <CheckCircleIcon color="success" fontSize="small" />}
-                    {(emailStatus === 'taken' || emailStatus === 'invalid') && (
-                      <ErrorIcon color="error" fontSize="small" />
-                    )}
-                  </InputAdornment>
-                ),
-              }}
-            />
-            {emailHelper && (
-              <Typography variant="caption" color={`${emailHelper.color}.main`} sx={{ display: 'block', mt: 0.5, ml: 1 }}>
-                {emailHelper.text}
-              </Typography>
-            )}
-          </Box>
 
           <TextField
             fullWidth
