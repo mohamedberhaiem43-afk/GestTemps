@@ -28,6 +28,7 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import type EtatAbsenceModel from '../../../models/EtatAbsence';
 import useGetEtatAbsence from '../../../hooks/absenceHooks/useGetEtatAbsence';
 import { useAbsenceContext, AbsParamsProvider } from '../../helper/AbsParamsContext';
+import { AnimatedNumber } from '../../shared/AnimatedNumber';
 
 import './Etatabsence.css';
 const regimeOptions: Record<string, string> = {
@@ -400,7 +401,9 @@ function EtatAbsence() {
               <GroupIcon sx={{ fontSize: 19 }} />
             </div>
           </div>
-          <div className="ea-summary-value">{totalEmployes}</div>
+          {/* AnimatedNumber : compteur count-up easeOutCubic au montage et à chaque
+              changement (nouveau filtre, nouvelle période). */}
+          <AnimatedNumber value={totalEmployes} as="span" className="ea-summary-value" />
           <div className="ea-summary-footer">{t('etats.absence.summary.employeesFooter')}</div>
         </div>
 
@@ -412,7 +415,7 @@ function EtatAbsence() {
             </div>
           </div>
           <div className="ea-summary-value">
-            {absenceData.length}
+            <AnimatedNumber value={absenceData.length} as="span" />
             <span className="ea-summary-unit">{t('etats.absence.summary.rows')}</span>
           </div>
           <div className="ea-summary-footer">{t('etats.absence.summary.rowsFooter')}</div>
@@ -426,7 +429,11 @@ function EtatAbsence() {
             </div>
           </div>
           <div className="ea-summary-value">
-            {totalAbsNonJustifiees.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+            <AnimatedNumber
+              value={totalAbsNonJustifiees}
+              as="span"
+              formatValue={(n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            />
             <span className="ea-summary-unit">{t('etats.absence.summary.days')}</span>
           </div>
           <div className="ea-summary-footer">
@@ -442,7 +449,11 @@ function EtatAbsence() {
             </div>
           </div>
           <div className="ea-summary-value">
-            {totalJoursAbsence.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+            <AnimatedNumber
+              value={totalJoursAbsence}
+              as="span"
+              formatValue={(n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            />
             <span className="ea-summary-unit">{t('etats.absence.summary.days')}</span>
           </div>
           <div className="ea-summary-footer">{t('etats.absence.summary.cumulative')}</div>

@@ -3,6 +3,7 @@ import { CircularProgress } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { AnimatedNumber } from '../../shared/AnimatedNumber';
 
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
@@ -420,7 +421,10 @@ function EtatRetard() {
             <span className="ea-summary-label">{t('etats.retard.kpiGlobalRate')}</span>
             <div className="ea-summary-icon ea-icon-bg-red"><TrendingUpIcon sx={{ fontSize: 19 }} /></div>
           </div>
-          <div className="ea-summary-value">{kpis.rate}<span className="ea-summary-unit">%</span></div>
+          <div className="ea-summary-value">
+            <AnimatedNumber value={kpis.rate} as="span" />
+            <span className="ea-summary-unit">%</span>
+          </div>
           <div className="ea-summary-footer">{t('etats.retard.summary.rateFooter')}</div>
         </div>
 
@@ -429,7 +433,12 @@ function EtatRetard() {
             <span className="ea-summary-label">{t('etats.retard.kpiTotalDuration')}</span>
             <div className="ea-summary-icon ea-icon-bg-blue"><TimerIcon sx={{ fontSize: 19 }} /></div>
           </div>
-          <div className="ea-summary-value">{kpis.totalRetard}</div>
+          <div className="ea-summary-value">
+            {/* kpis.totalRetard est typiquement formatté "HH:mm" — AnimatedNumber
+                fait fallback gracieux sur la chaîne complète (pas d'animation
+                possible sur un format temporel non-décimal). */}
+            <AnimatedNumber value={kpis.totalRetard} as="span" />
+          </div>
           <div className="ea-summary-footer">{t('etats.retard.summary.totalFooter')}</div>
         </div>
 
@@ -438,7 +447,10 @@ function EtatRetard() {
             <span className="ea-summary-label">{t('etats.retard.kpiAvgByPunch')}</span>
             <div className="ea-summary-icon ea-icon-bg-orange"><HourglassEmptyIcon sx={{ fontSize: 19 }} /></div>
           </div>
-          <div className="ea-summary-value">{kpis.avgMin}<span className="ea-summary-unit">min</span></div>
+          <div className="ea-summary-value">
+            <AnimatedNumber value={kpis.avgMin} as="span" />
+            <span className="ea-summary-unit">min</span>
+          </div>
           <div className="ea-summary-footer">{t('etats.retard.summary.avgFooter')}</div>
         </div>
 
@@ -447,7 +459,10 @@ function EtatRetard() {
             <span className="ea-summary-label">{t('etats.retard.kpiImpacted')}</span>
             <div className="ea-summary-icon ea-icon-bg-green"><GroupIcon sx={{ fontSize: 19 }} /></div>
           </div>
-          <div className="ea-summary-value">{kpis.impactedEmps}<span className="ea-summary-unit">/ {kpis.uniqueEmps}</span></div>
+          <div className="ea-summary-value">
+            <AnimatedNumber value={kpis.impactedEmps} as="span" />
+            <span className="ea-summary-unit">/ {kpis.uniqueEmps}</span>
+          </div>
           <div className="ea-summary-footer">{t('etats.retard.summary.impactedFooter')}</div>
         </div>
       </div>

@@ -254,6 +254,21 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
     return out;
   }, [visibleAbsencesArr]);
 
+  // Indicateurs visibles d'éligibilité RTT (cf. hint sous le select). On distingue
+  // 3 cas pour aider l'admin à comprendre POURQUOI RTT apparaît ou non dans la
+  // liste — la logique de filtre était silencieuse, ce qui poussait à croire que
+  // « RTT n'existe pas » alors que c'était juste l'employé qui n'était pas
+  // configuré, ou le catalogue absences qui n'avait pas de type RTT du tout.
+  const rttTypesInCatalog = useMemo(() => {
+    const arr = Array.isArray(absences) ? absences : [];
+    return arr.filter((a) => (a.abscng || '').toUpperCase() === 'R');
+  }, [absences]);
+  const hasAnyRttType = rttTypesInCatalog.length > 0;
+  const isRttTypeSelected = useMemo(() => {
+    if (!abscod) return false;
+    return rttTypesInCatalog.some((a) => a.abscod === abscod);
+  }, [abscod, rttTypesInCatalog]);
+
   // Set default type de congé when absences load
   useEffect(() => {
     if (!editConge && open && visibleAbsencesArr.length > 0 && !abscod) {
@@ -519,6 +534,37 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
               </Button>
             )}
           </Box>
+          {/* Indicateur d'éligibilité RTT : rendu visible PRÈS du select pour que
+              l'admin comprenne immédiatement pourquoi RTT apparaît ou non dans la
+              liste, sans avoir à inspecter la fiche du collaborateur. Trois cas :
+                - éligible + type RTT dans le catalogue → chip vert
+                - éligible MAIS aucun type RTT défini → astuce orange "à créer"
+                - NON éligible alors qu'un type RTT existe → astuce bleue "à activer" */}
+          {isRttEligible && hasAnyRttType && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75, px: 1, py: 0.5, borderRadius: '6px', background: '#dcfce7', border: '1px solid #86efac', width: 'fit-content' }}>
+              <Box component="span" sx={{ fontSize: 12, fontWeight: 800, color: '#15803d' }}>✓ Éligible RTT</Box>
+              <Box component="span" sx={{ fontSize: 11, color: '#166534' }}>
+                — méthode {String(empRttMethode || '').toUpperCase()}
+              </Box>
+            </Box>
+          )}
+          {isRttEligible && !hasAnyRttType && (
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, mb: 0.75, p: 1, borderRadius: '6px', background: '#fef3c7', border: '1px solid #fde68a' }}>
+              <Box component="span" sx={{ fontSize: 11, color: '#92400e', lineHeight: 1.4 }}>
+                Cet employé est éligible aux RTT, mais aucun type d'absence RTT n'est défini dans votre catalogue.
+                Créez-en un via <strong>Données de Base → Absences</strong> (imputation = R).
+              </Box>
+            </Box>
+          )}
+          {!isRttEligible && hasAnyRttType && (
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, mb: 0.75, p: 1, borderRadius: '6px', background: '#dbeafe', border: '1px solid #93c5fd' }}>
+              <Box component="span" sx={{ fontSize: 11, color: '#1e40af', lineHeight: 1.4 }}>
+                Les types RTT sont masqués : cet employé n'a pas de méthode RTT activée.
+                Pour l'autoriser, ouvrez sa fiche et choisissez une méthode RTT (manuel, horaire, ou forfait jours).
+              </Box>
+            </Box>
+          )}
+
           <FormControl fullWidth size="small" error={!!formError && !abscod}>
             <Select
               value={abscod}
@@ -533,7 +579,23 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
                     : t('conge.demConge.form.typePlaceholder')}
                 </em>
               </MenuItem>
-              {Object.entries(visibleAbsencesDict).map(([k, v]) => <MenuItem key={k} value={k}>{String(v)}</MenuItem>)}
+              {visibleAbsencesArr.map((a) => {
+                // Petit badge "RTT" sur l'option pour la repérer en un coup d'œil
+                // quand l'admin scrolle dans une liste qui contient aussi CP/CM/CSS.
+                const isRtt = (a.abscng || '').toUpperCase() === 'R';
+                return (
+                  <MenuItem key={a.abscod} value={a.abscod}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                      <Box component="span" sx={{ flex: 1 }}>{String(a.abslib ?? a.abscod)}</Box>
+                      {isRtt && (
+                        <Box component="span" sx={{ px: 0.75, py: 0.1, borderRadius: '4px', background: '#dcfce7', color: '#15803d', fontSize: 10, fontWeight: 800, letterSpacing: '0.05em' }}>
+                          RTT
+                        </Box>
+                      )}
+                    </Box>
+                  </MenuItem>
+                );
+              })}
             </Select>
           </FormControl>
           {Object.keys(visibleAbsencesDict).length === 0 && canAddAbsence && !showAddType && (

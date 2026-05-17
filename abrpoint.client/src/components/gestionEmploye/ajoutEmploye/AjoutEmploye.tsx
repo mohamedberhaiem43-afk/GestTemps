@@ -15,12 +15,14 @@ import useAddEmploye from '../../../hooks/employeHooks/useAddEmploye';
 import useUpdateEmploye from '../../../hooks/employeHooks/useUpdateEmploye';
 import { useAuth } from '../../helper/AuthProvider';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import EmployeService from '../../../services/EmployeService/EmployeService';
 
 export default function BasicGrid() {
   const { soccod, sitcod } = useAuth();
   const { t } = useTranslation();
   const feedback = useFeedbackSnackbar();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<'save' | 'update'>('save');
 
   const { selectedEmp } = useContext(EmployeeContext);
@@ -110,6 +112,18 @@ export default function BasicGrid() {
   });
   const [overageSubmitting, setOverageSubmitting] = useState(false);
 
+  // Dialog dédié quand le tenant est en essai gratuit et atteint le quota inclus
+  // (code "trial_employee_limit_reached"). Pas d'opt-in payant possible en trial —
+  // l'admin DOIT d'abord souscrire un plan payant. On lui propose un CTA direct
+  // vers /dashboard/mon-abonnement (gestion plan + Stripe Checkout) plutôt qu'un
+  // snackbar texte sans action.
+  const [trialLimitDialog, setTrialLimitDialog] = useState<{
+    open: boolean;
+    currentCount: number;
+    includedMax: number;
+    planCode: string;
+  }>({ open: false, currentCount: 0, includedMax: 0, planCode: '' });
+
   useEffect(() => {
     if (selectedEmp && selectedEmp.empcod) {
       setEmployeData(selectedEmp);
@@ -180,6 +194,18 @@ export default function BasicGrid() {
               planName: data.planName ?? data.planCode ?? 'votre pack',
               overageRateEur: data.overageRateEur ?? 0,
               pendingEmploye: employeToSave,
+            });
+            return;
+          }
+          // 402 + code "trial_employee_limit_reached" = même quota dur, mais en
+          // essai gratuit. Pas de bypass possible : l'admin doit basculer en
+          // payant avant. Dialog dédié avec CTA vers /dashboard/mon-abonnement.
+          if (error?.response?.status === 402 && data?.code === 'trial_employee_limit_reached') {
+            setTrialLimitDialog({
+              open: true,
+              currentCount: data.currentCount ?? 0,
+              includedMax: data.includedMax ?? 0,
+              planCode: data.planCode ?? '',
             });
             return;
           }
@@ -317,6 +343,52 @@ export default function BasicGrid() {
                 startIcon={overageSubmitting ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : undefined}
               >
                 Confirmer et facturer le supplément
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Dialog quota essai gratuit atteint — pas d'opt-in possible, CTA direct
+              vers la page Mon abonnement (admin choisit un plan + Stripe Checkout). */}
+          <Dialog
+            open={trialLimitDialog.open}
+            onClose={() => setTrialLimitDialog((d) => ({ ...d, open: false }))}
+            maxWidth="sm"
+            fullWidth
+          >
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <WarningAmberIcon sx={{ color: '#f59e0b' }} />
+              Limite de l'essai gratuit atteinte
+            </DialogTitle>
+            <DialogContent>
+              <DialogContentText component="div">
+                <MuiBox sx={{ mb: 2 }}>
+                  Vous avez atteint le quota de <strong>{trialLimitDialog.includedMax} collaborateurs</strong>
+                  {' '}inclus dans l'essai gratuit ({trialLimitDialog.currentCount} actuellement actifs).
+                </MuiBox>
+                <MuiBox sx={{ mb: 2, p: 2, bgcolor: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 1.5 }}>
+                  Pour ajouter des collaborateurs supplémentaires, souscrivez à un plan payant
+                  (<strong>Starter / Standard / Premium</strong>). Vous serez ensuite débité à l'unité
+                  pour chaque collaborateur au-delà du quota inclus de votre pack.
+                </MuiBox>
+                <MuiBox sx={{ fontSize: 13, color: '#64748b' }}>
+                  L'essai gratuit reste actif jusqu'à votre passage au paiement —
+                  aucune donnée n'est perdue.
+                </MuiBox>
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+              <Button onClick={() => setTrialLimitDialog((d) => ({ ...d, open: false }))}>
+                Plus tard
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => {
+                  setTrialLimitDialog((d) => ({ ...d, open: false }));
+                  navigate('/dashboard/mon-abonnement');
+                }}
+              >
+                Passer à un plan payant
               </Button>
             </DialogActions>
           </Dialog>

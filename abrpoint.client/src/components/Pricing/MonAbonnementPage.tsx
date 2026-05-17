@@ -234,7 +234,7 @@ export default function MonAbonnementPage() {
         </Stack>
       </Paper>
 
-      <StorageUsageCard />
+      <StorageUsageCard onUpgradeClick={() => setChangePlanOpen(true)} />
 
       {scheduledCancel && !isCancelled && (
         <Alert severity="warning" sx={{ mb: 3, borderRadius: '14px' }}>
