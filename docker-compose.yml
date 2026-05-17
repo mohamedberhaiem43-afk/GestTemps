@@ -110,7 +110,7 @@ services:
       Smtp__Host: "${SMTP_HOST:-ssl0.ovh.net}"
       Smtp__Port: "${SMTP_PORT:-587}"
       Smtp__Username: "${SMTP_USERNAME:-}"
-      Smtp__Password: "Concorde@2026!"
+      Smtp__Password: "${SMTP_PASSWORD:-}"
       Smtp__FromName: "${SMTP_FROM_NAME:-Concorde Work Force}"
       Smtp__FromEmail: "${SMTP_FROM_EMAIL:-}"
       Smtp__EnableSsl: "true"
