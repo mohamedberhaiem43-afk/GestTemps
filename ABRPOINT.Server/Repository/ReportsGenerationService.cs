@@ -422,10 +422,15 @@ namespace ABRPOINT.Server.Repository
                 //    âš  socimg ajoutÃ© (sinon ReplaceAllPlaceholders ne trouve pas le logo
                 //    tÃ©lÃ©versÃ© via ParamÃ¨tres sociÃ©tÃ© â†’ [Logo_Entreprise] reste vide).
                 using var connection = new NpgsqlConnection(_sqlConnection.ConnectionString);
+                // ATTENTION : la table société est mappée "Societe" (PascalCase, double-quoté)
+                // par ApplicationDbContext (ToTable("Societe")), mais "employe" reste en
+                // minuscules. PostgreSQL fold tous les identifiants non quotés en minuscules :
+                // sans les "..." autour de Societe, on touche 42P01 « relation societe does
+                // not exist » → endpoint Templates/preview retournait 400 en prod.
                 var emp = connection.QueryFirstOrDefault(@"
                     select e.*, s.soclib, s.socadr, s.soctel, s.socfax, s.socemail, s.socresp, s.socimg
                     from employe e
-                    inner join societe s on e.soccod = s.soccod
+                    inner join ""Societe"" s on e.soccod = s.soccod
                     where e.empcod = @empcod and e.soccod = @soccod",
                     new { empcod, soccod });
 
