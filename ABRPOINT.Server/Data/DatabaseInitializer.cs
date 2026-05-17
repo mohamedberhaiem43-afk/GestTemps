@@ -62,6 +62,10 @@ public sealed class DatabaseInitializer
         // a sa propre base créée au signup. On vérifie d'abord la connexion via un open SQL
         // brut (Timeout=3s, pas de retry strategy) — sinon CanConnectAsync passe par le
         // EnableRetryOnFailure() Npgsql et bloque ~30s au boot quand la base n'existe pas.
+        // Puis on vérifie que le schéma legacy ("Societe") est bien présent : sur un cluster
+        // PostgreSQL où la base abrpoint est créée vide par POSTGRES_DB (déploiement SaaS
+        // pur), la connexion s'ouvre mais aucune table legacy n'existe — le seed planterait
+        // avec 42P01 "relation Societe does not exist" sans cette garde.
         var connStr = _dbContext.Database.GetConnectionString();
         if (!string.IsNullOrWhiteSpace(connStr))
         {
@@ -70,6 +74,16 @@ public sealed class DatabaseInitializer
                 var b = new NpgsqlConnectionStringBuilder(connStr) { Timeout = 3 };
                 await using var probe = new NpgsqlConnection(b.ConnectionString);
                 await probe.OpenAsync(cancellationToken);
+
+                await using var cmd = probe.CreateCommand();
+                cmd.CommandText = "SELECT to_regclass('public.\"Societe\"') IS NOT NULL";
+                var hasLegacySchema = (bool?)await cmd.ExecuteScalarAsync(cancellationToken) ?? false;
+                if (!hasLegacySchema)
+                {
+                    _logger.LogInformation(
+                        "Base legacy connectée mais schéma absent (table \"Societe\" introuvable) : seed ignoré. Normal en mode SaaS pur — chaque tenant a sa propre base avec son schéma dédié.");
+                    return;
+                }
             }
             catch (Exception ex)
             {
