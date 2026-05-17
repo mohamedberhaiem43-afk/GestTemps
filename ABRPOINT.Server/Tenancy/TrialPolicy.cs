@@ -73,10 +73,12 @@ public static class TrialPolicy
             return new PlanLimits(MaxEmployees: null, MaxSocietes: null, MaxSites: null);
         }
 
-        // Modèle pay-as-you-grow : pas de plafond dur sur le nombre de salariés.
-        // L'overage est calculé/facturé séparément (cf. PlanCatalog.ComputeMonthlyTotal).
+        // 2026-05-17 — Grille Early Launch : chaque pack a désormais un plafond ABSOLU
+        // (Starter 30, Standard 100, Premium 200). Au-delà, l'admin doit upgrader
+        // (Standard → Premium → Enterprise sur devis). Entre IncludedEmployees et
+        // MaxEmployees, l'overage est facturé via l'item Stripe user_supp.
         return new PlanLimits(
-            MaxEmployees: null,
+            MaxEmployees: plan.MaxEmployees,
             MaxSocietes: plan.MaxSocietes,
             MaxSites: plan.MaxSites,
             IncludedEmployees: plan.IncludedEmployees,

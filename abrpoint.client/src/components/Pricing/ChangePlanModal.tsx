@@ -50,10 +50,11 @@ interface ChangePlanModalProps {
 
 // Définition simplifiée (label + tagline + ordre commercial). Doit rester aligné avec
 // ABRPOINT.Server.Tenancy.PlanCatalog côté backend — la source de vérité reste serveur.
-const PLAN_META: Record<PlanKey, { label: string; tagline: string; baseEur: number; includedSeats: number; rank: number }> = {
-  Starter:  { label: 'Starter',  tagline: 'Pointage simple, sans workflow RH',         baseEur: 29.50, includedSeats: 10, rank: 1 },
-  Standard: { label: 'Standard', tagline: 'Mobile, géolocalisation, coffre numérique', baseEur: 59.50, includedSeats: 25, rank: 2 },
-  Premium:  { label: 'Premium',  tagline: 'IA, multi-filiales, sécurité avancée',       baseEur: 119.00, includedSeats: 50, rank: 3 },
+const PLAN_META: Record<PlanKey, { label: string; tagline: string; baseEur: number; includedSeats: number; maxSeats: number; rank: number }> = {
+  // Grille Early Launch 2026-05-17. Aligné avec ABRPOINT.Server.Tenancy.PlanCatalog.
+  Starter:  { label: 'Starter',  tagline: 'Pointage simple, sans workflow RH',         baseEur: 29.50, includedSeats: 10, maxSeats: 30,  rank: 1 },
+  Standard: { label: 'Standard', tagline: 'Mobile, géolocalisation, coffre numérique', baseEur: 54.00, includedSeats: 15, maxSeats: 100, rank: 2 },
+  Premium:  { label: 'Premium',  tagline: 'Multi-filiales, sécurité avancée',          baseEur: 149.00, includedSeats: 30, maxSeats: 200, rank: 3 },
 };
 
 // Features perdues quand on passe d'un plan supérieur à un inférieur (pour le warning).
@@ -218,7 +219,7 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess 
                         </Typography>
                       </Box>
                       <Typography sx={{ fontSize: 13, color: '#64748b', mt: 0.5 }}>
-                        {meta.tagline} · {meta.includedSeats} salariés inclus
+                        {meta.tagline} · {meta.includedSeats} inclus · jusqu'à {meta.maxSeats} max
                       </Typography>
                     </Box>
                   }

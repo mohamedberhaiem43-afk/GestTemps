@@ -264,10 +264,6 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
     return arr.filter((a) => (a.abscng || '').toUpperCase() === 'R');
   }, [absences]);
   const hasAnyRttType = rttTypesInCatalog.length > 0;
-  const isRttTypeSelected = useMemo(() => {
-    if (!abscod) return false;
-    return rttTypesInCatalog.some((a) => a.abscod === abscod);
-  }, [abscod, rttTypesInCatalog]);
 
   // Set default type de congé when absences load
   useEffect(() => {

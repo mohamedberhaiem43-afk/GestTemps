@@ -31,15 +31,16 @@ const PricingPage: React.FC = () => {
       period: flatPeriod,
       included: 10,
       extraRate: 4.9,
+      maxPack: 30,
       description: "Pour démarrer la digitalisation RH d'une petite équipe sans engagement.",
       features: [
-        'Jusqu’à 10 salariés inclus',
-        '+ 4,90 € / salarié supplémentaire',
-        'Pointage web simple',
-        'Gestion RH basique (fiches, contrats)',
-        'Absences & dashboard basique',
-        'Exports simples',
-        '1 administrateur · support standard',
+        'Jusqu’à 10 salariés inclus · 1 administrateur',
+        '5 Go de stockage inclus',
+        '+ 4,90 € / salarié supplémentaire (jusqu’à 30 max)',
+        '1 mois gratuit sans carte bancaire',
+        'Pointage web simple · gestion RH basique',
+        'Absences · dashboard basique · exports simples',
+        'Support standard',
       ],
       cta: '30 jours gratuits',
       accent: false,
@@ -47,19 +48,21 @@ const PricingPage: React.FC = () => {
     {
       name: 'Standard',
       target: 'PME en croissance',
-      price: flat(59.5),
+      price: flat(54),
       period: flatPeriod,
-      included: 25,
+      included: 15,
       extraRate: 6.9,
+      maxPack: 100,
       description: 'Suite complète mobile + paie pour les équipes structurées.',
       features: [
-        'Jusqu’à 25 salariés inclus',
-        '+ 6,90 € / salarié supplémentaire',
+        'Jusqu’à 15 salariés inclus',
+        '20 Go de stockage inclus',
+        '+ 6,90 € / salarié supplémentaire (jusqu’à 100 max)',
+        '1 mois gratuit sans carte bancaire',
         'Application mobile + pointage géolocalisé',
         'Congés, RTT, CET, sanctions',
         'Coffre numérique & signature électronique',
-        'Notifications push / email · reporting avancé',
-        'Préparation paie complète',
+        'Reporting avancé · préparation paie',
         'Support prioritaire',
       ],
       cta: '30 jours gratuits',
@@ -68,21 +71,23 @@ const PricingPage: React.FC = () => {
     },
     {
       name: 'Premium',
-      target: 'Entreprises multi-sites',
-      price: flat(119),
+      target: 'Entreprises structurées',
+      price: flat(149),
       period: flatPeriod,
-      included: 50,
+      included: 30,
       extraRate: 9.9,
-      description: 'Multi-filiales, IA contextuelle et sécurité bancaire pour grandes structures.',
+      maxPack: 200,
+      description: 'Multi-filiales, dashboards avancés et sécurité renforcée pour grandes structures.',
       features: [
-        'Jusqu’à 50 salariés inclus',
-        '+ 9,90 € / salarié supplémentaire',
+        'Jusqu’à 30 salariés inclus',
+        '100 Go de stockage inclus',
+        '+ 9,90 € / salarié supplémentaire (jusqu’à 200 max)',
+        '1 mois gratuit sans carte bancaire',
         'Multi-filiales illimité · dashboards avancés',
-        'Assistant IA (RAG) sur vos documents',
         'Audit logs avancés · branding personnalisé',
         'Sécurité mobile renforcée (device trust, cert pinning, screenshot blocking)',
-        'Onboarding accompagné · SLA premium · support prioritaire',
-        'Intégrations futures : API / SSO / connecteurs paie',
+        'SLA premium · onboarding accompagné · support prioritaire',
+        'Conformité RGPD avancée · futures intégrations SSO / API',
       ],
       cta: '30 jours gratuits',
       accent: false,
@@ -223,10 +228,10 @@ const PricingPage: React.FC = () => {
                   </span>
                 </div>
                 <div className="mt-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                  {plan.included} salariés inclus · +{formatPrice(plan.extraRate)} € / salarié sup.
+                  {plan.included} salariés inclus · +{formatPrice(plan.extraRate)} € / sup. · cap pack {plan.maxPack}
                 </div>
                 <div className="mt-1 text-[11px] text-tertiary font-bold uppercase tracking-wider">
-                  30 jours gratuits · sans carte bancaire
+                  1 mois gratuit · sans carte bancaire · engagement annuel
                 </div>
               </div>
               <p className="text-on-surface-variant mb-8 text-sm leading-relaxed min-h-[3rem]">

@@ -124,6 +124,17 @@ export default function BasicGrid() {
     planCode: string;
   }>({ open: false, currentCount: 0, includedMax: 0, planCode: '' });
 
+  // Dialog "plafond pack atteint" — émis quand l'effectif actif a touché le cap
+  // commercial dur du pack courant (Starter 30, Standard 100, Premium 200). Pas
+  // d'opt-in possible : l'admin doit upgrader (ou contacter le commercial pour
+  // une offre Enterprise au-delà de 200).
+  const [planMaxDialog, setPlanMaxDialog] = useState<{
+    open: boolean;
+    currentCount: number;
+    planMax: number;
+    planName: string;
+  }>({ open: false, currentCount: 0, planMax: 0, planName: '' });
+
   useEffect(() => {
     if (selectedEmp && selectedEmp.empcod) {
       setEmployeData(selectedEmp);
@@ -186,6 +197,17 @@ export default function BasicGrid() {
           // plan payant. On ouvre le modal d'opt-in plutôt que de remonter une
           // erreur — l'admin choisit consciemment de payer le supplément.
           const data = error?.response?.data;
+          // 402 + code "plan_max_employees_reached" = plafond ABSOLU du pack atteint
+          // (Starter 30 / Standard 100 / Premium 200). Pas d'opt-in : upgrade obligatoire.
+          if (error?.response?.status === 402 && data?.code === 'plan_max_employees_reached') {
+            setPlanMaxDialog({
+              open: true,
+              currentCount: data.currentCount ?? 0,
+              planMax: data.planMax ?? 0,
+              planName: data.planName ?? data.planCode ?? 'votre pack',
+            });
+            return;
+          }
           if (error?.response?.status === 402 && data?.code === 'employee_quota_exceeded') {
             setOverageDialog({
               open: true,
@@ -389,6 +411,53 @@ export default function BasicGrid() {
                 }}
               >
                 Passer à un plan payant
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Dialog plafond pack atteint — upgrade obligatoire (Standard → Premium →
+              Enterprise sur devis). Pas d'opt-in : la limite est commerciale dure. */}
+          <Dialog
+            open={planMaxDialog.open}
+            onClose={() => setPlanMaxDialog((d) => ({ ...d, open: false }))}
+            maxWidth="sm"
+            fullWidth
+          >
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <WarningAmberIcon sx={{ color: '#dc2626' }} />
+              Plafond du pack {planMaxDialog.planName} atteint
+            </DialogTitle>
+            <DialogContent>
+              <DialogContentText component="div">
+                <MuiBox sx={{ mb: 2 }}>
+                  Vous avez atteint le plafond du pack <strong>{planMaxDialog.planName}</strong> :
+                  {' '}<strong>{planMaxDialog.planMax} collaborateurs maximum</strong>
+                  {' '}({planMaxDialog.currentCount} actuellement actifs).
+                </MuiBox>
+                <MuiBox sx={{ mb: 2, p: 2, bgcolor: '#fee2e2', border: '1px solid #fecaca', borderRadius: 1.5 }}>
+                  Pour ajouter d'autres collaborateurs, passez au pack supérieur (Standard → Premium)
+                  ou contactez-nous pour une offre <strong>Enterprise sur devis</strong>
+                  {' '}(au-delà de 200 salariés, hébergement dédié, SLA spécifiques).
+                </MuiBox>
+                <MuiBox sx={{ fontSize: 13, color: '#64748b' }}>
+                  Le changement de pack est immédiat et le différentiel est facturé
+                  prorata-temporis sur votre prochaine facture.
+                </MuiBox>
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+              <Button onClick={() => setPlanMaxDialog((d) => ({ ...d, open: false }))}>
+                Plus tard
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => {
+                  setPlanMaxDialog((d) => ({ ...d, open: false }));
+                  navigate('/dashboard/mon-abonnement');
+                }}
+              >
+                Changer de pack
               </Button>
             </DialogActions>
           </Dialog>
