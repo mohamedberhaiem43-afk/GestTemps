@@ -12,7 +12,7 @@
       "backgroundColor": "#0040a1"
     },
     "android": {
-      "package": "com.concorde.workforce",
+      "package": "com.concorde.workly",
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-foreground.png",
@@ -29,7 +29,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.concorde.workforce",
+      "bundleIdentifier": "com.concorde.workly",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
