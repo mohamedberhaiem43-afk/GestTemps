@@ -101,6 +101,14 @@ class ApiClient<T>{
                 throw error;
             });
     };
+    // POST avec query string ad hoc — sert pour les opt-in côté backend (ex.
+    // `?confirmOverage=true` sur Employes pour déverrouiller la création d'un
+    // collaborateur supplémentaire après confirmation du paiement par l'admin).
+    postWithQuery = (data: T, query: Record<string, string | number | boolean>) => {
+        return axiosInstance
+            .post<T>(this.endPoint, data, { params: query })
+            .then((res) => res.data);
+    };
     postWithoutParams = (url?: string) => {
     return axiosInstance
         .post<T>(url ? `${this.endPoint}/${url}` : this.endPoint, {})

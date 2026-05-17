@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Annotations.EmployeAttributes;
+using ABRPOINT.Server.Billing;
 using ABRPOINT.Server.Services;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Helpers;
@@ -26,6 +27,7 @@ namespace ABRPOINT.Server.Controllers
         private readonly ICurrentTenant _currentTenant;
         private readonly IEmailService _emailService;
         private readonly IConfiguration _configuration;
+        private readonly IBillingService _billing;
         private readonly ILogger<EmployesController> _log;
         public EmployesController(
             IEmployeRepository employeRepository,
@@ -37,6 +39,7 @@ namespace ABRPOINT.Server.Controllers
             ICurrentTenant currentTenant,
             IEmailService emailService,
             IConfiguration configuration,
+            IBillingService billing,
             ILogger<EmployesController> log)
         {
             _employeRepository = employeRepository;
@@ -48,6 +51,7 @@ namespace ABRPOINT.Server.Controllers
             _currentTenant = currentTenant;
             _emailService = emailService;
             _configuration = configuration;
+            _billing = billing;
             _log = log;
         }
 
@@ -716,26 +720,50 @@ namespace ABRPOINT.Server.Controllers
         }
 
         // POST api/employes
+        // Paramètre confirmOverage : opt-in explicite côté admin pour facturer un
+        // collaborateur supplémentaire au-delà du seuil inclus dans le pack. La fiche
+        // collaborateur côté front intercepte le 402 "employee_quota_exceeded" et
+        // re-soumet avec ?confirmOverage=true après confirmation par l'utilisateur.
         [HttpPost]
         [CanAddEmploye]
-        public async Task<IActionResult> Post([FromBody] Employe employe)
+        public async Task<IActionResult> Post([FromBody] Employe employe, [FromQuery] bool confirmOverage = false)
         {
             try
             {
-                // Quota plan : essai gratuit (10), Essentiel (25), Standard (50), Premium (illimité).
-                var limits = ABRPOINT.Server.Tenancy.TrialPolicy.GetLimits(_currentTenant.Current);
-                if (limits.MaxEmployees.HasValue)
+                // Quota collaborateurs : cap au seuil inclus du pack courant.
+                // Trial → cap dur, pas d'overage possible (admin doit d'abord passer payant).
+                // Plan payant → opt-in via confirmOverage qui débloque la facturation
+                //              automatique du supplément via l'item Stripe user_supp.
+                var tenant = _currentTenant.Current;
+                var plan = PlanCatalog.GetPlan(tenant?.PlanCode) ?? PlanCatalog.Starter;
+                var activeCount = await _db.Employes.CountAsync(e => e.Actif == "A");
+                if (PlanCatalog.IsOverIncludedCapacity(plan, activeCount))
                 {
-                    var current = await _db.Employes.CountAsync();
-                    if (current >= limits.MaxEmployees.Value)
+                    var isTrialing = ABRPOINT.Server.Tenancy.TrialPolicy.IsTrialing(tenant);
+                    if (isTrialing)
                     {
-                        var planLabel = ABRPOINT.Server.Tenancy.TrialPolicy.IsTrialing(_currentTenant.Current)
-                            ? "l'essai gratuit"
-                            : $"votre plan {_currentTenant.Current?.PlanCode}";
                         return StatusCode(402, new
                         {
-                            code = "plan_limit_employees",
-                            message = $"Limite de {planLabel} atteinte ({limits.MaxEmployees.Value} collaborateurs maximum). Passez à un plan supérieur pour en ajouter plus."
+                            code = "trial_employee_limit_reached",
+                            message = $"Limite de l'essai gratuit atteinte ({plan.IncludedEmployees} collaborateurs maximum). Souscrivez à un plan payant pour ajouter des collaborateurs supplémentaires.",
+                            currentCount = activeCount,
+                            includedMax = plan.IncludedEmployees,
+                            planCode = plan.Code,
+                        });
+                    }
+                    if (!confirmOverage)
+                    {
+                        return StatusCode(402, new
+                        {
+                            code = "employee_quota_exceeded",
+                            message = $"Vous avez atteint le quota de {plan.IncludedEmployees} collaborateurs inclus dans le pack {plan.DisplayName}. " +
+                                      $"Ajouter ce collaborateur facturera {plan.OverageRatePerEmployeeEur:0.00} €/mois en supplément (proration appliquée sur la prochaine facture).",
+                            currentCount = activeCount,
+                            includedMax = plan.IncludedEmployees,
+                            planCode = plan.Code,
+                            planName = plan.DisplayName,
+                            overageRateEur = plan.OverageRatePerEmployeeEur,
+                            requiresConfirmation = true,
                         });
                     }
                 }
@@ -915,6 +943,27 @@ namespace ABRPOINT.Server.Controllers
                     {
                         // Log the error but don't fail - employee was already saved successfully
                         _log.LogWarning(userEx, "Employé créé mais compte utilisateur échoué pour {Empcod}", employe.Empcod);
+                    }
+
+                    // Sync Stripe user_supp quantity sur la subscription du tenant. Idempotent
+                    // côté StripeBillingService : ne push que si la quantité change. Best-effort —
+                    // un échec Stripe (price non configuré, réseau, etc.) ne fait pas échouer
+                    // la création du collab (qui est déjà commit en DB), le job journalier
+                    // EmployeeBillingSyncService rattrapera. On capture activeCount+1 car le
+                    // nouveau collab vient d'être ajouté (.Actif="A" par défaut côté repo).
+                    if (_currentTenant.Current is { } currentTenant)
+                    {
+                        try
+                        {
+                            var freshCount = await _db.Employes.CountAsync(e => e.Actif == "A");
+                            await _billing.SyncSupplementaryEmployeesAsync(currentTenant, freshCount, HttpContext.RequestAborted);
+                        }
+                        catch (Exception billEx)
+                        {
+                            _log.LogWarning(billEx,
+                                "Sync user_supp Stripe échoué pour tenant {Slug} après création de {Empcod} ; le job journalier rattrapera.",
+                                currentTenant.Slug, employe.Empcod);
+                        }
                     }
 
                     return Ok(new { message = "Employé ajouté avec succès" });

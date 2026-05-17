@@ -218,4 +218,25 @@ public static class PlanCatalog
         var plan = GetPlan(planCode) ?? Starter;
         return plan.StorageQuotaMb;
     }
+
+    /// <summary>
+    /// Vrai si l'effectif actuel est strictement supérieur au nombre de salariés
+    /// inclus dans le pack. Sert de gate à la création d'un nouveau collaborateur :
+    /// au-delà du seuil, l'admin doit explicitement confirmer le paiement d'un
+    /// supplément (cf. EmployesController.Post, paramètre confirmOverage).
+    /// </summary>
+    public static bool IsOverIncludedCapacity(PlanDefinition plan, int currentActiveCount)
+    {
+        return currentActiveCount >= plan.IncludedEmployees;
+    }
+
+    /// <summary>
+    /// Nombre de salariés "supplémentaires" facturables = au-delà du quota inclus
+    /// dans le pack. Pousse cette quantité sur l'item Stripe <c>user_supp</c> via
+    /// <see cref="ABRPOINT.Server.Billing.IBillingService.SyncSupplementaryEmployeesAsync"/>.
+    /// </summary>
+    public static int ComputeSupplementaryCount(PlanDefinition plan, int currentActiveCount)
+    {
+        return System.Math.Max(0, currentActiveCount - plan.IncludedEmployees);
+    }
 }

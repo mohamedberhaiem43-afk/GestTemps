@@ -87,6 +87,25 @@ public interface IBillingService
         string billingCycle,
         int billedSeats,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Aligne la quantité de l'item <c>user_supp</c> de la subscription Stripe sur
+    /// <paramref name="activeEmployeeCount"/> − <c>plan.IncludedEmployees</c>.
+    /// Idempotent : si la quantité ne change pas, rien n'est poussé. Crée l'item
+    /// (price <c>UserSupp:{Plan}:{cycle}</c>) au premier dépassement.
+    ///
+    /// Appelé :
+    ///   - juste après création d'un collaborateur en mode "overage confirmé" (par
+    ///     <c>EmployesController.Post</c>) pour facturer immédiatement la prochaine échéance ;
+    ///   - quotidiennement par <c>EmployeeBillingSyncService</c> en true-up (collabs
+    ///     désactivés/réactivés, imports CSV, divergences diverses).
+    /// </summary>
+    /// <returns>Quantité finale poussée (≥ 0), ou null si le sync est skip (pas de
+    /// subscription Stripe, plan inconnu, price <c>UserSupp</c> non configuré).</returns>
+    Task<int?> SyncSupplementaryEmployeesAsync(
+        Tenant tenant,
+        int activeEmployeeCount,
+        CancellationToken ct = default);
 }
 
 public sealed record BillingProvisionResult(
