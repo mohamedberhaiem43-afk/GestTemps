@@ -13,6 +13,21 @@
     <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
   </PropertyGroup>
 
+  <!--
+    Npgsql 8 a durci le mapping DateTime ↔ PostgreSQL : `DateTime(Kind=UTC)` ne peut
+    plus être écrit dans `timestamp without time zone` (la convention historique de
+    cette codebase, migrée de SQL Server). Le switch d'AppContext est lu UNE SEULE
+    FOIS dans le static ctor de `Npgsql.Util.Statics`, qui se déclenche au premier
+    accès à un type Npgsql — éventuellement AVANT la première ligne de Program.cs.
+    Poser le switch via `RuntimeHostConfigurationOption` le matérialise dans le
+    runtimeconfig.json généré → appliqué par le runtime .NET AVANT toute exécution
+    de code utilisateur, donc forcément avant le static ctor de Statics.
+    Doc Microsoft : https://learn.microsoft.com/dotnet/core/runtime-config/
+  -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="Npgsql.EnableLegacyTimestampBehavior" Value="true" />
+  </ItemGroup>
+
   <ItemGroup>
 	  <PackageReference Include="Haukcode.DinkToPdf" Version="1.1.2" />
 	  <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.5.0" />

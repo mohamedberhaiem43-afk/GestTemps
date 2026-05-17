@@ -25,7 +25,9 @@ import GetRestCountries from '../../services/RestCountriesService/GetRestCountri
 type AuthTab = 'login' | 'register';
 
 type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'reserved';
-type EmailStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
+// 'personal' = domaine grand public / jetable refusé. Aligné sur la réponse backend
+// /signup/check-email qui renvoie reason="personal" (cf. SignupController).
+type EmailStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'personal';
 type SiretStatus = 'idle' | 'checking' | 'available' | 'format' | 'checksum' | 'not_found' | 'closed' | 'already_used' | 'invalid';
 
 type CountryCode = 'FR' | 'BE' | 'MA' | 'SN';
@@ -213,6 +215,7 @@ export default function InlineAuthCard() {
         clearTimeout(t);
         if (data.available) setEmailStatus('available');
         else if (data.reason === 'format') setEmailStatus('invalid');
+        else if (data.reason === 'personal') setEmailStatus('personal');
         else setEmailStatus('taken');
       } catch {
         clearTimeout(t);
@@ -287,6 +290,7 @@ export default function InlineAuthCard() {
       case 'available': return { kind: 'ok', text: 'Email disponible.' };
       case 'taken': return { kind: 'err', text: 'Email déjà utilisé.' };
       case 'invalid': return { kind: 'err', text: 'Format invalide.' };
+      case 'personal': return { kind: 'err', text: 'Adresse pro requise (pas Gmail/Outlook/Yahoo…).' };
       default: return null;
     }
   }, [emailStatus]);
@@ -322,7 +326,7 @@ export default function InlineAuthCard() {
     && firstName.trim().length > 0
     && lastName.trim().length > 0
     && EMAIL_REGEX.test(signupEmail)
-    && emailStatus !== 'taken' && emailStatus !== 'invalid'
+    && emailStatus !== 'taken' && emailStatus !== 'invalid' && emailStatus !== 'personal'
     && signupPassword.length >= 8
     && captchaChallengeId.length > 0
     && captchaAnswer.trim() !== '';
@@ -510,37 +514,9 @@ export default function InlineAuthCard() {
 
       {tab === 'register' && (
         <form onSubmit={handleSignup}>
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Prénom</label>
-              <input className="form-input" type="text" autoComplete="given-name" placeholder="Sophie"
-                value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Nom</label>
-              <input className="form-input" type="text" autoComplete="family-name" placeholder="Gaultier"
-                value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Email professionnel</label>
-            <input className="form-input" type="email" autoComplete="email" placeholder="directeur@entreprise.com"
-              value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required />
-            {emailHelper && <div className={`form-hint form-hint--${emailHelper.kind}`}>{emailHelper.text}</div>}
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Mot de passe (8 caractères min.)</label>
-            <div className="form-input-wrap">
-              <input className="form-input" type={showSignupPwd ? 'text' : 'password'} autoComplete="new-password" placeholder="••••••••"
-                value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required minLength={8} />
-              <button type="button" className="form-input-icon" aria-label="Afficher mot de passe" onClick={() => setShowSignupPwd(v => !v)}>
-                {showSignupPwd ? <VisibilityOffIcon sx={{ fontSize: 18 }} /> : <VisibilityIcon sx={{ fontSize: 18 }} />}
-              </button>
-            </div>
-          </div>
-
+          {/* Ordre des champs (2026-05) : Pays + ID entreprise + email pro EN
+              PREMIER (avant prénom/nom). Le pays détermine le format de l'ID ;
+              un ID valide auto-remplit le nom + l'adresse de l'entreprise. */}
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Pays</label>
@@ -573,6 +549,37 @@ export default function InlineAuthCard() {
                   📍 {siretCompanyAddress}
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Email professionnel</label>
+            <input className="form-input" type="email" autoComplete="email" placeholder="directeur@entreprise.com"
+              value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required />
+            {emailHelper && <div className={`form-hint form-hint--${emailHelper.kind}`}>{emailHelper.text}</div>}
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Prénom</label>
+              <input className="form-input" type="text" autoComplete="given-name" placeholder="Sophie"
+                value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Nom</label>
+              <input className="form-input" type="text" autoComplete="family-name" placeholder="Gaultier"
+                value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Mot de passe (8 caractères min.)</label>
+            <div className="form-input-wrap">
+              <input className="form-input" type={showSignupPwd ? 'text' : 'password'} autoComplete="new-password" placeholder="••••••••"
+                value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required minLength={8} />
+              <button type="button" className="form-input-icon" aria-label="Afficher mot de passe" onClick={() => setShowSignupPwd(v => !v)}>
+                {showSignupPwd ? <VisibilityOffIcon sx={{ fontSize: 18 }} /> : <VisibilityIcon sx={{ fontSize: 18 }} />}
+              </button>
             </div>
           </div>
 
