@@ -1,5 +1,6 @@
 using ABRPOINT.Server.Annotations.AdminAttributes;
 using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Billing;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Helpers;
@@ -35,6 +36,7 @@ namespace GestionDesTickets.Server.Controllers
         private readonly IPasswordBreachChecker _passwordBreach;
         private readonly IKnownDeviceService _knownDevices;
         private readonly TwoFactorSecretProtector _totpProtector;
+        private readonly IStorageQuotaGuard _quotaGuard;
         public UtilisateursController(
             IConfiguration configuration,
             ApplicationDbContext dbContext,
@@ -43,7 +45,8 @@ namespace GestionDesTickets.Server.Controllers
             EncryptionService encryptionService,
             IPasswordBreachChecker passwordBreach,
             IKnownDeviceService knownDevices,
-            TwoFactorSecretProtector totpProtector)
+            TwoFactorSecretProtector totpProtector,
+            IStorageQuotaGuard quotaGuard)
         {
             _configuration = configuration;
             _dbContext = dbContext;
@@ -53,6 +56,7 @@ namespace GestionDesTickets.Server.Controllers
             _passwordBreach = passwordBreach;
             _knownDevices = knownDevices;
             _totpProtector = totpProtector;
+            _quotaGuard = quotaGuard;
         }
         private bool IsHttpsRequest()
         {
@@ -923,12 +927,30 @@ namespace GestionDesTickets.Server.Controllers
         // usurpable. On force l'uticod à venir du JWT.
         [Authorize]
         [HttpPost("upload-profile")]
-        public async Task<IActionResult> UploadProfileImage(IFormFile file)
+        public async Task<IActionResult> UploadProfileImage(IFormFile file, CancellationToken ct)
         {
             var uticod = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(uticod)) return Unauthorized();
 
-            var (success, filePath, error) = await FileHelper.SaveFile(file);
+            // Garde quota — photo de profil typiquement < 500 Ko mais on protège quand
+            // même : un tenant saturé ne doit pas pouvoir grappiller le moindre octet.
+            if (file is not null && file.Length > 0 && _currentTenant.Current is { } tenant)
+            {
+                var snap = await _quotaGuard.CheckAsync(tenant.Id, file.Length, ct);
+                if (snap.WouldExceed)
+                {
+                    return StatusCode(507, new
+                    {
+                        code = "storage_quota_exceeded",
+                        message = $"Quota de stockage atteint ({snap.UsedMb} Mo / {snap.QuotaMb} Mo).",
+                        usedMb = snap.UsedMb,
+                        quotaMb = snap.QuotaMb,
+                        percentUsed = snap.PercentUsed,
+                    });
+                }
+            }
+
+            var (success, filePath, error) = await FileHelper.SaveFile(file, _currentTenant.Current?.Slug);
             if (!success) return BadRequest(error);
             await _utilisateurRepository.UpdateProfileImageAsync(uticod, filePath);
 

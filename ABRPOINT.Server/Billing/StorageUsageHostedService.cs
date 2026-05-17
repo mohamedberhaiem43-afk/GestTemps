@@ -1,3 +1,4 @@
+using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -17,13 +18,14 @@ namespace ABRPOINT.Server.Billing;
 /// Pour bloquer durement, il faudrait un hard-quota PG (tablespace par tenant
 /// avec quota filesystem), beaucoup plus lourd côté ops.
 ///
-/// MESURE V1 : <c>pg_database_size(DbName)</c> uniquement. Le dossier
-/// <c>uploads/{slug}/</c> n'est PAS encore mesuré car les uploads vivent dans un
-/// dossier plat <c>uploads/</c> non isolé par tenant (cf. <c>FileHelper.SaveFile</c>).
-/// Quand on aura migré vers <c>uploads/{slug}/{uuid}.ext</c> (TODO sur
-/// <c>UploadsController</c>), on additionnera la taille récursive du dossier ici.
-/// En attendant, les images stockées dans des colonnes (Utiimg, Socimg, RagDocument,
-/// etc.) sont bien comptées car elles vivent dans la base PG du tenant.
+/// MESURE V2 (2026-05) : somme de
+///   - <c>pg_database_size(DbName)</c> (taille on-disk de la base PG du tenant)
+///   - taille récursive de <c>uploads/{slug}/</c> (fichiers per-tenant, cf.
+///     <c>FileHelper.SaveFile(file, slug)</c> qui écrit là depuis 2026-05).
+/// Les fichiers legacy à la racine de <c>uploads/</c> (créés avant la migration
+/// per-tenant) ne sont PAS comptés — pas attribués à un tenant. Acceptable :
+/// volumétrie résiduelle dans la première période de migration, à passer en
+/// nettoyage ops si nécessaire.
 /// </summary>
 public sealed class StorageUsageHostedService : BackgroundService
 {
@@ -105,8 +107,8 @@ public sealed class StorageUsageHostedService : BackgroundService
                 Interlocked.Increment(ref processed);
                 try
                 {
-                    var sizeBytes = await GetDatabaseSizeBytesAsync(masterCs, tenant.DbName, innerCt);
-                    if (sizeBytes < 0)
+                    var dbBytes = await GetDatabaseSizeBytesAsync(masterCs, tenant.DbName, innerCt);
+                    if (dbBytes < 0)
                     {
                         // -1 = base introuvable ou erreur transitoire → on n'écrase pas
                         // la valeur précédente avec 0 (qui aurait l'effet de bord de
@@ -114,6 +116,11 @@ public sealed class StorageUsageHostedService : BackgroundService
                         // se reconnecte).
                         return;
                     }
+                    // Taille du dossier d'uploads dédié au tenant (FileHelper.SaveFile
+                    // y écrit depuis 2026-05). Best-effort : si le dossier n'existe pas
+                    // encore (tenant fraîchement créé sans aucun upload), on compte 0.
+                    var uploadsBytes = GetTenantUploadsFolderBytes(tenant.Slug);
+                    var sizeBytes = dbBytes + uploadsBytes;
                     var sizeMb = sizeBytes / (1024L * 1024L);
 
                     // Charge UNE ligne fraîche du tenant pour éviter les conflits de
@@ -168,6 +175,39 @@ public sealed class StorageUsageHostedService : BackgroundService
             // 3D000 = invalid_catalog_name (DB introuvable), 42704 = undefined_object.
             // Tenant provisionné mais base pas encore créée, ou drop entre temps.
             return -1;
+        }
+    }
+
+    /// <summary>
+    /// Taille récursive du dossier <c>uploads/{slug}/</c> en octets, ou 0 si le
+    /// dossier n'existe pas. Synchrone : <see cref="DirectoryInfo.EnumerateFiles"/>
+    /// reste rapide tant qu'il y a quelques centaines/milliers de fichiers par
+    /// tenant (le cas typique du SaaS RH : justificatifs + bulletins de paie).
+    /// Si un tenant accumule des dizaines de milliers de fichiers, on basculera
+    /// sur du <c>du --block-size=1</c> via Process.
+    /// </summary>
+    private static long GetTenantUploadsFolderBytes(string slug)
+    {
+        try
+        {
+            var dir = FileHelper.GetTenantUploadsPath(slug);
+            if (!Directory.Exists(dir)) return 0;
+            long total = 0;
+            // SearchOption.AllDirectories : couvre les éventuels sous-dossiers
+            // (cf. RAG documents dans uploads/{soccod}/rag/ historique).
+            foreach (var path in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+            {
+                try { total += new FileInfo(path).Length; }
+                catch { /* fichier supprimé entre EnumerateFiles et FileInfo, on l'ignore */ }
+            }
+            return total;
+        }
+        catch
+        {
+            // Permission denied, dossier dans un état transitoire, etc. On retourne 0
+            // plutôt que -1 (qui annulerait la mise à jour de StorageUsedMb) — la
+            // base PG reste comptée même si l'inspection FS échoue.
+            return 0;
         }
     }
 }

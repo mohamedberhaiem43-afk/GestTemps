@@ -49,7 +49,76 @@ namespace ABRPOINT.Server.Helpers
             return path;
         }
 
-        public static async Task<(bool Success, string FilePath, string Error)> SaveFile(IFormFile file)
+        // Format slug autorisé pour les sous-dossiers tenants : aligné sur SignupController.SlugRegex.
+        // Bloque toute tentative de path-traversal (../../etc) et tout caractère ambigu côté FS.
+        private static readonly System.Text.RegularExpressions.Regex _slugRegex =
+            new("^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        /// <summary>
+        /// Vrai si <paramref name="slug"/> est un slug tenant valide ET safe pour servir
+        /// de nom de sous-dossier. À utiliser AVANT toute opération filesystem qui
+        /// concatène le slug — sinon un slug malformé permettrait du path-traversal.
+        /// </summary>
+        public static bool IsValidTenantSlug(string? slug)
+        {
+            return !string.IsNullOrWhiteSpace(slug) && _slugRegex.IsMatch(slug);
+        }
+
+        /// <summary>
+        /// Chemin du dossier dédié à un tenant (créé à la demande). Si le slug est
+        /// invalide/null, retombe sur le dossier racine — utilisé par les call sites
+        /// legacy qui n'ont pas encore migré.
+        /// </summary>
+        public static string GetTenantUploadsPath(string? tenantSlug)
+        {
+            var root = GetUploadsPath();
+            if (!IsValidTenantSlug(tenantSlug)) return root;
+            return Path.Combine(root, tenantSlug!);
+        }
+
+        /// <summary>
+        /// Résout une URL d'upload (telle que persistée dans
+        /// DocumentVault.DocPath / Utilisateur.Utiimg / Societe.Socimg) vers le
+        /// chemin physique sur disque. Gère les deux formats :
+        ///   <c>/api/uploads/{file}</c>            → uploads/{file}            (legacy plat)
+        ///   <c>/api/uploads/{slug}/{file}</c>     → uploads/{slug}/{file}     (per-tenant)
+        /// Retourne null si l'URL ne ressemble pas à un chemin upload connu.
+        /// </summary>
+        public static string? ResolveUploadFilePath(string? urlPath)
+        {
+            if (string.IsNullOrWhiteSpace(urlPath)) return null;
+            const string prefix = "/api/uploads/";
+            string rest;
+            if (urlPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                rest = urlPath.Substring(prefix.Length);
+            }
+            else
+            {
+                // Tolérance : certains call sites stockent juste le nom de fichier.
+                rest = urlPath;
+            }
+            var parts = rest.Split('/', 2);
+            if (parts.Length == 2 && IsValidTenantSlug(parts[0]))
+            {
+                return Path.Combine(GetTenantUploadsPath(parts[0]), Path.GetFileName(parts[1]));
+            }
+            return Path.Combine(GetUploadsPath(), Path.GetFileName(rest));
+        }
+
+        public static Task<(bool Success, string FilePath, string Error)> SaveFile(IFormFile file)
+            => SaveFile(file, tenantSlug: null);
+
+        /// <summary>
+        /// Persiste un upload sur disque. Si <paramref name="tenantSlug"/> est fourni
+        /// et valide, écrit dans <c>uploads/{slug}/{guid}.ext</c> et retourne l'URL
+        /// <c>/api/uploads/{slug}/{guid}.ext</c> — l'isolation par tenant permet à la
+        /// fois la mesure quota (cf. <c>StorageUsageHostedService</c>) et la défense
+        /// en profondeur contre la fuite inter-tenants si un GUID était deviné.
+        /// Si slug null/invalide : retombe sur le dossier racine (cas legacy, callers
+        /// pas encore migrés — backward compatible côté URL).
+        /// </summary>
+        public static async Task<(bool Success, string FilePath, string Error)> SaveFile(IFormFile file, string? tenantSlug)
         {
             if (file == null || file.Length == 0)
                 return (false, null, "No file uploaded.");
@@ -70,7 +139,8 @@ namespace ABRPOINT.Server.Helpers
 
             // SEC-15 : on regénère un nom UUID et on N'utilise PAS le nom client pour
             // éviter le path traversal (`../../etc/passwd`) et le double-extension.
-            var uploads = GetUploadsPath();
+            var useTenantFolder = IsValidTenantSlug(tenantSlug);
+            var uploads = useTenantFolder ? GetTenantUploadsPath(tenantSlug) : GetUploadsPath();
             Directory.CreateDirectory(uploads);
 
             var fileName = Guid.NewGuid().ToString("N") + ext.ToLowerInvariant();
@@ -81,10 +151,18 @@ namespace ABRPOINT.Server.Helpers
                 await file.CopyToAsync(stream);
             }
 
-            return (true, "/api/uploads/" + fileName, null);
+            // URL : préfixe par /{slug}/ quand on a écrit dans le sous-dossier tenant.
+            // UploadsController route les deux formats (legacy à la racine + per-tenant).
+            var url = useTenantFolder
+                ? $"/api/uploads/{tenantSlug}/{fileName}"
+                : "/api/uploads/" + fileName;
+            return (true, url, null);
         }
 
-        public static async Task<(bool Success, string FilePath, string Error)> SaveBase64Image(string base64Data)
+        public static Task<(bool Success, string FilePath, string Error)> SaveBase64Image(string base64Data)
+            => SaveBase64Image(base64Data, tenantSlug: null);
+
+        public static async Task<(bool Success, string FilePath, string Error)> SaveBase64Image(string base64Data, string? tenantSlug)
         {
             try
             {
@@ -140,14 +218,18 @@ namespace ABRPOINT.Server.Helpers
                     bytes = System.Text.Encoding.UTF8.GetBytes(svgText);
                 }
 
-                var uploads = GetUploadsPath();
+                var useTenantFolder = IsValidTenantSlug(tenantSlug);
+                var uploads = useTenantFolder ? GetTenantUploadsPath(tenantSlug) : GetUploadsPath();
                 Directory.CreateDirectory(uploads);
 
                 var fileName = "sig_" + Guid.NewGuid().ToString("N") + "." + ext;
                 var filePath = Path.Combine(uploads, fileName);
 
                 await File.WriteAllBytesAsync(filePath, bytes);
-                return (true, "/api/uploads/" + fileName, null);
+                var url = useTenantFolder
+                    ? $"/api/uploads/{tenantSlug}/{fileName}"
+                    : "/api/uploads/" + fileName;
+                return (true, url, null);
             }
             catch (Exception)
             {

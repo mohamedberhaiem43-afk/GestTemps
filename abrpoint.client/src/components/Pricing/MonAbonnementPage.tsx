@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
 import ChangePlanModal from './ChangePlanModal';
+import StorageUsageCard from './StorageUsageCard';
 
 interface SubscriptionInfo {
   slug: string;
@@ -232,6 +233,8 @@ export default function MonAbonnementPage() {
           )}
         </Stack>
       </Paper>
+
+      <StorageUsageCard />
 
       {scheduledCancel && !isCancelled && (
         <Alert severity="warning" sx={{ mb: 3, borderRadius: '14px' }}>
