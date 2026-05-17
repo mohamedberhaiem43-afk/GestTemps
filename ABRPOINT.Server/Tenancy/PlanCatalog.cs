@@ -18,6 +18,13 @@ public sealed record PlanDefinition(
     decimal FlatPriceMonthlyEur,
     int IncludedEmployees,
     decimal OverageRatePerEmployeeEur,
+    // Plafond ABSOLU de salariés autorisés sur le pack — au-delà, l'admin doit
+    // upgrader (Starter→Standard→Premium→Enterprise). Soft cap : retournés
+    // par EmployesController.Post avec un 402 "plan_max_employees_reached".
+    //   Starter  →  30 salariés max  (10 inclus + jusqu'à 20 supplémentaires)
+    //   Standard → 100 salariés max  (15 inclus + jusqu'à 85 supplémentaires)
+    //   Premium  → 200 salariés max  (30 inclus + jusqu'à 170 supplémentaires)
+    int MaxEmployees,
     int? MaxSocietes,
     int? MaxSites,
     // Quota de stockage par tenant (Mo binaires, 1 Mo = 1 048 576 octets).
@@ -94,6 +101,7 @@ public static class PlanCatalog
         FlatPriceMonthlyEur: 29.50m,
         IncludedEmployees: 10,
         OverageRatePerEmployeeEur: 4.90m,
+        MaxEmployees: 30,             // cap dur : 10 inclus + 20 supplémentaires
         MaxSocietes: 1,
         MaxSites: 1,
         StorageQuotaMb: 5L * 1024,    // 5 Go
@@ -121,9 +129,14 @@ public static class PlanCatalog
     public static readonly PlanDefinition Standard = new(
         Code: StandardCode,
         DisplayName: "Standard",
-        FlatPriceMonthlyEur: 59.50m,
-        IncludedEmployees: 25,
+        // 2026-05-17 : grille Early Launch — 54€ flat, 15 salariés inclus (avant 59.50€/25).
+        // L'offre est réservée aux 10 premières entreprises partenaires avec engagement
+        // annuel ; les anciens tenants déjà sur Standard conservent leur price_id Stripe
+        // (grandfathering implicite — le price_id ne change pas, seule la grille publique).
+        FlatPriceMonthlyEur: 54m,
+        IncludedEmployees: 15,
         OverageRatePerEmployeeEur: 6.90m,
+        MaxEmployees: 100,            // cap dur : 15 inclus + jusqu'à 85 supplémentaires
         // 2026-05 : Standard capé à 1 société / 1 filiale (avant : 3 sites). Le multi-filiales
         // devient un différenciateur exclusif Premium pour clarifier le positionnement
         // commercial (Standard = PME mono-entité, Premium = groupes multi-entités).
@@ -154,9 +167,14 @@ public static class PlanCatalog
     public static readonly PlanDefinition Premium = new(
         Code: PremiumCode,
         DisplayName: "Premium",
-        FlatPriceMonthlyEur: 119m,
-        IncludedEmployees: 50,
+        // 2026-05-17 : grille Early Launch — 149€ flat, 30 salariés inclus (avant 119€/50).
+        // Premium devient repositionné "entreprises structurées" : moins de salariés
+        // inclus mais cap pack à 200 (multi-sites/multi-filiales reste exclusif Premium).
+        // Au-delà de 200, l'offre Enterprise sur devis prend le relais.
+        FlatPriceMonthlyEur: 149m,
+        IncludedEmployees: 30,
         OverageRatePerEmployeeEur: 9.90m,
+        MaxEmployees: 200,            // cap dur : 30 inclus + jusqu'à 170 supplémentaires
         MaxSocietes: null,
         MaxSites: null,
         StorageQuotaMb: 100L * 1024,  // 100 Go
@@ -238,5 +256,16 @@ public static class PlanCatalog
     public static int ComputeSupplementaryCount(PlanDefinition plan, int currentActiveCount)
     {
         return System.Math.Max(0, currentActiveCount - plan.IncludedEmployees);
+    }
+
+    /// <summary>
+    /// Vrai si l'ajout d'un collaborateur supplémentaire ferait dépasser le
+    /// plafond ABSOLU du pack (<see cref="PlanDefinition.MaxEmployees"/>). Au-delà,
+    /// l'admin doit upgrader le pack (Starter→Standard→Premium) — pas d'option
+    /// de paiement à la carte ni de débordement toléré (limite commerciale dure).
+    /// </summary>
+    public static bool WouldExceedPlanMax(PlanDefinition plan, int currentActiveCount)
+    {
+        return currentActiveCount >= plan.MaxEmployees;
     }
 }

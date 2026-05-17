@@ -25,11 +25,15 @@ const PLAN_CATALOG: Record<PlanKey, {
   flatPriceMonthlyEur: number;
   includedEmployees: number;
   overageRatePerEmployeeEur: number;
+  maxEmployees: number;
   moduleCount: number;
 }> = {
-  Starter:  { displayName: 'Starter',  flatPriceMonthlyEur: 29.50, includedEmployees: 10, overageRatePerEmployeeEur: 4.90, moduleCount: 7  },
-  Standard: { displayName: 'Standard', flatPriceMonthlyEur: 59.50, includedEmployees: 25, overageRatePerEmployeeEur: 6.90, moduleCount: 14 },
-  Premium:  { displayName: 'Premium',  flatPriceMonthlyEur: 119.00, includedEmployees: 50, overageRatePerEmployeeEur: 9.90, moduleCount: 19 },
+  // Grille Early Launch 2026-05-17 (alignée avec ABRPOINT.Server.Tenancy.PlanCatalog) :
+  // Standard repositionné 54€/15 inclus (avant 59.50€/25), Premium 149€/30 inclus (avant 119€/50).
+  // maxEmployees = plafond ABSOLU du pack — au-delà, upgrade obligatoire.
+  Starter:  { displayName: 'Starter',  flatPriceMonthlyEur: 29.50, includedEmployees: 10, overageRatePerEmployeeEur: 4.90, maxEmployees: 30,  moduleCount: 7  },
+  Standard: { displayName: 'Standard', flatPriceMonthlyEur: 54.00, includedEmployees: 15, overageRatePerEmployeeEur: 6.90, maxEmployees: 100, moduleCount: 14 },
+  Premium:  { displayName: 'Premium',  flatPriceMonthlyEur: 149.00, includedEmployees: 30, overageRatePerEmployeeEur: 9.90, maxEmployees: 200, moduleCount: 19 },
 };
 
 const PlanConfigurationPage: React.FC = () => {
@@ -66,11 +70,11 @@ const PlanConfigurationPage: React.FC = () => {
   // l'admin l'active à la création d'un collab via la fiche (cf. AjoutEmploye). Le
   // simulateur reste indicatif ; Stripe applique le prix réel des price_id
   // `Stripe:Prices:{Plan}:base:{cycle}` côté backend.
-  const { extraEmployees, overageCost, baseMonthly, monthlyTotal, annualDiscountPerMonth } = useMemo(() => {
+  const { baseMonthly, monthlyTotal, annualDiscountPerMonth } = useMemo(() => {
     const baseM = plan.flatPriceMonthlyEur;
     const monthly = billingCycle === 'annual' ? baseM * 0.80 : baseM;
     const discountPerMonth = billingCycle === 'annual' ? baseM * 0.20 : 0;
-    return { extraEmployees: 0, overageCost: 0, baseMonthly: baseM, monthlyTotal: monthly, annualDiscountPerMonth: discountPerMonth };
+    return { baseMonthly: baseM, monthlyTotal: monthly, annualDiscountPerMonth: discountPerMonth };
   }, [plan, billingCycle]);
 
   const handleConfirmCheckout = async () => {
@@ -156,7 +160,9 @@ const PlanConfigurationPage: React.FC = () => {
                       {' '}<strong className="not-italic font-black">{plan.includedEmployees} collaborateurs</strong>
                       {' '}au forfait ({formatPrice(plan.flatPriceMonthlyEur)} € / mois).
                       Pour en ajouter au-delà, créez chaque collaborateur supplémentaire depuis sa fiche :
-                      vous confirmerez alors un supplément de {formatPrice(plan.overageRatePerEmployeeEur)} € / mois facturé via Stripe.
+                      vous confirmerez alors un supplément de {formatPrice(plan.overageRatePerEmployeeEur)} € / mois facturé via Stripe
+                      (plafond pack : <strong className="not-italic font-black">{plan.maxEmployees} collaborateurs maximum</strong>,
+                      au-delà passez au pack supérieur).
                     </span>
                   </p>
                 </div>
@@ -266,6 +272,10 @@ const PlanConfigurationPage: React.FC = () => {
                       {formatPrice(plan.overageRatePerEmployeeEur)} € / mois<br />
                       <span className="text-outline font-medium">à l'unité depuis la fiche</span>
                     </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-outline font-bold">Plafond pack</span>
+                    <span className="font-black text-on-surface">{plan.maxEmployees} salariés</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-outline font-bold">Modules inclus</span>

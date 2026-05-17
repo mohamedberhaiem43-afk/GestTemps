@@ -82,11 +82,12 @@ export default function HomePage() {
   };
 
   // Prix : annuel = -20 % sur le forfait (overage facturé identiquement).
+  // Grille Early Launch 2026-05-17 — alignée avec ABRPOINT.Server.Tenancy.PlanCatalog.
   const monthly = billingCycle === 'monthly';
   const prices = {
     starter: monthly ? '29,50' : '23,60',
-    standard: monthly ? '59,50' : '47,60',
-    premium: monthly ? '119' : '95,20',
+    standard: monthly ? '54' : '43,20',
+    premium: monthly ? '149' : '119,20',
   };
 
   // Smooth-scroll vers la section "Rejoindre Concorde Workforce" : nav header
@@ -533,7 +534,7 @@ export default function HomePage() {
               <span className="currency">€</span>{prices.starter}<span className="period"> / mois HT</span>
             </div>
             <div className="price-included">10 collaborateurs inclus · 5 Go de stockage</div>
-            <div className="price-per">+ 4,90 € / collaborateur supplémentaire</div>
+            <div className="price-per">+ 4,90 € / collaborateur supplémentaire · jusqu'à 30 max</div>
             <div className="price-desc">Pour les TPE et startups qui démarrent la digitalisation RH d'une petite équipe.</div>
             <div className="price-features">
               <div className="pf-item"><span className="pf-check">✓</span> 1 mois gratuit sans carte bancaire</div>
@@ -554,8 +555,8 @@ export default function HomePage() {
             <div className="price-amount">
               <span className="currency">€</span>{prices.standard}<span className="period"> / mois HT</span>
             </div>
-            <div className="price-included">25 collaborateurs inclus · 20 Go de stockage</div>
-            <div className="price-per">+ 6,90 € / collaborateur supplémentaire</div>
+            <div className="price-included">15 collaborateurs inclus · 20 Go de stockage</div>
+            <div className="price-per">+ 6,90 € / collaborateur supplémentaire · jusqu'à 100 max</div>
             <div className="price-desc">Suite complète mobile + paie pour les PME en croissance et équipes structurées.</div>
             <div className="price-features">
               <div className="pf-item"><span className="pf-check">✓</span> 1 mois gratuit sans carte bancaire</div>
@@ -575,8 +576,8 @@ export default function HomePage() {
             <div className="price-amount">
               <span className="currency">€</span>{prices.premium}<span className="period"> / mois HT</span>
             </div>
-            <div className="price-included">50 collaborateurs inclus · 100 Go de stockage</div>
-            <div className="price-per">+ 9,90 € / collaborateur supplémentaire</div>
+            <div className="price-included">30 collaborateurs inclus · 100 Go de stockage</div>
+            <div className="price-per">+ 9,90 € / collaborateur supplémentaire · jusqu'à 200 max</div>
             <div className="price-desc">Multi-filiales, IA contextuelle et sécurité renforcée pour les grandes structures.</div>
             <div className="price-features">
               <div className="pf-item"><span className="pf-check">✓</span> 1 mois gratuit sans carte bancaire</div>
