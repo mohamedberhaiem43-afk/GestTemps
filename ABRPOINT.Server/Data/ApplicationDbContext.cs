@@ -360,17 +360,22 @@ public partial class ApplicationDbContext : DbContext
 
     private void OnBeforeSave()
     {
+        // BaseEntity columns are mapped as `timestamp without time zone` (cf. BaseEntity.cs).
+        // Npgsql 6+ rejects a DateTime with Kind=UTC against that PG type — even though the
+        // convention here is "store UTC values as naive timestamps" (NOW() AT TIME ZONE 'UTC'
+        // in the master DB DDL). Strip Kind to Unspecified so the values land correctly.
+        var nowNaive = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.CreatedAt ??= DateTime.UtcNow;
+                    entry.Entity.CreatedAt ??= nowNaive;
                     break;
                 case EntityState.Deleted:
                     // Soft delete: mark as deleted instead of actually deleting
                     entry.State = EntityState.Modified;
-                    entry.Entity.DeletedAt = DateTime.UtcNow;
+                    entry.Entity.DeletedAt = nowNaive;
                     break;
             }
         }
