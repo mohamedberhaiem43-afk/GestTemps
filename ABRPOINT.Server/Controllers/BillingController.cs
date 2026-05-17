@@ -88,6 +88,34 @@ public class BillingController : ControllerBase
         string? SuccessUrl,
         string? CancelUrl);
 
+    /// <summary>
+    /// Résolution miroir de <see cref="ABRPOINT.Server.Billing.StripeBillingService"/> :
+    /// on essaie d'abord la clé moderne 3 segments <c>{Plan}:base:{cycle}</c>, puis la clé
+    /// legacy 2 segments <c>{Plan}:{cycle}</c> en fallback. Sans cette double tentative,
+    /// un tenant qui a migré sa config vers <c>Standard:base:annual</c> recevait quand
+    /// même un 400 "Aucun price_id Stripe configuré pour Standard:annual" parce que le
+    /// controller cherchait uniquement le format legacy. Retourne (key, priceId) — `key`
+    /// est celui effectivement résolu (utile pour le message d'erreur si non trouvé).
+    /// </summary>
+    private (string Key, string? PriceId) ResolveBasePriceId(string planCode, string billingCycle)
+    {
+        var cycle = billingCycle.ToLowerInvariant();
+        var prices = _cfg.GetSection("Stripe").GetSection("Prices");
+
+        var modernKey = $"{planCode}:base:{cycle}";
+        var modernPid = prices[modernKey];
+        if (!string.IsNullOrWhiteSpace(modernPid) && !modernPid.Contains("REPLACE"))
+            return (modernKey, modernPid);
+
+        var legacyKey = $"{planCode}:{cycle}";
+        var legacyPid = prices[legacyKey];
+        if (!string.IsNullOrWhiteSpace(legacyPid) && !legacyPid.Contains("REPLACE"))
+            return (legacyKey, legacyPid);
+
+        // Aucun trouvé — on renvoie la clé moderne dans le message pour pousser la bonne convention.
+        return (modernKey, null);
+    }
+
     [HttpPost("checkout")]
     public async Task<IActionResult> CreateCheckout([FromBody] CheckoutRequest req, CancellationToken ct)
     {
@@ -102,9 +130,8 @@ public class BillingController : ControllerBase
         if (string.IsNullOrWhiteSpace(secretKey) || secretKey.Contains("REPLACE"))
             return StatusCode(503, new { error = "Stripe non configuré côté serveur." });
 
-        var priceKey = $"{req.PlanCode}:{req.BillingCycle.ToLowerInvariant()}";
-        var priceId = stripeSection.GetSection("Prices")[priceKey];
-        if (string.IsNullOrWhiteSpace(priceId) || priceId.Contains("REPLACE"))
+        var (priceKey, priceId) = ResolveBasePriceId(req.PlanCode, req.BillingCycle);
+        if (string.IsNullOrWhiteSpace(priceId))
             return BadRequest(new { error = $"Aucun price_id Stripe configuré pour {priceKey}." });
 
         await using var master = await _masterFactory.CreateDbContextAsync(ct);
@@ -297,9 +324,8 @@ public class BillingController : ControllerBase
         // peut ajuster les quantités sur la page Stripe).
         var planCode = string.IsNullOrWhiteSpace(req.PlanCode) ? "Standard" : req.PlanCode!;
         var billingCycle = string.IsNullOrWhiteSpace(req.BillingCycle) ? "monthly" : req.BillingCycle!;
-        var priceKey = $"{planCode}:{billingCycle.ToLowerInvariant()}";
-        var priceId = stripeSection.GetSection("Prices")[priceKey];
-        if (string.IsNullOrWhiteSpace(priceId) || priceId.Contains("REPLACE"))
+        var (priceKey, priceId) = ResolveBasePriceId(planCode, billingCycle);
+        if (string.IsNullOrWhiteSpace(priceId))
             return BadRequest(new { error = $"Aucun price_id Stripe configuré pour {priceKey}." });
 
         StripeConfiguration.ApiKey = secretKey;
