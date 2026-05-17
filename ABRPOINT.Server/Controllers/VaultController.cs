@@ -1,9 +1,11 @@
 using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Billing;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Services;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -26,6 +28,8 @@ namespace ABRPOINT.Server.Controllers
         private readonly IReportsGenerationService _reportsService;
         private readonly EncryptionService _encryptionService;
         private readonly ApplicationDbContext _db;
+        private readonly IStorageQuotaGuard _quotaGuard;
+        private readonly ICurrentTenant _currentTenant;
         private readonly ILogger<VaultController> _log;
 
         public VaultController(
@@ -33,13 +37,47 @@ namespace ABRPOINT.Server.Controllers
             IReportsGenerationService reportsService,
             EncryptionService encryptionService,
             ApplicationDbContext db,
+            IStorageQuotaGuard quotaGuard,
+            ICurrentTenant currentTenant,
             ILogger<VaultController> log)
         {
             _vaultRepository = vaultRepository;
             _reportsService = reportsService;
             _encryptionService = encryptionService;
             _db = db;
+            _quotaGuard = quotaGuard;
+            _currentTenant = currentTenant;
             _log = log;
+        }
+
+        /// <summary>
+        /// Vérifie le quota de stockage du tenant courant pour un upload de
+        /// <paramref name="incomingBytes"/> octets. Retourne null si OK, sinon un
+        /// ObjectResult 507 prêt à être renvoyé (Insufficient Storage — RFC 4918).
+        /// On utilise 507 plutôt que 402 pour distinguer clairement « plan plafond
+        /// dépassé » de « paiement requis » côté front.
+        /// </summary>
+        private async Task<IActionResult?> CheckStorageQuotaAsync(long incomingBytes, CancellationToken ct)
+        {
+            var tenant = _currentTenant.Current;
+            if (tenant is null)
+            {
+                // Pas de tenant résolu (devrait être impossible derrière [Authorize] +
+                // TenantResolverMiddleware). Fail safe : on ne bloque pas — l'auth aurait
+                // déjà rejeté l'appel s'il était illégitime.
+                return null;
+            }
+            var snapshot = await _quotaGuard.CheckAsync(tenant.Id, incomingBytes, ct);
+            if (!snapshot.WouldExceed) return null;
+            return StatusCode(507, new
+            {
+                code = "storage_quota_exceeded",
+                message = $"Quota de stockage atteint ({snapshot.UsedMb} Mo / {snapshot.QuotaMb} Mo). " +
+                          "Supprimez des documents ou passez à un pack supérieur pour continuer à téléverser.",
+                usedMb = snapshot.UsedMb,
+                quotaMb = snapshot.QuotaMb,
+                percentUsed = snapshot.PercentUsed,
+            });
         }
 
         [HttpGet("{soccod}/{empcod}")]
@@ -165,7 +203,13 @@ namespace ABRPOINT.Server.Controllers
                     return Forbid();
                 }
 
-                var (success, filePath, error) = await FileHelper.SaveFile(file);
+                if (file is not null && file.Length > 0)
+                {
+                    var quotaErr = await CheckStorageQuotaAsync(file.Length, HttpContext.RequestAborted);
+                    if (quotaErr is not null) return quotaErr;
+                }
+
+                var (success, filePath, error) = await FileHelper.SaveFile(file, _currentTenant.Current?.Slug);
                 if (!success) return BadRequest(error);
 
                 var doc = new DocumentVault
@@ -243,7 +287,13 @@ namespace ABRPOINT.Server.Controllers
                     return Forbid();
             }
 
-            var (saved, filePath, error) = await FileHelper.SaveFile(file);
+            if (file is not null && file.Length > 0)
+            {
+                var quotaErr = await CheckStorageQuotaAsync(file.Length, HttpContext.RequestAborted);
+                if (quotaErr is not null) return quotaErr;
+            }
+
+            var (saved, filePath, error) = await FileHelper.SaveFile(file, _currentTenant.Current?.Slug);
             if (!saved) return BadRequest(error);
 
             var doc = new DocumentVault
@@ -453,7 +503,8 @@ namespace ABRPOINT.Server.Controllers
 
             doc.DocPath = _encryptionService.Decrypt(doc.DocPath);
             var fileName = Path.GetFileName(doc.DocPath);
-            var filePath = Path.Combine(FileHelper.GetUploadsPath(), fileName);
+            // Résout vers uploads/{slug}/{file} ou uploads/{file} selon le format de l'URL stockée.
+            var filePath = FileHelper.ResolveUploadFilePath(doc.DocPath) ?? Path.Combine(FileHelper.GetUploadsPath(), fileName);
 
             if (!System.IO.File.Exists(filePath))
             {
@@ -520,7 +571,8 @@ namespace ABRPOINT.Server.Controllers
 
             doc.DocPath = _encryptionService.Decrypt(doc.DocPath);
             var fileName = Path.GetFileName(doc.DocPath);
-            var filePath = Path.Combine(FileHelper.GetUploadsPath(), fileName);
+            // Résout vers uploads/{slug}/{file} ou uploads/{file} selon le format de l'URL stockée.
+            var filePath = FileHelper.ResolveUploadFilePath(doc.DocPath) ?? Path.Combine(FileHelper.GetUploadsPath(), fileName);
 
             if (!System.IO.File.Exists(filePath))
             {
@@ -603,7 +655,7 @@ namespace ABRPOINT.Server.Controllers
 
             // 1. Conserve l'image de signature en stand-alone (preuve séparée + fallback
             //    pour les documents non-PDF type docx/xlsx qu'on ne sait pas tamponner).
-            var (success, filePath, error) = await FileHelper.SaveBase64Image(request.SignatureData);
+            var (success, filePath, error) = await FileHelper.SaveBase64Image(request.SignatureData, _currentTenant.Current?.Slug);
             if (success) doc.SignaturePath = filePath;
 
             var signedAt = DateTime.UtcNow;
@@ -618,7 +670,7 @@ namespace ABRPOINT.Server.Controllers
             {
                 var decryptedPath = _encryptionService.Decrypt(doc.DocPath);
                 var fileName = Path.GetFileName(decryptedPath);
-                var sourcePdf = Path.Combine(FileHelper.GetUploadsPath(), fileName);
+                var sourcePdf = FileHelper.ResolveUploadFilePath(decryptedPath) ?? Path.Combine(FileHelper.GetUploadsPath(), fileName);
 
                 if (System.IO.File.Exists(sourcePdf) &&
                     string.Equals(Path.GetExtension(sourcePdf), ".pdf", StringComparison.OrdinalIgnoreCase))
@@ -642,8 +694,16 @@ namespace ABRPOINT.Server.Controllers
                     if (!string.IsNullOrEmpty(stampedPath))
                     {
                         var stampedName = Path.GetFileName(stampedPath);
-                        // Même schéma URL que FileHelper.SaveFile : /api/uploads/<file>.
-                        doc.DocPath = _encryptionService.Encrypt("/api/uploads/" + stampedName);
+                        // Le PDF signé est écrit dans le même dossier que la source par
+                        // PdfSignatureStamper. L'URL doit suivre la convention per-tenant
+                        // si le source PDF était lui-même dans uploads/{slug}/. On reflète
+                        // ça en regardant si decryptedPath contenait /api/uploads/{slug}/.
+                        var slug = _currentTenant.Current?.Slug;
+                        var url = FileHelper.IsValidTenantSlug(slug)
+                            && decryptedPath.StartsWith($"/api/uploads/{slug}/", StringComparison.OrdinalIgnoreCase)
+                                ? $"/api/uploads/{slug}/{stampedName}"
+                                : "/api/uploads/" + stampedName;
+                        doc.DocPath = _encryptionService.Encrypt(url);
                         try { doc.DocSize = new FileInfo(stampedPath).Length; } catch { /* best effort */ }
                     }
                 }

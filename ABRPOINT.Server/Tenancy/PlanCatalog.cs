@@ -20,6 +20,13 @@ public sealed record PlanDefinition(
     decimal OverageRatePerEmployeeEur,
     int? MaxSocietes,
     int? MaxSites,
+    // Quota de stockage par tenant (Mo binaires, 1 Mo = 1 048 576 octets).
+    // Affiché en "Go" côté UI (binary GiB ≈ Go en français marketing) :
+    //   Starter   5 120 Mo →  5 Go
+    //   Standard 20 480 Mo → 20 Go
+    //   Premium 102 400 Mo → 100 Go
+    // Mesure = pg_database_size(DbName) + taille du dossier uploads/{slug}/, refresh hourly.
+    long StorageQuotaMb,
     PlanFeatures Features);
 
 /// <summary>
@@ -89,6 +96,7 @@ public static class PlanCatalog
         OverageRatePerEmployeeEur: 4.90m,
         MaxSocietes: 1,
         MaxSites: 1,
+        StorageQuotaMb: 5L * 1024,    // 5 Go
         Features: new PlanFeatures(
             MobileApp: false,
             Geolocation: false,
@@ -121,6 +129,7 @@ public static class PlanCatalog
         // commercial (Standard = PME mono-entité, Premium = groupes multi-entités).
         MaxSocietes: 1,
         MaxSites: 1,
+        StorageQuotaMb: 20L * 1024,   // 20 Go
         Features: new PlanFeatures(
             MobileApp: true,
             Geolocation: true,
@@ -150,6 +159,7 @@ public static class PlanCatalog
         OverageRatePerEmployeeEur: 9.90m,
         MaxSocietes: null,
         MaxSites: null,
+        StorageQuotaMb: 100L * 1024,  // 100 Go
         Features: new PlanFeatures(
             MobileApp: true,
             Geolocation: true,
@@ -195,5 +205,17 @@ public static class PlanCatalog
     {
         var overage = System.Math.Max(0, employeeCount - plan.IncludedEmployees);
         return plan.FlatPriceMonthlyEur + overage * plan.OverageRatePerEmployeeEur;
+    }
+
+    /// <summary>
+    /// Quota de stockage en Mo pour un PlanCode donné. Fallback Starter quand le
+    /// plan est inconnu/null (tenant en trial sans plan choisi) : le quota le
+    /// plus restrictif protège contre les abus, et basculer vers Standard/Premium
+    /// élargit immédiatement le quota au prochain refresh du tenant.
+    /// </summary>
+    public static long GetStorageQuotaMb(string? planCode)
+    {
+        var plan = GetPlan(planCode) ?? Starter;
+        return plan.StorageQuotaMb;
     }
 }

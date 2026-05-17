@@ -1,8 +1,10 @@
 ﻿using ABRPOINT.Server.Annotations.AdminAttributes;
+using ABRPOINT.Server.Billing;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -16,10 +18,18 @@ namespace ABRPOINT.Server.Controllers
     {
         private readonly IParametreRepository _parametreRepository;
         private readonly ISocieteRepository _societeRepository;
-        public ParametresController(IParametreRepository parametreRepository, ISocieteRepository societeRepository)
+        private readonly IStorageQuotaGuard _quotaGuard;
+        private readonly ICurrentTenant _currentTenant;
+        public ParametresController(
+            IParametreRepository parametreRepository,
+            ISocieteRepository societeRepository,
+            IStorageQuotaGuard quotaGuard,
+            ICurrentTenant currentTenant)
         {
             _parametreRepository = parametreRepository;
             _societeRepository = societeRepository;
+            _quotaGuard = quotaGuard;
+            _currentTenant = currentTenant;
         }
         [HttpGet("deb-mois/{soccod}")]
         public async Task<ActionResult<ParametreMoisPointageDto>> Get(string soccod)
@@ -92,9 +102,26 @@ namespace ABRPOINT.Server.Controllers
         }
         [Admin]
         [HttpPost("upload-logo/{soccod}")]
-        public async Task<IActionResult> UploadSocieteLogo(IFormFile file, string soccod)
+        public async Task<IActionResult> UploadSocieteLogo(IFormFile file, string soccod, CancellationToken ct)
         {
-            var (success, filePath, error) = await FileHelper.SaveFile(file);
+            // Garde quota — logo en théorie petit (< 1 Mo) mais on garde la check pour
+            // un tenant qui aurait déjà saturé son stockage avec des bulletins de paie.
+            if (file is not null && file.Length > 0 && _currentTenant.Current is { } tenant)
+            {
+                var snap = await _quotaGuard.CheckAsync(tenant.Id, file.Length, ct);
+                if (snap.WouldExceed)
+                {
+                    return StatusCode(507, new
+                    {
+                        code = "storage_quota_exceeded",
+                        message = $"Quota de stockage atteint ({snap.UsedMb} Mo / {snap.QuotaMb} Mo).",
+                        usedMb = snap.UsedMb,
+                        quotaMb = snap.QuotaMb,
+                        percentUsed = snap.PercentUsed,
+                    });
+                }
+            }
+            var (success, filePath, error) = await FileHelper.SaveFile(file, _currentTenant.Current?.Slug);
 
             if (!success)
                 return BadRequest(error);

@@ -24,6 +24,7 @@ public class BillingController : ControllerBase
     private readonly ApplicationDbContext _tenantDb;
     private readonly ICurrentTenant _currentTenant;
     private readonly IBillingService _billing;
+    private readonly IStorageQuotaGuard _quotaGuard;
     private readonly IConfiguration _cfg;
     private readonly ILogger<BillingController> _log;
 
@@ -41,6 +42,7 @@ public class BillingController : ControllerBase
         ApplicationDbContext tenantDb,
         ICurrentTenant currentTenant,
         IBillingService billing,
+        IStorageQuotaGuard quotaGuard,
         IConfiguration cfg,
         ILogger<BillingController> log)
     {
@@ -48,8 +50,34 @@ public class BillingController : ControllerBase
         _tenantDb = tenantDb;
         _currentTenant = currentTenant;
         _billing = billing;
+        _quotaGuard = quotaGuard;
         _cfg = cfg;
         _log = log;
+    }
+
+    /// <summary>
+    /// État courant du quota de stockage du tenant. Lecture du snapshot mis à jour
+    /// hourly par <c>StorageUsageHostedService</c> (mesure réelle = pg_database_size).
+    /// Affiché côté dashboard admin sous forme de jauge "X Mo / Y Mo".
+    /// </summary>
+    [HttpGet("storage-usage")]
+    public async Task<IActionResult> GetStorageUsage(CancellationToken ct)
+    {
+        var tenant = _currentTenant.Current;
+        if (tenant is null) return BadRequest(new { error = "Tenant non résolu." });
+
+        var snap = await _quotaGuard.GetSnapshotAsync(tenant.Id, ct);
+        return Ok(new
+        {
+            usedMb = snap.UsedMb,
+            quotaMb = snap.QuotaMb,
+            // Convenances UI : versions Go arrondies pour affichage direct.
+            usedGb = Math.Round((decimal)snap.UsedMb / 1024m, 2),
+            quotaGb = Math.Round((decimal)snap.QuotaMb / 1024m, 2),
+            percentUsed = snap.PercentUsed,
+            checkedAt = snap.CheckedAt,
+            planCode = tenant.PlanCode,
+        });
     }
 
     public sealed record CheckoutRequest(

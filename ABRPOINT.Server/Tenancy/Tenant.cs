@@ -104,4 +104,20 @@ public class Tenant
     /// customer.subscription.updated. Sert d'affichage UI ("Vous garderez l'accès jusqu'au …").
     /// </summary>
     public DateTime? CurrentPeriodEndsAt { get; set; }
+
+    /// <summary>
+    /// Stockage consommé par le tenant (en Mo binaires = 1 048 576 octets). Somme de :
+    ///   - <c>pg_database_size(DbName)</c> (taille on-disk de la base PG du tenant)
+    ///   - taille récursive du dossier <c>uploads/{slug}/</c> (fichiers utilisateurs)
+    /// Refresh horaire par <c>StorageUsageHostedService</c>. 0 tant que jamais mesuré.
+    /// Comparé à <see cref="PlanCatalog.GetStorageQuotaMb(string?)"/>(PlanCode) côté guard.
+    /// </summary>
+    public long StorageUsedMb { get; set; } = 0;
+
+    /// <summary>
+    /// Timestamp du dernier passage du job de mesure de stockage. Null = jamais mesuré
+    /// (tenant fraîchement créé, le job rattrape au prochain tour). Affiché en UI sous
+    /// la jauge "X Go / Y Go — dernière mesure il y a N minutes".
+    /// </summary>
+    public DateTime? StorageUsageCheckedAt { get; set; }
 }
