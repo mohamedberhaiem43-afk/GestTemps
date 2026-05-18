@@ -589,6 +589,218 @@ public class BillingController : ControllerBase
     }
 
     /// <summary>
+    /// Carte de paiement par défaut du customer Stripe — récupérée via l'API Stripe
+    /// (jamais persistée côté tenant pour rester PCI-DSS compliant : seuls les 4
+    /// derniers chiffres + brand + expiration sont retournés, pas le PAN complet).
+    /// Utilisé par la section « Carte de paiement » de /dashboard/mon-abonnement.
+    /// </summary>
+    [HttpGet("payment-method")]
+    public async Task<IActionResult> GetPaymentMethod(CancellationToken ct)
+    {
+        var slug = _currentTenant.Current?.Slug;
+        if (string.IsNullOrEmpty(slug))
+            return BadRequest(new { error = "Tenant non résolu." });
+
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var tenant = await master.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Slug == slug, ct);
+        if (tenant is null) return NotFound(new { error = "Tenant introuvable." });
+        if (string.IsNullOrEmpty(tenant.StripeCustomerId))
+            return Ok(new { hasCard = false });
+
+        var secretKey = _cfg["Stripe:SecretKey"];
+        if (string.IsNullOrWhiteSpace(secretKey) || secretKey.Contains("REPLACE"))
+            return StatusCode(503, new { error = "Stripe non configuré côté serveur." });
+        StripeConfiguration.ApiKey = secretKey;
+
+        try
+        {
+            // On lit d'abord le default_payment_method de la subscription active, puis fallback
+            // sur le invoice_settings.default_payment_method du customer (le scénario Stripe
+            // Checkout standard pose le PM sur les deux mais des flows custom peuvent diverger).
+            string? paymentMethodId = null;
+            if (!string.IsNullOrEmpty(tenant.StripeSubscriptionId))
+            {
+                try
+                {
+                    var sub = await new SubscriptionService().GetAsync(tenant.StripeSubscriptionId, cancellationToken: ct);
+                    paymentMethodId = sub?.DefaultPaymentMethodId;
+                }
+                catch (StripeException) { /* sub introuvable / cancelled — on bascule sur le customer */ }
+            }
+            if (string.IsNullOrEmpty(paymentMethodId))
+            {
+                var customer = await new CustomerService().GetAsync(tenant.StripeCustomerId, cancellationToken: ct);
+                paymentMethodId = customer?.InvoiceSettings?.DefaultPaymentMethodId;
+            }
+            if (string.IsNullOrEmpty(paymentMethodId))
+                return Ok(new { hasCard = false });
+
+            var pm = await new PaymentMethodService().GetAsync(paymentMethodId, cancellationToken: ct);
+            if (pm?.Card is null) return Ok(new { hasCard = false });
+
+            return Ok(new
+            {
+                hasCard = true,
+                brand = pm.Card.Brand,           // "visa", "mastercard", "amex"…
+                last4 = pm.Card.Last4,
+                expMonth = pm.Card.ExpMonth,
+                expYear = pm.Card.ExpYear,
+            });
+        }
+        catch (StripeException ex)
+        {
+            _log.LogError(ex, "Lecture du PaymentMethod échouée pour tenant {Slug}.", slug);
+            return StatusCode(502, new { error = "Impossible de lire la carte de paiement." });
+        }
+    }
+
+    /// <summary>
+    /// Crée une session Stripe Billing Portal pour permettre à l'admin de mettre à jour
+    /// sa carte / consulter ses factures côté Stripe. On délègue 100 % à Stripe pour ne
+    /// jamais manipuler le PAN ni le CVV côté serveur (PCI-DSS SAQ A — scope minimal).
+    /// </summary>
+    [HttpPost("portal-session")]
+    public async Task<IActionResult> CreatePortalSession([FromBody] PortalSessionRequest? req, CancellationToken ct)
+    {
+        if (!await CallerIsAdminOrManagerAsync())
+            return Forbid();
+
+        var slug = _currentTenant.Current?.Slug;
+        if (string.IsNullOrEmpty(slug))
+            return BadRequest(new { error = "Tenant non résolu." });
+
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var tenant = await master.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Slug == slug, ct);
+        if (tenant is null) return NotFound(new { error = "Tenant introuvable." });
+        if (string.IsNullOrEmpty(tenant.StripeCustomerId))
+            return BadRequest(new { error = "Aucun customer Stripe rattaché à ce tenant." });
+
+        var secretKey = _cfg["Stripe:SecretKey"];
+        if (string.IsNullOrWhiteSpace(secretKey) || secretKey.Contains("REPLACE"))
+            return StatusCode(503, new { error = "Stripe non configuré côté serveur." });
+        StripeConfiguration.ApiKey = secretKey;
+
+        var origin = $"{Request.Scheme}://{Request.Host}";
+        var returnUrl = !string.IsNullOrWhiteSpace(req?.ReturnUrl)
+            ? req!.ReturnUrl!
+            : $"{origin}/dashboard/mon-abonnement";
+
+        try
+        {
+            var session = await new Stripe.BillingPortal.SessionService().CreateAsync(
+                new Stripe.BillingPortal.SessionCreateOptions
+                {
+                    Customer = tenant.StripeCustomerId,
+                    ReturnUrl = returnUrl,
+                }, cancellationToken: ct);
+            return Ok(new { url = session.Url });
+        }
+        catch (StripeException ex)
+        {
+            _log.LogError(ex, "Création portal-session Stripe échouée pour tenant {Slug}.", slug);
+            return StatusCode(502, new { error = "Impossible d'ouvrir le portail de facturation." });
+        }
+    }
+
+    /// <summary>
+    /// Liste les factures à venir + les 12 dernières factures émises pour le customer
+    /// Stripe du tenant. Alimente la page « Factures Concorde » du dashboard.
+    /// Retourne montants HT + TTC, période couverte, statut (open / paid / draft).
+    /// </summary>
+    [HttpGet("invoices")]
+    public async Task<IActionResult> GetInvoices(CancellationToken ct)
+    {
+        var slug = _currentTenant.Current?.Slug;
+        if (string.IsNullOrEmpty(slug))
+            return BadRequest(new { error = "Tenant non résolu." });
+
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var tenant = await master.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Slug == slug, ct);
+        if (tenant is null) return NotFound(new { error = "Tenant introuvable." });
+        if (string.IsNullOrEmpty(tenant.StripeCustomerId))
+            return Ok(new { upcoming = (object?)null, history = new object[0] });
+
+        var secretKey = _cfg["Stripe:SecretKey"];
+        if (string.IsNullOrWhiteSpace(secretKey) || secretKey.Contains("REPLACE"))
+            return StatusCode(503, new { error = "Stripe non configuré côté serveur." });
+        StripeConfiguration.ApiKey = secretKey;
+
+        object? upcoming = null;
+        try
+        {
+            // Stripe.InvoiceService.UpcomingAsync simule la prochaine facture à venir
+            // basée sur la subscription active (subscription items + proration). Si pas
+            // d'abonnement actif, l'appel lève → on retombe sur null silencieusement.
+            var upcomingInvoice = await new InvoiceService().UpcomingAsync(
+                new UpcomingInvoiceOptions { Customer = tenant.StripeCustomerId },
+                cancellationToken: ct);
+            if (upcomingInvoice != null)
+            {
+                upcoming = SerializeInvoice(upcomingInvoice, isUpcoming: true);
+            }
+        }
+        catch (StripeException ex) when (ex.StripeError?.Code == "invoice_upcoming_none")
+        {
+            // Pas de subscription active → pas de facture à venir, comportement attendu.
+        }
+        catch (StripeException ex)
+        {
+            _log.LogWarning(ex, "CreateUpcoming échoué pour tenant {Slug} — on continue avec l'historique.", slug);
+        }
+
+        var history = new List<object>();
+        try
+        {
+            var listed = await new InvoiceService().ListAsync(new InvoiceListOptions
+            {
+                Customer = tenant.StripeCustomerId,
+                Limit = 12,
+            }, cancellationToken: ct);
+            foreach (var inv in listed.Data)
+                history.Add(SerializeInvoice(inv, isUpcoming: false));
+        }
+        catch (StripeException ex)
+        {
+            _log.LogError(ex, "Lecture des factures Stripe échouée pour tenant {Slug}.", slug);
+            return StatusCode(502, new { error = "Impossible de récupérer les factures." });
+        }
+
+        return Ok(new { upcoming, history });
+    }
+
+    /// <summary>
+    /// Projection minimale d'une facture Stripe → DTO JSON consommé par le front.
+    /// Montants en euros (Stripe les expose en centimes). On expose AmountDue (TTC) +
+    /// SubtotalExcludingTax (HT) quand dispo, sinon Subtotal (qui peut inclure les
+    /// remises mais hors taxes en France si le tax behavior est "exclusive").
+    /// </summary>
+    private static object SerializeInvoice(Invoice inv, bool isUpcoming)
+    {
+        long amountTtcCents = inv.AmountDue;
+        long amountHtCents = inv.SubtotalExcludingTax ?? inv.Subtotal;
+        long? taxCents = (inv.Tax) ?? null;
+        return new
+        {
+            id = inv.Id,
+            number = inv.Number,                                 // null si upcoming
+            status = isUpcoming ? "upcoming" : inv.Status,        // "open" / "paid" / "draft" / "upcoming"
+            currency = (inv.Currency ?? "eur").ToUpperInvariant(),
+            amountHt = amountHtCents / 100m,
+            amountTtc = amountTtcCents / 100m,
+            tax = taxCents.HasValue ? taxCents.Value / 100m : (decimal?)null,
+            periodStart = inv.PeriodStart,
+            periodEnd = inv.PeriodEnd,
+            issuedAt = isUpcoming ? (DateTime?)null : inv.Created,
+            dueDate = inv.DueDate,
+            hostedInvoiceUrl = inv.HostedInvoiceUrl,
+            invoicePdf = inv.InvoicePdf,
+            description = inv.Lines?.Data?.FirstOrDefault()?.Description,
+        };
+    }
+
+    public sealed record PortalSessionRequest(string? ReturnUrl);
+
+    /// <summary>
     /// Vérifie en base que l'appelant est admin (Utiadm=1 ou rôle "Administrator") ou
     /// manager (rôle dont le nom contient "manager"). Évite de dépendre du claim "role"
     /// du JWT, qui n'est pas peuplé dans ce projet (cf. JwtAuthService).

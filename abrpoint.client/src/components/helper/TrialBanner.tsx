@@ -14,10 +14,17 @@ import { useAuth } from './AuthProvider';
  * `/api/Utilisateurs/me` (via useAuth) pour rester aligné automatiquement.
  */
 const TrialBanner = () => {
-  const { isTrialing, trialDaysRemaining, planLimits, planCode } = useAuth();
+  const { isTrialing, trialDaysRemaining, planLimits, planCode, isAdmin, isManager } = useAuth();
   const navigate = useNavigate();
 
   if (!isTrialing) return null;
+  // 2026-05-18 — Le bandeau d'essai (qui invite à passer au plan payant + affiche
+  // les limites du pack) n'a aucun sens pour un salarié : ce n'est pas son rôle
+  // de gérer l'abonnement, et le message « Passer au plan payant » est trompeur
+  // car le bouton mène vers /dashboard/plan-configuration qui nécessite des
+  // permissions admin/manager. On masque donc le bandeau à toute personne qui
+  // n'est ni admin ni manager.
+  if (!isAdmin && !isManager) return null;
 
   const daysLabel =
     trialDaysRemaining == null

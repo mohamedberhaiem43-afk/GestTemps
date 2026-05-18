@@ -7,7 +7,9 @@ import {
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import { useNavigate } from 'react-router-dom';
 import apiInstance from '../API/apiInstance';
 
 /**
@@ -88,6 +90,7 @@ function formatDate(d: string | null | undefined): string {
 }
 
 export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess }: ChangePlanModalProps) {
+  const navigate = useNavigate();
   const normalizedCurrent = (currentPlan ?? '').trim();
   const currentKey: PlanKey | null = (['Starter', 'Standard', 'Premium'] as PlanKey[]).find(
     (k) => k.toLowerCase() === normalizedCurrent.toLowerCase()
@@ -204,26 +207,49 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess 
                 }}
                 onClick={() => !isCurrent && setSelected(key)}
               >
-                <FormControlLabel
-                  value={key}
-                  disabled={isCurrent}
-                  control={<Radio />}
-                  sx={{ width: '100%', m: 0 }}
-                  label={
-                    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                        <Typography sx={{ fontWeight: 800, fontSize: 16 }}>{meta.label}</Typography>
-                        {isCurrent && <Chip label="Plan actuel" size="small" sx={{ fontWeight: 700, bgcolor: '#e2e8f0' }} />}
-                        <Typography sx={{ ml: 'auto', fontWeight: 800, color: '#0040a1' }}>
-                          {meta.baseEur.toFixed(2)} € / mois
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <FormControlLabel
+                    value={key}
+                    disabled={isCurrent}
+                    control={<Radio />}
+                    sx={{ flex: 1, m: 0 }}
+                    label={
+                      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                          <Typography sx={{ fontWeight: 800, fontSize: 16 }}>{meta.label}</Typography>
+                          {isCurrent && <Chip label="Plan actuel" size="small" sx={{ fontWeight: 700, bgcolor: '#e2e8f0' }} />}
+                          <Typography sx={{ ml: 'auto', fontWeight: 800, color: '#0040a1' }}>
+                            {meta.baseEur.toFixed(2)} € / mois
+                          </Typography>
+                        </Box>
+                        <Typography sx={{ fontSize: 13, color: '#64748b', mt: 0.5 }}>
+                          {meta.tagline} · {meta.includedSeats} inclus · jusqu'à {meta.maxSeats} max
                         </Typography>
                       </Box>
-                      <Typography sx={{ fontSize: 13, color: '#64748b', mt: 0.5 }}>
-                        {meta.tagline} · {meta.includedSeats} inclus · jusqu'à {meta.maxSeats} max
-                      </Typography>
-                    </Box>
-                  }
-                />
+                    }
+                  />
+                  {/* Bouton « Voir le devis » : ouvre la page DevisPackPage avec le détail
+                      des prochaines factures + souscription. Permet à l'utilisateur de
+                      consulter le détail AVANT d'engager le changement (différentiel
+                      prorata calculé dans le panel ci-dessous est utile pour les actifs ;
+                      la page devis cible plutôt les essais ou prospects). Masqué pour le
+                      plan actuel (qu'on ne peut pas re-souscrire). */}
+                  {!isCurrent && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      endIcon={<ArrowForwardIcon sx={{ fontSize: 14 }} />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onClose();
+                        navigate(`/dashboard/devis-pack?plan=${key}&cycle=monthly`);
+                      }}
+                      sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px', flexShrink: 0 }}
+                    >
+                      Voir le devis
+                    </Button>
+                  )}
+                </Stack>
               </Paper>
             );
           })}

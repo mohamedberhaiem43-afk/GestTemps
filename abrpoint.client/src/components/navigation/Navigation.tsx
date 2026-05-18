@@ -84,6 +84,8 @@ const PlanUpgradePage = React.lazy(() => import('../Pricing/PlanUpgradePage'));
 const AboutPage = React.lazy(() => import('../About/AboutPage'));
 const PlanConfigurationPage = React.lazy(() => import('../Pricing/PlanConfigurationPage'));
 const MonAbonnementPage = React.lazy(() => import('../Pricing/MonAbonnementPage'));
+const FacturesConcordePage = React.lazy(() => import('../Pricing/FacturesConcordePage'));
+const DevisPackPage = React.lazy(() => import('../Pricing/DevisPackPage'));
 const ContactSalesPage = React.lazy(() => import('../Pricing/ContactSalesPage'));
 const CetPage = React.lazy(() => import('../gestionEmploye/gestionConge/Cet/CetPage'));
 const SupportPage = React.lazy(() => import('../Support/SupportPage'));
@@ -426,6 +428,18 @@ const useNavigationItems = (): NavGroup[] => {
         // mappée plus bas pour les liens directs / paiement.
       ],
     }] : []),
+    // Paiement : groupe réservé Admin/Manager regroupant la gestion d'abonnement et
+    // l'historique de facturation. Remplace l'ancienne entrée footer « Mon abonnement »
+    // qui était plate et ne donnait pas accès aux factures (cf. tasks 2026-05-19).
+    ...((isAdmin || isManager) ? [{
+      label: t('navigation.payment', 'Paiement'),
+      href: '/dashboard/mon-abonnement',
+      icon: Wallet,
+      items: [
+        { label: t('navigation.subscription', 'Abonnement'), href: '/dashboard/mon-abonnement', icon: Wallet },
+        { label: t('navigation.concordeInvoices', 'Factures Concorde'), href: '/dashboard/factures-concorde', icon: Receipt },
+      ],
+    }] : []),
   ];
 
   // Filtre les groupes vides
@@ -519,6 +533,8 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/pricing': content = <PricingPage />; break;
     case '/dashboard/plan-configuration': content = <PlanConfigurationPage />; break;
     case '/dashboard/mon-abonnement': content = <MonAbonnementPage />; break;
+    case '/dashboard/factures-concorde': content = <FacturesConcordePage />; break;
+    case '/dashboard/devis-pack': content = <DevisPackPage />; break;
     case '/upgrade': content = <PlanUpgradePage />; break;
     case '/dashboard/support': content = <SupportPage />; break;
     case '/dashboard/support/faq': content = <FAQPage />; break;
@@ -801,7 +817,7 @@ import { resolveAssetUrl } from '../../helpers/assetUrl';
 function DashboardLayoutAccount(_props: DemoProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { authReady, clearAuth, userName, isAdmin, isManager, uticod, planAllows } = useAuth();
+  const { authReady, clearAuth, userName, isAdmin, uticod, planAllows } = useAuth();
   const isAuthenticated = Boolean(uticod);
   // 2026-05-12 : l'assistant IA (RAG) est gaté au plan Premium. Sur Starter/Standard,
   // on masque le bouton flottant — sinon l'utilisateur l'ouvre et tous les appels
@@ -1003,9 +1019,9 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   const footerItems: FooterItem[] = [
     { label: t('navigation.support'), href: '/dashboard/support', icon: LifeBuoy },
-    // Mon abonnement : réservé aux Admins / Managers (gestion facturation = même
-    // périmètre que /api/billing/cancel-subscription côté serveur).
-    ...((isAdmin || isManager) ? [{ label: t('navigation.mySubscription', 'Mon abonnement'), href: '/dashboard/mon-abonnement', icon: Wallet } as FooterItem] : []),
+    // « Mon abonnement » a quitté le footer le 2026-05-19 : il est désormais regroupé
+    // avec « Factures Concorde » sous le groupe Paiement de la nav principale (réservé
+    // Admin/Manager). Voir allGroups plus haut.
     { label: t('navigation.settings'), href: '/dashboard/parametres', icon: Settings },
     { label: t('navigation.logout'), href: '#', icon: LogOut, onClick: () => { clearAuth(); navigate('/'); } },
   ];

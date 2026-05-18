@@ -427,12 +427,33 @@ namespace ABRPOINT.Server.Repository
                 // minuscules. PostgreSQL fold tous les identifiants non quotés en minuscules :
                 // sans les "..." autour de Societe, on touche 42P01 « relation societe does
                 // not exist » → endpoint Templates/preview retournait 400 en prod.
-                var emp = connection.QueryFirstOrDefault(@"
-                    select e.*, s.soclib, s.socadr, s.soctel, s.socfax, s.socemail, s.socresp, s.socimg
-                    from employe e
-                    inner join ""Societe"" s on e.soccod = s.soccod
-                    where e.empcod = @empcod and e.soccod = @soccod",
-                    new { empcod, soccod });
+                //
+                // 2026-05-18 — Filet défensif : sur les tenants ANCIENS provisionnés avant
+                // l'ajout de la colonne `socimg`, le SELECT initial échoue avec 42703
+                // (column does not exist). BaseDataSchemaMigrator est censé l'ajouter au
+                // boot, mais si une requête arrive AVANT la migration (race au démarrage)
+                // ou si le déploiement contenant le fix migrator n'a pas encore eu lieu,
+                // on retombe sur un SELECT sans socimg — le PDF ne portera pas le logo
+                // société (placeholder vide) mais ne renverra plus 400.
+                dynamic? emp;
+                try
+                {
+                    emp = connection.QueryFirstOrDefault(@"
+                        select e.*, s.soclib, s.socadr, s.soctel, s.socfax, s.socemail, s.socresp, s.socimg
+                        from employe e
+                        inner join ""Societe"" s on e.soccod = s.soccod
+                        where e.empcod = @empcod and e.soccod = @soccod",
+                        new { empcod, soccod });
+                }
+                catch (Npgsql.PostgresException ex) when (ex.SqlState == "42703")
+                {
+                    emp = connection.QueryFirstOrDefault(@"
+                        select e.*, s.soclib, s.socadr, s.soctel, s.socfax, s.socemail, s.socresp
+                        from employe e
+                        inner join ""Societe"" s on e.soccod = s.soccod
+                        where e.empcod = @empcod and e.soccod = @soccod",
+                        new { empcod, soccod });
+                }
 
                 // 2. Replace all variable placeholders in the HTML
                 string processedHtml = ReplaceAllPlaceholders(html, emp);

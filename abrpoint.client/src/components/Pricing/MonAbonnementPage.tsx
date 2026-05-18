@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import {
   Box, Paper, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
   RadioGroup, FormControlLabel, Radio, TextField, Alert, CircularProgress, Stack, Divider,
+  LinearProgress,
 } from '@mui/material';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import CancelIcon from '@mui/icons-material/CancelOutlined';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
 import { useNavigate } from 'react-router-dom';
 import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
@@ -23,6 +25,25 @@ interface SubscriptionInfo {
   cancellationRequestedAt: string | null;
   hasActiveStripeSubscription: boolean;
 }
+
+interface PaymentMethodInfo {
+  hasCard: boolean;
+  brand?: string;       // "visa", "mastercard", "amex", "cb"…
+  last4?: string;
+  expMonth?: number;
+  expYear?: number;
+}
+
+const brandLabel = (brand?: string) => {
+  switch ((brand ?? '').toLowerCase()) {
+    case 'visa': return 'Visa';
+    case 'mastercard': return 'Mastercard';
+    case 'amex': return 'American Express';
+    case 'cb': return 'CB';
+    case 'discover': return 'Discover';
+    default: return brand ?? 'Carte';
+  }
+};
 
 const formatDate = (d: string | null) => {
   if (!d) return '—';
@@ -42,10 +63,17 @@ const statusLabel = (s: string): { label: string; color: 'success' | 'warning' |
   }
 };
 
+// Durée canonique de l'essai gratuit côté backend (TrialPolicy.TrialDurationDays).
+// Sert à calculer le pourcentage de progression du bandeau trial.
+const TRIAL_DURATION_DAYS = 30;
+
 export default function MonAbonnementPage() {
   const navigate = useNavigate();
-  const { isAdmin, isManager } = useAuth();
+  const { isAdmin, isManager, refreshAuth, userName, isTrialing, trialDaysRemaining } = useAuth();
   const canManage = isAdmin || isManager;
+  // Prénom uniquement pour personnaliser le bandeau trial (« Mohamed, il vous reste… »).
+  // userName est « Prénom Nom » concaténé côté serveur (Utiprn + Utinom).
+  const firstName = (userName ?? '').trim().split(/\s+/)[0] || null;
 
   const [info, setInfo] = useState<SubscriptionInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,21 +85,112 @@ export default function MonAbonnementPage() {
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [changePlanOpen, setChangePlanOpen] = useState(false);
+  // Polling de confirmation post-Stripe : tant que `pollingReactivation` est vrai,
+  // on affiche un overlay « Confirmation du paiement en cours » et on interroge
+  // /billing/subscription jusqu'à ce que le webhook checkout.session.completed
+  // ait flippé Status → Active (ou jusqu'au timeout).
+  const [pollingReactivation, setPollingReactivation] = useState(false);
+  const [pollingTimedOut, setPollingTimedOut] = useState(false);
 
-  const fetchInfo = async () => {
-    setLoading(true);
+  // Carte de paiement par défaut du customer Stripe — affichée masquée.
+  // Lecture séparée de /billing/subscription pour ne pas alourdir cet endpoint
+  // qui est aussi appelé par le widget de quota stockage côté topbar.
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodInfo | null>(null);
+  const [openingPortal, setOpeningPortal] = useState(false);
+
+  const fetchInfo = async (opts: { silent?: boolean } = {}): Promise<SubscriptionInfo | null> => {
+    if (!opts.silent) setLoading(true);
     setError(null);
     try {
       const res = await apiInstance.get<SubscriptionInfo>('/billing/subscription');
       setInfo(res.data);
+      return res.data;
     } catch (e: any) {
       setError(e?.response?.data?.error || 'Impossible de charger les informations d\'abonnement.');
+      return null;
     } finally {
-      setLoading(false);
+      if (!opts.silent) setLoading(false);
     }
   };
 
   useEffect(() => { fetchInfo(); }, []);
+
+  // Récupère la carte de paiement par défaut (brand + last4 + expiry). En cas d'échec
+  // ou d'absence (tenant sans customer Stripe), on stocke { hasCard: false } et on
+  // affiche un placeholder « Aucune carte enregistrée » dans la section dédiée.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiInstance.get<PaymentMethodInfo>('/billing/payment-method');
+        if (!cancelled) setPaymentMethod(res.data);
+      } catch {
+        if (!cancelled) setPaymentMethod({ hasCard: false });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Ouvre le Stripe Billing Portal pour permettre à l'admin de mettre à jour sa carte,
+  // changer la méthode de paiement, télécharger ses factures côté Stripe. On délègue
+  // 100% à Stripe pour rester PCI-DSS SAQ A (jamais de PAN côté Concorde).
+  const handleOpenPortal = async () => {
+    setOpeningPortal(true);
+    setError(null);
+    try {
+      const origin = window.location.origin;
+      const { data } = await apiInstance.post<{ url: string }>('/billing/portal-session', {
+        returnUrl: `${origin}/dashboard/mon-abonnement`,
+      });
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        setError("Impossible d'ouvrir le portail de facturation Stripe.");
+      }
+    } catch (e: any) {
+      setError(e?.response?.data?.error || "Échec d'ouverture du portail de facturation.");
+    } finally {
+      setOpeningPortal(false);
+    }
+  };
+
+  // Retour de Stripe après réactivation : on est redirigé ici avec `?reactivated=1`.
+  // Le webhook `checkout.session.completed` est asynchrone (latence Stripe ~1-3s),
+  // donc on poll /billing/subscription jusqu'à observer Status === 'Active'.
+  // Sans ce polling, l'utilisateur voyait toujours l'écran « Abonnement résilié »
+  // car la page se charge AVANT que le webhook n'ait fait son travail.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reactivated') !== '1') return;
+    let cancelled = false;
+    setPollingReactivation(true);
+    setPollingTimedOut(false);
+    const start = Date.now();
+    const MAX_MS = 30_000;
+    const tick = async () => {
+      if (cancelled) return;
+      const data = await fetchInfo({ silent: true });
+      if (cancelled) return;
+      if (data?.status === 'Active') {
+        setPollingReactivation(false);
+        setSuccessMsg('Réactivation confirmée. Redirection vers votre tableau de bord…');
+        try { await refreshAuth(); } catch { /* best-effort */ }
+        // Nettoyage du query param + redirection
+        setTimeout(() => navigate('/dashboard', { replace: true }), 1200);
+        return;
+      }
+      if (Date.now() - start > MAX_MS) {
+        setPollingReactivation(false);
+        setPollingTimedOut(true);
+        return;
+      }
+      setTimeout(tick, 2500);
+    };
+    tick();
+    return () => { cancelled = true; };
+    // Volontairement vide : on ne déclenche le polling qu'au premier mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCancel = async () => {
     setSubmitting(true);
@@ -139,7 +258,12 @@ export default function MonAbonnementPage() {
         planCode: info.planCode,
         billingCycle: 'monthly',
         userCount: 1,
-        successUrl: `${origin}/dashboard?reactivated=1&session_id={CHECKOUT_SESSION_ID}`,
+        // SuccessUrl doit retomber sur /mon-abonnement (PAS /dashboard) : le tenant
+        // est encore Cancelled au moment du redirect, donc /dashboard renverrait 402
+        // sur l'appel /Utilisateurs/me. /mon-abonnement reste accessible (route SPA
+        // + l'API /billing/* est dans le bypass du tenant middleware) et poll le
+        // webhook jusqu'au flip Active.
+        successUrl: `${origin}/dashboard/mon-abonnement?reactivated=1&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${origin}/dashboard/mon-abonnement?reactivate=cancelled`,
       });
       if (data?.url) {
@@ -177,6 +301,78 @@ export default function MonAbonnementPage() {
 
       {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>{error}</Alert>}
       {successMsg && <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccessMsg(null)}>{successMsg}</Alert>}
+      {pollingReactivation && (
+        <Alert severity="info" sx={{ mb: 3, alignItems: 'center' }}
+          icon={<CircularProgress size={20} />}>
+          <Typography sx={{ fontWeight: 700, mb: 0.5 }}>Confirmation du paiement en cours…</Typography>
+          <Typography sx={{ fontSize: 13 }}>
+            Nous attendons la confirmation Stripe (généralement 2-5 secondes). Ne fermez pas cette page.
+          </Typography>
+        </Alert>
+      )}
+      {pollingTimedOut && (
+        <Alert severity="warning" sx={{ mb: 3 }} onClose={() => setPollingTimedOut(false)}>
+          <Typography sx={{ fontWeight: 700, mb: 0.5 }}>Confirmation retardée</Typography>
+          <Typography sx={{ fontSize: 13 }}>
+            Le paiement a bien été enregistré côté Stripe, mais le webhook de confirmation
+            tarde à arriver. Rafraîchissez la page dans une minute, ou contactez le support
+            si l'état reste « Résilié ».
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Bandeau d'essai friendly — affiché EN PLUS de la carte « Formule actuelle » ci-dessous
+          (les deux contiennent des infos complémentaires : ici la progression et un CTA
+          vers les tarifs ; en dessous les dates exactes de fin de période/d'essai et le
+          chip Status). N'apparaît que pour les tenants Trialing. */}
+      {isTrialing && (() => {
+        const daysLeft = Math.max(0, trialDaysRemaining ?? 0);
+        const daysUsed = Math.max(0, Math.min(TRIAL_DURATION_DAYS, TRIAL_DURATION_DAYS - daysLeft));
+        const progressPct = (daysUsed / TRIAL_DURATION_DAYS) * 100;
+        return (
+          <Paper elevation={0} sx={{
+            p: { xs: 3, md: 4 }, mb: 3, borderRadius: '20px',
+            border: '1px solid #cdd9ee', bgcolor: '#f1f5fb',
+          }}>
+            <LinearProgress
+              variant="determinate"
+              value={progressPct}
+              sx={{
+                height: 10, borderRadius: 99, mb: 2,
+                bgcolor: '#dbe4f3',
+                '& .MuiLinearProgress-bar': { bgcolor: '#0040a1', borderRadius: 99 },
+              }}
+            />
+            <Typography sx={{ fontWeight: 800, color: '#0f172a', fontSize: 16, mb: 0.5 }}>
+              {firstName ? `${firstName}, ` : ''}il vous reste <strong>{daysLeft}</strong> jour{daysLeft > 1 ? 's' : ''} sur votre période d'essai.
+            </Typography>
+            <Typography sx={{ color: '#475569', fontSize: 14, mb: 2 }}>
+              Si vous aimez Concorde Workforce, vous pouvez activer votre abonnement dès
+              maintenant et continuer à bénéficier de vos {TRIAL_DURATION_DAYS} jours offerts.
+            </Typography>
+            {canManage && (
+              <Button
+                variant="contained"
+                onClick={() => {
+                  // Active/Trialing avec subscription Stripe : modale en place ; sinon
+                  // Checkout complet (cf. handler bouton Voir les autres packs plus bas).
+                  const canMutateInPlace =
+                    info?.hasActiveStripeSubscription === true &&
+                    (info?.status === 'Active' || info?.status === 'Trialing');
+                  if (canMutateInPlace) setChangePlanOpen(true);
+                  else navigate('/dashboard/plan-configuration');
+                }}
+                sx={{
+                  textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3,
+                  bgcolor: '#0040a1', '&:hover': { bgcolor: '#003080' },
+                }}
+              >
+                Voir les tarifs →
+              </Button>
+            )}
+          </Paper>
+        );
+      })()}
 
       <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: '20px', border: '1px solid #e2e8f0', mb: 3 }}>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems={{ md: 'center' }} justifyContent="space-between">
@@ -236,6 +432,53 @@ export default function MonAbonnementPage() {
 
       <StorageUsageCard onUpgradeClick={() => setChangePlanOpen(true)} />
 
+      {/* Section Carte de paiement — affichage masqué (PCI-DSS) + mise à jour via Stripe Portal. */}
+      <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: '20px', border: '1px solid #e2e8f0', mb: 3 }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems={{ md: 'center' }} justifyContent="space-between">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{
+              width: 48, height: 48, borderRadius: '12px', bgcolor: '#eef2f8',
+              color: '#0040a1', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <CreditCardIcon />
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
+                Carte de paiement
+              </Typography>
+              {paymentMethod?.hasCard ? (
+                <>
+                  <Typography sx={{ fontWeight: 800, color: '#0f172a' }}>
+                    {brandLabel(paymentMethod.brand)} •••• {paymentMethod.last4}
+                  </Typography>
+                  {paymentMethod.expMonth && paymentMethod.expYear && (
+                    <Typography sx={{ color: '#64748b', fontSize: 13 }}>
+                      Expire {String(paymentMethod.expMonth).padStart(2, '0')}/{paymentMethod.expYear}
+                    </Typography>
+                  )}
+                </>
+              ) : paymentMethod === null ? (
+                <Typography sx={{ color: '#64748b', fontSize: 14 }}>Chargement…</Typography>
+              ) : (
+                <Typography sx={{ color: '#64748b', fontSize: 14 }}>
+                  Aucune carte enregistrée
+                </Typography>
+              )}
+            </Box>
+          </Box>
+          {canManage && (
+            <Button
+              variant="outlined"
+              onClick={handleOpenPortal}
+              disabled={openingPortal}
+              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3, alignSelf: { xs: 'flex-start', md: 'center' } }}
+            >
+              {openingPortal ? 'Redirection…' : 'Mettre à jour'}
+            </Button>
+          )}
+        </Stack>
+      </Paper>
+
       {scheduledCancel && !isCancelled && (
         <Alert severity="warning" sx={{ mb: 3, borderRadius: '14px' }}>
           <Typography sx={{ fontWeight: 700, mb: 0.5 }}>Résiliation programmée</Typography>
@@ -278,7 +521,7 @@ export default function MonAbonnementPage() {
               }}
               sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3 }}
             >
-              Changer de formule
+              Voir les autres packs
             </Button>
           )}
           {isCancelled && canManage && (
