@@ -28,11 +28,30 @@ const TrialBanner = () => {
           ? 'Dernier jour de votre essai gratuit'
           : `Il vous reste ${trialDaysRemaining} jours d'essai gratuit`;
 
-  // Pendant l'essai, on est sur les limites Starter (cf. TrialPolicy.GetLimits).
-  // Si planCode est déjà choisi par le tenant, on le respecte ; sinon Starter par défaut.
-  const packName = planCode || 'Starter';
+  // Bannière trial : on reflète les limites + le périmètre fonctionnel du PACK
+  // CHOISI par le tenant (Starter / Standard / Premium). Avant le fix 2026-05-18,
+  // la tagline était hardcodée à « pointage simple sans workflow RH avancé »
+  // — ce qui contredisait la description Premium (multi-filiales, IA, sécurité)
+  // affichée sur la landing. On utilise désormais le mapping ci-dessous, aligné
+  // sur PricingPage.tsx (descriptions commerciales) et PlanCatalog.cs (features).
+  const packName = (planCode || 'Starter') as 'Starter' | 'Standard' | 'Premium';
   const maxEmp = planLimits?.maxEmployees ?? planLimits?.includedEmployees ?? 10;
-  const maxSoc = planLimits?.maxSocietes ?? 1;
+  // maxSocietes === null ⇒ pas de plafond (Premium). On affiche « illimité » au lieu
+  // de retomber silencieusement sur "1" (ce qui aurait fait croire qu'un Premium trial
+  // est limité à une seule filiale alors que la matrice MultiSociete=true le permet).
+  const maxSocRaw = planLimits?.maxSocietes;
+  const societeLabel = maxSocRaw == null
+    ? 'sociétés/filiales illimitées'
+    : `${maxSocRaw} société/filiale`;
+  // Tagline courte du pack — miroir condensé des descriptions PricingPage.tsx :
+  //   Starter  → pointage simple sans workflow RH avancé
+  //   Standard → suite complète mobile + paie, sans IA ni multi-filiales
+  //   Premium  → tous les modules (états, multi-filiales, IA, sécurité renforcée)
+  const packTagline: Record<typeof packName, string> = {
+    Starter: 'pointage simple, sans workflow RH avancé',
+    Standard: 'mobile, congés, signature, coffre — sans IA ni multi-filiales',
+    Premium: 'tous les modules : états, multi-filiales, IA, sécurité renforcée',
+  };
 
   return (
     <Box
@@ -51,7 +70,7 @@ const TrialBanner = () => {
       <Typography sx={{ fontSize: 13, fontWeight: 700, flex: 1 }}>
         {daysLabel}
         <Box component="span" sx={{ fontWeight: 500, ml: 1 }}>
-          — Pack <strong style={{ fontWeight: 700 }}>{packName}</strong> (essai) : jusqu'à {maxEmp} collaborateur{maxEmp > 1 ? 's' : ''}, {maxSoc} société/filiale, pointage simple sans workflow RH avancé.
+          — Pack <strong style={{ fontWeight: 700 }}>{packName}</strong> (essai) : jusqu'à {maxEmp} collaborateur{maxEmp > 1 ? 's' : ''}, {societeLabel}, {packTagline[packName]}.
         </Box>
       </Typography>
       <Button

@@ -362,10 +362,13 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('saisie-poste-de-travail') ? [{ label: t('navigation.workStation'), href: '/dashboard/saisie-poste-de-travail', icon: Briefcase }] : []),
       ],
     },
-    // Préparation paie & rapports analytiques : non inclus dans l'essai gratuit.
-    // Ces sections affichent les calculs (heures supp, retards, absences détaillés)
-    // qui sont précisément la valeur ajoutée payante. Hors trial, comportement standard.
-    ...(!isTrialing ? [{
+    // Préparation paie & rapports analytiques : aligné sur le flag commercial
+    // `advancedDashboards` (Standard+). Avant 2026-05-18, on masquait toute la
+    // section pendant le trial sans distinction de pack, ce qui empêchait les
+    // tenants Standard/Premium en essai d'évaluer la préparation paie — alors
+    // que c'est précisément un argument clé de ces packs. Starter reste exclu
+    // car AdvancedDashboards=false dans PlanCatalog.
+    ...(planAllows('advancedDashboards') ? [{
       label: t('navigation.payrollPreparation'),
       href: '/dashboard/paie',
       icon: Banknote,
@@ -379,7 +382,13 @@ const useNavigationItems = (): NavGroup[] => {
     // Rapports analytiques (état présence, retards, absences, échéances, cahier congé).
     // Gating commercial : module « Reporting avancé » du pack Standard+. Sur Starter,
     // la section est masquée (un dashboard basique reste accessible via /home).
-    ...(!isTrialing && planAllows('advancedDashboards') ? [{
+    // 2026-05-18 : on retire le filtre `!isTrialing` qui masquait les états MÊME aux
+    // tenants Premium/Standard en essai gratuit — contraire à la promesse commerciale
+    // « pack premium (test ou payant) a toutes les fonctionnalités ». PlanCatalog
+    // garantit déjà que Starter.AdvancedDashboards=false → la section reste cachée
+    // pour Starter qu'il soit en trial ou payant. Aucune raison d'avoir un cap trial
+    // supplémentaire ici.
+    ...(planAllows('advancedDashboards') ? [{
       label: t('navigation.reports'),
       href: '/dashboard/rapports',
       icon: BarChart2,
