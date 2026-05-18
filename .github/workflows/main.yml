@@ -52,46 +52,67 @@ jobs:
           target: "/home/ubuntu/"
 
       # Secrets ATTENDUS côté GitHub (Settings → Secrets and variables → Actions) :
-      #   POSTGRES_PASSWORD    — superuser PG (utilisé par le conteneur abrpoint.database
-      #                          ET injecté dans les connection strings de l'app)
-      #   OPENROUTER_API_KEY   — clé OpenRouter (DocumentScan, RAG, AI templates)
-      #   SMTP_*               — config OVH SMTP (cf. compose pour défauts)
-      #   ANTHROPIC_API_KEY    — optionnel, RAG direct Anthropic
-      #   RAG_SIDECAR_KEY      — optionnel
-      #   APK_URL              — URL EAS APK courante
+      #   POSTGRES_PASSWORD     — superuser PG (utilisé par abrpoint.database
+      #                            ET injecté dans les connection strings de l'app)
+      #   JWT_SECRET            — signature des tokens JWT (auth)
+      #   AES_KEY               — clé AES pour chiffrement champs sensibles
+      #   STRIPE_SECRET_KEY     — clé secrète Stripe (paiements)
+      #   STRIPE_WEBHOOK_SECRET — vérification signatures webhook Stripe
+      #   GEMINI_API_KEY        — clé Google Gemini (AI features)
+      #   OPENROUTER_API_KEY    — clé OpenRouter (DocumentScan, RAG, AI templates)
+      #   SMTP_*                — config OVH SMTP (cf. compose pour défauts)
+      #   ANTHROPIC_API_KEY     — optionnel, RAG direct Anthropic
+      #   RAG_SIDECAR_KEY       — optionnel
+      #   APK_URL               — URL EAS APK courante
       - name: Write .env on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          envs: POSTGRES_PASSWORD,JWT_SECRET,AES_KEY,STRIPE_SECRET_KEY,STRIPE_WEBHOOK_SECRET,GEMINI_API_KEY,OPENROUTER_API_KEY,SMTP_HOST,SMTP_PORT,SMTP_USERNAME,SMTP_PASSWORD,SMTP_FROM_EMAIL,SMTP_FROM_NAME,ANTHROPIC_API_KEY,RAG_SIDECAR_KEY,APK_URL
           script: |
             umask 077
             cat > /home/ubuntu/.env <<EOF
-            POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-            OPENROUTER_API_KEY=$OPENROUTER_API_KEY
-            SMTP_HOST=$SMTP_HOST
-            SMTP_PORT=$SMTP_PORT
-            SMTP_USERNAME=$SMTP_USERNAME
-            SMTP_PASSWORD=$SMTP_PASSWORD
-            SMTP_FROM_EMAIL=$SMTP_FROM_EMAIL
-            SMTP_FROM_NAME=$SMTP_FROM_NAME
-            ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
-            RAG_SIDECAR_KEY=$RAG_SIDECAR_KEY
-            APK_URL=$APK_URL
+            # ── DB / Auth / Crypto ─────────────────────────────────
+            POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+            JWT_SECRET=${JWT_SECRET}
+            AES_KEY=${AES_KEY}
+            # ── Stripe ─────────────────────────────────────────────
+            STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+            STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+            # ── AI ─────────────────────────────────────────────────
+            GEMINI_API_KEY=${GEMINI_API_KEY}
+            OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+            ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+            RAG_SIDECAR_KEY=${RAG_SIDECAR_KEY}
+            # ── SMTP ───────────────────────────────────────────────
+            SMTP_HOST=${SMTP_HOST}
+            SMTP_PORT=${SMTP_PORT}
+            SMTP_USERNAME=${SMTP_USERNAME}
+            SMTP_PASSWORD=${SMTP_PASSWORD}
+            SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+            SMTP_FROM_NAME=${SMTP_FROM_NAME}
+            # ── Mobile APK ─────────────────────────────────────────
+            APK_URL=${APK_URL}
             EOF
             chmod 600 /home/ubuntu/.env
         env:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          AES_KEY: ${{ secrets.AES_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RAG_SIDECAR_KEY: ${{ secrets.RAG_SIDECAR_KEY }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_FROM_EMAIL: ${{ secrets.SMTP_FROM_EMAIL }}
           SMTP_FROM_NAME: ${{ secrets.SMTP_FROM_NAME }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          RAG_SIDECAR_KEY: ${{ secrets.RAG_SIDECAR_KEY }}
           APK_URL: ${{ secrets.APK_URL }}
 
       - name: Deploy to VPS

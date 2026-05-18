@@ -29,11 +29,24 @@ services:
       - app-network
 
   certbot:
+    # Bootstrap : si aucun cert n'existe pour concorde-work-force.com, le
+    # premier `certbot renew` ne fait rien (rien à renouveler). Pour le tout
+    # premier setup, lancer manuellement une fois :
+    #   docker compose run --rm certbot certonly --webroot \
+    #     -w /var/www/certbot -d concorde-work-force.com -d www.concorde-work-force.com \
+    #     --email mohamedberhaiem43@gmail.com --agree-tos --non-interactive
+    # Ensuite, ce service tourne en boucle et renouvelle automatiquement
+    # tous les certs proches d'expiration (Let's Encrypt = 90 jours, renew
+    # à 30j restants). Reload nginx après chaque renew réussi via deploy-hook.
     image: certbot/certbot
     volumes:
       - letsencrypt_data:/etc/letsencrypt
       - /var/www/certbot:/var/www/certbot
-    command: certonly --webroot -w /var/www/certbot -d concorde-work-force.com --email mohamedberhaiem43@gmail.com --agree-tos --non-interactive
+    entrypoint: "/bin/sh -c"
+    command: 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --deploy-hook "touch /etc/letsencrypt/.renewed"; sleep 12h & wait $${!}; done;'
+    restart: unless-stopped
+    networks:
+      - app-network
 
   abrpoint.database:
     # PostgreSQL 16 alpine : footprint ~80 Mo vs ~1.5 Go pour mssql.
@@ -44,7 +57,7 @@ services:
     container_name: abrpoint.database
     environment:
       POSTGRES_USER: "abrpoint"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A=}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-}"
       # Crée automatiquement la "master" DB au premier démarrage. Les DB tenant
       # sont créées dynamiquement par ProvisioningService.
       POSTGRES_DB: "abrpoint_master"
@@ -85,9 +98,9 @@ services:
       DB_HOST: "abrpoint.database"
       DB_NAME: "abrpoint_master"
       DB_USER: "abrpoint"
-      DB_PASSWORD: "${POSTGRES_PASSWORD:-PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A=}"
-      ConnectionStrings__MasterConnection: "Host=abrpoint.database;Database=abrpoint_master;Username=abrpoint;Password=${POSTGRES_PASSWORD:-PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A=}"
-      ConnectionStrings__TenantTemplate: "Host=abrpoint.database;Database={DbName};Username=abrpoint;Password=${POSTGRES_PASSWORD:-PX0m6jCr1S8CsBjJZDrQXj66vILUAOpvtYeqjr8aT4A=}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:-sdfsdfsdf}"
+      ConnectionStrings__MasterConnection: "Host=abrpoint.database;Database=abrpoint_master;Username=abrpoint;Password=${POSTGRES_PASSWORD:-}"
+      ConnectionStrings__TenantTemplate: "Host=abrpoint.database;Database={DbName};Username=abrpoint;Password=${POSTGRES_PASSWORD:-}"
       Hosting__RootDomain: "concorde-work-force.com"
       ASPNETCORE_URLS: "http://+:8080"
       DatabaseInitialization__Enabled: "true"
@@ -101,14 +114,14 @@ services:
       DatabaseInitialization__AdminEmail: "admin@abrpoint.local"
       DatabaseInitialization__AdminPassword: "123"
       DatabaseInitialization__ApplicationCode: "GRH"
-      OpenRouter__ApiKey: "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"
+      OpenRouter__ApiKey: "${OPENROUTER_API_KEY:-}"
       Rag__Enabled: "true"
       Rag__Sidecar__BaseUrl: "http://rag-svc:8080"
       Rag__Sidecar__ApiKey: "${RAG_SIDECAR_KEY:-}"
       Rag__Anthropic__ApiKey: "${ANTHROPIC_API_KEY:-}"
       Rag__Anthropic__OpenRouterModel: "google/gemini-2.0-flash-001"
-      Smtp__Host: "${SMTP_HOST:-ssl0.ovh.net}"
-      Smtp__Port: "${SMTP_PORT:-587}"
+      Smtp__Host: "${SMTP_HOST:-SMTP_HOST}"
+      Smtp__Port: "${SMTP_PORT:-SMTP_PORT}"
       Smtp__Username: "${SMTP_USERNAME:-}"
       Smtp__Password: "${SMTP_PASSWORD:-}"
       Smtp__FromName: "${SMTP_FROM_NAME:-Concorde Work Force}"
@@ -118,11 +131,11 @@ services:
       Download__ApkVersion: "${APK_VERSION:-1.0.0}"
       Download__ApkSizeMb: "${APK_SIZE_MB:-}"
       Download__ApkPublishedAt: "${APK_PUBLISHED_AT:-2026-05-15}"
-      Jwt__Key: "7TzgwCTVfO97/llwQxbQ1umqKClrBpQWFHDTYnC9hhZ3y+sfuBKy7a9HuEEtiL5C2AAfVbiI5XNXKmFCdPu5vg=="
-      Encryption__AesKey: "Uek5dDP1/DJxgkx732A1AZ1VvgHFByCIZH1ZXEo7pUs="
-      Stripe__SecretKey: "sk_test_51TNzqyFhqIQIXNC2vuCjOBNzypZjyYB36mhcHUM0awKv3xXVjmTVSeg53XCpY8qeST41rqK1SUEn0qOo13mZB1v000qq6Wkthi"
-      Stripe__WebhookSecret: "sk_test_51TNzqyFhqIQIXNC2vuCjOBNzypZjyYB36mhcHUM0awKv3xXVjmTVSeg53XCpY8qeST41rqK1SUEn0qOo13mZB1v000qq6Wkthi"
-      Gemini__ApiKey: "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"
+      Jwt__Key: "${JWT_SECRET:-}"
+      Encryption__AesKey: "${AES_KEY:-}"
+      Stripe__SecretKey: "${STRIPE_SECRET_KEY:-}"
+      Stripe__WebhookSecret: "${STRIPE_WEBHOOK_SECRET:-}"
+      Gemini__ApiKey: "${GEMINI_API_KEY:-}"
     depends_on:
       abrpoint.database:
         condition: service_healthy
