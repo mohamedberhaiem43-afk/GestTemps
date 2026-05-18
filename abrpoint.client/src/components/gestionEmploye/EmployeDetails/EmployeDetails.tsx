@@ -56,17 +56,20 @@ export default function EmployeDetails({ onCombinedDataChange,empData }: Employe
   }, [empData]);
 
   const handleFieldChange = (e: any) => {
-  const { name, value } = e.target;
-  setFormData((prev: any) => ({
-    ...prev,
-     [name]:value
-  }));
-  
-   // Optional: update combined data immediately
-  const newData = { ...combinedData,  ...formData, [e.target.name]: e.target.value };
-  setCombinedData(newData);
-  onCombinedDataChange(newData);
-};
+    const { name, value } = e.target;
+    // ⚠ Avant : on étalait `...formData` APRÈS `...combinedData`, ce qui pouvait
+    // ré-injecter des valeurs périmées (state React non encore propagé) ET
+    // écraser des champs renseignés dans d'autres onglets via leurs propres
+    // callbacks (handleEmployeInfoChange, handleCordoneesChange, etc.).
+    // Conséquence visible côté UI : certains champs apparaissaient vides dans la
+    // fiche employé après save, même si l'utilisateur les avait bien saisis.
+    // On bâtit `next` à partir de combinedData seul (source de vérité unifiée)
+    // + le champ qui vient de changer.
+    setFormData((prev: any) => ({ ...prev, [name]: value }));
+    const next = { ...combinedData, [name]: value };
+    setCombinedData(next);
+    onCombinedDataChange(next);
+  };
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     event.preventDefault();
     setValue(newValue);

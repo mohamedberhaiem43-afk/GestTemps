@@ -97,7 +97,19 @@ const calculateDays = (start: string, end: string): number => {
   return diff >= 0 ? Math.floor(diff / (1000 * 60 * 60 * 24)) + 1 : 0;
 };
 
-const toApiDate = (value: string) => new Date(`${value}T00:00:00`);
+// Ancre la date à midi UTC pour éviter les décalages de fuseau horaire :
+// `new Date("2026-05-04T00:00:00")` est interprété en heure LOCALE — en GMT+1 ça
+// donne 2026-05-03T23:00:00Z après JSON.stringify (toISOString), enregistré en
+// base comme la veille (2026-05-03). En ancrant à 12:00 UTC, peu importe le
+// fuseau (UTC-11 .. UTC+12), la date stockée reste le bon jour calendaire.
+// Fallback `new Date(value)` si la chaîne ne matche pas YYYY-MM-DD (ne devrait
+// pas arriver vu les input type="date" mais évite NaN sur un editingContract
+// avec format ISO complet).
+const toApiDate = (value: string): Date => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '');
+  if (m) return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12, 0, 0));
+  return new Date(value);
+};
 
 const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieContratModernProps) => {
   const { soccod } = useAuth();

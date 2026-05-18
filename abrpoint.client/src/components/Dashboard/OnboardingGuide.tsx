@@ -159,11 +159,16 @@ export default function OnboardingGuide({ totalEmployees }: OnboardingGuideProps
     });
   };
 
-  const handleNavigate = (route: string, key: StepKey) => {
-    // Pré-marque l'étape comme "en cours" : l'utilisateur revient au dashboard,
-    // l'étape apparaîtra cochée s'il est allé jusqu'au bout (ou il pourra
-    // décocher s'il s'est trompé). Évite la friction d'un clic supplémentaire.
-    if (!state.done[key]) toggleStep(key);
+  const handleNavigate = (route: string, _key: StepKey) => {
+    // ⚠ Avant : on toggleait l'étape dès le clic CTA — résultat, l'utilisateur
+    // pouvait "valider" tout le parcours en cliquant les 5 boutons sans rien
+    // créer en base, et le confetti se déclenchait à tort.
+    // Maintenant : on navigue simplement. L'étape sera marquée "faite"
+    // uniquement quand `dataCount > 0` aura été détecté sur la page cible
+    // (cf. OnboardingNextStepHint.useEffect), c.-à-d. quand un poste/classe/
+    // employé/contrat réel aura été créé. L'admin garde la possibilité de
+    // cocher manuellement la case via le checkbox du guide s'il a fait l'étape
+    // en dehors du parcours (ex. import bulk).
     navigate(route);
   };
 
