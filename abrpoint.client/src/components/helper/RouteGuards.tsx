@@ -69,6 +69,15 @@ export const PUBLIC_PATHS = new Set<string>([
   '/plan-configuration',
   '/contact-sales',
   '/upgrade',
+  // 2026-05-18 — `/download` doit rester PUBLIC : c'est la landing scannée via
+  // QR code (concordeworkly.com → /download) qu'un salarié ouvre AVANT d'avoir
+  // un compte, pour récupérer l'APK / aller sur Play Store. Avant : oublié ici
+  // → classifyRoute retournait 'auth' → RequireAuth redirigeait vers /login,
+  // bloquant le téléchargement pour tout visiteur anonyme.
+  // Idem `/payment` : redirection post-Checkout Stripe avant que la session
+  // côté front ne soit ré-établie.
+  '/download',
+  '/payment',
 ]);
 
 /**

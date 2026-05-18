@@ -83,12 +83,19 @@ export default function HomePage() {
 
   // Prix : annuel = -20 % sur le forfait (overage facturé identiquement).
   // Grille Early Launch 2026-05-17 — alignée avec ABRPOINT.Server.Tenancy.PlanCatalog.
+  // En cycle annuel, on affiche le MONTANT TOTAL ANNUEL (mensuel × 12 × 0,8)
+  // pour éviter toute ambiguïté sur le montant prélevé une seule fois par an.
   const monthly = billingCycle === 'monthly';
+  const formatPrice = (v: number) =>
+    new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(v);
+  const monthlyBase = { starter: 29.5, standard: 54, premium: 149 };
+  const annualFactor = 12 * 0.8;
   const prices = {
-    starter: monthly ? '29,50' : '23,60',
-    standard: monthly ? '54' : '43,20',
-    premium: monthly ? '149' : '119,20',
+    starter: monthly ? formatPrice(monthlyBase.starter) : formatPrice(monthlyBase.starter * annualFactor),
+    standard: monthly ? formatPrice(monthlyBase.standard) : formatPrice(monthlyBase.standard * annualFactor),
+    premium: monthly ? formatPrice(monthlyBase.premium) : formatPrice(monthlyBase.premium * annualFactor),
   };
+  const pricePeriod = monthly ? ' / mois HT' : ' / an HT';
 
   // Smooth-scroll vers la section "Rejoindre Concorde Workforce" : nav header
   // + CTAs hero/promo cliquent ici plutôt que de partir vers /signup ou /login.
@@ -531,7 +538,7 @@ export default function HomePage() {
           <div className="price-card">
             <div className="price-tier">Starter</div>
             <div className="price-amount">
-              <span className="currency">€</span>{prices.starter}<span className="period"> / mois HT</span>
+              <span className="currency">€</span>{prices.starter}<span className="period">{pricePeriod}</span>
             </div>
             <div className="price-included">10 collaborateurs inclus · 5 Go de stockage</div>
             <div className="price-per">+ 4,90 € / collaborateur supplémentaire · jusqu'à 30 max</div>
@@ -553,7 +560,7 @@ export default function HomePage() {
             <div className="popular-badge">⭐ Le plus populaire</div>
             <div className="price-tier">Standard</div>
             <div className="price-amount">
-              <span className="currency">€</span>{prices.standard}<span className="period"> / mois HT</span>
+              <span className="currency">€</span>{prices.standard}<span className="period">{pricePeriod}</span>
             </div>
             <div className="price-included">15 collaborateurs inclus · 20 Go de stockage</div>
             <div className="price-per">+ 6,90 € / collaborateur supplémentaire · jusqu'à 100 max</div>
@@ -574,7 +581,7 @@ export default function HomePage() {
           <div className="price-card">
             <div className="price-tier">Premium</div>
             <div className="price-amount">
-              <span className="currency">€</span>{prices.premium}<span className="period"> / mois HT</span>
+              <span className="currency">€</span>{prices.premium}<span className="period">{pricePeriod}</span>
             </div>
             <div className="price-included">30 collaborateurs inclus · 100 Go de stockage</div>
             <div className="price-per">+ 9,90 € / collaborateur supplémentaire · jusqu'à 200 max</div>
@@ -609,7 +616,7 @@ export default function HomePage() {
             <div className="price-tier">IA Assistant RH</div>
             <div className="price-amount">
               <span className="period" style={{ fontSize: 18, fontWeight: 700, color: '#0040a1' }}>à partir de</span><br />
-              <span className="currency">€</span>49<span className="period"> / mois HT</span>
+              <span className="currency">€</span>49<span className="period">{pricePeriod}</span>
             </div>
             <div className="price-included">Assistant intelligent au quotidien</div>
             <div className="price-desc">Aide à la rédaction, recherche rapide, automatisations simples pour vos équipes RH.</div>

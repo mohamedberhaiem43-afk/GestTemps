@@ -70,11 +70,19 @@ const PlanConfigurationPage: React.FC = () => {
   // l'admin l'active à la création d'un collab via la fiche (cf. AjoutEmploye). Le
   // simulateur reste indicatif ; Stripe applique le prix réel des price_id
   // `Stripe:Prices:{Plan}:base:{cycle}` côté backend.
-  const { baseMonthly, monthlyTotal, annualDiscountPerMonth } = useMemo(() => {
+  // En cycle annuel, on calcule également le total annuel (mensuel × 12) et la
+  // remise annuelle totale pour les afficher dans le récapitulatif — l'utilisateur
+  // veut voir le montant prélevé une fois par an, pas un mensuel équivalent.
+  const { baseMonthly, monthlyTotal, annualTotal, annualDiscountTotal } = useMemo(() => {
     const baseM = plan.flatPriceMonthlyEur;
     const monthly = billingCycle === 'annual' ? baseM * 0.80 : baseM;
     const discountPerMonth = billingCycle === 'annual' ? baseM * 0.20 : 0;
-    return { baseMonthly: baseM, monthlyTotal: monthly, annualDiscountPerMonth: discountPerMonth };
+    return {
+      baseMonthly: baseM,
+      monthlyTotal: monthly,
+      annualTotal: monthly * 12,
+      annualDiscountTotal: discountPerMonth * 12,
+    };
   }, [plan, billingCycle]);
 
   const handleConfirmCheckout = async () => {
@@ -284,14 +292,23 @@ const PlanConfigurationPage: React.FC = () => {
                   {billingCycle === 'annual' && (
                     <div className="flex justify-between items-center text-sm text-tertiary p-3 bg-tertiary/5 rounded-xl border border-tertiary/10">
                       <span className="font-bold">Remise annuelle</span>
-                      <span className="font-black">- {formatPrice(annualDiscountPerMonth)} € / mois</span>
+                      <span className="font-black">- {formatPrice(annualDiscountTotal)} € / an</span>
                     </div>
                   )}
                   <div className="pt-6 border-t border-surface-container-high flex justify-between items-baseline">
-                    <span className="font-black text-on-surface uppercase text-xs tracking-widest">Total / mois</span>
+                    <span className="font-black text-on-surface uppercase text-xs tracking-widest">
+                      {billingCycle === 'annual' ? 'Total / an' : 'Total / mois'}
+                    </span>
                     <div className="text-right">
-                      <div className="text-4xl font-black text-primary font-headline tracking-tighter">{formatPrice(monthlyTotal)} €</div>
-                      <div className="text-[9px] text-outline uppercase font-black tracking-widest mt-1">HT / mois facturé {billingCycle === 'annual' ? 'annuellement' : 'mensuellement'}</div>
+                      <div className="text-4xl font-black text-primary font-headline tracking-tighter">
+                        {formatPrice(billingCycle === 'annual' ? annualTotal : monthlyTotal)} €
+                      </div>
+                      <div className="text-[9px] text-outline uppercase font-black tracking-widest mt-1">
+                        HT / {billingCycle === 'annual' ? 'an facturé annuellement' : 'mois facturé mensuellement'}
+                      </div>
+                      {billingCycle === 'annual' && (
+                        <div className="text-[10px] text-outline mt-1">soit {formatPrice(monthlyTotal)} € / mois HT</div>
+                      )}
                       {billingCycle === 'monthly' && (
                         <div className="text-[10px] text-outline mt-1">Base : {formatPrice(baseMonthly)} € / mois HT</div>
                       )}

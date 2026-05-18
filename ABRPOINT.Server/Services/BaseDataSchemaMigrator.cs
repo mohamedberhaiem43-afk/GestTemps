@@ -38,12 +38,18 @@ public static class BaseDataSchemaMigrator
         var cetSolde = await AddColumnIfMissingAsync(db, "solde", "cetjours", "REAL NULL", ct);
         var cetAdded = cetDate || cetMax || cetSolde;
         // Société : ville séparée du numéro de rue (champ socadr existant).
-        var socville = await AddColumnIfMissingAsync(db, "societe", "socville", "VARCHAR(60) NULL", ct);
+        // ⚠ La table société est mappée "Societe" (PascalCase) par EF Core
+        // (ApplicationDbContext.ToTable("Societe")) — PG la stocke donc sensible
+        // à la casse. Passer "societe" tout en minuscules ne matche RIEN dans
+        // information_schema → AddColumnIfMissingAsync return false silencieusement
+        // → colonne jamais créée sur les tenants existants → SELECT s.socimg
+        // explose en 42703 sur /api/Templates/preview/*. Cf. fix 2026-05-18.
+        var socville = await AddColumnIfMissingAsync(db, "Societe", "socville", "VARCHAR(60) NULL", ct);
         // Société : logo (chemin /api/uploads/<uuid>.ext). Sans cette colonne, l'export
         // PDF des templates échoue en 500 dès qu'on tente le SELECT s.socimg dans
         // ReportsGenerationService.GenerateFromHtml. Migration silencieuse pour
         // rétrocompat des bases provisionnées avant l'introduction du champ.
-        var socimg = await AddColumnIfMissingAsync(db, "societe", "socimg", "VARCHAR(500) NULL", ct);
+        var socimg = await AddColumnIfMissingAsync(db, "Societe", "socimg", "VARCHAR(500) NULL", ct);
         // Tables enfants qui référencent ville.vilcod : la PK a été élargie à 6 chars,
         // les FKs étaient encore à 4 → toute sauvegarde d'employé avec un vilcod
         // auto-généré (6 chiffres) ou un code INSEE (5 chiffres) échouait.
@@ -327,6 +333,11 @@ CREATE INDEX ix_mission_soccod_empcod ON mission(soccod, empcod);", ct);
     /// Ajoute une colonne à une table existante si elle n'y est pas encore. Idempotent.
     /// Postgres supporte ADD COLUMN IF NOT EXISTS natif depuis 9.6, donc plus besoin de
     /// vérifier dans information_schema.columns avant.
+    ///
+    /// ⚠ Casse PG : un identifiant non-quoté est fold en minuscules. Les tables EF
+    /// mappées avec ToTable("Pascal") sont stockées avec leur casse exacte et
+    /// doivent être référencées entre double-quotes dans l'ALTER. Sinon
+    /// `ALTER TABLE Societe …` échoue en 42P01 (relation "societe" does not exist).
     /// </summary>
     private static async Task<bool> AddColumnIfMissingAsync(ApplicationDbContext db, string table, string column, string columnDef, CancellationToken ct)
     {
@@ -334,7 +345,8 @@ CREATE INDEX ix_mission_soccod_empcod ON mission(soccod, empcod);", ct);
         // Lookup explicite pour pouvoir retourner true/false (ADD COLUMN IF NOT EXISTS ne
         // dit pas si quelque chose a été ajouté, seulement qu'il n'a pas crashé).
         if (await ColumnExistsAsync(db, table, column, ct)) return false;
-        await db.Database.ExecuteSqlRawAsync($"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {columnDef};", ct);
+        var quotedTable = table.Any(char.IsUpper) ? $"\"{table}\"" : table;
+        await db.Database.ExecuteSqlRawAsync($"ALTER TABLE {quotedTable} ADD COLUMN IF NOT EXISTS {column} {columnDef};", ct);
         return true;
     }
 

@@ -105,29 +105,82 @@
   .cover {
     text-align: center;
     page-break-after: always;
-    padding-top: 30mm;
+    padding-top: 22mm;
   }
-  .cover img { width: 90mm; max-width: 80%; }
+  /* Logo corporate "Concorde Tech Innovation" (éditeur) — visible mais sobre,
+     comme un en-tête. Avant : 90mm écrasait la page ; maintenant 55mm laisse
+     respirer le bloc "produits" qui suit. */
+  .cover .editor-logo { width: 55mm; max-width: 60%; height: auto; }
   .cover h1 {
     color: var(--primary);
     font-size: 26pt;
-    margin-top: 12mm;
+    margin-top: 8mm;
     border: none;
   }
   .cover .subtitle {
     color: var(--muted);
     font-size: 14pt;
-    margin-top: 4mm;
+    margin-top: 3mm;
+  }
+  /* Bloc "deux marques produits" affiché juste après le titre/sous-titre.
+     Objectif : qu'on identifie immédiatement les deux produits couverts par
+     le dossier — Workforce (plateforme web) et Workly (app mobile). */
+  .cover .brands {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: 10mm;
+    margin: 14mm auto 0 auto;
+    max-width: 160mm;
+  }
+  .cover .brand {
+    flex: 1;
+    padding: 8mm 6mm;
+    border: 1.5px solid var(--border);
+    border-radius: 8pt;
+    background: var(--bg-soft);
+    text-align: center;
+    text-decoration: none;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .cover .brand img {
+    width: auto;
+    max-width: 100%;
+    height: 22mm;
+    object-fit: contain;
+    margin-bottom: 5mm;
+  }
+  .cover .brand .brand-name {
+    font-size: 13pt;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 1mm;
+  }
+  .cover .brand .brand-tag {
+    font-size: 9pt;
+    color: var(--muted);
+    margin-bottom: 3mm;
+    line-height: 1.35;
+  }
+  .cover .brand .brand-url {
+    font-size: 8.5pt;
+    color: var(--primary-light);
+    font-family: Consolas, "Courier New", monospace;
+    word-break: break-all;
   }
   .cover table.meta {
-    margin: 16mm auto 0 auto;
+    margin: 12mm auto 0 auto;
     width: 130mm;
     border-collapse: collapse;
-    font-size: 11pt;
+    font-size: 10pt;
   }
   .cover table.meta td {
     border: 1px solid var(--border);
-    padding: 7px 12px;
+    padding: 6px 11px;
     text-align: left;
   }
   .cover table.meta td:first-child {
@@ -137,7 +190,7 @@
     width: 32%;
   }
   .cover .footer-note {
-    margin-top: 22mm;
+    margin-top: 10mm;
     color: var(--muted);
     font-size: 9pt;
     font-style: italic;
@@ -513,6 +566,37 @@
   }
 
   /* Logo header running on inner pages (optional, omitted here for simplicity) */
+
+  /* ---------- Logo unifié Concorde (Workforce = Workly) ----------
+     Décision éditoriale 2026-05-18 : un seul logo pour les deux marques.
+     L'asset source `concorde-wrokly-logo.jpg` contient le sigle (cercle bleu
+     + W) ET un texte "CONCORDE — WORKLY —" en pied. On utilise ici un
+     wrapper avec overflow:hidden pour n'afficher que les ~75 % supérieurs
+     (le sigle) — le texte sous le logo est masqué visuellement, conformément
+     à la demande produit. */
+  .cw-logo-clip {
+    display: inline-block;
+    overflow: hidden;
+    position: relative;
+    vertical-align: middle;
+    line-height: 0;
+  }
+  /* Spécificité élevée pour neutraliser les règles existantes
+     (.cover .brand img, table.data td img, etc.). */
+  .cw-logo-clip > img,
+  .cover .brand .cw-logo-clip > img,
+  table.data .cw-logo-clip > img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: none;
+    margin: 0;
+    object-fit: fill;
+    /* L'image source étant approximativement carrée, sa hauteur rendue
+       égale la largeur du wrapper. En contraignant la hauteur du wrapper
+       à environ 76 % de sa largeur, on rogne visuellement la zone texte
+       en bas du logo. */
+  }
 </style>
 </head>
 <body>
@@ -520,16 +604,39 @@
 <!-- ============== COVER ============== -->
 <section class="cover">
   <a href="https://www.concorde-tech.fr" target="_blank" rel="noopener noreferrer">
-    <img src="concorde-tech-innovation.jpg" alt="Concorde Tech Innovation — concorde-tech.fr" />
+    <img class="editor-logo" src="concorde-tech-innovation.jpg" alt="Concorde Tech Innovation — concorde-tech.fr" />
   </a>
   <h1>Dossier Technique &amp; Commercial</h1>
   <div class="subtitle">Plateforme SaaS RH / Pointage</div>
 
+  <!-- Présentation visuelle des deux produits couverts par le dossier.
+       Workforce = plateforme web (admin/RH) · Workly = app mobile (salariés).
+       Décision marque 2026-05-18 : un seul logo (le sigle Concorde) pour les
+       deux produits — le texte "CONCORDE — WORKLY —" du fichier source est
+       masqué via le wrapper .cw-logo-clip. Logos cliquables vers leurs URLs
+       publiques respectives. -->
+  <div class="brands">
+    <a class="brand" href="https://concorde-work-force.com" target="_blank" rel="noopener noreferrer">
+      <span class="cw-logo-clip" style="width: 28mm; height: 22mm; margin-bottom: 5mm;">
+        <img src="concorde-wrokly-logo.jpg" alt="Concorde Workforce" />
+      </span>
+      <div class="brand-name">Concorde Workforce</div>
+      <div class="brand-tag">Plateforme web SaaS — RH, paie, pointage</div>
+      <div class="brand-url">concorde-work-force.com</div>
+    </a>
+    <a class="brand" href="https://expo.dev/artifacts/eas/ihKV2zK34JH6UVG6aXgVJh.apk" target="_blank" rel="noopener noreferrer">
+      <span class="cw-logo-clip" style="width: 28mm; height: 22mm; margin-bottom: 5mm;">
+        <img src="concorde-wrokly-logo.jpg" alt="Concorde Workly" />
+      </span>
+      <div class="brand-name">Concorde Workly</div>
+      <div class="brand-tag">Application mobile — salariés sur le terrain</div>
+      <div class="brand-url">Télécharger l'APK Android (build EAS)</div>
+    </a>
+  </div>
+
   <table class="meta">
-    <tr><td>Plateforme web</td><td>Concorde Workforce</td></tr>
-    <tr><td>Application mobile</td><td>Concorde Workly</td></tr>
     <tr><td>Cycle</td><td>Préparation lancement V1</td></tr>
-    <tr><td>Date</td><td>17 mai 2026 — Version 2</td></tr>
+    <tr><td>Date</td><td>18 mai 2026</td></tr>
     <tr><td>Backend</td><td>.NET 8 · ASP.NET Core · PostgreSQL 16</td></tr>
     <tr><td>Frontend</td><td>React 19 · Vite · MUI · TypeScript 5</td></tr>
     <tr><td>Mobile</td><td>Expo SDK 54 · React Native 0.81</td></tr>
@@ -630,18 +737,26 @@
   <thead><tr><th></th><th>Marque</th><th>Périmètre</th></tr></thead>
   <tbody>
     <tr>
-      <td style="text-align:center;"><img src="abrpoint.client/public/Concorde.png" alt="Concorde Workforce" style="height: 48px; width: auto;" /></td>
+      <td style="text-align:center;">
+        <span class="cw-logo-clip" style="width: 24mm; height: 19mm;">
+          <img src="concorde-wrokly-logo.jpg" alt="Concorde Workforce" />
+        </span>
+      </td>
       <td><strong>Concorde Workforce</strong></td>
       <td>Plateforme web SaaS d'administration RH et de gestion du temps — destinée aux administrateurs, managers et services paie. Tableau de bord, configuration référentielle, validation des demandes, préparation paie, reporting.</td>
     </tr>
     <tr>
-      <td style="text-align:center;"><img src="concorde-wrokly-logo.jpg" alt="Concorde Workly" style="height: 56px; width: auto;" /></td>
+      <td style="text-align:center;">
+        <span class="cw-logo-clip" style="width: 24mm; height: 19mm;">
+          <img src="concorde-wrokly-logo.jpg" alt="Concorde Workly" />
+        </span>
+      </td>
       <td><strong>Concorde Workly</strong></td>
       <td>Application mobile compagnon (iOS / Android) destinée aux salariés sur le terrain. Pointage géolocalisé, signature électronique, coffre-fort de documents personnels, demandes de congés, consultation du solde et des plannings.</td>
     </tr>
   </tbody>
 </table>
-<p>Les deux produits partagent le même backend (API REST), la même base de données multi-tenant et le même socle d'authentification — la séparation est exclusivement éditoriale et UX.</p>
+<p>Les deux produits partagent la même identité visuelle (un seul logo Concorde), le même backend (API REST), la même base de données multi-tenant et le même socle d'authentification — la séparation est exclusivement éditoriale et UX.</p>
 
 <h3>2.2 Vue d'ensemble technique</h3>
 <pre>
@@ -1983,5 +2098,17 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
 
 <p>L'architecture multi-tenant <em>DB-per-tenant</em> est adaptée au segment PME/ETI ciblé et offre une isolation forte. La stratégie commerciale tri-marché (France / Belgique / Afrique francophone) est cohérente avec les capacités techniques (multi-devise, skew horloge DST-safe, mobile-first).</p>
 
+<!-- paged.js : nécessaire pour que le TOC résolve target-counter(page) et que
+     les @page rules (headers/footers, page-break-before, etc.) soient
+     appliquées lors de la génération PDF via Chrome headless. Un hook
+     "afterRendered" expose window.__pagedjsDone pour que le script de build
+     PDF puisse attendre la fin de la pagination avant d'imprimer. -->
+<script>
+  window.PagedConfig = {
+    auto: true,
+    after: function () { window.__pagedjsDone = true; }
+  };
+</script>
+<script src="paged.polyfill.js"></script>
 </body>
 </html>
