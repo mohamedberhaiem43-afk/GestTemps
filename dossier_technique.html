@@ -272,6 +272,246 @@
   .small { font-size: 9.5pt; color: var(--muted); }
   hr { border: none; border-top: 1px solid var(--border); margin: 14pt 0; }
 
+  /* ---------- Mockups mobile (section 13.3) ---------- */
+  /* Reproduit la grille de captures du DOSSIER_AVOCAT : 4 téléphones côte à côte
+     en 2 colonnes A4, pas d'image bitmap pour rester vectoriel à l'impression. */
+  .mockups-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14pt;
+    margin: 10pt 0;
+    page-break-inside: avoid;
+  }
+  .mockup-wrapper { text-align: center; page-break-inside: avoid; }
+  .mockup-frame {
+    width: 60mm; height: 120mm;
+    margin: 0 auto;
+    border: 1.5pt solid #1e293b;
+    border-radius: 14pt;
+    padding: 4pt 3pt;
+    background: #1e293b;
+    box-shadow: 0 4pt 12pt rgba(15,23,42,0.18);
+    position: relative;
+    overflow: hidden;
+  }
+  .mockup-frame::before {
+    content: '';
+    position: absolute;
+    top: 4pt; left: 50%;
+    transform: translateX(-50%);
+    width: 14mm; height: 3pt;
+    background: #0f172a;
+    border-radius: 0 0 6pt 6pt;
+    z-index: 2;
+  }
+  .mockup-screen {
+    width: 100%; height: 100%;
+    background: #f8fafc;
+    border-radius: 9pt;
+    overflow: hidden;
+    position: relative;
+    font-size: 6.5pt;
+    line-height: 1.25;
+    color: #0f172a;
+  }
+  .mockup-statusbar {
+    height: 5pt; background: #f8fafc;
+  }
+  .mockup-caption {
+    font-size: 8pt; color: var(--muted);
+    margin-top: 6pt; font-style: italic;
+    max-width: 60mm; margin-left: auto; margin-right: auto;
+  }
+
+  /* Login */
+  .mockup-login { padding: 6pt 5pt; text-align: center; }
+  .mockup-login .logo-circle {
+    width: 12mm; height: 12mm;
+    background: var(--primary);
+    color: #fff; border-radius: 50%;
+    line-height: 12mm; font-weight: 800;
+    margin: 2pt auto 3pt auto;
+    font-size: 9pt;
+  }
+  /* Variante : vrai logo bitmap injecté à la place du cercle "CW". On garde
+     les mêmes dimensions pour ne pas casser le layout du mockup login. */
+  .mockup-login .logo-img {
+    width: 12mm; height: 12mm;
+    display: block; margin: 2pt auto 3pt auto;
+    object-fit: contain;
+  }
+  .mockup-login .app-title { font-weight: 800; color: var(--primary); font-size: 8pt; }
+  .mockup-login .app-sub { font-size: 6pt; color: var(--muted); margin-bottom: 4pt; }
+  .mockup-login .form-card {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 4pt; padding: 4pt 5pt;
+    text-align: left;
+  }
+  .mockup-login .form-title { font-weight: 800; font-size: 7pt; color: var(--primary); margin-bottom: 3pt; }
+  .mockup-login .form-label { font-size: 5.5pt; font-weight: 700; color: var(--muted); margin-top: 3pt; }
+  .mockup-login .form-input {
+    background: #f1f5f9; border-radius: 2pt;
+    padding: 2pt 4pt; font-size: 6.5pt;
+    margin-top: 1pt;
+  }
+  .mockup-login .form-btn {
+    background: var(--primary); color: #fff;
+    text-align: center; padding: 3pt;
+    border-radius: 3pt; font-weight: 800;
+    font-size: 6.5pt; margin-top: 4pt;
+  }
+  .mockup-login .form-bio {
+    text-align: center; font-size: 6pt;
+    color: var(--primary); margin-top: 3pt;
+    font-weight: 700;
+  }
+  .mockup-login .forgot {
+    text-align: center; font-size: 5.5pt;
+    color: var(--muted); margin-top: 2pt;
+  }
+
+  /* Home */
+  .mockup-home { padding: 4pt 5pt; }
+  .mockup-home .top-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 3pt;
+  }
+  .mockup-home .brand { font-size: 7pt; font-weight: 800; letter-spacing: -0.2pt; }
+  .mockup-home .brand .b1 { color: var(--primary); }
+  .mockup-home .brand .b2 { color: #0056d2; font-weight: 500; }
+  .mockup-home .avatar {
+    width: 6mm; height: 6mm;
+    background: var(--primary); color: #fff;
+    border-radius: 50%; line-height: 6mm;
+    text-align: center; font-size: 5.5pt;
+    font-weight: 700;
+  }
+  .mockup-home .date-label { font-size: 5.5pt; color: var(--muted); font-weight: 700; letter-spacing: 0.5pt; }
+  .mockup-home .welcome { font-size: 8pt; font-weight: 800; margin: 1pt 0 3pt 0; }
+  .mockup-home .clock-card {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 4pt; padding: 4pt 5pt;
+    text-align: center;
+  }
+  .mockup-home .gps-chip {
+    display: inline-block; background: #dcfce7;
+    color: #047857; font-size: 5pt; font-weight: 800;
+    padding: 1pt 5pt; border-radius: 9pt;
+    letter-spacing: 0.3pt;
+  }
+  .mockup-home .clock-time { font-size: 14pt; font-weight: 800; color: var(--primary); margin: 2pt 0; letter-spacing: -0.5pt; }
+  .mockup-home .clock-btn {
+    background: var(--primary); color: #fff;
+    padding: 2pt 4pt; border-radius: 3pt;
+    font-weight: 800; font-size: 6.5pt;
+  }
+  .mockup-home .last-exit { font-size: 5.5pt; color: var(--muted); margin-top: 2pt; }
+  .mockup-home .quick-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 2pt; margin-top: 4pt;
+  }
+  .mockup-home .quick-item {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 3pt; padding: 2pt;
+    text-align: center; font-size: 5.5pt;
+    font-weight: 700;
+  }
+  .mockup-home .quick-icon { font-size: 9pt; margin-bottom: 1pt; }
+  .mockup-home .kpi-card {
+    margin-top: 4pt; background: var(--primary);
+    color: #fff; padding: 4pt 5pt;
+    border-radius: 4pt; text-align: center;
+  }
+  .mockup-home .kpi-label { font-size: 5pt; opacity: 0.85; font-weight: 800; letter-spacing: 0.4pt; }
+  .mockup-home .kpi-value { font-size: 11pt; font-weight: 800; margin-top: 1pt; }
+  .mockup-home .kpi-value small { font-size: 6pt; opacity: 0.85; margin-left: 2pt; }
+
+  /* Leave */
+  .mockup-leave { padding: 4pt 5pt; }
+  .mockup-leave .top-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 3pt;
+  }
+  .mockup-leave .brand { font-size: 7pt; font-weight: 800; letter-spacing: -0.2pt; }
+  .mockup-leave .brand .b1 { color: var(--primary); }
+  .mockup-leave .brand .b2 { color: #0056d2; font-weight: 500; }
+  .mockup-leave .avatar {
+    width: 6mm; height: 6mm;
+    background: var(--primary); color: #fff;
+    border-radius: 50%; line-height: 6mm;
+    text-align: center; font-size: 5.5pt;
+    font-weight: 700;
+  }
+  .mockup-leave .section-label { font-size: 5pt; color: var(--muted); font-weight: 800; letter-spacing: 0.6pt; margin-top: 2pt; }
+  .mockup-leave .balance-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3pt; margin: 2pt 0; }
+  .mockup-leave .balance-card {
+    background: var(--primary); color: #fff;
+    border-radius: 4pt; padding: 3pt 4pt;
+  }
+  .mockup-leave .balance-card.rtt { background: #0891b2; }
+  .mockup-leave .balance-value { font-size: 12pt; font-weight: 800; letter-spacing: -0.3pt; }
+  .mockup-leave .balance-value small { font-size: 6pt; opacity: 0.9; margin-left: 1pt; }
+  .mockup-leave .balance-name { font-size: 5.5pt; font-weight: 700; opacity: 0.92; }
+  .mockup-leave .month-title { font-size: 7pt; font-weight: 800; margin-top: 4pt; color: var(--primary); }
+  .mockup-leave .calendar {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 1pt; margin: 1pt 0; font-size: 5.5pt;
+  }
+  .mockup-leave .day-head { text-align: center; color: var(--muted); font-weight: 800; font-size: 4.5pt; }
+  .mockup-leave .day {
+    background: #fff; border: 0.5px solid #e2e8f0;
+    border-radius: 1pt; text-align: center;
+    padding: 1pt 0;
+  }
+  .mockup-leave .day.req { background: #fef3c7; color: #92400e; font-weight: 800; }
+  .mockup-leave .day.today { background: var(--primary); color: #fff; font-weight: 800; }
+  .mockup-leave .recent-title { font-size: 5.5pt; font-weight: 800; color: var(--muted); margin-top: 3pt; letter-spacing: 0.4pt; }
+  .mockup-leave .req-item {
+    display: flex; justify-content: space-between;
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 3pt; padding: 2pt 4pt;
+    font-size: 5.5pt; margin-top: 1pt;
+  }
+  .mockup-leave .req-item.pending .req-status { color: #b45309; }
+  .mockup-leave .req-status { color: #059669; font-weight: 800; }
+
+  /* Profile */
+  .mockup-profile { padding: 4pt 5pt; }
+  .mockup-profile .header {
+    text-align: center; padding-bottom: 4pt;
+    border-bottom: 1px solid var(--border);
+  }
+  .mockup-profile .avatar-lg {
+    width: 14mm; height: 14mm;
+    background: var(--primary); color: #fff;
+    border-radius: 50%; line-height: 14mm;
+    margin: 2pt auto; font-weight: 800;
+    font-size: 11pt;
+  }
+  .mockup-profile .user-name { font-weight: 800; font-size: 7.5pt; margin-top: 1pt; }
+  .mockup-profile .user-role { font-size: 5.5pt; color: var(--muted); }
+  .mockup-profile .info-section { padding: 4pt 0; border-bottom: 1px solid var(--border); }
+  .mockup-profile .info-label { font-size: 5pt; color: var(--muted); font-weight: 800; margin-top: 2pt; letter-spacing: 0.4pt; }
+  .mockup-profile .info-value { font-size: 6pt; font-weight: 700; }
+  .mockup-profile .menu-item {
+    display: flex; align-items: center; gap: 4pt;
+    padding: 2pt 0; font-size: 6pt;
+    font-weight: 700;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .mockup-profile .menu-icon {
+    width: 5mm; height: 5mm;
+    background: #f1f5f9; color: var(--primary);
+    border-radius: 2pt; text-align: center;
+    line-height: 5mm; font-size: 5pt;
+  }
+  .mockup-profile .logout {
+    text-align: center; color: #dc2626;
+    font-weight: 800; font-size: 6pt;
+    margin-top: 4pt; padding: 2pt;
+    background: #fef2f2; border-radius: 3pt;
+  }
+
   /* Logo header running on inner pages (optional, omitted here for simplicity) */
 </style>
 </head>
@@ -280,7 +520,7 @@
 <!-- ============== COVER ============== -->
 <section class="cover">
   <a href="https://www.concorde-tech.fr" target="_blank" rel="noopener noreferrer">
-    <img src="abrpoint.client/public/Concorde.png" alt="Concorde Workforce — concorde-tech.fr" />
+    <img src="concorde-tech-innovation.jpg" alt="Concorde Tech Innovation — concorde-tech.fr" />
   </a>
   <h1>Dossier Technique &amp; Commercial</h1>
   <div class="subtitle">Plateforme SaaS RH / Pointage</div>
@@ -289,7 +529,7 @@
     <tr><td>Plateforme web</td><td>Concorde Workforce</td></tr>
     <tr><td>Application mobile</td><td>Concorde Workly</td></tr>
     <tr><td>Cycle</td><td>Préparation lancement V1</td></tr>
-    <tr><td>Date</td><td>13 mai 2026 — Version 3</td></tr>
+    <tr><td>Date</td><td>17 mai 2026 — Version 2</td></tr>
     <tr><td>Backend</td><td>.NET 8 · ASP.NET Core · PostgreSQL 16</td></tr>
     <tr><td>Frontend</td><td>React 19 · Vite · MUI · TypeScript 5</td></tr>
     <tr><td>Mobile</td><td>Expo SDK 54 · React Native 0.81</td></tr>
@@ -316,7 +556,7 @@
     <li class="toc-chapter"><a href="#sec-10">10. Modules livrés et axes d'enrichissement</a></li>
     <li class="toc-chapter"><a href="#sec-11">11. Stratégie SaaS et segmentation des offres</a></li>
     <li class="toc-chapter"><a href="#sec-12">12. Packs tarifaires et fonctionnalités</a></li>
-    <li class="toc-chapter"><a href="#sec-13">13. Préparation App Store et Google Play</a></li>
+    <li class="toc-chapter"><a href="#sec-13">13. Application mobile Concorde Workly</a></li>
     <li class="toc-chapter"><a href="#sec-14">14. Éléments pour démonstrations commerciales</a></li>
     <li class="toc-chapter"><a href="#sec-15">15. Scénarios opérationnels anticipés</a></li>
     <li class="toc-chapter"><a href="#sec-16">16. Roadmap de développement</a></li>
@@ -347,18 +587,16 @@
   <li><strong>Backend</strong> : 64 contrôleurs API, 131 entités EF Core, multi-tenant master/tenant opérationnel, RAG branché, auto-migration de schéma au démarrage, seed automatique du référentiel pays.</li>
   <li><strong>Web</strong> : ~30 modules métier complets en MUI, i18n FR/EN, animations, dashboard admin/employé/manager différencié.</li>
   <li><strong>Application mobile</strong> (22 pages) : authentification par empreinte digitale ou reconnaissance faciale, géolocalisation GPS pour le pointage, notifications instantanées, signature électronique manuscrite, coffre-fort de documents personnels, et protection de la confidentialité (blocage des captures d'écran, détection des appareils piratés, etc.).</li>
-  <li><strong>Tarification verrouillée</strong> : Starter 29,50 € / Standard 59,50 € / Premium 119 € avec facturation forfait + overage Stripe, choix mensuel ou annuel.</li>
+  <li><strong>Tarification Early Launch</strong> : Starter 29,50 € · Standard 54 € · Premium 149 € — <em>offre de lancement réservée aux 10 premières entreprises partenaires</em>, engagement annuel, 1 mois gratuit sans CB. Facturation forfait + overage Stripe.</li>
+  <li><strong>Plafonds packs (cap dur)</strong> : Starter 30 salariés max, Standard 100, Premium 200 — au-delà, basculement vers offre Enterprise sur devis.</li>
+  <li><strong>Quotas stockage</strong> : 5 Go (Starter) · 20 Go (Standard) · 100 Go (Premium), mesurés via <code>pg_database_size + uploads/{slug}/</code>, sweep horaire.</li>
   <li><strong>Plan gating opérationnel</strong> : restrictions backend (<code>RequirePlanFeatureAttribute</code>), frontend (<code>planAllows</code>) et mobile.</li>
-  <li><strong>Anti-fraude au signup (v3)</strong> : validation SIRET/BCE/ICE/NINEA contre registres officiels (Sirene, CBE), index unique filtré côté master DB, sélecteur pays FR/BE/MA/SN dynamique (cf. §6.5).</li>
-  <li><strong>Durcissement authentification (v3)</strong> : account lockout progressif, vérification HIBP Pwned Passwords, alerte instantanée sur nouvel appareil avec lien sécurisé HMAC de révocation (cf. §3.1 et §6.5).</li>
-  <li><strong>Protections paiement (v3)</strong> : idempotence Stripe Checkout, anti-replay des webhooks via <code>StripeWebhookSeen</code>, validation server-side du <code>userCount</code> au checkout.</li>
-  <li><strong>Politique de résiliation (v3)</strong> : remboursement prorata temporis automatique sur les abonnements annuels résiliés en cours de période, via Refund API Stripe (cf. §11.3).</li>
-  <li><strong>Infrastructure</strong> : déployable via <code>docker compose up</code>, certificats Let's Encrypt, HSTS + CSP + headers complets.</li>
+  <li><strong>Anti-fraude au signup</strong> : validation SIRET/BCE/ICE/NINEA contre registres officiels (Sirene, CBE), index unique filtré côté master DB, sélecteur pays FR/BE/MA/SN dynamique (cf. §6.5), filtrage des emails grand public (Gmail/Outlook/Yahoo…) au profit de l'email professionnel.</li>
+  <li><strong>Durcissement authentification</strong> : account lockout progressif, vérification HIBP Pwned Passwords, alerte instantanée sur nouvel appareil avec lien sécurisé HMAC de révocation (cf. §3.1 et §6.5).</li>
+  <li><strong>Protections paiement</strong> : idempotence Stripe Checkout, anti-replay des webhooks via <code>StripeWebhookSeen</code>, validation server-side du <code>userCount</code> au checkout, produit Stripe unique <code>user_supp</code> pour les collaborateurs supplémentaires.</li>
+  <li><strong>Politique de résiliation</strong> : remboursement prorata temporis automatique sur les abonnements annuels résiliés en cours de période, via Refund API Stripe (cf. §11.3).</li>
+  <li><strong>Infrastructure</strong> : déployable via <code>docker compose up</code>, certificats Let's Encrypt, HSTS + CSP + headers complets, isolation per-tenant des uploads (<code>uploads/{slug}/</code>).</li>
 </ul>
-
-<div class="note" style="background:#f0f7ff; border-left:3pt solid var(--primary); padding:8pt 10pt; margin:8pt 0;">
-  <strong>Évolutions v3 (2026-05-13)</strong> — par rapport à la v2 du 2026-05-12 : couche anti-fraude au signup (validation SIRET/BCE/ICE/NINEA + index unique filtré + sélecteur pays FR/BE/MA/SN), durcissement authentification (lockout progressif, HIBP, alerte nouvel appareil + révocation HMAC), protections paiement (idempotence Stripe, anti-replay webhooks, validation server-side du userCount), et politique de remboursement prorata temporis sur les abonnements annuels résiliés en cours de période.
-</div>
 
 <h3>1.3 Cibles V1 (lancement)</h3>
 <table class="data">
@@ -397,7 +635,7 @@
       <td>Plateforme web SaaS d'administration RH et de gestion du temps — destinée aux administrateurs, managers et services paie. Tableau de bord, configuration référentielle, validation des demandes, préparation paie, reporting.</td>
     </tr>
     <tr>
-      <td style="text-align:center;"><img src="logo.png" alt="Concorde Workly" style="height: 48px; width: auto;" /></td>
+      <td style="text-align:center;"><img src="concorde-wrokly-logo.jpg" alt="Concorde Workly" style="height: 56px; width: auto;" /></td>
       <td><strong>Concorde Workly</strong></td>
       <td>Application mobile compagnon (iOS / Android) destinée aux salariés sur le terrain. Pointage géolocalisé, signature électronique, coffre-fort de documents personnels, demandes de congés, consultation du solde et des plannings.</td>
     </tr>
@@ -606,9 +844,9 @@ Master DB (ABRPOINT_master)             Tenant DBs (ABRPOINT_&lt;slug&gt;)
 <ul>
   <li><strong>19 drapeaux fonctionnels</strong> par plan (booléens) : application mobile, géolocalisation, coffre-fort numérique, signature électronique, multi-site, multi-société, tableaux de bord avancés, IA RAG, audit logs avancés, branding personnalisé, device trust, anti-screenshot, certificate pinning, missions, jours de compensation, congé général, autorisation générale, gestion congés, gestion autorisations</li>
   <li><strong>Limites quantitatives</strong> : effectifs inclus, tarif overage par employé, nombre max de sociétés/sites — calculées via <code>PlanCatalog.GetLimits</code></li>
-  <li><strong>Plan Starter (29,50 €/mois, 10 salariés inclus)</strong> : positionnement « pointage simple, sans workflow RH » — exclut explicitement le coffre-fort, la signature électronique, les missions, les jours de compensation, le congé général, l'autorisation générale, la gestion des congés (demande + titre), la gestion des autorisations (saisie + demande), l'assistant IA. <strong>Conserve</strong> l'état périodique du pointage</li>
-  <li><strong>Plan Standard (59,50 €/mois, 25 salariés inclus)</strong> : ajoute mobile, géolocalisation, coffre-fort, signature, multi-site, dashboards avancés, missions, jours de compensation, congé/sortie générale, workflow congé/autorisation complet — exclut IA RAG, audit logs avancés, branding, sécurité durcie</li>
-  <li><strong>Plan Premium (119 €/mois, 50 salariés inclus, illimité sociétés/sites)</strong> : tout activé, incluant l'IA et le durcissement de sécurité mobile</li>
+  <li><strong>Plan Starter (29,50 €/mois, 10 salariés inclus, cap pack 30)</strong> : positionnement « pointage simple, sans workflow RH » — exclut explicitement le coffre-fort, la signature électronique, les missions, les jours de compensation, le congé général, l'autorisation générale, la gestion des congés (demande + titre), la gestion des autorisations (saisie + demande), l'assistant IA. <strong>Conserve</strong> l'état périodique du pointage. Stockage 5 Go inclus.</li>
+  <li><strong>Plan Standard (54 €/mois, 15 salariés inclus, cap pack 100)</strong> : ajoute mobile, géolocalisation, coffre-fort, signature, multi-site, dashboards avancés, missions, jours de compensation, congé/sortie générale, workflow congé/autorisation complet — exclut IA RAG, audit logs avancés, branding, sécurité durcie. Stockage 20 Go inclus.</li>
+  <li><strong>Plan Premium (149 €/mois, 30 salariés inclus, cap pack 200, illimité sociétés/sites)</strong> : tout activé, incluant l'IA et le durcissement de sécurité mobile. Stockage 100 Go inclus.</li>
   <li><strong>Application backend</strong> : attribut <code>[RequirePlanFeature(nameof(PlanFeatures.X))]</code> sur les contrôleurs/actions → retourne HTTP 402 avec code stable <code>plan_feature_locked</code> que le front transforme en pop-up « Upgradez votre plan »</li>
   <li><strong>Application frontend</strong> : hook <code>useAuth().planAllows(feature)</code> filtre la navigation latérale → les modules verrouillés disparaissent du menu (pas seulement grisés)</li>
 </ul>
@@ -729,7 +967,7 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
   <li><code>GET /readyz</code> → readiness (DB ping <code>SELECT 1</code>) — utilisable par orchestrateur ou monitoring externe</li>
 </ul>
 
-<h3>6.4 Auto-migration de schéma (v3 — nouvelles tables &amp; colonnes)</h3>
+<h3>6.4 Auto-migration de schéma</h3>
 <p>[BaseDataSchemaMigrator.cs] applique au démarrage, par tenant et de façon idempotente, toutes les évolutions de schéma. La <strong>version 3 ajoute</strong> :</p>
 <ul>
   <li>Colonnes <code>uti_failed_logins</code>, <code>uti_locked_until</code>, <code>uti_last_failed_login_at</code> sur la table <code>Utilisateurs</code> (lockout progressif)</li>
@@ -740,7 +978,7 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
 </ul>
 <p>Toutes ces migrations sont <em>idempotentes</em> — un redéploiement (<code>docker compose up -d</code>) propage automatiquement le schéma sur tous les tenants existants sans intervention DBA.</p>
 
-<h3>6.5 Anti-fraude au signup et durcissement de l'authentification (v3)</h3>
+<h3>6.5 Anti-fraude au signup et durcissement de l'authentification</h3>
 <p>Couche dédiée empilée sur le socle JWT/2FA. Sa logique : empêcher (i) la fraude par multi-inscription gratuite d'un même établissement, (ii) le brute-force / credential-stuffing, et (iii) la prise de contrôle silencieuse d'un compte légitime.</p>
 <table class="data">
   <colgroup>
@@ -997,10 +1235,10 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
   </colgroup>
   <thead><tr><th>Segment</th><th>Profil</th><th>Plan</th><th>Volume</th></tr></thead>
   <tbody>
-    <tr><td>TPE / petites équipes</td><td>1-10 salariés, RH de base</td><td>Starter</td><td>10 inclus</td></tr>
-    <tr><td>PME en croissance</td><td>10-50 salariés, mobile + congés + paie</td><td>Standard</td><td>25 inclus</td></tr>
-    <tr><td>ETI / Multi-filiales</td><td>25-100+ salariés, IA + sécurité renforcée</td><td>Premium</td><td>50 inclus</td></tr>
-    <tr><td>Groupes / Comptes clés</td><td>&gt;100 salariés, API / SSO</td><td>Premium + add-ons</td><td>overage</td></tr>
+    <tr><td>TPE / petites équipes</td><td>1-10 salariés, RH de base</td><td>Starter</td><td>10 inclus · cap 30</td></tr>
+    <tr><td>PME en croissance</td><td>10-30 salariés, mobile + congés + paie</td><td>Standard</td><td>15 inclus · cap 100</td></tr>
+    <tr><td>Entreprises structurées</td><td>30-200 salariés, sécurité renforcée + multi-filiales</td><td>Premium</td><td>30 inclus · cap 200</td></tr>
+    <tr><td>Groupes / Comptes clés</td><td>&gt;200 salariés, API / SSO / hébergement dédié</td><td>Enterprise (sur devis)</td><td>—</td></tr>
   </tbody>
 </table>
 
@@ -1039,53 +1277,69 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
 <!-- ============== 12. Packs tarifaires ============== -->
 <h2 id="sec-12">12. Packs tarifaires et fonctionnalités</h2>
 
+<div class="note" style="background:#fff8e6; border-left:3pt solid #f59e0b; padding:10pt 12pt; margin:8pt 0 14pt 0;">
+  <strong>⚡ Offre Early Launch — réservée aux 10 premières entreprises partenaires.</strong>
+  Tarifs préférentiels avec engagement annuel obligatoire et 1 mois gratuit sans carte bancaire. L'objectif de cette phase est de stabiliser la V1, accompagner finement les premiers clients et préparer la montée en charge progressive de la plateforme avant l'ouverture du tarif standard.
+</div>
+
 <div class="plan-card">
   <h3>12.1 Pack Starter — 29,50 € / mois</h3>
   <p><strong>Cible</strong> : TPE / petites équipes<br />
   <strong>Tarif</strong> : 29,50 € HT/mois — jusqu'à 10 salariés inclus — au-delà : +4,90 €/salarié supplémentaire<br />
-  <strong>Essai</strong> : 30 jours gratuits, sans carte bancaire</p>
-  <p><strong>Inclus :</strong> Gestion RH de base, pointage web manuel, calendrier d'absences, tableau de bord simple, exports PDF/Excel basique, 1 administrateur, support J+2.</p>
+  <strong>Plafond pack</strong> : 30 salariés maximum (au-delà : passer au pack supérieur)<br />
+  <strong>Stockage</strong> : 5 Go inclus<br />
+  <strong>Essai</strong> : 1 mois gratuit sans carte bancaire · engagement annuel</p>
+  <p><strong>Inclus :</strong> Gestion RH de base, pointage web manuel, calendrier d'absences, tableau de bord simple, exports PDF/Excel basique, 1 administrateur, support standard.</p>
   <p><strong>Désactivé (402 si appel direct) :</strong> <span class="cross">✗</span> App mobile <span class="cross">✗</span> Pointage géolocalisé <span class="cross">✗</span> Coffre numérique <span class="cross">✗</span> Signature électronique <span class="cross">✗</span> Multi-sites / sociétés <span class="cross">✗</span> Assistant IA</p>
 </div>
 
 <div class="plan-card popular">
-  <h3>12.2 Pack Standard — 59,50 € / mois <span class="badge">POPULAIRE</span></h3>
-  <p><strong>Cible</strong> : PME en croissance<br />
-  <strong>Tarif</strong> : 59,50 € HT/mois — jusqu'à 25 salariés inclus — au-delà : +6,90 €/salarié supplémentaire<br />
-  <strong>Essai</strong> : 30 jours gratuits, sans carte bancaire</p>
+  <h3>12.2 Pack Standard — 54 € / mois <span class="badge">POPULAIRE</span></h3>
+  <p><strong>Cible</strong> : PME en croissance · équipes terrain · structures multi-sites<br />
+  <strong>Tarif</strong> : 54 € HT/mois — jusqu'à 15 salariés inclus — au-delà : +6,90 €/salarié supplémentaire<br />
+  <strong>Plafond pack</strong> : 100 salariés maximum<br />
+  <strong>Stockage</strong> : 20 Go inclus<br />
+  <strong>Essai</strong> : 1 mois gratuit sans carte bancaire · engagement annuel</p>
   <p><strong>Tout le Starter, plus :</strong></p>
   <ul>
     <li><span class="check">✓</span> Application mobile (iOS + Android, biométrie, push)</li>
     <li><span class="check">✓</span> Pointage géolocalisé (geofence par site)</li>
     <li><span class="check">✓</span> Gestion congés complète (RTT, CET, sanctions)</li>
-    <li><span class="check">✓</span> Coffre-fort numérique</li>
-    <li><span class="check">✓</span> Signature électronique</li>
+    <li><span class="check">✓</span> Coffre-fort numérique &amp; signature électronique</li>
     <li><span class="check">✓</span> Notifications push + email + in-app</li>
     <li><span class="check">✓</span> Reporting avancé (PDF / Excel complets)</li>
     <li><span class="check">✓</span> Préparation paie (export Sage Excel)</li>
-    <li><span class="check">✓</span> Multi-sites (MaxSites=3)</li>
+    <li><span class="check">✓</span> Multi-sites simple</li>
     <li><span class="check">✓</span> Support prioritaire (SLA 24 h)</li>
   </ul>
-  <p><strong>Désactivé :</strong> <span class="cross">✗</span> Multi-sociétés <span class="cross">✗</span> Assistant IA <span class="cross">✗</span> Device trust / Screenshot blocking runtime</p>
+  <p><strong>Désactivé :</strong> <span class="cross">✗</span> Multi-sociétés / multi-filiales <span class="cross">✗</span> Assistant IA <span class="cross">✗</span> Device trust / Screenshot blocking runtime</p>
 </div>
 
 <div class="plan-card">
-  <h3>12.3 Pack Premium — 119,00 € / mois</h3>
-  <p><strong>Cible</strong> : ETI / Multi-filiales<br />
-  <strong>Tarif</strong> : 119 € HT/mois — jusqu'à 50 salariés inclus — au-delà : +9,90 €/salarié supplémentaire<br />
-  <strong>Essai</strong> : 30 jours gratuits, sans carte bancaire</p>
+  <h3>12.3 Pack Premium — 149 € / mois</h3>
+  <p><strong>Cible</strong> : entreprises structurées · groupes multi-sites · besoins avancés sécurité &amp; supervision<br />
+  <strong>Tarif</strong> : 149 € HT/mois — jusqu'à 30 salariés inclus — au-delà : +9,90 €/salarié supplémentaire<br />
+  <strong>Plafond pack</strong> : 200 salariés maximum (au-delà : offre Enterprise sur devis)<br />
+  <strong>Stockage</strong> : 100 Go inclus<br />
+  <strong>Essai</strong> : 1 mois gratuit sans carte bancaire · engagement annuel</p>
   <p><strong>Tout le Standard, plus :</strong></p>
   <ul>
-    <li><span class="check">✓</span> Multi-sociétés illimité + multi-sites illimité</li>
+    <li><span class="check">✓</span> Multi-filiales illimité + multi-sites illimité</li>
     <li><span class="check">✓</span> Tableaux de bord avancés (KPI temps réel)</li>
-    <li><span class="check">✓</span> Assistant IA contextuel (RAG Qdrant + sidecar Python)</li>
     <li><span class="check">✓</span> Audit logs avancés (export RGPD)</li>
     <li><span class="check">✓</span> Sécurité mobile renforcée (<code>useDeviceTrust</code> + <code>useSecureScreen</code> actifs)</li>
     <li><span class="check">✓</span> Cert pinning (contractuellement Premium)</li>
+    <li><span class="check">✓</span> Branding personnalisé · SLA premium</li>
     <li><span class="check">✓</span> Conformité RGPD avancée</li>
     <li><span class="check">✓</span> Onboarding accompagné (kick-off call, formation admin + manager)</li>
   </ul>
-  <p class="small"><strong>Roadmap V1.1 (add-on) :</strong> API publique · SSO entreprise (SAML/OIDC) · Connecteurs paie directs (Sage, Cegid)</p>
+  <p class="small"><strong>Roadmap V1.1 (add-on) :</strong> API publique · SSO entreprise (SAML/OIDC) · Connecteurs paie directs (Sage, Cegid) · Assistant IA contextuel (RAG Qdrant + sidecar Python)</p>
+</div>
+
+<div class="plan-card" style="border-left:3pt solid var(--primary); background:#f7faff;">
+  <h3>12.3 bis Offre Enterprise — sur devis</h3>
+  <p><strong>Cible</strong> : structures &gt; 200 salariés · groupes multi-filiales complexes · besoins avancés non couverts par les packs standards.</p>
+  <p><strong>Périmètre adressé sur devis</strong> : volumes importants · hébergement dédié · SLA spécifiques · intégrations avancées (ERP/paie) · sécurité renforcée (pen-test annuel, conformité sectorielle) · architecture personnalisée · multi-filiales complexes · accompagnement spécifique. Chiffrage sous 5 jours ouvrés après qualification du besoin.</p>
 </div>
 
 <h3>12.4 Services et add-ons (sur devis, indépendants du pack)</h3>
@@ -1118,26 +1372,262 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
 </table>
 <p class="small" style="margin-top:6pt;">Toutes ces prestations font l'objet d'un devis dédié et d'un bon de commande contractualisé indépendamment du contrat d'abonnement principal. Elles sont facturées en EUR HT, conditions de paiement 30 jours net (sauf accord particulier).</p>
 
-<!-- ============== 13. App Store / Google Play ============== -->
-<h2 id="sec-13">13. Préparation App Store et Google Play</h2>
+<!-- ============== 13. App mobile Concorde Workly ============== -->
+<h2 id="sec-13">13. Application mobile Concorde Workly</h2>
 
-<h3>13.1 Prérequis comptes</h3>
-<ul>
-  <li>☐ Compte Apple Developer (99 $/an) au nom de l'entité Concorde</li>
-  <li>☐ Compte Google Play Developer (25 $ one-shot)</li>
-  <li>☐ Certificats iOS (distribution + push) via Apple Developer Portal</li>
-  <li>☐ Keystore Android signé, backupé hors repo</li>
-</ul>
+<div style="display:flex; align-items:center; gap:14pt; background:#f7faff; border:1px solid #dbeafe; border-left:3pt solid var(--primary); padding:12pt 14pt; border-radius:6pt; margin:8pt 0 14pt 0; page-break-inside:avoid;">
+  <img src="concorde-wrokly-logo.jpg" alt="Concorde Workly" style="width:30mm; height:auto; border-radius:8pt; flex-shrink:0;" />
+  <div>
+    <div style="font-weight:800; font-size:14pt; color:var(--primary); letter-spacing:-0.2pt;">Concorde Workly <span class="badge">App mobile</span></div>
+    <div style="font-size:10pt; color:var(--muted); margin-top:2pt;">Application compagnon iOS / Android destinée aux collaborateurs : pointage géolocalisé, congés, autorisations de sortie, notes de frais avec photo, coffre-fort numérique, signature électronique, notifications push, biométrie.</div>
+    <div style="font-size:9pt; color:var(--muted); margin-top:4pt;">Identifiant technique <code>com.concorde.workly</code> · Version 1.0.0 · Android 8.0 (API 26) et supérieur · iOS 13+ (publication 2ᵉ semestre 2026)</div>
+  </div>
+</div>
 
-<h3>13.2 Prérequis techniques (en place)</h3>
-<ul>
-  <li><span class="check">✓</span> Build EAS Expo configuré (<code>eas.json</code> prod / preview)</li>
-  <li><span class="check">✓</span> Bundle ID iOS et <code>applicationId</code> Android distincts</li>
-  <li><span class="check">✓</span> Icône adaptive Android paddée</li>
-  <li><span class="check">✓</span> <code>network_security_config.xml</code> Android pour cert pinning prod</li>
-  <li><span class="check">✓</span> <code>Info.plist</code> iOS avec <code>NSPinnedDomains</code> + permissions</li>
-  <li><span class="check">✓</span> Versioning automatique via Expo</li>
-</ul>
+<h3>13.1 Distribution &amp; téléchargement</h3>
+<p>L'application est mise à disposition par téléchargement direct (fichier APK Android) avant publication sur le Google Play Store. Les utilisateurs autorisés récupèrent l'APK depuis leur interface web personnelle (rubrique <em>Téléchargements</em>) ou via le QR code ci-dessous. Publication App Store iOS planifiée au 2ᵉ semestre 2026.</p>
+
+<div style="display:flex; gap:14pt; align-items:flex-start; margin:8pt 0; page-break-inside:avoid;">
+  <div style="text-align:center; flex-shrink:0;">
+    <img src="abrpoint.client/public/qrcode-apk.png" alt="QR Code téléchargement APK Android" style="width:44mm; height:44mm; border:1pt solid var(--border); border-radius:4pt; padding:4pt; background:#fff;" />
+    <div style="font-size:8pt; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.5pt; margin-top:4pt;">Scanner pour télécharger</div>
+    <div style="font-size:8pt; color:var(--muted);">Android · APK direct</div>
+  </div>
+  <div style="flex:1; padding-top:2pt;">
+    <table class="data compact" style="margin-top:0;">
+      <tbody>
+        <tr><td style="width:38%;"><strong>Lien APK direct</strong></td><td><code style="word-break:break-all; font-size:8.5pt;">https://expo.dev/artifacts/eas/ihKV2zK34JH6UVG6aXgVJh.apk</code></td></tr>
+        <tr><td><strong>Interface web</strong></td><td>Espace utilisateur → <em>Mon compte</em> → bouton <strong>Télécharger l'application Android</strong> (lien CDN à jour automatiquement)</td></tr>
+        <tr><td><strong>Google Play Store</strong></td><td>Publication en cours de préparation (compte Developer + signature finale en attente)</td></tr>
+        <tr><td><strong>Apple App Store</strong></td><td>Planifié S2 2026 (compte Apple Developer + validation TestFlight)</td></tr>
+        <tr><td><strong>Framework</strong></td><td>React Native 0.81 + Expo SDK 54 (build natif EAS Build)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h3>13.2 Permissions Android demandées</h3>
+<p>Toutes les permissions ci-dessous sont déclarées dans le manifeste Android et demandées à l'utilisateur <strong>lors du premier usage de la fonctionnalité concernée</strong> (pas au démarrage de l'application). Aucune permission « sensible » n'est demandée sans usage métier explicite.</p>
+<table class="data">
+  <colgroup>
+    <col style="width: 32%;" />
+    <col style="width: 68%;" />
+  </colgroup>
+  <thead><tr><th>Permission Android</th><th>Usage et justification</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>CAMERA</code></td>
+      <td>Capture de justificatifs photo pour notes de frais, documents personnels et signatures. Demandée au déclenchement de la fonctionnalité de prise de photo uniquement.</td>
+    </tr>
+    <tr>
+      <td><code>ACCESS_FINE_LOCATION</code></td>
+      <td>Géolocalisation <strong>au moment du pointage uniquement</strong>, lorsque la fonction est activée par l'employeur. Aucun suivi en arrière-plan. La position vérifie l'appartenance à la zone autorisée (<em>geofence</em>) puis est journalisée pour audit anti-fraude (rétention 12 mois).</td>
+    </tr>
+    <tr>
+      <td><code>POST_NOTIFICATIONS</code></td>
+      <td>Affichage des notifications push : approbation/refus de demande, rappels de pointage, alertes opérationnelles. Obligatoire sur Android 13+ (consentement explicite utilisateur).</td>
+    </tr>
+    <tr>
+      <td><code>USE_BIOMETRIC</code> · <code>USE_FINGERPRINT</code></td>
+      <td>Authentification biométrique (empreinte ou reconnaissance faciale) après le premier login. Le mot de passe n'est <strong>jamais</strong> stocké sur l'appareil : seul un bio-token serveur HMAC est conservé dans le keystore.</td>
+    </tr>
+    <tr>
+      <td><code>RECORD_AUDIO</code></td>
+      <td>Réservée à de futures fonctionnalités vocales (saisie dictée des notes), <strong>non activée à ce jour</strong>. Aucune capture audio n'est effectuée tant que la fonction n'est pas livrée. Déclarée pour permettre une évolution sans re-publication store.</td>
+    </tr>
+    <tr>
+      <td><code>VIBRATE</code> · <code>WAKE_LOCK</code></td>
+      <td>Vibration lors des notifications ; maintien temporaire de l'écran allumé pendant la signature électronique (évite la coupure d'écran en pleine signature).</td>
+    </tr>
+    <tr>
+      <td><code>READ_EXTERNAL_STORAGE</code> · <code>READ_MEDIA_IMAGES</code></td>
+      <td>Sélection d'une photo existante depuis la galerie pour les notes de frais. Lecture limitée aux images sélectionnées par l'utilisateur (Android 13+ <em>Photo Picker</em>).</td>
+    </tr>
+    <tr>
+      <td><code>INTERNET</code> · <code>ACCESS_NETWORK_STATE</code></td>
+      <td>Communication HTTPS avec le serveur Concorde Workforce (canal verrouillé par <em>certificate pinning</em> sur le plan Premium). Détection on-line / off-line pour bufferiser les pointages hors-ligne.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>13.3 Captures d'interface mobile (extraits significatifs)</h3>
+<p>Aperçu fidèle des écrans principaux reproduits depuis le code source de <code>abrpoint.mobile/src/screens/</code>. La palette de couleurs, les libellés et la hiérarchie correspondent à la maquette Material 3 effectivement livrée.</p>
+
+<div class="mockups-grid">
+  <!-- Mockup 1 : Login -->
+  <div class="mockup-wrapper">
+    <div class="mockup-frame">
+      <div class="mockup-screen">
+        <div class="mockup-statusbar"></div>
+        <div class="mockup-login">
+          <img src="concorde-wrokly-logo.jpg" alt="Concorde Workly" class="logo-img" />
+          <div class="app-title">Concorde Workly</div>
+          <div class="app-sub">Pointage &amp; Gestion du Temps</div>
+          <div class="form-card">
+            <div class="form-title">Connexion</div>
+            <div class="form-label">Email *</div>
+            <div class="form-input">vous@entreprise.fr</div>
+            <div class="form-label">Mot de passe *</div>
+            <div class="form-input">••••••••••</div>
+            <div class="form-btn">Se connecter</div>
+            <div class="form-bio">Continuer avec biométrie</div>
+            <div class="forgot">Mot de passe oublié ?</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup-caption">Connexion — email + mot de passe ou biométrie</div>
+  </div>
+
+  <!-- Mockup 2 : Accueil / Pointage -->
+  <div class="mockup-wrapper">
+    <div class="mockup-frame">
+      <div class="mockup-screen">
+        <div class="mockup-statusbar"></div>
+        <div class="mockup-home">
+          <div class="top-row">
+            <div class="brand"><span class="b1">Concorde</span> <span class="b2">Workly</span></div>
+            <div class="avatar">MD</div>
+          </div>
+          <div class="date-label">SAMEDI 17 MAI 2026</div>
+          <div class="welcome">Bonjour, Marc.</div>
+          <div class="clock-card">
+            <div class="gps-chip">● STATUT GPS VALIDÉ</div>
+            <div class="clock-time">09:42</div>
+            <div class="clock-btn">Pointer mon entrée</div>
+            <div class="last-exit">Dernière sortie : hier 18:30</div>
+          </div>
+          <div class="quick-grid">
+            <div class="quick-item"><div class="quick-icon">📅</div>Congé</div>
+            <div class="quick-item"><div class="quick-icon">↗</div>Sortie</div>
+            <div class="quick-item"><div class="quick-icon">€</div>Frais</div>
+            <div class="quick-item"><div class="quick-icon">≡</div>Missions</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">SOLDE CONGÉS</div>
+            <div class="kpi-value">18,0 <small>jours</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup-caption">Accueil — pointage GPS, raccourcis et soldes</div>
+  </div>
+
+  <!-- Mockup 3 : Congés -->
+  <div class="mockup-wrapper">
+    <div class="mockup-frame">
+      <div class="mockup-screen">
+        <div class="mockup-statusbar"></div>
+        <div class="mockup-leave">
+          <div class="top-row">
+            <div class="brand"><span class="b1">Concorde</span> <span class="b2">Workly</span></div>
+            <div class="avatar">MD</div>
+          </div>
+          <div class="section-label">SOLDES</div>
+          <div class="balance-grid">
+            <div class="balance-card">
+              <div class="balance-value">18,0<small> j</small></div>
+              <div class="balance-name">Congés annuels</div>
+            </div>
+            <div class="balance-card rtt">
+              <div class="balance-value">6,5<small> j</small></div>
+              <div class="balance-name">RTT</div>
+            </div>
+          </div>
+          <div class="month-title">Mai 2026</div>
+          <div class="calendar">
+            <div class="day-head">L</div><div class="day-head">M</div><div class="day-head">M</div>
+            <div class="day-head">J</div><div class="day-head">V</div><div class="day-head">S</div><div class="day-head">D</div>
+            <div class="day"></div><div class="day"></div><div class="day"></div>
+            <div class="day">1</div><div class="day">2</div><div class="day">3</div><div class="day">4</div>
+            <div class="day">5</div><div class="day">6</div><div class="day">7</div><div class="day">8</div>
+            <div class="day req">9</div><div class="day req">10</div><div class="day">11</div>
+            <div class="day">12</div><div class="day">13</div><div class="day">14</div><div class="day">15</div>
+            <div class="day">16</div><div class="day today">17</div><div class="day">18</div>
+            <div class="day">19</div><div class="day">20</div><div class="day">21</div>
+          </div>
+          <div class="recent-title">Demandes récentes</div>
+          <div class="req-item">
+            <span>Congé payé · 09→10 mai</span>
+            <span class="req-status">Approuvé</span>
+          </div>
+          <div class="req-item pending">
+            <span>RTT · 27 mai</span>
+            <span class="req-status">En attente</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup-caption">Congés — soldes, calendrier et demandes en cours</div>
+  </div>
+
+  <!-- Mockup 4 : Profil -->
+  <div class="mockup-wrapper">
+    <div class="mockup-frame">
+      <div class="mockup-screen">
+        <div class="mockup-statusbar"></div>
+        <div class="mockup-profile">
+          <div class="header">
+            <div class="avatar-lg">MD</div>
+            <div class="user-name">Marc Dupont</div>
+            <div class="user-role">Collaborateur · ACME SAS</div>
+          </div>
+          <div class="info-section">
+            <div class="info-label">EMAIL</div>
+            <div class="info-value">marc.dupont@acme.fr</div>
+            <div class="info-label">TÉLÉPHONE</div>
+            <div class="info-value">+33 6 12 34 56 78</div>
+            <div class="info-label">SITE</div>
+            <div class="info-value">Paris · Bureau central</div>
+          </div>
+          <div class="menu-item"><div class="menu-icon">⚑</div>Modifier mon profil</div>
+          <div class="menu-item"><div class="menu-icon">🔔</div>Notifications</div>
+          <div class="menu-item"><div class="menu-icon">🔒</div>Sécurité &amp; 2FA</div>
+          <div class="menu-item"><div class="menu-icon">📄</div>Coffre numérique</div>
+          <div class="logout">Se déconnecter</div>
+        </div>
+      </div>
+    </div>
+    <div class="mockup-caption">Profil — informations, paramètres et coffre numérique</div>
+  </div>
+</div>
+
+<p class="small" style="font-style:italic; margin-top:6pt;">Les écrans sont reproduits depuis le code source en vigueur (<code>abrpoint.mobile/src/screens/</code>) pour garantir la fidélité visuelle à l'expérience livrée. Les captures haute résolution destinées aux store listings seront produites avant publication officielle Google Play / App Store.</p>
+
+<h3>13.4 Prérequis publication stores</h3>
+<table class="data compact">
+  <colgroup>
+    <col style="width: 50%;" />
+    <col style="width: 50%;" />
+  </colgroup>
+  <thead><tr><th>Google Play</th><th>App Store iOS</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>
+        <ul style="margin:0; padding-left:14pt;">
+          <li>Compte Google Play Developer (25 $ one-shot)</li>
+          <li>Keystore Android signé, backupé hors repo</li>
+          <li>Build EAS Expo configuré (<code>eas.json</code> prod / preview) ✓</li>
+          <li><code>applicationId</code> Android <code>com.concorde.workly</code> ✓</li>
+          <li>Icône adaptive Android paddée ✓</li>
+          <li><code>network_security_config.xml</code> pour cert pinning prod ✓</li>
+          <li>Politique de confidentialité publiée (URL requise)</li>
+        </ul>
+      </td>
+      <td>
+        <ul style="margin:0; padding-left:14pt;">
+          <li>Compte Apple Developer (99 $/an)</li>
+          <li>Certificats iOS (distribution + push) via Apple Developer Portal</li>
+          <li>Bundle ID iOS distinct ✓</li>
+          <li><code>Info.plist</code> avec <code>NSPinnedDomains</code> + permissions ✓</li>
+          <li>Versioning automatique via Expo ✓</li>
+          <li>Test sur build TestFlight avant soumission</li>
+          <li>Validation App Review (délai ~3 jours)</li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 <h3>13.3 Risques de rejet anticipés</h3>
 <table class="data">
@@ -1475,28 +1965,12 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
   </tbody>
 </table>
 
-<h3>19.6 Trous à combler côté juridique (action attendue)</h3>
-<p>Éléments <strong>non couverts par le code</strong> et qui doivent être produits / publiés par le département juridique :</p>
-<ul>
-  <li>☐ <strong>CGV / CGU</strong> finalisées et opposables, intégrant les engagements §19.4</li>
-  <li>☐ <strong>Mentions légales</strong> publiques (RCS, capital social, identité du DPO si désigné, contact, hébergeur)</li>
-  <li>☐ <strong>Politique de confidentialité</strong> publique (URL HTTPS obligatoire pour soumission App Store / Play Store, cf. §13.3)</li>
-  <li>☐ <strong>DPA-type</strong> (modèle d'accord de sous-traitance) annexable aux contrats clients</li>
-  <li>☐ <strong>Privacy Manifest iOS</strong> (iOS 17+, requis Apple) — déclaration des APIs sensibles utilisées</li>
-  <li>☐ <strong>Data Safety Google Play</strong> — alignement des données déclarées avec la réalité collectée</li>
-  <li>☐ <strong>Registre des traitements</strong> RGPD (art. 30) tenu côté éditeur</li>
-  <li>☐ <strong>Analyse d'impact (AIPD/PIA)</strong> sur le traitement « pointage géolocalisé » et sur le traitement « signature électronique avec stockage IP » — recommandé par la CNIL</li>
-  <li>☐ <strong>Procédure interne de notification de violation</strong> (art. 33 — 72 h) — chaîne de responsabilité interne, modèle de notification client</li>
-  <li>☐ <strong>Procédure de demande RGPD</strong> (accès, rectification, effacement, portabilité) — formulaire et SLA 1 mois (art. 12)</li>
-  <li>☐ <strong>Désignation d'un DPO</strong> — recommandée mais non strictement obligatoire (l'éditeur ne fait pas du traitement à grande échelle au sens art. 37 ; le tenant employeur peut être tenu de désigner le sien)</li>
-</ul>
-
 <!-- ============== 20. Conclusion ============== -->
 <h2 id="sec-20">20. Conclusion</h2>
 
-<p>La plateforme est dans un état de <strong>maturité fonctionnelle élevée</strong> : modules métier complets, multi-tenant opérationnel avec auto-migration de schéma, calculs paie couverts par tests, sécurité socle forte et durcissements mobiles bancaires (cert pinning, bio-token, device trust, screenshot blocking, auto-lock, RT quota) — les deux derniers gatés Premium au runtime. La <strong>v3 ajoute une couche anti-fraude au signup</strong> (identifiant entreprise vérifié auprès des registres officiels Sirene/CBE, index unique filtré pour empêcher la multi-inscription gratuite, sélecteur pays FR/BE/MA/SN dynamique) <strong>et un durcissement de l'authentification</strong> (lockout progressif, vérification HIBP des mots de passe, alerte instantanée sur nouvel appareil avec révocation HMAC). Côté paiement, <strong>idempotence Stripe Checkout</strong>, <strong>anti-replay des webhooks</strong> et <strong>validation server-side du userCount</strong> ferment les vecteurs classiques (double facturation, rejeu, sous-déclaration).</p>
+<p>La plateforme est dans un état de <strong>maturité fonctionnelle élevée</strong> : modules métier complets, multi-tenant opérationnel avec auto-migration de schéma, calculs paie couverts par tests, sécurité socle forte et durcissements mobiles bancaires (cert pinning, bio-token, device trust, screenshot blocking, auto-lock, RT quota) — les deux derniers gatés Premium au runtime. La plateforme intègre <strong>une couche anti-fraude au signup</strong> (identifiant entreprise vérifié auprès des registres officiels Sirene/CBE, index unique filtré pour empêcher la multi-inscription gratuite, sélecteur pays FR/BE/MA/SN dynamique, filtrage des emails grand public) <strong>et un durcissement de l'authentification</strong> (lockout progressif, vérification HIBP des mots de passe, alerte instantanée sur nouvel appareil avec révocation HMAC). Côté paiement, <strong>idempotence Stripe Checkout</strong>, <strong>anti-replay des webhooks</strong> et <strong>validation server-side du userCount</strong> ferment les vecteurs classiques (double facturation, rejeu, sous-déclaration).</p>
 
-<p>La <strong>tarification commerciale est verrouillée</strong> (Starter 29,50 € / Standard 59,50 € / Premium 119 €) avec un modèle forfait + overage par salarié, période d'essai 30 jours sans CB, et facturation Stripe à 2 items avec synchronisation automatique des seats. La <strong>politique de résiliation</strong> est alignée sur l'engagement payé d'avance : <strong>remboursement prorata temporis automatique sur les abonnements annuels</strong> (Refund API Stripe vers la carte d'origine, métadonnées tracées pour audit) ; les abonnements mensuels conservent l'usage SaaS B2B standard (mois en cours dû, pas de remboursement).</p>
+<p>La <strong>tarification Early Launch</strong> (Starter 29,50 € · Standard 54 € · Premium 149 €), <em>réservée aux 10 premières entreprises partenaires avec engagement annuel</em>, repose sur un modèle forfait + overage par salarié, avec un mois gratuit sans CB et facturation Stripe à 2 items (forfait + produit unique <code>user_supp</code> pour les collaborateurs supplémentaires). Chaque pack a un <strong>plafond absolu</strong> de salariés (30 · 100 · 200) au-delà duquel un upgrade — ou l'offre Enterprise sur devis — est requis. La <strong>politique de résiliation</strong> est alignée sur l'engagement payé d'avance : <strong>remboursement prorata temporis automatique sur les abonnements annuels</strong> (Refund API Stripe vers la carte d'origine, métadonnées tracées pour audit) ; les abonnements mensuels conservent l'usage SaaS B2B standard (mois en cours dû, pas de remboursement).</p>
 
 <p>Le <strong>plan gating est appliqué de bout en bout</strong> : backend (<code>RequirePlanFeatureAttribute</code>), frontend (<code>planAllows</code>), mobile (hooks conditionnés au plan). Un tenant Starter ne peut pas accéder à l'app mobile, au coffre, à la signature, au reporting avancé, ni à l'IA — y compris par appel direct à l'API.</p>
 
@@ -1508,13 +1982,6 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https:;
 </ol>
 
 <p>L'architecture multi-tenant <em>DB-per-tenant</em> est adaptée au segment PME/ETI ciblé et offre une isolation forte. La stratégie commerciale tri-marché (France / Belgique / Afrique francophone) est cohérente avec les capacités techniques (multi-devise, skew horloge DST-safe, mobile-first).</p>
-
-<hr />
-
-<p class="small" style="text-align:center;">
-  Document généré à partir de l'inventaire de la base de code — 64 contrôleurs API, 131 entités EF, 22 écrans mobile, ~30 modules web.<br />
-  <strong>Version 3 du 2026-05-13</strong>. Intègre la couche anti-fraude au signup (validation SIRET/BCE/ICE/NINEA + index unique filtré + sélecteur pays FR/BE/MA/SN), le durcissement de l'authentification (lockout progressif, HIBP, alerte nouvel appareil + révocation HMAC), les protections paiement (idempotence Stripe, anti-replay webhooks, validation server-side du userCount) et la politique de remboursement prorata temporis sur les abonnements annuels résiliés en cours de période. Mises à jour à chaque itération significative.
-</p>
 
 </body>
 </html>

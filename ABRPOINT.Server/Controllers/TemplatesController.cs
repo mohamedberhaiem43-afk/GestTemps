@@ -326,15 +326,33 @@ namespace ABRPOINT.Server.Controllers
             }
             catch (Exception ex)
             {
-                // SEC-19 : on ne fuit pas ex.Message vers le client mais on log avec
-                // la stack trace complète + le contexte (template, soccod, empcod).
-                // Avant ce log, l'admin voyait juste un 400 opaque côté navigateur et
-                // ZÉRO trace serveur — impossible de diagnostiquer (collab absent en
-                // base, wkhtmltopdf manquant, placeholder NRE, etc.).
+                // SEC-19 : on ne fuit pas ex.Message vers le client (peut contenir
+                // SQL, paths, secrets…) mais on remonte le TYPE d'exception — utile
+                // au support pour diagnostiquer sans accès aux docker logs.
+                // PostgresException (42P01 = relation manquante, 42703 = colonne…)
+                // expose son SqlState qui est public et safe à remonter.
                 _log.LogError(ex,
                     "PreviewTemplate échoué — template={Name} soccod={Soccod} empcod={Empcod}",
                     name, soccod, empcod);
-                return BadRequest(new { message = "Erreur lors de la génération de l'aperçu (voir logs serveur)." });
+
+                var inner = ex.InnerException;
+                var exType = inner?.GetType().Name ?? ex.GetType().Name;
+                string? sqlState = null;
+                if (ex is Npgsql.PostgresException pg1) sqlState = pg1.SqlState;
+                else if (inner is Npgsql.PostgresException pg2) sqlState = pg2.SqlState;
+
+                return BadRequest(new
+                {
+                    message = "Erreur lors de la génération de l'aperçu.",
+                    errorType = exType,
+                    sqlState,
+                    hint = sqlState switch
+                    {
+                        "42P01" => "Table manquante côté DB tenant (relation introuvable). Probable mismatch de casse — vérifier les migrations.",
+                        "42703" => "Colonne manquante (probable migration partielle).",
+                        _ => null,
+                    },
+                });
             }
         }
 

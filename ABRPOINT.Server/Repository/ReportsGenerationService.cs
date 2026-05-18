@@ -666,29 +666,26 @@ namespace ABRPOINT.Server.Repository
                         {
                             // Cas 2 : chemin relatif "/api/uploads/<uuid>.ext" â€” on retombe sur
                             // le dossier rÃ©el (FileHelper.GetUploadsPath() gÃ¨re Docker vs dev).
-                            var fileName = socimg.Replace("/api/uploads/", "", StringComparison.OrdinalIgnoreCase)
-                                                 .Replace("/uploads/", "", StringComparison.OrdinalIgnoreCase)
-                                                 .TrimStart('/');
-                            // Sanitize : on n'autorise que le nom de fichier (pas de path traversal).
-                            fileName = Path.GetFileName(fileName);
-                            if (!string.IsNullOrEmpty(fileName))
+                            // ResolveUploadFilePath gere les DEUX formats : legacy "uploads/file.png"
+                            // ET le format per-tenant "uploads/{slug}/file.png" (2026-05). Avant on
+                            // appelait Path.GetFileName(rest) ce qui DROP le segment tenant pour
+                            // les uploads modernes -> fichier introuvable, logo silencieusement
+                            // omis du PDF (le seul symptome cote utilisateur).
+                            var diskPath = Helpers.FileHelper.ResolveUploadFilePath(socimg);
+                            if (!string.IsNullOrEmpty(diskPath) && System.IO.File.Exists(diskPath))
                             {
-                                var diskPath = Path.Combine(Helpers.FileHelper.GetUploadsPath(), fileName);
-                                if (System.IO.File.Exists(diskPath))
+                                var ext = Path.GetExtension(diskPath).TrimStart('.').ToLowerInvariant();
+                                var mime = ext switch
                                 {
-                                    var ext = Path.GetExtension(fileName).TrimStart('.').ToLowerInvariant();
-                                    var mime = ext switch
-                                    {
-                                        "jpg" or "jpeg" => "image/jpeg",
-                                        "png" => "image/png",
-                                        "gif" => "image/gif",
-                                        "webp" => "image/webp",
-                                        "svg" => "image/svg+xml",
-                                        _ => "application/octet-stream",
-                                    };
-                                    var bytes = System.IO.File.ReadAllBytes(diskPath);
-                                    logoDataUri = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
-                                }
+                                    "jpg" or "jpeg" => "image/jpeg",
+                                    "png" => "image/png",
+                                    "gif" => "image/gif",
+                                    "webp" => "image/webp",
+                                    "svg" => "image/svg+xml",
+                                    _ => "application/octet-stream",
+                                };
+                                var bytes = System.IO.File.ReadAllBytes(diskPath);
+                                logoDataUri = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
                             }
                         }
                     }
