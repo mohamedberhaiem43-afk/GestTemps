@@ -92,7 +92,7 @@ public class SiretValidator : ISiretValidator
             var root = doc.RootElement;
 
             if (!root.TryGetProperty("results", out var results) || results.GetArrayLength() == 0)
-                return new(false, "siret_not_found", "Aucune entreprise trouvée pour ce SIRET dans le référentiel Sirene.", null);
+                return new(false, "siret_not_found", "Aucune entreprise enregistrée pour ce SIRET dans le référentiel Sirene.", null);
 
             var entreprise = results[0];
             var etat = TryFindEtatForSiret(entreprise, siret);
@@ -254,7 +254,7 @@ public class SiretValidator : ISiretValidator
 
             using var resp = await http.SendAsync(req, ct);
             if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
-                return new(false, "siret_not_found", "Aucune entreprise trouvée pour ce numéro BCE dans le registre.", null);
+                return new(false, "siret_not_found", "Aucune entreprise enregistrée pour ce numéro BCE dans le registre.", null);
             if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized || resp.StatusCode == System.Net.HttpStatusCode.Forbidden)
             {
                 _log.LogWarning("cbeapi.be a refusé l'auth (Cbe:ApiKey invalide?). Fallback sur validation locale.");
@@ -321,7 +321,7 @@ public class SiretValidator : ISiretValidator
     /// <summary>
     /// VIES (VAT Information Exchange System) — service officiel EU, gratuit, sans
     /// clé. Pour la Belgique le BCE EST le n° TVA. Renvoie { name, address } ou
-    /// (null, null) si l'entreprise n'est pas trouvée ou si VIES est indisponible.
+    /// (null, null) si l'entreprise n'est pas enregistrée ou si VIES est indisponible.
     /// Toujours fail-open : ne JAMAIS bloquer le signup à cause d'un VIES en panne.
     /// </summary>
     private async Task<(string? Name, string? Address)> TryViesLookupAsync(string bce, CancellationToken ct)

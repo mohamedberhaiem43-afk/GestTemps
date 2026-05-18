@@ -391,7 +391,7 @@ export default function SignupPage() {
       };
       case 'format': return { color: 'error' as const, text: `Le numéro doit contenir ${countryConfig.idDigits} chiffres.` };
       case 'checksum': return { color: 'error' as const, text: `Numéro invalide (clé de contrôle ${country === 'FR' ? 'SIRET' : country === 'BE' ? 'mod 97' : ''}).` };
-      case 'not_found': return { color: 'error' as const, text: 'Aucune entreprise trouvée pour ce numéro dans le référentiel.' };
+      case 'not_found': return { color: 'error' as const, text: 'Aucune entreprise enregistrée pour ce numéro dans le référentiel.' };
       case 'closed': return { color: 'error' as const, text: 'Cet établissement est administrativement fermé.' };
       case 'already_used': return {
         color: 'error' as const,

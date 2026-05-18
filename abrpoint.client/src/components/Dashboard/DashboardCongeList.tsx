@@ -183,7 +183,7 @@ export default function DashboardCongeList({ data = [], isLoading }: DashboardCo
         <Box sx={{ textAlign: 'center', py: 6, px: 3 }}>
           <EventAvailableIcon sx={{ fontSize: 48, color: '#94a3b8', mb: 1 }} />
           <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>
-            Aucune demande de congé trouvée
+            Aucune demande de congé enregistrée
           </Typography>
           <Typography sx={{ fontSize: '12px', color: '#94a3b8', mt: 0.5 }}>
             Les nouvelles demandes apparaîtront ici

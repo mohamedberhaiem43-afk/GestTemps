@@ -104,7 +104,7 @@ Réponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de commentaires) a
 }
 
 Règles importantes:
-- Ne laisse aucune valeur null, utilise une chaîne vide "" si la valeur n'est pas trouvée
+- Ne laisse aucune valeur null, utilise une chaîne vide "" si la valeur n'est pas enregistrée
 - Pour empsexe: ""M"" pour masculin, ""F"" pour féminin
 - Pour empsitfam: ""C"" célibataire, ""M"" marié, ""D"" divorcé, ""V"" veuf
 - Pour empcontrat: déduis le type de contrat si possible
@@ -267,7 +267,7 @@ Règles importantes:
                 }
 
                 if (extractionResult?.ExtractedData == null)
-                    return Ok(new { success = false, message = "Aucune donnée d'employé trouvée dans le document." });
+                    return Ok(new { success = false, message = "Aucune donnée d'employé enregistrée dans le document." });
 
                 // Convert date formats from DD/MM/YYYY to YYYY-MM-DD for frontend
                 var data = extractionResult.ExtractedData;

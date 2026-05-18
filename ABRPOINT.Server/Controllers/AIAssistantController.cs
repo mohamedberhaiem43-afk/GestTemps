@@ -446,7 +446,7 @@ Pour poser un congé, [aller à la page demande de congé](#) ou consultez [NAVI
                 allResults = allResults.Where(r => r.Sercod == ctx.Sercod).ToList();
 
             if (allResults.Count == 0)
-                return Ok(new { response = $"❌ Aucune présence trouvée pour la période {p.DateDebut} → {p.DateFin}." });
+                return Ok(new { response = $"❌ Aucune présence enregistrée pour la période {p.DateDebut} → {p.DateFin}." });
 
             var firstGroup = allResults.GroupBy(x => x.Empcod).First().ToList();
             var totalRetardMinutes = firstGroup.Sum(x =>

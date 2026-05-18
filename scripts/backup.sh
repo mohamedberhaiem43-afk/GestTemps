@@ -60,7 +60,7 @@ DBS=$(docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" -i "$DB_CONTAINER" \
   -c "SELECT datname FROM pg_database WHERE datname = 'abrpoint_master' OR datname LIKE 'tenant_%' ORDER BY datname;")
 
 if [[ -z "$DBS" ]]; then
-  echo "[WARN] Aucune base abrpoint_master ni tenant_* trouvée" >&2
+  echo "[WARN] Aucune base abrpoint_master ni tenant_* enregistrée" >&2
 fi
 
 for DB in $DBS; do

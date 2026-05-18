@@ -128,7 +128,7 @@ export default function MonAbonnementPage() {
   // et préserve toutes les données du tenant (employés, contrats, pointages…).
   const handleReactivate = async () => {
     if (!info?.planCode) {
-      setError("Aucune formule précédente trouvée. Contactez le support.");
+      setError("Aucune formule précédente enregistrée. Contactez le support.");
       return;
     }
     setSubmitting(true);

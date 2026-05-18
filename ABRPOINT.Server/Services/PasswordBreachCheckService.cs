@@ -18,7 +18,7 @@ namespace ABRPOINT.Server.Services;
 public interface IPasswordBreachChecker
 {
     /// <summary>
-    /// Retourne le nombre d'occurrences trouvées dans les fuites publiques.
+    /// Retourne le nombre d'occurrences enregistrées dans les fuites publiques.
     /// 0 = jamais fuité. >0 = le mot de passe a été vu N fois dans des breaches connus.
     /// Si l'API HIBP est inaccessible, on retombe sur 0 (fail-open) pour ne pas bloquer
     /// le signup légitime — le tradeoff sécurité/disponibilité penche vers l'inscription.

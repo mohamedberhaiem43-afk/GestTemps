@@ -102,6 +102,13 @@ export default function InlineAuthCard() {
   };
 
   // ── SIGNUP STATE (mirrors SignupPage) ───────────────────────────
+  // Pack choisi par l'utilisateur AVANT inscription. Le pack détermine les
+  // features disponibles dès l'entrée en Trialing 30j (cf. backend SignupController).
+  // Pré-sélection 'Standard' = pack le plus populaire (parité avec PricingPage).
+  type PlanPick = 'Starter' | 'Standard' | 'Premium';
+  const [selectedPlan, setSelectedPlan] = useState<PlanPick>('Standard');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+
   const [companyName, setCompanyName] = useState('');
   const [slug, setSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
@@ -406,8 +413,12 @@ export default function InlineAuthCard() {
         adminLastName: lastName.trim(),
         adminEmail: signupEmail.trim(),
         adminPassword: signupPassword,
-        planCode: null,
-        billingCycle: null,
+        // Pack + cycle choisis dans le sélecteur ci-dessus. Avant le fix
+        // 2026-05-18, on envoyait planCode:null → tenant créé sans plan, donc
+        // toutes les features Standard/Premium désactivées jusqu'à ce que
+        // l'admin re-choisisse manuellement depuis /dashboard/mon-abonnement.
+        planCode: selectedPlan,
+        billingCycle,
         requiresPayment: false,
         captchaChallengeId,
         captchaAnswer: captchaAnswer === '' ? null : Number(captchaAnswer),
@@ -514,6 +525,57 @@ export default function InlineAuthCard() {
 
       {tab === 'register' && (
         <form onSubmit={handleSignup}>
+          {/* Sélecteur de pack — affiché en HAUT du formulaire pour que l'utilisateur
+              choisisse explicitement Starter / Standard / Premium AVANT toute autre
+              information. Le pack est envoyé à /api/signup comme planCode et applique
+              les features correspondantes dès l'entrée en Trialing 30j. */}
+          <div className="signup-plan-picker">
+            <div className="signup-plan-picker-header">
+              <span className="form-label" style={{ margin: 0 }}>Choisissez votre pack d'essai</span>
+              <div className="signup-cycle-toggle" role="tablist" aria-label="Cycle de facturation">
+                <button type="button" role="tab" aria-selected={billingCycle === 'monthly'}
+                  className={`signup-cycle-btn${billingCycle === 'monthly' ? ' active' : ''}`}
+                  onClick={() => setBillingCycle('monthly')}>
+                  Mensuel
+                </button>
+                <button type="button" role="tab" aria-selected={billingCycle === 'annual'}
+                  className={`signup-cycle-btn${billingCycle === 'annual' ? ' active' : ''}`}
+                  onClick={() => setBillingCycle('annual')}>
+                  Annuel <span className="signup-cycle-badge">-20%</span>
+                </button>
+              </div>
+            </div>
+            <div className="signup-plan-grid">
+              {([
+                { key: 'Starter',  label: 'Starter',  monthly: 29.5,  seats: 10, tagline: 'TPE & startups' },
+                { key: 'Standard', label: 'Standard', monthly: 54,    seats: 15, tagline: 'PME en croissance', popular: true },
+                { key: 'Premium',  label: 'Premium',  monthly: 149,   seats: 30, tagline: 'Multi-filiales' },
+              ] as Array<{ key: PlanPick; label: string; monthly: number; seats: number; tagline: string; popular?: boolean }>)
+                .map((p) => {
+                  const selected = selectedPlan === p.key;
+                  const price = billingCycle === 'monthly' ? p.monthly : p.monthly * 12 * 0.8;
+                  const fmt = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(price);
+                  return (
+                    <button type="button" key={p.key} aria-pressed={selected}
+                      className={`signup-plan-card${selected ? ' selected' : ''}${p.popular ? ' popular' : ''}`}
+                      onClick={() => setSelectedPlan(p.key)}>
+                      {p.popular && <span className="signup-plan-popular">Populaire</span>}
+                      <div className="signup-plan-name">{p.label}</div>
+                      <div className="signup-plan-tag">{p.tagline}</div>
+                      <div className="signup-plan-price">
+                        <span className="signup-plan-amount">{fmt} €</span>
+                        <span className="signup-plan-period">/ {billingCycle === 'monthly' ? 'mois' : 'an'} HT</span>
+                      </div>
+                      <div className="signup-plan-seats">{p.seats} salariés inclus</div>
+                    </button>
+                  );
+                })}
+            </div>
+            <div className="form-hint form-hint--info" style={{ marginTop: 6 }}>
+              🎁 1 mois d'essai gratuit sans carte bancaire — annulable en 1 clic.
+            </div>
+          </div>
+
           {/* Ordre des champs (2026-05) : Pays + ID entreprise + email pro EN
               PREMIER (avant prénom/nom). Le pays détermine le format de l'ID ;
               un ID valide auto-remplit le nom + l'adresse de l'entreprise. */}

@@ -41,16 +41,29 @@ const PlanConfigurationPage: React.FC = () => {
   const location = useLocation();
   const { uticod } = useAuth();
   const isAuthenticated = Boolean(uticod);
-  // Plan + cycle viennent en général de PricingPage via location.state ; valeurs par défaut
-  // si l'utilisateur arrive directement sur l'URL.
+  // Plan + cycle peuvent arriver de DEUX façons :
+  //   1. location.state.plan — utilisé par PricingPage (passé via navigate(..., { state }))
+  //   2. query string ?plan=Starter&cycle=annual — utilisé par HomePage et tout deep-link
+  //      externe (mail, doc commerciale). Avant le fix 2026-05-18, seul (1) était lu,
+  //      donc tout clic depuis la home retombait silencieusement sur 'Standard' quel que
+  //      soit le pack cliqué.
+  // Normalisation de la casse pour matcher PLAN_CATALOG ('Starter', 'Standard', 'Premium').
   const initialState = (location.state ?? {}) as {
     plan?: string;
     cycle?: 'monthly' | 'annual';
     userCount?: number;
   };
-  const planCode: PlanKey = ((initialState.plan as PlanKey) in PLAN_CATALOG
-    ? (initialState.plan as PlanKey)
+  const queryParams = new URLSearchParams(location.search);
+  const rawPlanFromUrl = (initialState.plan ?? queryParams.get('plan') ?? '').trim();
+  const normalizedPlan = rawPlanFromUrl
+    ? rawPlanFromUrl.charAt(0).toUpperCase() + rawPlanFromUrl.slice(1).toLowerCase()
+    : '';
+  const planCode: PlanKey = (normalizedPlan in PLAN_CATALOG
+    ? (normalizedPlan as PlanKey)
     : 'Standard');
+  const rawCycleFromUrl = (queryParams.get('cycle') ?? '').toLowerCase();
+  const cycleFromUrl: 'monthly' | 'annual' | undefined =
+    rawCycleFromUrl === 'monthly' || rawCycleFromUrl === 'annual' ? rawCycleFromUrl : undefined;
   const plan = PLAN_CATALOG[planCode];
   // Par défaut + cap dur : le nombre de salariés est borné par l'inclus du pack
   // (10 / 25 / 50). Les collaborateurs supplémentaires (au-delà du quota inclus) sont
@@ -61,7 +74,7 @@ const PlanConfigurationPage: React.FC = () => {
     const requested = initialState.userCount ?? plan.includedEmployees;
     return Math.min(requested, plan.includedEmployees);
   });
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialState.cycle ?? 'annual');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialState.cycle ?? cycleFromUrl ?? 'annual');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();

@@ -274,7 +274,7 @@ export const ListAllaitementModern: React.FC = () => {
                 <TableRow>
                   <TableCell colSpan={5} sx={{ py: 4, textAlign: 'center' }}>
                     <Typography sx={{ color: '#515f74', fontSize: '14px' }}>
-                      Aucune période d'allaitement trouvée
+                      Aucune période d'allaitement enregistrée
                     </Typography>
                   </TableCell>
                 </TableRow>

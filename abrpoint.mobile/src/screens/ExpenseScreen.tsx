@@ -342,7 +342,7 @@ export default function ExpenseScreen({ navigation }: any) {
             {filteredExpenses.length === 0 ? (
               <View style={styles.emptyState}>
                 <MaterialCommunityIcons name="file-document-outline" size={48} color={COLORS.outlineVariant} />
-                <Text style={styles.emptyText}>Aucune dépense trouvée</Text>
+                <Text style={styles.emptyText}>Aucune dépense enregistrée</Text>
               </View>
             ) : (
               filteredExpenses.map((exp, idx) => {

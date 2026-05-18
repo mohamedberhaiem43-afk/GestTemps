@@ -114,7 +114,7 @@ namespace ABRPOINT.Server.Controllers
                 Sanction? sanction = await _sanctionRepository.GetSanctionAsync(soccod, concod);
                 if (sanction == null)
                 {
-                    return NotFound($"sanction avec cod {concod} non trouvée");
+                    return NotFound($"sanction avec cod {concod} non enregistrée");
                 }
                 await _sanctionRepository.DeleteAsync(sanction);
                 return Ok("sanction supprimée avec succées");

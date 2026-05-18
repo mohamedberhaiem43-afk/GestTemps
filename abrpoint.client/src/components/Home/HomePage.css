@@ -836,6 +836,88 @@
 }
 .home-page .auth-submit:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; transform: none; }
 .home-page .auth-submit:disabled:hover { transform: none; box-shadow: none; }
+
+/* ── Sélecteur de pack dans InlineAuthCard (signup tab) ───────────── */
+.home-page .signup-plan-picker { margin-bottom: 22px; }
+.home-page .signup-plan-picker-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.home-page .signup-cycle-toggle {
+  display: inline-flex; padding: 3px;
+  background: var(--hp-surface-container-low);
+  border: 1px solid var(--hp-surface-container-high);
+  border-radius: 10px;
+}
+.home-page .signup-cycle-btn {
+  border: none; background: transparent; cursor: pointer;
+  padding: 6px 12px; font-size: 12px; font-weight: 600;
+  color: var(--hp-on-surface-variant); border-radius: 7px;
+  font-family: var(--hp-font-body); display: inline-flex; align-items: center; gap: 5px;
+  transition: all 0.18s;
+}
+.home-page .signup-cycle-btn.active {
+  background: var(--hp-surface-container-lowest);
+  color: var(--hp-primary);
+  box-shadow: 0 1px 3px rgba(15,23,42,0.08);
+}
+.home-page .signup-cycle-badge {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.2px;
+  background: var(--hp-tertiary-fixed); color: var(--hp-tertiary);
+  padding: 1px 5px; border-radius: 99px;
+}
+.home-page .signup-plan-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.home-page .signup-plan-card {
+  position: relative; padding: 12px 10px 10px;
+  border-radius: 12px; border: 1.5px solid var(--hp-surface-container-high);
+  background: var(--hp-surface-container-lowest);
+  text-align: left; cursor: pointer; font-family: var(--hp-font-body);
+  transition: all 0.18s; color: var(--hp-on-surface);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.home-page .signup-plan-card:hover {
+  border-color: var(--hp-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0,64,161,0.08);
+}
+.home-page .signup-plan-card.selected {
+  border-color: var(--hp-primary); border-width: 2px;
+  background: var(--hp-primary-fixed);
+  box-shadow: 0 0 0 3px rgba(0,64,161,0.10);
+}
+.home-page .signup-plan-card.popular::after {
+  content: '';
+}
+.home-page .signup-plan-popular {
+  position: absolute; top: -7px; right: 8px;
+  font-size: 9px; font-weight: 800; letter-spacing: 0.3px;
+  background: var(--hp-primary); color: #fff;
+  padding: 2px 7px; border-radius: 99px; text-transform: uppercase;
+}
+.home-page .signup-plan-name {
+  font-size: 13px; font-weight: 800; color: var(--hp-primary);
+}
+.home-page .signup-plan-tag {
+  font-size: 10px; color: var(--hp-on-surface-variant); font-weight: 500;
+}
+.home-page .signup-plan-price {
+  display: flex; align-items: baseline; gap: 3px; margin-top: 4px;
+}
+.home-page .signup-plan-amount {
+  font-size: 16px; font-weight: 800; color: var(--hp-on-surface);
+  letter-spacing: -0.4px;
+}
+.home-page .signup-plan-period {
+  font-size: 10px; color: var(--hp-on-surface-variant); font-weight: 600;
+}
+.home-page .signup-plan-seats {
+  font-size: 10px; color: var(--hp-on-surface-variant); font-weight: 500;
+}
+@media (max-width: 640px) {
+  .home-page .signup-plan-grid { grid-template-columns: 1fr; }
+}
 .home-page .auth-benefits { display: flex; flex-direction: column; gap: 32px; }
 .home-page .benefit-item { display: flex; gap: 20px; align-items: flex-start; }
 .home-page .benefit-icon {

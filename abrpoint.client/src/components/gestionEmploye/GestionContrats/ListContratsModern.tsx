@@ -299,7 +299,7 @@ const ListContratsModern = ({ onEdit, onRenew }: ListContratsModernProps) => {
                 <TableRow>
                   <TableCell colSpan={6} sx={{ py: 4, textAlign: 'center' }}>
                     <Typography sx={{ color: '#515f74', fontSize: '14px' }}>
-                      Aucun contrat trouvé
+                      Aucun contrat enregistré
                     </Typography>
                   </TableCell>
                 </TableRow>

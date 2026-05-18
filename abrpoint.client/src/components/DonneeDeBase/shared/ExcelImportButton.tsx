@@ -70,7 +70,7 @@ export default function ExcelImportButton({
       }).filter(r => Object.values(r).some(v => v !== undefined && v !== ''));
 
       if (rows.length === 0) {
-        feedback.showWarning('Aucune ligne valide trouvée dans le fichier.');
+        feedback.showWarning('Aucune ligne valide enregistrée dans le fichier.');
         return;
       }
 

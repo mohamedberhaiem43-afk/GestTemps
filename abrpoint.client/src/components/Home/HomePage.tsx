@@ -104,7 +104,16 @@ export default function HomePage() {
   };
   const goToSignup = () => scrollToAuth();
   const goToLogin = () => scrollToAuth();
-  const goToPlanConfig = (plan: string) => navigate(`/plan-configuration?plan=${plan}`);
+  // Plan + cycle passés en query string ET en location.state pour que
+  // PlanConfigurationPage les retrouve quelle que soit la source de navigation.
+  // Avant le fix 2026-05-18, seule la query string était envoyée mais la page
+  // lisait uniquement location.state → tout clic retombait sur 'Standard'.
+  const goToPlanConfig = (plan: string) => {
+    const cycle = billingCycle;
+    navigate(`/plan-configuration?plan=${encodeURIComponent(plan)}&cycle=${cycle}`, {
+      state: { plan, cycle },
+    });
+  };
 
   return (
     <div className="home-page" ref={containerRef}>

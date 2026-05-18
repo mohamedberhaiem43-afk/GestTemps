@@ -1533,7 +1533,7 @@ namespace ABRPOINT.Server.Repository
                     return existing;
                 }
 
-                // Aucune ligne (Soccod, Sitcod, Empcod) trouvée : on signale au lieu de
+                // Aucune ligne (Soccod, Sitcod, Empcod) enregistrée : on signale au lieu de
                 // renvoyer un Employe vide qui ferait croire à un succès au contrôleur.
                 throw new KeyNotFoundException(
                     $"Employé introuvable pour Soccod='{employe.Soccod}', Sitcod='{employe.Sitcod}', Empcod='{employe.Empcod}'.");
