@@ -38,6 +38,26 @@ const CURRENCIES: { code: string; symbol: string; label: string }[] = [
 const currencySymbol = (code?: string | null): string =>
   CURRENCIES.find(c => c.code === code)?.symbol || code || '€';
 
+// Mission attachée à une note de frais (cf. MissionsController.cs). On affiche
+// l'objet + les bornes dates pour que le collaborateur identifie la mission
+// concernée même quand plusieurs missions se chevauchent.
+interface Mission {
+  id: number;
+  misobj: string;
+  misdest?: string | null;
+  misdatedeb: string;
+  misdatefin: string;
+  misetat?: string | null;
+}
+
+const fmtMissionDates = (deb?: string, fin?: string) => {
+  try {
+    const d1 = deb ? new Date(deb).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '—';
+    const d2 = fin ? new Date(fin).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—';
+    return `${d1} → ${d2}`;
+  } catch { return ''; }
+};
+
 const STATUS_FILTERS = [
   { key: 'all',        label: 'Tous' },
   { key: 'pending',    label: 'En attente' },
@@ -72,15 +92,24 @@ export default function ExpenseScreen({ navigation }: any) {
   // categorieDetail : précision libre saisie quand l'utilisateur choisit "Autre".
   // À l'envoi, on encode dans la colonne `categorie` ("Autre: <détail>") pour
   // que la comptabilité voie la nature exacte sans changer le schéma BD.
-  const defaultForm = { titre: '', categorie: 'Repas', categorieDetail: '', montant: '', devise: 'EUR', projet: '', dateDepense: new Date() };
+  // missionId : optionnel — permet de rattacher la dépense à une mission existante
+  // (ordre de mission), aligné sur le comportement web (RemboursementModern.tsx).
+  const defaultForm = { titre: '', categorie: 'Repas', categorieDetail: '', montant: '', devise: 'EUR', projet: '', dateDepense: new Date(), missionId: null as number | null };
   const [form, setForm] = useState(defaultForm);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [showMissionPicker, setShowMissionPicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => { loadExpenses(); }, [user]);
+  // Missions du collaborateur courant. Chargées au mount + à chaque refresh —
+  // le serveur renvoie déjà la liste triée par date décroissante côté
+  // MissionsController.GetByEmp. Une mission Cancelled est filtrée côté UI
+  // (l'utilisateur ne devrait pas pouvoir rattacher une note à une mission annulée).
+  const [missions, setMissions] = useState<Mission[]>([]);
+
+  useEffect(() => { loadExpenses(); loadMissions(); }, [user]);
 
   const loadExpenses = async () => {
     if (!user?.soccod || !user?.uticod) return;
@@ -90,6 +119,20 @@ export default function ExpenseScreen({ navigation }: any) {
     } catch (e) { console.log('Expenses load error:', e); }
     finally { setLoading(false); }
   };
+
+  const loadMissions = async () => {
+    if (!user?.soccod || !user?.uticod) return;
+    try {
+      const data = await apiService.getMissionsByEmp(user.soccod, user.uticod);
+      const list: Mission[] = Array.isArray(data) ? data : [];
+      setMissions(list.filter(m => (m.misetat || '').toLowerCase() !== 'cancelled'));
+    } catch (e) { console.log('Missions load error:', e); }
+  };
+
+  const selectedMission = useMemo(
+    () => missions.find(m => m.id === form.missionId) || null,
+    [missions, form.missionId]
+  );
 
   const onRefresh = async () => { setRefreshing(true); await loadExpenses(); setRefreshing(false); };
 
@@ -142,6 +185,7 @@ export default function ExpenseScreen({ navigation }: any) {
         dateDepense: form.dateDepense.toISOString().split('T')[0],
         projet: form.projet || undefined,
         devise: form.devise || 'EUR',
+        missionId: form.missionId ?? undefined,
       }, imageUri || undefined);
       Alert.alert('Succès', 'Note de frais soumise');
       setShowForm(false);
@@ -408,6 +452,41 @@ export default function ExpenseScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
 
+              <Text style={styles.label}>Mission rattachée (optionnel)</Text>
+              <TouchableOpacity
+                style={styles.missionInput}
+                onPress={() => setShowMissionPicker(true)}
+                activeOpacity={0.7}
+              >
+                <View style={{ flex: 1 }}>
+                  {selectedMission ? (
+                    <>
+                      <Text style={styles.missionInputText} numberOfLines={1}>
+                        {selectedMission.misobj}
+                      </Text>
+                      <Text style={styles.missionInputMeta} numberOfLines={1}>
+                        {fmtMissionDates(selectedMission.misdatedeb, selectedMission.misdatefin)}
+                        {selectedMission.misdest ? ` · ${selectedMission.misdest}` : ''}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={[styles.missionInputText, { color: COLORS.outline, fontWeight: '500' }]}>
+                      {missions.length === 0 ? 'Aucune mission disponible' : 'Choisir une mission…'}
+                    </Text>
+                  )}
+                </View>
+                {selectedMission ? (
+                  <TouchableOpacity
+                    onPress={(e) => { e.stopPropagation(); setForm({ ...form, missionId: null }); }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <MaterialCommunityIcons name="close-circle" size={18} color={COLORS.outline} />
+                  </TouchableOpacity>
+                ) : (
+                  <MaterialCommunityIcons name="chevron-down" size={20} color={COLORS.outline} />
+                )}
+              </TouchableOpacity>
+
               <Text style={styles.label}>Projet (optionnel)</Text>
               <TextInput
                 style={styles.textInput}
@@ -492,6 +571,69 @@ export default function ExpenseScreen({ navigation }: any) {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+          </View>
+        </View>
+      )}
+
+      {/* Picker mission — bottom sheet scrollable. Liste les missions du
+          collaborateur courant (filtrées Cancelled), avec objet + bornes + destination.
+          Tap → sélection ; bouton X dans le champ → désélection. */}
+      {showMissionPicker && (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.formCard, { maxHeight: '70%', paddingBottom: formCardPaddingBottom }]}>
+            <View style={styles.formHeader}>
+              <Text style={styles.formHeaderTitle}>Choisir une mission</Text>
+              <TouchableOpacity onPress={() => setShowMissionPicker(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <MaterialCommunityIcons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            {missions.length === 0 ? (
+              <View style={{ alignItems: 'center', paddingVertical: 36, gap: 8 }}>
+                <MaterialCommunityIcons name="briefcase-off-outline" size={42} color={COLORS.outlineVariant} />
+                <Text style={{ fontSize: 13, color: COLORS.outline, fontWeight: '600' }}>
+                  Aucune mission active à rattacher.
+                </Text>
+                <Text style={{ fontSize: 11, color: COLORS.outline, textAlign: 'center', paddingHorizontal: 20 }}>
+                  Créez une mission depuis l'écran « Missions » avant d'y attacher des notes de frais.
+                </Text>
+              </View>
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <TouchableOpacity
+                  style={[styles.missionItem, form.missionId == null && styles.missionItemActive]}
+                  onPress={() => { setForm({ ...form, missionId: null }); setShowMissionPicker(false); }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.missionItemTitle}>Aucune mission</Text>
+                    <Text style={styles.missionItemMeta}>Note de frais hors ordre de mission</Text>
+                  </View>
+                  {form.missionId == null && (
+                    <MaterialCommunityIcons name="check-circle" size={20} color={COLORS.primary} />
+                  )}
+                </TouchableOpacity>
+                {missions.map((m) => {
+                  const active = form.missionId === m.id;
+                  return (
+                    <TouchableOpacity
+                      key={m.id}
+                      style={[styles.missionItem, active && styles.missionItemActive]}
+                      onPress={() => { setForm({ ...form, missionId: m.id }); setShowMissionPicker(false); }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.missionItemTitle} numberOfLines={1}>{m.misobj}</Text>
+                        <Text style={styles.missionItemMeta} numberOfLines={1}>
+                          {fmtMissionDates(m.misdatedeb, m.misdatefin)}
+                          {m.misdest ? ` · ${m.misdest}` : ''}
+                        </Text>
+                      </View>
+                      {active && (
+                        <MaterialCommunityIcons name="check-circle" size={20} color={COLORS.primary} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
           </View>
         </View>
       )}
@@ -643,6 +785,21 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12, padding: 16,
   },
   dateInputText: { fontSize: 14, fontWeight: '600', color: COLORS.onSurface },
+
+  missionInput: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12, padding: 16,
+  },
+  missionInputText: { fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
+  missionInputMeta: { fontSize: 11, fontWeight: '600', color: COLORS.outline, marginTop: 2 },
+  missionItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 14, paddingHorizontal: 4,
+    borderBottomWidth: 1, borderBottomColor: COLORS.outlineVariant,
+  },
+  missionItemActive: { backgroundColor: COLORS.primaryFixed },
+  missionItemTitle: { fontSize: 13, fontWeight: '700', color: COLORS.onSurface },
+  missionItemMeta: { fontSize: 11, fontWeight: '600', color: COLORS.outline, marginTop: 2 },
 
   uploadArea: {
     backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12,
