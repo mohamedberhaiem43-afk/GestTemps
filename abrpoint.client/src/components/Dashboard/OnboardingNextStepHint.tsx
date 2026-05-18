@@ -154,15 +154,12 @@ export default function OnboardingNextStepHint({ currentStep, dataCount, hideWhe
   if (hideWhenIdle && !isCurrentDone && (dataCount ?? 0) === 0) return null;
 
   const handleContinue = () => {
-    // Marquer l'étape comme faite (au cas où elle ne l'est pas déjà via dataCount)
-    // puis naviguer vers la suivante. Si on est déjà à la dernière, on ne va nulle part.
-    if (!state.done[currentStep]) {
-      setState(prev => {
-        const upd = { ...prev, done: { ...prev.done, [currentStep]: true } };
-        saveState(soccod ?? '', upd);
-        return upd;
-      });
-    }
+    // ⚠ Avant : on forçait l'étape à "faite" ici aussi, ce qui permettait à
+    // l'utilisateur de cocher tout le parcours en cliquant juste sur les CTAs
+    // sans créer aucune donnée → confetti à tort.
+    // Maintenant : on ne marque rien manuellement. Le `useEffect` ci-dessus
+    // marque déjà l'étape comme faite si `dataCount > 0` (donc seulement si la
+    // page contient réellement au moins 1 élément). On se contente de naviguer.
     if (next) navigate(next.route);
   };
 
