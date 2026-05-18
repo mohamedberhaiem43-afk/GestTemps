@@ -55,14 +55,19 @@ public static class TrialPolicy
     {
         if (IsTrialing(tenant))
         {
-            // Pendant l'essai, on borne dur à 10 salariés / 1 société / 1 site même si le
-            // tenant a déjà coché un plan supérieur — l'essai sert à valider la solution
-            // sur un échantillon, pas à utiliser la full grille.
+            // 2026-05-18 — Pendant l'essai, les limites reflètent le PACK CHOISI par le
+            // tenant (Starter 10 / Standard 15 / Premium 30) et non plus un plafond hardcodé
+            // à 10. Avant : un user qui sélectionnait Standard voyait quand même "10
+            // collaborateurs" dans le bandeau d'essai → contradictoire avec la grille
+            // commerciale (Standard = 15 inclus). Maintenant on s'aligne sur
+            // PlanCatalog.IncludedEmployees du pack choisi ; fallback Starter (10) si
+            // aucun plan n'est encore sélectionné.
+            var trialPlan = PlanCatalog.GetPlan(tenant?.PlanCode) ?? PlanCatalog.Starter;
             return new PlanLimits(
-                MaxEmployees: MaxEmployees,
-                MaxSocietes: MaxSocietes,
-                MaxSites: MaxSites,
-                IncludedEmployees: MaxEmployees,
+                MaxEmployees: trialPlan.IncludedEmployees,
+                MaxSocietes: trialPlan.MaxSocietes ?? MaxSocietes,
+                MaxSites: trialPlan.MaxSites ?? MaxSites,
+                IncludedEmployees: trialPlan.IncludedEmployees,
                 OverageRatePerEmployee: 0m);
         }
 

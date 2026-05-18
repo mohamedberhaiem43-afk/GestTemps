@@ -140,7 +140,7 @@ export default function MonAbonnementPage() {
         billingCycle: 'monthly',
         userCount: 1,
         successUrl: `${origin}/dashboard?reactivated=1&session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${origin}/dashboard/abonnement?reactivate=cancelled`,
+        cancelUrl: `${origin}/dashboard/mon-abonnement?reactivate=cancelled`,
       });
       if (data?.url) {
         window.location.href = data.url;
