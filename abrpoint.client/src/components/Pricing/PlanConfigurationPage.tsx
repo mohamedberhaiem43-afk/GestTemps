@@ -272,7 +272,7 @@ const PlanConfigurationPage: React.FC = () => {
                       billingCycle === 'annual' ? 'bg-white shadow-md text-primary' : 'text-outline hover:text-on-surface'
                     }`}
                   >
-                    Annuel <span className="text-[10px] text-tertiary ml-1">(-20%)</span>
+                    Annuel
                   </button>
                 </div>
 

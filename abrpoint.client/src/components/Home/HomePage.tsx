@@ -123,8 +123,7 @@ export default function HomePage() {
           dessous (cf. .offers-marquee-top dans HomePage.css). */}
       <nav className={`hp-nav${scrolled ? ' scrolled' : ''}`}>
         <div className="nav-logo">
-          <img className="logo-mark" src="/logo-256.png" alt="Concorde Workforce" />
-          <span>Concorde Workforce</span>
+          <img className="logo-mark" src="/concorde-wrokly-logo.jpg" alt="Concorde Workforce" />
         </div>
         <ul className="nav-links">
           <li><a href="#features">Fonctionnalités</a></li>
@@ -150,7 +149,6 @@ export default function HomePage() {
           {[0, 1].map((dup) => (
             <div className="offers-marquee-row" key={dup}>
               <span className="offer-chip"><span className="offer-chip-icon">🎁</span> Essai gratuit 1 mois — sans CB</span>
-              <span className="offer-chip"><span className="offer-chip-icon">📉</span> −20 % en facturation annuelle</span>
               <span className="offer-chip"><span className="offer-chip-icon">⚡</span> Déploiement en 2 semaines</span>
               <span className="offer-chip"><span className="offer-chip-icon">🤖</span> IA Assistant RH dès 49 € / mois</span>
               <span className="offer-chip"><span className="offer-chip-icon">💾</span> +100 Go de stockage à 29 €</span>
@@ -540,7 +538,6 @@ export default function HomePage() {
         <div className="pricing-toggle">
           <button type="button" className={`toggle-btn${monthly ? ' active' : ''}`} onClick={() => setBillingCycle('monthly')}>Mensuel</button>
           <button type="button" className={`toggle-btn${!monthly ? ' active' : ''}`} onClick={() => setBillingCycle('annual')}>Annuel</button>
-          <span className="save-badge">−20%</span>
         </div>
         <div className="pricing-grid reveal">
           {/* Starter */}
@@ -549,18 +546,18 @@ export default function HomePage() {
             <div className="price-amount">
               <span className="currency">€</span>{prices.starter}<span className="period">{pricePeriod}</span>
             </div>
-            <div className="price-included">10 collaborateurs inclus · 5 Go de stockage</div>
-            <div className="price-per">+ 4,90 € / collaborateur supplémentaire · jusqu'à 30 max</div>
+            <div className="price-included">10 collaborateurs · 5 Go de stockage</div>
+            <div className="price-per">Cap dur à 10 salariés · pas de salariés supplémentaires</div>
             <div className="price-desc">Pour les TPE et startups qui démarrent la digitalisation RH d'une petite équipe.</div>
             <div className="price-features">
               <div className="pf-item"><span className="pf-check">✓</span> 1 mois gratuit sans carte bancaire</div>
               <div className="pf-item"><span className="pf-check">✓</span> Pointage web simple</div>
               <div className="pf-item"><span className="pf-check">✓</span> Gestion RH basique (fiches, contrats)</div>
               <div className="pf-item"><span className="pf-check">✓</span> Absences & dashboard basique</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Exports simples</div>
               <div className="pf-item"><span className="pf-check">✓</span> 1 administrateur · support standard</div>
               <div className="pf-item"><span className="pf-x">✕</span> <span className="pf-muted">Application mobile</span></div>
               <div className="pf-item"><span className="pf-x">✕</span> <span className="pf-muted">Coffre numérique</span></div>
+              <div className="pf-item"><span className="pf-x">✕</span> <span className="pf-muted">Export paie</span></div>
             </div>
             <button type="button" className="btn-plan btn-plan-ghost" onClick={() => goToPlanConfig('Starter')}>Choisir Starter</button>
           </div>
@@ -782,7 +779,7 @@ export default function HomePage() {
         <div className="footer-grid">
           <div>
             <div className="footer-logo nav-logo">
-              <img className="logo-mark" src="/logo-256.png" alt="Concorde Workforce" />
+              <img className="logo-mark" src="/concorde-wrokly-logo.jpg" alt="Concorde Workforce" />
               <span>Concorde Workforce</span>
             </div>
             <div className="footer-desc">

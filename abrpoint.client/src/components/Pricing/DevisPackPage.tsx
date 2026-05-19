@@ -92,10 +92,11 @@ export default function DevisPackPage() {
     return () => { cancelled = true; };
   }, []);
 
-  // Calcul des 2 prochaines factures. Si le tenant est encore en essai, on positionne
-  // la première facture au lendemain de la fin d'essai (et on applique la remise
-  // « 1 mois offert » qui couvre la période d'essai déjà consommée). Sinon, première
-  // facture aujourd'hui.
+  // 2 prochaines factures à plein tarif. L'essai gratuit n'apparaît PAS dans le
+  // devis : il est tout simplement non facturé (pas de ligne d'avoir « 1 mois
+  // offert »). Pour un tenant encore en essai, la première facture tombe à la fin
+  // d'essai (date à partir de laquelle Stripe commence à facturer) ; sinon
+  // première facture immédiate.
   const invoices = useMemo(() => {
     if (!plan) return [];
     const price = PLAN_PRICES[plan][cycle];
@@ -113,9 +114,6 @@ export default function DevisPackPage() {
         periodEnd: firstPeriodEnd,
         lines: [
           { label: `Abonnement Pack ${plan}`, amount: price },
-          // Promo « 1 mois offert » correspondant à la période d'essai consommée.
-          // On l'affiche uniquement si le tenant est en Trialing (sinon plein tarif dès J1).
-          ...(isTrialing ? [{ label: 'Offre commerciale — 1 mois offert', amount: -price }] : []),
         ],
       },
       {
@@ -286,9 +284,10 @@ export default function DevisPackPage() {
                 </Typography>
                 {isTrialing && (
                   <Typography sx={{ color: '#475569', fontSize: 13, lineHeight: 1.6 }}>
-                    Comme vous êtes encore en période d'essai, votre <strong>premier mois</strong>
-                    {' '}est offert (avoir « 1 mois offert ») — la première facture réelle sera
-                    {' '}prélevée le <strong>{fmtDateLong(invoices[1]?.date ?? new Date())}</strong>.
+                    Votre <strong>période d'essai gratuite</strong> n'est pas facturée et
+                    n'apparaît donc pas dans ce devis. La toute première facture sera
+                    {' '}prélevée le <strong>{fmtDateLong(invoices[0]?.date ?? new Date())}</strong>,
+                    {' '}date de fin de votre essai.
                   </Typography>
                 )}
               </Box>

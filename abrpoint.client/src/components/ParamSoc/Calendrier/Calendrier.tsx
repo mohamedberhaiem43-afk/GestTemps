@@ -6,6 +6,12 @@ import useUpdateCalendrier from "../../../hooks/calendrierHooks/useUpdateCalendr
 import useCloneCalendrier from "../../../hooks/calendrierHooks/useCloneCalendrier";
 import useAddCalendrier from "../../../hooks/calendrierHooks/useAddCalendrier";
 import useGetCummulMensuelle from "../../../hooks/calendrierHooks/useGetCummulMensuelle";
+// Jours fériés / repos exceptionnels saisis par l'admin via /classes-horaires/repos
+// (cf. ReposModern.tsx). On les surimprime sur le calendrier société pour signaler
+// les jours non travaillés liés au calendrier légal — distincts du repos hebdo
+// (samedi/dimanche) qui sortent déjà du calcul standard.
+import useGetRepos from "../../../hooks/Repos/useGetRepos";
+import type { Ferier } from "../../../models/Ferier";
 import {
   ChevronLeft,
   ChevronRight,
@@ -56,6 +62,7 @@ function CalendrierContent() {
 
   // Hooks data
   const { data = [], refetch } = useGetCalendrierSociete(selectedYear);
+  const { data: feriers = [] } = useGetRepos();
   // const { data: availableYears = [], isLoading: loadingYears } = useGetCalendrier();
   const availableYears = ["2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030", "2031", "2032", "2035", "2036", "2037"];
   // cumulData garde sa raison d'être pour les écrans qui consomment encore l'agrégat
@@ -333,6 +340,24 @@ function CalendrierContent() {
     return map;
   }, [data]);
 
+  // Index jours fériés / repos exceptionnels par date `YYYY-MM-DD` pour overlay
+  // rapide sur la grille calendrier. Source : table Ferier saisie depuis
+  // /classes-horaires/repos. La date peut arriver en ISO timestamp (ferdate)
+  // ou déjà normalisée — on tronque sur les 10 premiers caractères pour matcher
+  // le format produit par `format(day, 'yyyy-MM-dd')` côté calendrier.
+  const feriersByDate = useMemo(() => {
+    const map: Record<string, Ferier> = {};
+    if (Array.isArray(feriers)) {
+      (feriers as Ferier[]).forEach((f) => {
+        if (!f.ferdate) return;
+        const iso = typeof f.ferdate === 'string' ? f.ferdate : new Date(f.ferdate).toISOString();
+        const dateStr = iso.slice(0, 10);
+        map[dateStr] = f;
+      });
+    }
+    return map;
+  }, [feriers]);
+
   const filteredData = useMemo<CalendarEntry[]>(() => {
     return Array.isArray(data) ? data.filter((entry: CalendarEntry) => entry.calMois === selectedMonth) : [];
   }, [data, selectedMonth]);
@@ -445,18 +470,45 @@ function CalendrierContent() {
                 calendarDays.forEach(day => {
                   const dateStr = format(day, 'yyyy-MM-dd');
                   const entry = entriesByDate[dateStr];
+                  const ferier = feriersByDate[dateStr];
+                  // Type "F" = férié légal (1er janvier, fête nationale, etc.).
+                  // Type "R" = repos exceptionnel saisi manuellement par l'admin.
+                  // On colore les fériés en ambre (visibilité forte, distinct du
+                  // repos hebdo) et le repos exceptionnel en gris doux.
+                  const isFerie = !!ferier && (ferier.fertype === 'F' || !ferier.fertype);
+                  const isReposExceptionnel = !!ferier && ferier.fertype === 'R';
 
                   cells.push(
-                    <div key={dateStr} className="min-h-[100px] sm:min-h-[120px] p-2 sm:p-4 flex flex-col justify-between bg-surface-container-lowest text-on-surface hover:bg-primary/5 transition-colors group cursor-pointer border-t border-outline-variant/10">
-                      <span className="text-xs font-label font-bold">{format(day, 'd MMM', { locale: dateLocale })}</span>
+                    <div
+                      key={dateStr}
+                      title={ferier?.fermotif || undefined}
+                      className={`min-h-[100px] sm:min-h-[120px] p-2 sm:p-4 flex flex-col justify-between text-on-surface hover:bg-primary/5 transition-colors group cursor-pointer border-t border-outline-variant/10 ${
+                        isFerie ? 'bg-amber-50' : isReposExceptionnel ? 'bg-slate-50' : 'bg-surface-container-lowest'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-1">
+                        <span className="text-xs font-label font-bold">{format(day, 'd MMM', { locale: dateLocale })}</span>
+                        {ferier && (
+                          <span
+                            className={`text-[9px] sm:text-[10px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded ${
+                              isFerie ? 'bg-amber-200 text-amber-900' : 'bg-slate-200 text-slate-700'
+                            }`}
+                            aria-label={ferier.fermotif}
+                          >
+                            {isFerie ? '🎉' : '🛌'} {ferier.fermotif?.slice(0, 14) || (isFerie ? t('repos.table.ferier') : t('repos.table.restDay'))}
+                          </span>
+                        )}
+                      </div>
                       {entry ? (
-                        entry.calNbh > 0 ? (
+                        entry.calNbh > 0 && !isFerie ? (
                           <div className="bg-primary/10 text-primary px-2 sm:px-3 py-1 sm:py-2 rounded-lg border-l-4 border-primary">
                             <p className="text-[9px] sm:text-[10px] font-bold leading-tight">08:30 - 17:30</p>
                             <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-tighter mt-1">({entry.calNbh}h)</p>
                           </div>
                         ) : (
-                          <span className="text-[9px] sm:text-[10px] font-label font-semibold italic text-outline">{t('paramSoc.calendrier.rest')}</span>
+                          <span className="text-[9px] sm:text-[10px] font-label font-semibold italic text-outline">
+                            {isFerie ? t('paramSoc.calendrier.rest') : t('paramSoc.calendrier.rest')}
+                          </span>
                         )
                       ) : null}
                     </div>

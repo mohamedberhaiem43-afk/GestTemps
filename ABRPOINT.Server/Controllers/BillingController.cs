@@ -27,6 +27,14 @@ public class BillingController : ControllerBase
     private readonly IStorageQuotaGuard _quotaGuard;
     private readonly IConfiguration _cfg;
     private readonly ILogger<BillingController> _log;
+    private readonly Interfaces.IEmailService _email;
+
+    /// <summary>
+    /// Adresse interne notifiée à chaque résiliation pour suivi commercial / churn.
+    /// Hardcodée (et non dans appsettings) pour rester traçable côté code review —
+    /// si on veut la rendre configurable plus tard, déplacer vers Billing:ChurnAlertsTo.
+    /// </summary>
+    private const string ChurnAlertRecipient = "mohamed@concorde-work-force.com";
 
     /// <summary>
     /// Délai de conservation des données du tenant après une résiliation, en jours.
@@ -44,7 +52,8 @@ public class BillingController : ControllerBase
         IBillingService billing,
         IStorageQuotaGuard quotaGuard,
         IConfiguration cfg,
-        ILogger<BillingController> log)
+        ILogger<BillingController> log,
+        Interfaces.IEmailService email)
     {
         _masterFactory = masterFactory;
         _tenantDb = tenantDb;
@@ -53,6 +62,7 @@ public class BillingController : ControllerBase
         _quotaGuard = quotaGuard;
         _cfg = cfg;
         _log = log;
+        _email = email;
     }
 
     /// <summary>
@@ -550,6 +560,10 @@ public class BillingController : ControllerBase
         if (!result.Success)
             return StatusCode(502, new { error = result.ErrorMessage ?? "Échec de la résiliation." });
 
+        // Alerte interne de churn — best-effort, on ne fait pas échouer la résiliation
+        // si l'email ne part pas (l'effet métier principal est déjà persisté côté Stripe + DB).
+        _ = SendChurnAlertEmailAsync(tenant, req, result);
+
         return Ok(new
         {
             success = true,
@@ -559,6 +573,50 @@ public class BillingController : ControllerBase
             refundedAmount = result.RefundedAmount,
             refundCurrency = result.RefundCurrency,
         });
+    }
+
+    /// <summary>
+    /// Envoie une notification interne (<see cref="ChurnAlertRecipient"/>) à chaque
+    /// résiliation. Contenu : date, client (slug + raison sociale), motif et type
+    /// (immédiate / fin de période). Fire-and-forget : capture toute exception
+    /// pour ne jamais perturber la réponse HTTP de /cancel-subscription.
+    /// </summary>
+    private async Task SendChurnAlertEmailAsync(Tenancy.Tenant tenant, CancelSubscriptionRequest req, Billing.CancellationResult result)
+    {
+        try
+        {
+            var typeLabel = result.Immediate ? "Résiliation immédiate" : "Résiliation programmée (fin de période)";
+            var dateLabel = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'", System.Globalization.CultureInfo.InvariantCulture);
+            var effectiveLabel = result.EffectiveAt?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? "—";
+            var motif = string.IsNullOrWhiteSpace(req.Reason) ? "<em>(aucun motif fourni)</em>" : System.Net.WebUtility.HtmlEncode(req.Reason);
+            var company = System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—");
+            var slug = System.Net.WebUtility.HtmlEncode(tenant.Slug ?? "—");
+            var adminEmail = System.Net.WebUtility.HtmlEncode(tenant.AdminEmail ?? "—");
+
+            var subject = $"[Concorde Workforce] Résiliation — {tenant.CompanyName} ({tenant.Slug})";
+            var body = $@"<html><body style=""font-family:Segoe UI,Helvetica,Arial,sans-serif;color:#0f172a;line-height:1.55"">
+<h2 style=""color:#0040a1;margin:0 0 12px"">Nouvelle résiliation d'abonnement</h2>
+<p style=""color:#475569;margin:0 0 16px"">Un tenant vient de résilier son abonnement Concorde Workforce. Détails ci-dessous pour suivi commercial / churn.</p>
+<table cellpadding=""6"" cellspacing=""0"" style=""border-collapse:collapse;border:1px solid #e2e8f0"">
+  <tr><td style=""font-weight:700;background:#f8fafc;border:1px solid #e2e8f0"">Date</td><td style=""border:1px solid #e2e8f0"">{dateLabel}</td></tr>
+  <tr><td style=""font-weight:700;background:#f8fafc;border:1px solid #e2e8f0"">Client (raison sociale)</td><td style=""border:1px solid #e2e8f0"">{company}</td></tr>
+  <tr><td style=""font-weight:700;background:#f8fafc;border:1px solid #e2e8f0"">Slug / sous-domaine</td><td style=""border:1px solid #e2e8f0"">{slug}</td></tr>
+  <tr><td style=""font-weight:700;background:#f8fafc;border:1px solid #e2e8f0"">Admin contact</td><td style=""border:1px solid #e2e8f0"">{adminEmail}</td></tr>
+  <tr><td style=""font-weight:700;background:#f8fafc;border:1px solid #e2e8f0"">Type</td><td style=""border:1px solid #e2e8f0"">{typeLabel}</td></tr>
+  <tr><td style=""font-weight:700;background:#f8fafc;border:1px solid #e2e8f0"">Effet</td><td style=""border:1px solid #e2e8f0"">{effectiveLabel}</td></tr>
+  <tr><td style=""font-weight:700;background:#f8fafc;border:1px solid #e2e8f0"">Motif déclaré</td><td style=""border:1px solid #e2e8f0"">{motif}</td></tr>
+  <tr><td style=""font-weight:700;background:#f8fafc;border:1px solid #e2e8f0"">Pack</td><td style=""border:1px solid #e2e8f0"">{System.Net.WebUtility.HtmlEncode(tenant.PlanCode ?? "—")}</td></tr>
+</table>
+<p style=""color:#94a3b8;font-size:12px;margin-top:18px"">Email automatique envoyé par BillingController.CancelSubscription. Conserver les 90 jours pour analyse churn.</p>
+</body></html>";
+
+            await _email.SendEmailAsync(ChurnAlertRecipient, subject, body);
+            _log.LogInformation("Alerte churn envoyée à {Recipient} pour le tenant {Slug}.", ChurnAlertRecipient, tenant.Slug);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Échec d'envoi de l'alerte churn pour {Slug} (best-effort).", tenant.Slug);
+        }
     }
 
     /// <summary>

@@ -288,13 +288,12 @@ export default function SidebarNavigationDualTier({
                   <Menu size={24} />
                 </IconButton>
               </div>
-              {/* Logo société : collé à gauche du nom pour identifier visuellement
-                  le tenant courant. Si aucun logo n'est fourni par le parent on
-                  retombe sur l'icône générique LayoutGrid. */}
+              {/* Logo société uniquement (sans nom du tenant). Le nom de société
+                  affiché en topbar a été retiré sur demande produit — l'identité
+                  visuelle passe désormais 100% par le logo. */}
               <span className="sndt-topbar-logo" aria-hidden>
                 {logo ?? <LayoutGrid size={22} color="#0040a1" />}
               </span>
-              <span className="sndt-topbar-title" title={title}>{title}</span>
             </div>
             <div className="sndt-topbar-actions">{toolbarActions}</div>
           </header>

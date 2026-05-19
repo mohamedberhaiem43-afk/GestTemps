@@ -101,7 +101,7 @@ public static class PlanCatalog
         FlatPriceMonthlyEur: 29.50m,
         IncludedEmployees: 10,
         OverageRatePerEmployeeEur: 4.90m,
-        MaxEmployees: 30,             // cap dur : 10 inclus + 20 supplémentaires
+        MaxEmployees: 10,             // cap dur : 10 salariés max (pas de salariés supplémentaires)
         MaxSocietes: 1,
         MaxSites: 1,
         StorageQuotaMb: 5L * 1024,    // 5 Go

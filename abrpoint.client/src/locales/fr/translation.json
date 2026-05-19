@@ -4478,8 +4478,8 @@
         }
       },
       "priceLabel": "Tarif",
-      "priceValue": "180 € HT",
-      "perHour": "/ heure",
+      "priceValue": "Sur devis",
+      "perHour": "",
       "priceSubtitle": "Un investissement sur mesure pour une maîtrise optimale de votre outil de gestion.",
       "fundingTitle": "Information importante concernant le financement",
       "fundingBody": "Cette prestation de coaching personnalisé n'est pas éligible à un financement par les fonds publics dédiés à la formation professionnelle.",
@@ -4526,9 +4526,9 @@
       "pricingSmall": "Petite équipe (≤ 30 collaborateurs)",
       "pricingMedium": "Moyenne équipe (≤ 200 collaborateurs)",
       "pricingLarge": "Grande organisation",
-      "pricingSmallValue": "1 800 € HT",
-      "pricingMediumValue": "4 500 € HT",
-      "pricingLargeValue": "sur devis",
+      "pricingSmallValue": "Sur devis",
+      "pricingMediumValue": "Sur devis",
+      "pricingLargeValue": "Sur devis",
       "ctaTitle": "Prêt à démarrer rapidement sur Concorde-work-force ?",
       "ctaBody": "Confiez-nous votre paramétrage initial et concentrez-vous sur l'essentiel : votre activité."
     },

@@ -171,10 +171,14 @@ public sealed class StripeBillingService : IBillingService
 
     /// <summary>
     /// Envoie le rappel "fin d'essai imminente" à tous les admins + managers d'un tenant.
-    /// La notification utilise <see cref="IUserNotificationService"/> qui couvre les 3 canaux
-    /// (push mobile, in-app, email best-effort). On bascule le tenant courant via
-    /// <see cref="ICurrentTenant"/> avant de créer le scope DI pour que l'<c>ApplicationDbContext</c>
-    /// pointe sur la bonne base.
+    /// Triple canal :
+    ///   1. Push mobile + in-app via <see cref="IUserNotificationService"/> (best-effort).
+    ///   2. Email transactionnel explicite via <see cref="Interfaces.IEmailService"/> (garanti,
+    ///      lit directement les Utimail des admins/managers dans la base tenant + l'AdminEmail
+    ///      du tenant). Ajouté pour le J-10 où l'utilisateur peut être déconnecté de l'app et
+    ///      ne pas voir le push — le mail reste l'unique canal fiable de notification.
+    /// On bascule le tenant courant via <see cref="ICurrentTenant"/> avant de créer le scope DI
+    /// pour que l'<c>ApplicationDbContext</c> pointe sur la bonne base.
     /// </summary>
     private async Task SendReminderForOneTenantAsync(Tenant tenant, int daysBeforeEnd, CancellationToken ct)
     {
@@ -187,15 +191,10 @@ public sealed class StripeBillingService : IBillingService
         }
         current.Set(tenant);
 
-        var notify = scope.ServiceProvider.GetService<IUserNotificationService>();
-        if (notify is null) return;
-
         var daysLabel = daysBeforeEnd == 1 ? "1 jour" : $"{daysBeforeEnd} jours";
         var title = "⏰ Fin d'essai imminente";
         var body = $"Votre période d'essai gratuite Concorde Workforce se termine dans {daysLabel}. " +
                    "Finalisez votre paiement Stripe pour continuer sans interruption.";
-        // type=trial_expiry permet aux préférences utilisateur de filtrer ces rappels
-        // commerciaux (canal in-app/push indépendant des notifs métier).
         var payload = new
         {
             type = "trial_expiry",
@@ -204,11 +203,117 @@ public sealed class StripeBillingService : IBillingService
             planCode = tenant.PlanCode,
         };
 
-        // On notifie indépendamment admins et managers : ce sont les 2 rôles autorisés
-        // à gérer la facturation côté UI (/dashboard/payment). Si l'un n'a aucun user
-        // dans le tenant, l'autre reçoit quand même.
-        await notify.NotifyAdminsAsync(title, body, payload, ct);
-        await notify.NotifyManagersAsync(title, body, payload, ct);
+        // 1) Canal push + in-app (best-effort).
+        var notify = scope.ServiceProvider.GetService<IUserNotificationService>();
+        if (notify is not null)
+        {
+            await notify.NotifyAdminsAsync(title, body, payload, ct);
+            await notify.NotifyManagersAsync(title, body, payload, ct);
+        }
+
+        // 2) Canal email explicite (garanti) — collecte de tous les emails admin/manager
+        //    de la base tenant + AdminEmail master.
+        try
+        {
+            await SendTrialReminderEmailAsync(scope, tenant, daysBeforeEnd, ct);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Envoi email rappel fin d'essai échoué pour {Slug} (best-effort).", tenant.Slug);
+        }
+    }
+
+    /// <summary>
+    /// Envoie un email transactionnel à TOUS les admins + managers du tenant pour annoncer
+    /// la fin d'essai imminente. Recipients :
+    ///   - tenant.AdminEmail (déclaré au signup, stocké en master DB)
+    ///   - Tous les Utilisateurs.Utimail dont le rôle est Admin/Manager dans la base tenant
+    /// Doublons supprimés. Si aucun email n'est trouvé, log et abandon silencieux.
+    /// </summary>
+    private async Task SendTrialReminderEmailAsync(IServiceScope scope, Tenant tenant, int daysBeforeEnd, CancellationToken ct)
+    {
+        var email = scope.ServiceProvider.GetService<Interfaces.IEmailService>();
+        if (email is null) return;
+
+        var recipients = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(tenant.AdminEmail))
+            recipients.Add(tenant.AdminEmail.Trim());
+
+        // Collecte les emails admin/manager côté tenant DB. ApplicationDbContext est scoped
+        // et résolu via le tenant courant qu'on vient de Set() (cf. SendReminderForOneTenantAsync).
+        try
+        {
+            var db = scope.ServiceProvider.GetService<Data.ApplicationDbContext>();
+            if (db is not null)
+            {
+                var adminCode = ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Administrator;
+                var managerCode = ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Manager;
+                var staffEmails = await db.Utilisateurs.AsNoTracking()
+                    .Where(u => !string.IsNullOrEmpty(u.Utimail)
+                                && (u.Utiactif == null || (u.Utiactif != "0" && u.Utiactif != "Non"))
+                                && (u.Utiadm == "1"
+                                    || u.Utirole == adminCode
+                                    || u.Utirole == managerCode
+                                    || (u.Utirole != null && EF.Functions.ILike(u.Utirole, "%manager%"))))
+                    .Select(u => u.Utimail!)
+                    .ToListAsync(ct);
+                foreach (var e in staffEmails)
+                    if (!string.IsNullOrWhiteSpace(e)) recipients.Add(e.Trim());
+            }
+        }
+        catch (Exception ex)
+        {
+            // Si la base tenant n'est pas accessible (ex: tenant tout juste provisionné), on
+            // continue avec l'AdminEmail uniquement — c'est l'unique recipient garanti côté master.
+            _log.LogWarning(ex, "Lecture emails admin/manager DB tenant échouée pour {Slug}.", tenant.Slug);
+        }
+
+        if (recipients.Count == 0)
+        {
+            _log.LogInformation("Aucun email admin/manager trouvé pour {Slug} — rappel email non envoyé.", tenant.Slug);
+            return;
+        }
+
+        var endDateLabel = tenant.TrialEndsAt?.ToString("dd MMMM yyyy",
+            new System.Globalization.CultureInfo("fr-FR")) ?? "(date inconnue)";
+        var subject = $"⏰ Votre essai Concorde Workforce se termine dans {daysBeforeEnd} jours";
+        var bodyHtml = $@"<html><body style=""font-family:Segoe UI,Helvetica,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:600px;margin:0 auto;padding:24px"">
+<h2 style=""color:#0040a1;margin:0 0 16px"">Bonjour,</h2>
+<p>Votre période d'essai gratuite de <strong>Concorde Workforce</strong> arrive à son terme dans
+<strong style=""color:#dc2626"">{daysBeforeEnd} jours</strong> (fin prévue le <strong>{endDateLabel}</strong>).</p>
+<p>Pour <strong>conserver vos données</strong> (employés, pointages, contrats, documents du coffre-fort…)
+et continuer à utiliser la plateforme sans interruption, finalisez dès maintenant votre abonnement :</p>
+<p style=""text-align:center;margin:24px 0"">
+  <a href=""https://concorde-work-force.com/dashboard/mon-abonnement""
+     style=""background:#0040a1;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;display:inline-block"">
+    Finaliser mon abonnement
+  </a>
+</p>
+<p style=""background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px;color:#7f1d1d;font-size:14px"">
+  <strong>⚠ Attention :</strong> à la fin de l'essai, sans paiement, votre compte sera suspendu.
+  <strong>Toutes vos données seront définitivement supprimées</strong> 90 jours après la résiliation,
+  conformément à notre politique de rétention RGPD.
+</p>
+<p style=""color:#475569;font-size:14px"">Pack actuel : <strong>{System.Net.WebUtility.HtmlEncode(tenant.PlanCode ?? "—")}</strong> ·
+Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—")}</strong></p>
+<p style=""color:#94a3b8;font-size:12px;border-top:1px solid #e2e8f0;padding-top:16px;margin-top:24px"">
+  Email automatique envoyé par Concorde Workforce. Pour toute question, répondez à cet email
+  ou contactez le support.
+</p>
+</body></html>";
+
+        foreach (var recipient in recipients)
+        {
+            try
+            {
+                await email.SendEmailAsync(recipient, subject, bodyHtml);
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Envoi email rappel essai échoué pour destinataire {Email} ({Slug}).", recipient, tenant.Slug);
+            }
+        }
+        _log.LogInformation("Rappel email fin d'essai envoyé à {Count} destinataire(s) pour {Slug}.", recipients.Count, tenant.Slug);
     }
 
     public async Task<CancellationResult> CancelSubscriptionAsync(

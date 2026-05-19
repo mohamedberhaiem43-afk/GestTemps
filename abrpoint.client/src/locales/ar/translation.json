@@ -566,8 +566,8 @@
         "autonomy": { "title": "اكتسب الاستقلالية", "body": "هدفنا أن تصبح مستقلاً وواثقاً في استخدامك." }
       },
       "priceLabel": "السعر",
-      "priceValue": "180 € صافي",
-      "perHour": "/ ساعة",
+      "priceValue": "حسب العرض",
+      "perHour": "",
       "priceSubtitle": "استثمار مخصّص لإتقان أداتك الإدارية.",
       "fundingTitle": "ملاحظة هامة عن التمويل",
       "fundingBody": "لا تخضع خدمة التدريب المخصّص لتمويل عمومي للتدريب المهني.",
@@ -605,8 +605,8 @@
       "pricingSmall": "فريق صغير (≤ 30 موظفاً)",
       "pricingMedium": "فريق متوسط (≤ 200 موظف)",
       "pricingLarge": "مؤسسة كبيرة",
-      "pricingSmallValue": "1 800 € صافي",
-      "pricingMediumValue": "4 500 € صافي",
+      "pricingSmallValue": "حسب العرض",
+      "pricingMediumValue": "حسب العرض",
       "pricingLargeValue": "حسب العرض",
       "ctaTitle": "هل أنت جاهز للانطلاق سريعاً مع Concorde-work-force؟",
       "ctaBody": "اعهد إلينا بالإعداد الأولي وركّز على نشاطك."

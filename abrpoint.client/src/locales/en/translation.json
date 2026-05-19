@@ -4479,8 +4479,8 @@
         }
       },
       "priceLabel": "Price",
-      "priceValue": "€180 excl. VAT",
-      "perHour": "/ hour",
+      "priceValue": "On quotation",
+      "perHour": "",
       "priceSubtitle": "A tailor-made investment for an optimal mastery of your management tool.",
       "fundingTitle": "Important information about funding",
       "fundingBody": "This personalized coaching service is not eligible for public funding earmarked for vocational training.",
@@ -4527,9 +4527,9 @@
       "pricingSmall": "Small team (≤ 30 employees)",
       "pricingMedium": "Mid-size team (≤ 200 employees)",
       "pricingLarge": "Large organization",
-      "pricingSmallValue": "€1,800 excl. VAT",
-      "pricingMediumValue": "€4,500 excl. VAT",
-      "pricingLargeValue": "on quotation",
+      "pricingSmallValue": "On quotation",
+      "pricingMediumValue": "On quotation",
+      "pricingLargeValue": "On quotation",
       "ctaTitle": "Ready to get started quickly with Concorde-work-force?",
       "ctaBody": "Entrust us with your initial setup and focus on what matters: your business."
     },

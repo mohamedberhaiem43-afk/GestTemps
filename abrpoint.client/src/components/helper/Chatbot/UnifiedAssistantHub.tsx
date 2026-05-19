@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import GavelIcon from '@mui/icons-material/Gavel';
 import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
@@ -308,46 +309,46 @@ Posez-moi votre question !`;
       <Tooltip title="Assistant IA & Documents juridiques" placement="left">
         <Fab
           aria-label="assistant-hub"
+          size="small"
           onClick={() => setOpen(true)}
           sx={{
-            // Positionné verticalement au milieu de l'écran, côté droit :
-            // top: 50% + translateY(-50%) garantit un vrai centrage indépendant
-            // de la hauteur du FAB et du viewport. `right: 8` colle le FAB au
-            // bord (pas tout contre — on laisse 8 px pour éviter qu'un focus
-            // ring soit coupé) ; avant il était à 24 px et chevauchait visuellement
-            // les cellules d'agenda qui débordent légèrement à droite.
+            // FAB compact : `size="small"` (40px au lieu de 56px) avec icône bulle
+            // discrète pour réduire l'encombrement visuel — le launcher reste
+            // identifiable mais ne masque plus le contenu derrière sur petits écrans.
             position: 'fixed',
             top: '50%',
             right: 8,
             transform: 'translateY(-50%)',
             zIndex: 1200,
+            width: 40,
+            height: 40,
+            minHeight: 40,
             background: 'linear-gradient(135deg, #5b21b6 0%, #1a6eff 100%)',
             color: 'white',
-            boxShadow: '0 6px 20px rgba(91,33,182,0.35)',
+            boxShadow: '0 4px 12px rgba(91,33,182,0.32)',
             // ⚠ Toutes les valeurs `transform` des keyframes et du :hover incluent
             // `translateY(-50%)` pour préserver le centrage vertical. Sans ça, les
             // animations « écrasent » la translation de base et le FAB chute en
             // bas/haut pendant et après l'animation.
             '@keyframes hubFabIn': {
-              '0%':   { opacity: 0, transform: 'translateY(calc(-50% + 40px)) scale(0.4) rotate(-20deg)' },
-              '60%':  { opacity: 1, transform: 'translateY(calc(-50% - 6px)) scale(1.1) rotate(8deg)' },
-              '100%': { opacity: 1, transform: 'translateY(-50%) scale(1) rotate(0deg)' },
+              '0%':   { opacity: 0, transform: 'translateY(calc(-50% + 40px)) scale(0.4)' },
+              '100%': { opacity: 1, transform: 'translateY(-50%) scale(1)' },
             },
             '@keyframes hubFabPulse': {
-              '0%, 100%': { boxShadow: '0 6px 20px rgba(91,33,182,0.35), 0 0 0 0 rgba(124,58,237,0.45)' },
-              '50%':       { boxShadow: '0 6px 22px rgba(91,33,182,0.45), 0 0 0 14px rgba(124,58,237,0)' },
+              '0%, 100%': { boxShadow: '0 4px 12px rgba(91,33,182,0.32), 0 0 0 0 rgba(124,58,237,0.45)' },
+              '50%':       { boxShadow: '0 4px 14px rgba(91,33,182,0.4), 0 0 0 10px rgba(124,58,237,0)' },
             },
-            animation: 'hubFabIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both, hubFabPulse 2.6s ease-out 0.8s infinite',
+            animation: 'hubFabIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both, hubFabPulse 2.6s ease-out 0.8s infinite',
             '&:hover': {
               background: 'linear-gradient(135deg, #4c1d95 0%, #0040a1 100%)',
-              transform: 'translateY(-50%) scale(1.08) rotate(-4deg)',
+              transform: 'translateY(-50%) scale(1.08)',
               animationPlayState: 'paused',
-              boxShadow: '0 10px 30px rgba(91,33,182,0.55)',
+              boxShadow: '0 6px 18px rgba(91,33,182,0.5)',
             },
-            transition: 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease',
+            transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease',
           }}
         >
-          <SmartToyIcon />
+          <ChatBubbleOutlineIcon sx={{ fontSize: 18 }} />
         </Fab>
       </Tooltip>
 

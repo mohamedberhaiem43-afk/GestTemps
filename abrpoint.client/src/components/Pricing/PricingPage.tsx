@@ -31,16 +31,15 @@ const PricingPage: React.FC = () => {
       period: flatPeriod,
       included: 10,
       extraRate: 4.9,
-      maxPack: 30,
+      maxPack: 10,
       description: "Pour démarrer la digitalisation RH d'une petite équipe sans engagement.",
       features: [
         'Jusqu’à 10 salariés inclus · 1 administrateur',
         '5 Go de stockage inclus',
-        '+ 4,90 € / salarié supplémentaire (jusqu’à 30 max)',
-        '1 mois gratuit sans carte bancaire',
         'Pointage web simple · gestion RH basique',
-        'Absences · dashboard basique · exports simples',
-        'Support standard',
+        'Absences · dashboard basique',
+        '1 mois gratuit sans carte bancaire',
+        'Sans app mobile ni export paie · support standard',
       ],
       cta: '30 jours gratuits',
       accent: false,
@@ -60,9 +59,9 @@ const PricingPage: React.FC = () => {
         '+ 6,90 € / salarié supplémentaire (jusqu’à 100 max)',
         '1 mois gratuit sans carte bancaire',
         'Application mobile + pointage géolocalisé',
-        'Congés, RTT, CET, sanctions',
+        'Export paie · préparation paie',
         'Coffre numérique & signature électronique',
-        'Reporting avancé · préparation paie',
+        'Congés, RTT, CET, sanctions · reporting avancé',
         'Support prioritaire',
       ],
       cta: '30 jours gratuits',
@@ -123,7 +122,7 @@ const PricingPage: React.FC = () => {
             onClick={() => navigate('/')}
           >
             <img
-              src="/logo-256.png"
+              src="/concorde-wrokly-logo.jpg"
               alt="Logo Concorde"
               style={{ height: 64, width: 'auto', objectFit: 'contain' }}
             />
@@ -193,7 +192,6 @@ const PricingPage: React.FC = () => {
                 }`}
             >
               Annuel
-              <span className="text-[10px] text-tertiary font-black bg-tertiary-fixed px-2 py-0.5 rounded-full">-20%</span>
             </button>
           </div>
         </div>
@@ -317,7 +315,7 @@ const PricingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row justify-between items-start gap-12">
           <div className="max-w-xs">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/logo-256.png" alt="Logo Concorde" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
+              <img src="/concorde-wrokly-logo.jpg" alt="Logo Concorde" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
               <div className="text-2xl font-black text-on-surface font-headline uppercase tracking-tighter">Concorde Workforce</div>
             </div>
             <p className="text-on-surface-variant text-sm font-body leading-relaxed">
