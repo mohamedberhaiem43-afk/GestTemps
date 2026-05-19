@@ -215,6 +215,59 @@ export default function HomePage() {
 
       {/* HERO */}
       <section className="hero">
+        {/* Urgence commerciale "Early Launch" — bloc d'entrée plus visible que
+            le bandeau or fixé en haut, pour pousser à l'inscription rapide
+            pendant la phase de lancement (10 premiers tenants payants).
+            Visuel : dégradé or + pastille rouge pulsante + CTA "Réserver ma
+            place" qui scrolle directement au formulaire d'inscription. */}
+        <div
+          role="region"
+          aria-label="Offre de lancement limitée aux 10 premières entreprises"
+          onClick={scrollToAuth}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 14,
+            padding: '10px 18px 10px 14px',
+            marginBottom: 18,
+            background: 'linear-gradient(135deg, #fffbeb 0%, #fde68a 60%, #fcd34d 100%)',
+            border: '1.5px solid #d4af37',
+            borderRadius: 999,
+            boxShadow: '0 6px 20px rgba(212,175,55,0.25)',
+            cursor: 'pointer',
+            animation: 'hp-fadeInUp 0.6s ease both',
+            maxWidth: 720,
+          }}
+        >
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 28, height: 28, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+            color: '#fff', fontSize: 13, fontWeight: 800,
+            boxShadow: '0 0 0 0 rgba(220,38,38,0.5)',
+            animation: 'hp-pulse-red 1.8s ease-out infinite',
+            flexShrink: 0,
+          }}>10</span>
+          <div style={{ textAlign: 'left', lineHeight: 1.4 }}>
+            <div style={{ color: '#7c2d12', fontWeight: 800, fontSize: 13.5, letterSpacing: 0.2 }}>
+              Lancement commercial · Offre limitée
+            </div>
+            <div style={{ color: '#7c5a0b', fontSize: 12.5, fontWeight: 600 }}>
+              Réservée aux <strong>10 premières entreprises</strong> — profitez-en avant la fin de l'Early Launch.
+            </div>
+          </div>
+          <span style={{
+            color: '#92400e', fontWeight: 800, fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0,
+          }}>Réserver ma place →</span>
+        </div>
+        <style>{`
+          @keyframes hp-pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(220,38,38,0.55); }
+            70% { box-shadow: 0 0 0 12px rgba(220,38,38,0); }
+            100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+          }
+        `}</style>
+
         <div className="hero-badge">
           <div className="hero-badge-dot" />
           Plateforme RH multi-pays · Pointage, congés, paie
