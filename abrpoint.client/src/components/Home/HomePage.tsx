@@ -141,6 +141,40 @@ export default function HomePage() {
         </div>
       </nav>
 
+      {/* Annonce « Early Launch » — bandeau fixe juste sous la marquee, en haut
+          de page. Communique la condition commerciale prioritaire (10 premières
+          entreprises, engagement annuel, 1 mois gratuit) avant que l'utilisateur
+          n'arrive sur le hero ou la grille de prix. Style or pour faire écho au
+          pack Premium et signaler le caractère exclusif de l'offre.
+          Position : top = 76px (nav) + 46px (marquee) = 122px. Le `.hero` a
+          padding-top: 200px qui couvre l'empilement entier des bandeaux fixes. */}
+      <div
+        role="note"
+        aria-label="Offre Early Launch"
+        style={{
+          position: 'fixed',
+          top: 122,
+          left: 0,
+          right: 0,
+          zIndex: 99,
+          padding: '9px 24px',
+          background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%)',
+          borderBottom: '1px solid #d4af37',
+          color: '#7c5a0b',
+          fontSize: 13,
+          fontWeight: 600,
+          textAlign: 'center',
+          lineHeight: 1.5,
+          letterSpacing: 0.1,
+          boxShadow: '0 2px 6px rgba(212,175,55,0.18)',
+        }}
+      >
+        <span style={{ fontWeight: 800, marginRight: 6, color: '#92400e' }}>✦ Offre Early Launch :</span>
+        réservée aux <strong>10 premières entreprises</strong> ; engagement annuel obligatoire ;
+        <strong> 1 mois gratuit</strong>. Le mensuel standard sera disponible plus tard aux
+        conditions tarifaires normales.
+      </div>
+
       {/* MARQUEE — barre défilante d'offres / arguments commerciaux fixée
           juste sous la nav. Le contenu est dupliqué une fois pour que
           l'animation CSS (translateX -50%) boucle sans saut visible. */}
@@ -583,11 +617,32 @@ export default function HomePage() {
             </div>
             <button type="button" className="btn-plan btn-plan-primary" onClick={() => goToPlanConfig('Standard')}>Choisir Standard</button>
           </div>
-          {/* Premium */}
-          <div className="price-card">
-            <div className="price-tier">Premium</div>
-            <div className="price-amount">
-              <span className="currency">€</span>{prices.premium}<span className="period">{pricePeriod}</span>
+          {/* Premium — cadre + accents or (#d4af37) pour signaler le positionnement
+              haut de gamme. Le titre et les chips de prix sont colorés en or foncé,
+              et le bouton "Choisir Premium" est en gradient or pour conclure
+              visuellement l'identité premium de cette colonne. */}
+          <div
+            className="price-card price-card-premium"
+            style={{
+              border: '2px solid #d4af37',
+              background: 'linear-gradient(180deg, #fffdf5 0%, #ffffff 60%)',
+              boxShadow: '0 10px 30px rgba(212,175,55,0.18)',
+              position: 'relative',
+            }}
+          >
+            <div style={{
+              position: 'absolute', top: -12, right: 20,
+              background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
+              color: '#fff', fontSize: 11, fontWeight: 800,
+              padding: '4px 12px', borderRadius: 999,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              boxShadow: '0 4px 10px rgba(184,134,11,0.32)',
+            }}>
+              ★ Haut de gamme
+            </div>
+            <div className="price-tier" style={{ color: '#b8860b' }}>Premium</div>
+            <div className="price-amount" style={{ color: '#92670a' }}>
+              <span className="currency">€</span>{prices.premium}<span className="period" style={{ color: '#b8860b' }}>{pricePeriod}</span>
             </div>
             <div className="price-included">30 collaborateurs inclus · 100 Go de stockage</div>
             <div className="price-per">+ 9,90 € / collaborateur supplémentaire · jusqu'à 200 max</div>
@@ -602,7 +657,20 @@ export default function HomePage() {
               <div className="pf-item"><span className="pf-check">✓</span> Conformité RGPD avancée · SLA premium</div>
               <div className="pf-item"><span className="pf-check">✓</span> Onboarding accompagné · futures intégrations SSO</div>
             </div>
-            <button type="button" className="btn-plan btn-plan-ghost" onClick={() => goToPlanConfig('Premium')}>Choisir Premium</button>
+            <button
+              type="button"
+              className="btn-plan"
+              onClick={() => goToPlanConfig('Premium')}
+              style={{
+                background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
+                color: '#fff',
+                border: 'none',
+                fontWeight: 800,
+                boxShadow: '0 6px 18px rgba(184,134,11,0.32)',
+              }}
+            >
+              Choisir Premium
+            </button>
           </div>
         </div>
         <div className="pricing-footnote">

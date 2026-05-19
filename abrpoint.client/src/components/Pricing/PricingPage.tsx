@@ -200,27 +200,59 @@ const PricingPage: React.FC = () => {
       {/* Pricing Grid */}
       <main className="max-w-7xl mx-auto px-8 pb-24">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-          {plans.map((plan, idx) => (
+          {plans.map((plan, idx) => {
+            // Cadre + couleurs or pour la colonne Premium uniquement.
+            // Garde le style ring-primary du pack populaire (Standard) ; Premium
+            // surpasse le ring avec un bord or marqué.
+            const isPremium = plan.name === 'Premium';
+            return (
             <div
               key={idx}
-              className={`relative bg-white rounded-2xl p-10 flex flex-col h-full transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 border ${plan.popular ? 'ring-2 ring-primary border-transparent' : 'border-surface-container-high'
+              className={`relative bg-white rounded-2xl p-10 flex flex-col h-full transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 border ${plan.popular ? 'ring-2 ring-primary border-transparent' : isPremium ? 'border-transparent' : 'border-surface-container-high'
                 } ambient-shadow`}
+              style={isPremium ? {
+                border: '2px solid #d4af37',
+                background: 'linear-gradient(180deg, #fffdf5 0%, #ffffff 60%)',
+                boxShadow: '0 10px 30px rgba(212,175,55,0.18)',
+              } : undefined}
             >
               {plan.popular && (
                 <div className="absolute top-0 right-0 bg-primary px-6 py-2 rounded-bl-2xl">
                   <span className="text-[10px] font-bold text-white uppercase tracking-widest">Populaire</span>
                 </div>
               )}
+              {isPremium && (
+                <div
+                  className="absolute top-0 right-0 px-6 py-2 rounded-bl-2xl"
+                  style={{ background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)' }}
+                >
+                  <span className="text-[10px] font-bold text-white uppercase tracking-widest">★ Haut de gamme</span>
+                </div>
+              )}
               <div className="mb-8">
-                <span className={`text-xs font-black uppercase tracking-[0.2em] mb-3 block ${plan.popular ? 'text-primary' : 'text-outline'}`}>
+                <span
+                  className={`text-xs font-black uppercase tracking-[0.2em] mb-3 block ${plan.popular ? 'text-primary' : 'text-outline'}`}
+                  style={isPremium ? { color: '#b8860b' } : undefined}
+                >
                   {plan.target}
                 </span>
-                <h3 className="text-3xl font-extrabold font-headline mb-4 text-on-surface">{plan.name}</h3>
+                <h3
+                  className="text-3xl font-extrabold font-headline mb-4 text-on-surface"
+                  style={isPremium ? { color: '#92670a' } : undefined}
+                >
+                  {plan.name}
+                </h3>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-5xl font-black font-headline tracking-tighter text-on-surface">
+                  <span
+                    className="text-5xl font-black font-headline tracking-tighter text-on-surface"
+                    style={isPremium ? { color: '#92670a' } : undefined}
+                  >
                     {formatPrice(plan.price)}
                   </span>
-                  <span className="text-2xl font-bold text-on-surface">€</span>
+                  <span
+                    className="text-2xl font-bold text-on-surface"
+                    style={isPremium ? { color: '#92670a' } : undefined}
+                  >€</span>
                   <span className="text-on-surface-variant font-medium text-sm">
                     {plan.period}
                   </span>
@@ -238,7 +270,10 @@ const PricingPage: React.FC = () => {
               <div className="space-y-4 mb-10 flex-grow">
                 {plan.features.map((feature, fIdx) => (
                   <div key={fIdx} className="flex items-start gap-3">
-                    <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    <span
+                      className="material-symbols-outlined text-primary text-xl"
+                      style={{ fontVariationSettings: "'FILL' 1", ...(isPremium ? { color: '#b8860b' } : {}) }}
+                    >
                       check_circle
                     </span>
                     <span className="text-sm text-on-surface font-semibold">{feature}</span>
@@ -259,15 +294,21 @@ const PricingPage: React.FC = () => {
                     },
                   });
                 }}
-                className={`w-full py-4 font-bold rounded-xl text-xs uppercase tracking-widest transition-all ${plan.accent || plan.popular
+                className={`w-full py-4 font-bold rounded-xl text-xs uppercase tracking-widest transition-all ${isPremium ? '' : plan.accent || plan.popular
                   ? 'bg-gradient-to-br from-primary to-primary-container text-white shadow-lg hover:brightness-110'
                   : 'bg-surface-container-high text-on-surface hover:bg-surface-dim'
                   }`}
+                style={isPremium ? {
+                  background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
+                  color: '#fff',
+                  boxShadow: '0 6px 18px rgba(184,134,11,0.32)',
+                } : undefined}
               >
                 {plan.cta}
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
       </main>
 

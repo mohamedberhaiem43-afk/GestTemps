@@ -166,7 +166,6 @@ export default function SidebarNavigationDualTier({
   featureCard,
   pathname,
   onNavigate,
-  title,
   logo,
   toolbarActions,
   isAdmin,

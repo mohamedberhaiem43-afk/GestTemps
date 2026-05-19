@@ -274,7 +274,14 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
             const isCurrent = key === currentKey;
             const isSelected = key === selected;
             const isPopular = meta.popular;
+            const isPremium = key === 'Premium';
             const cardClickable = !isCurrent && canChangeInPlace;
+            // Palette or pour Premium — utilisée à la fois pour le cadre, le titre,
+            // le prix et le ruban « Haut de gamme ». Couleurs choisies pour rester
+            // lisibles sur fond crème (#fffdf5) sans heurter le bleu Concorde.
+            const goldBorder = '#d4af37';
+            const goldText = '#92670a';
+            const goldAccent = '#b8860b';
             return (
               <Paper
                 key={key}
@@ -283,25 +290,30 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
                 sx={{
                   position: 'relative',
                   p: 3,
-                  pt: isPopular ? 4.5 : 3,
+                  pt: (isPopular || isPremium) ? 4.5 : 3,
                   borderRadius: '16px',
                   border: isSelected
-                    ? '2px solid #0040a1'
-                    : isPopular
-                      ? '1.5px solid #0040a1'
-                      : '1px solid #e2e8f0',
-                  bgcolor: isCurrent ? '#f8fafc' : '#fff',
+                    ? `2px solid ${isPremium ? goldBorder : '#0040a1'}`
+                    : isPremium
+                      ? `2px solid ${goldBorder}`
+                      : isPopular
+                        ? '1.5px solid #0040a1'
+                        : '1px solid #e2e8f0',
+                  bgcolor: isCurrent ? '#f8fafc' : isPremium ? '#fffdf5' : '#fff',
                   cursor: cardClickable ? 'pointer' : 'default',
                   transition: 'all 0.2s',
                   display: 'flex',
                   flexDirection: 'column',
+                  boxShadow: isPremium ? '0 10px 30px rgba(212,175,55,0.18)' : 'none',
                   '&:hover': cardClickable ? {
-                    borderColor: '#0040a1',
-                    boxShadow: '0 4px 16px rgba(0, 64, 161, 0.1)',
+                    borderColor: isPremium ? goldBorder : '#0040a1',
+                    boxShadow: isPremium
+                      ? '0 12px 36px rgba(212,175,55,0.28)'
+                      : '0 4px 16px rgba(0, 64, 161, 0.1)',
                   } : {},
                 }}
               >
-                {isPopular && (
+                {isPopular && !isPremium && (
                   <Box
                     sx={{
                       position: 'absolute',
@@ -322,14 +334,36 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
                     ✦ POPULAIRE ✦
                   </Box>
                 )}
+                {isPremium && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 12,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      background: `linear-gradient(135deg, ${goldBorder} 0%, ${goldAccent} 100%)`,
+                      color: '#fff',
+                      px: 1.5,
+                      py: 0.4,
+                      borderRadius: '999px',
+                      fontWeight: 700,
+                      fontSize: 10,
+                      letterSpacing: '0.1em',
+                      whiteSpace: 'nowrap',
+                      boxShadow: `0 4px 10px rgba(184,134,11,0.32)`,
+                    }}
+                  >
+                    ★ HAUT DE GAMME
+                  </Box>
+                )}
 
-                <Typography sx={{ fontSize: 20, fontWeight: 800, color: '#0f172a', mb: 0.5 }}>
-                  Pack <Box component="span" sx={{ color: '#0040a1' }}>{meta.label}</Box>
+                <Typography sx={{ fontSize: 20, fontWeight: 800, color: isPremium ? goldText : '#0f172a', mb: 0.5 }}>
+                  Pack <Box component="span" sx={{ color: isPremium ? goldAccent : '#0040a1' }}>{meta.label}</Box>
                 </Typography>
 
                 <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 1 }}>
                   <Typography sx={{ color: '#64748b', fontSize: 14 }}>dès</Typography>
-                  <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#0f172a' }}>
+                  <Typography sx={{ fontSize: 28, fontWeight: 800, color: isPremium ? goldText : '#0f172a' }}>
                     {meta.baseEur.toFixed(0)} €
                   </Typography>
                   <Typography sx={{ color: '#64748b', fontSize: 13 }}>HT/mois</Typography>
@@ -363,14 +397,19 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
                     endIcon={<ArrowForwardIcon />}
                     onClick={(e) => { e.stopPropagation(); goToDevis(key); }}
                     sx={{
-                      bgcolor: '#0040a1',
-                      '&:hover': { bgcolor: '#003080' },
+                      bgcolor: isPremium ? goldAccent : '#0040a1',
+                      background: isPremium
+                        ? `linear-gradient(135deg, ${goldBorder} 0%, ${goldAccent} 100%)`
+                        : undefined,
+                      '&:hover': isPremium
+                        ? { background: `linear-gradient(135deg, ${goldAccent} 0%, #8a6508 100%)` }
+                        : { bgcolor: '#003080' },
                       textTransform: 'none',
                       fontWeight: 700,
                       borderRadius: '10px',
                       py: 1.2,
                       mb: 2.5,
-                      boxShadow: 'none',
+                      boxShadow: isPremium ? '0 6px 18px rgba(184,134,11,0.32)' : 'none',
                     }}
                   >
                     Voir le devis
@@ -379,14 +418,14 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
 
                 <Divider sx={{ mb: 2 }} />
 
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#0f172a', mb: 1.5 }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: isPremium ? goldText : '#0f172a', mb: 1.5 }}>
                   {meta.intro}
                 </Typography>
 
                 <Stack spacing={1.25} sx={{ flex: 1 }}>
                   {meta.features.map((f) => (
                     <Stack key={f} direction="row" spacing={1} alignItems="flex-start">
-                      <CheckCircleIcon sx={{ color: '#0040a1', fontSize: 18, mt: 0.25, flexShrink: 0 }} />
+                      <CheckCircleIcon sx={{ color: isPremium ? goldAccent : '#0040a1', fontSize: 18, mt: 0.25, flexShrink: 0 }} />
                       <Typography sx={{ fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
                         {f}
                       </Typography>
