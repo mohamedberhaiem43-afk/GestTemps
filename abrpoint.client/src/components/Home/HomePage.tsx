@@ -41,6 +41,23 @@ export default function HomePage() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const [scrolled, setScrolled] = useState(false);
 
+  // Pack pré-sélectionné transmis à InlineAuthCard. `nonce` incrémenté à chaque
+  // clic pour forcer le ré-déclenchement de l'effet de pré-sélection côté carte
+  // (sinon, re-cliquer sur le même pack après changement local serait ignoré).
+  const [presetPlan, setPresetPlan] = useState<'Starter' | 'Standard' | 'Premium' | undefined>(undefined);
+  const [presetNonce, setPresetNonce] = useState(0);
+
+  // Expansion par pack : on n'affiche que les 4 features clés par défaut, puis
+  // un lien « Lire la suite » dévoile le reste. État indépendant par pack pour
+  // que l'utilisateur puisse comparer librement sans repli forcé.
+  type PackKey = 'starter' | 'standard' | 'premium';
+  const [expandedPacks, setExpandedPacks] = useState<Record<PackKey, boolean>>({
+    starter: false, standard: false, premium: false,
+  });
+  const togglePack = (k: PackKey) =>
+    setExpandedPacks((s) => ({ ...s, [k]: !s[k] }));
+  const KEY_FEATURE_LIMIT = 4;
+
   const authSectionRef = useRef<HTMLDivElement | null>(null);
   const howSectionRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -81,15 +98,15 @@ export default function HomePage() {
     ref.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Prix : annuel = -20 % sur le forfait (overage facturé identiquement).
-  // Grille Early Launch 2026-05-17 — alignée avec ABRPOINT.Server.Tenancy.PlanCatalog.
-  // En cycle annuel, on affiche le MONTANT TOTAL ANNUEL (mensuel × 12 × 0,8)
-  // pour éviter toute ambiguïté sur le montant prélevé une seule fois par an.
+  // Prix : annuel = mensuel × 12, sans remise pour le moment.
+  // L'ancienne remise commerciale de -20 % a été retirée à la demande produit
+  // (cf. badges « -20 % » masqués sur toggles et marquee). Si elle revient,
+  // remplacer 12 par `12 * 0.8` ici et restaurer les badges.
   const monthly = billingCycle === 'monthly';
   const formatPrice = (v: number) =>
     new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(v);
   const monthlyBase = { starter: 29.5, standard: 54, premium: 149 };
-  const annualFactor = 12 * 0.8;
+  const annualFactor = 12;
   const prices = {
     starter: monthly ? formatPrice(monthlyBase.starter) : formatPrice(monthlyBase.starter * annualFactor),
     standard: monthly ? formatPrice(monthlyBase.standard) : formatPrice(monthlyBase.standard * annualFactor),
@@ -104,15 +121,15 @@ export default function HomePage() {
   };
   const goToSignup = () => scrollToAuth();
   const goToLogin = () => scrollToAuth();
-  // Plan + cycle passés en query string ET en location.state pour que
-  // PlanConfigurationPage les retrouve quelle que soit la source de navigation.
-  // Avant le fix 2026-05-18, seule la query string était envoyée mais la page
-  // lisait uniquement location.state → tout clic retombait sur 'Standard'.
-  const goToPlanConfig = (plan: string) => {
-    const cycle = billingCycle;
-    navigate(`/plan-configuration?plan=${encodeURIComponent(plan)}&cycle=${cycle}`, {
-      state: { plan, cycle },
-    });
+  // Avant 2026-05-19, le clic sur une carte de prix naviguait vers
+  // /plan-configuration. Désormais : on reste sur la home, on pré-sélectionne le
+  // pack dans InlineAuthCard (via la prop `presetPlan`) et on scrolle jusqu'au
+  // formulaire d'inscription. Le `nonce` force la pré-sélection à se rejouer
+  // même quand l'utilisateur re-clique sur le pack déjà sélectionné.
+  const goToPlanConfig = (plan: 'Starter' | 'Standard' | 'Premium') => {
+    setPresetPlan(plan);
+    setPresetNonce((n) => n + 1);
+    scrollToAuth();
   };
 
   return (
@@ -565,6 +582,29 @@ export default function HomePage() {
           <h2 className="section-title" style={{ margin: '0 auto', textAlign: 'center' }}>
             Un tarif <span className="accent">transparent</span>,<br />zéro surprise
           </h2>
+          {/* Annonce commerciale "Conditions privilégiées" — ton or pour rester
+              cohérent avec le bandeau Early Launch et le pack Premium. Placée
+              juste sous le titre de la section pour valoriser l'offre avant
+              même que l'utilisateur ne lise la grille. */}
+          <div
+            style={{
+              margin: '20px auto 12px',
+              maxWidth: 720,
+              padding: '14px 22px',
+              background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+              border: '1px solid #d4af37',
+              borderRadius: 14,
+              textAlign: 'center',
+              boxShadow: '0 4px 14px rgba(212,175,55,0.18)',
+            }}
+          >
+            <div style={{ color: '#92400e', fontWeight: 800, fontSize: 15, marginBottom: 4, letterSpacing: 0.2 }}>
+              ✦ Conditions tarifaires privilégiées
+            </div>
+            <div style={{ color: '#7c5a0b', fontWeight: 500, fontSize: 13.5, lineHeight: 1.55 }}>
+              Bénéficiez actuellement de conditions tarifaires privilégiées sur l'ensemble de nos offres SaaS professionnelles.
+            </div>
+          </div>
           <p className="section-sub" style={{ margin: '16px auto 48px', textAlign: 'center' }}>
             Forfait mensuel par société · Salariés inclus + tarif par employé supplémentaire.
           </p>
@@ -584,14 +624,38 @@ export default function HomePage() {
             <div className="price-per">Cap dur à 10 salariés · pas de salariés supplémentaires</div>
             <div className="price-desc">Pour les TPE et startups qui démarrent la digitalisation RH d'une petite équipe.</div>
             <div className="price-features">
-              <div className="pf-item"><span className="pf-check">✓</span> 1 mois gratuit sans carte bancaire</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Pointage web simple</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Gestion RH basique (fiches, contrats)</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Absences & dashboard basique</div>
-              <div className="pf-item"><span className="pf-check">✓</span> 1 administrateur · support standard</div>
-              <div className="pf-item"><span className="pf-x">✕</span> <span className="pf-muted">Application mobile</span></div>
-              <div className="pf-item"><span className="pf-x">✕</span> <span className="pf-muted">Coffre numérique</span></div>
-              <div className="pf-item"><span className="pf-x">✕</span> <span className="pf-muted">Export paie</span></div>
+              {(() => {
+                const features = [
+                  { type: 'check', text: '1 mois gratuit sans carte bancaire' },
+                  { type: 'check', text: 'Pointage web simple' },
+                  { type: 'check', text: 'Gestion RH basique (fiches, contrats)' },
+                  { type: 'check', text: 'Absences & dashboard basique' },
+                  { type: 'check', text: '1 administrateur · support standard' },
+                  { type: 'x', text: 'Application mobile' },
+                  { type: 'x', text: 'Coffre numérique' },
+                  { type: 'x', text: 'Export paie' },
+                ];
+                const expanded = expandedPacks.starter;
+                const visible = expanded ? features : features.slice(0, KEY_FEATURE_LIMIT);
+                return (
+                  <>
+                    {visible.map((f, i) => (
+                      <div key={i} className="pf-item">
+                        {f.type === 'check'
+                          ? <><span className="pf-check">✓</span> {f.text}</>
+                          : <><span className="pf-x">✕</span> <span className="pf-muted">{f.text}</span></>}
+                      </div>
+                    ))}
+                    {features.length > KEY_FEATURE_LIMIT && (
+                      <button type="button" onClick={() => togglePack('starter')} aria-expanded={expanded}
+                        style={{ background: 'none', border: 'none', padding: 0, marginTop: 6,
+                          color: '#0040a1', fontWeight: 700, fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                        {expanded ? 'Réduire ↑' : `Lire la suite (+${features.length - KEY_FEATURE_LIMIT}) ↓`}
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             <button type="button" className="btn-plan btn-plan-ghost" onClick={() => goToPlanConfig('Starter')}>Choisir Starter</button>
           </div>
@@ -606,14 +670,34 @@ export default function HomePage() {
             <div className="price-per">+ 6,90 € / collaborateur supplémentaire · jusqu'à 100 max</div>
             <div className="price-desc">Suite complète mobile + paie pour les PME en croissance et équipes structurées.</div>
             <div className="price-features">
-              <div className="pf-item"><span className="pf-check">✓</span> 1 mois gratuit sans carte bancaire</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Tout le plan Starter</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Application mobile + géolocalisation</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Congés, RTT, CET, sanctions</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Coffre numérique & signature électronique</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Notifications push / email · Reporting avancé</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Préparation paie · Multi-sites simple</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Support prioritaire</div>
+              {(() => {
+                const features = [
+                  '1 mois gratuit sans carte bancaire',
+                  'Application mobile + géolocalisation',
+                  'Coffre numérique & signature électronique',
+                  'Préparation paie · export paie',
+                  'Tout le plan Starter',
+                  'Congés, RTT, CET, sanctions',
+                  'Notifications push / email · Reporting avancé',
+                  'Multi-sites simple · Support prioritaire',
+                ];
+                const expanded = expandedPacks.standard;
+                const visible = expanded ? features : features.slice(0, KEY_FEATURE_LIMIT);
+                return (
+                  <>
+                    {visible.map((f, i) => (
+                      <div key={i} className="pf-item"><span className="pf-check">✓</span> {f}</div>
+                    ))}
+                    {features.length > KEY_FEATURE_LIMIT && (
+                      <button type="button" onClick={() => togglePack('standard')} aria-expanded={expanded}
+                        style={{ background: 'none', border: 'none', padding: 0, marginTop: 6,
+                          color: '#0040a1', fontWeight: 700, fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                        {expanded ? 'Réduire ↑' : `Lire la suite (+${features.length - KEY_FEATURE_LIMIT}) ↓`}
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             <button type="button" className="btn-plan btn-plan-primary" onClick={() => goToPlanConfig('Standard')}>Choisir Standard</button>
           </div>
@@ -648,14 +732,35 @@ export default function HomePage() {
             <div className="price-per">+ 9,90 € / collaborateur supplémentaire · jusqu'à 200 max</div>
             <div className="price-desc">Multi-filiales, IA contextuelle et sécurité renforcée pour les grandes structures.</div>
             <div className="price-features">
-              <div className="pf-item"><span className="pf-check">✓</span> 1 mois gratuit sans carte bancaire</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Tout le plan Standard</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Multi-filiales illimité · dashboards avancés</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Audit logs avancés · branding personnalisé</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Sécurité mobile renforcée · device trust</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Screenshot blocking · cert pinning</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Conformité RGPD avancée · SLA premium</div>
-              <div className="pf-item"><span className="pf-check">✓</span> Onboarding accompagné · futures intégrations SSO</div>
+              {(() => {
+                const features = [
+                  'Multi-filiales illimité · dashboards avancés',
+                  'Assistant IA contextuel (RAG)',
+                  'Sécurité mobile renforcée · device trust',
+                  'Audit logs avancés · branding personnalisé',
+                  '1 mois gratuit sans carte bancaire',
+                  'Tout le plan Standard',
+                  'Screenshot blocking · cert pinning',
+                  'Conformité RGPD avancée · SLA premium',
+                  'Onboarding accompagné · futures intégrations SSO',
+                ];
+                const expanded = expandedPacks.premium;
+                const visible = expanded ? features : features.slice(0, KEY_FEATURE_LIMIT);
+                return (
+                  <>
+                    {visible.map((f, i) => (
+                      <div key={i} className="pf-item"><span className="pf-check" style={{ color: '#b8860b' }}>✓</span> {f}</div>
+                    ))}
+                    {features.length > KEY_FEATURE_LIMIT && (
+                      <button type="button" onClick={() => togglePack('premium')} aria-expanded={expanded}
+                        style={{ background: 'none', border: 'none', padding: 0, marginTop: 6,
+                          color: '#b8860b', fontWeight: 700, fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                        {expanded ? 'Réduire ↑' : `Lire la suite (+${features.length - KEY_FEATURE_LIMIT}) ↓`}
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             <button
               type="button"
@@ -818,7 +923,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <InlineAuthCard />
+          <InlineAuthCard presetPlan={presetPlan} presetNonce={presetNonce} />
         </div>
       </section>
 

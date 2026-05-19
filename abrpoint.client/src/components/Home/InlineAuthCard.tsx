@@ -60,7 +60,19 @@ function slugify(input: string): string {
     .slice(0, 30);
 }
 
-export default function InlineAuthCard() {
+// Pack pré-sélectionné externe (poussé par HomePage quand l'utilisateur clique
+// sur l'une des cartes de prix). Reflété dans le state local au mount + à chaque
+// changement de prop. Le `nonce` est un compteur utilisé comme déclencheur : sans
+// lui, un re-clic sur le MÊME pack après que l'utilisateur ait changé de pack
+// dans le formulaire ne re-déclencherait pas la pré-sélection (la prop n'aurait
+// pas changé). Le nonce force le useEffect à se rejouer.
+type PresetPlan = 'Starter' | 'Standard' | 'Premium';
+export interface InlineAuthCardProps {
+  presetPlan?: PresetPlan;
+  presetNonce?: number;
+}
+
+export default function InlineAuthCard({ presetPlan, presetNonce }: InlineAuthCardProps = {}) {
   const navigate = useNavigate();
   const { setAuthData, refreshAuth } = useAuth();
   const feedback = useFeedbackSnackbar();
@@ -106,8 +118,17 @@ export default function InlineAuthCard() {
   // features disponibles dès l'entrée en Trialing 30j (cf. backend SignupController).
   // Pré-sélection 'Standard' = pack le plus populaire (parité avec PricingPage).
   type PlanPick = 'Starter' | 'Standard' | 'Premium';
-  const [selectedPlan, setSelectedPlan] = useState<PlanPick>('Standard');
+  const [selectedPlan, setSelectedPlan] = useState<PlanPick>(presetPlan ?? 'Standard');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+
+  // Quand la HomePage pousse un pack pré-sélectionné (clic sur l'une des cartes
+  // de prix), on bascule sur l'onglet "Créer un compte" et on aligne la sélection.
+  // Dépend du `nonce` pour relancer l'effet même si le pack identique est re-cliqué.
+  useEffect(() => {
+    if (!presetPlan) return;
+    setSelectedPlan(presetPlan);
+    setTab('register');
+  }, [presetPlan, presetNonce]);
 
   const [companyName, setCompanyName] = useState('');
   const [slug, setSlug] = useState('');

@@ -880,16 +880,19 @@ function DashboardLayoutAccount(_props: DemoProps) {
     const navItems = flatten(NAVIGATION);
     const matched = navItems.find(n => n.href === canonicalPathname);
 
+    // Format demandé : « Concorde Workforce | <page> » (la marque d'abord, le
+    // nom de page en suffixe). Avant 2026-05-19 c'était l'inverse — décision
+    // produit pour mettre la marque en premier dans l'onglet du navigateur.
     if (matched) {
-      document.title = `${matched.label} | Concorde Workforce`;
+      document.title = `Concorde Workforce | ${matched.label}`;
     } else if (canonicalPathname === '/dashboard') {
-      document.title = `${t('navigation.dashboard')} | Concorde Workforce`;
+      document.title = `Concorde Workforce | ${t('navigation.dashboard')}`;
     } else if (pathname === '/login') {
-      document.title = `${t('navigation.loginTitle')} | Concorde Workforce`;
+      document.title = `Concorde Workforce | ${t('navigation.loginTitle')}`;
     } else if (pathname === '/signup') {
-      document.title = `${t('navigation.signupTitle')} | Concorde Workforce`;
+      document.title = `Concorde Workforce | ${t('navigation.signupTitle')}`;
     } else if (pathname === '/') {
-      document.title = `${t('navigation.pricingTitle')} | Concorde Workforce`;
+      document.title = `Concorde Workforce | ${t('navigation.pricingTitle')}`;
     } else {
       document.title = `Concorde Workforce`;
     }
