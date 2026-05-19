@@ -12,7 +12,11 @@ import { useNavigate } from 'react-router-dom';
 import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
 import ChangePlanModal from './ChangePlanModal';
+import DevisPackDialog from './DevisPackDialog';
 import StorageUsageCard from './StorageUsageCard';
+
+type PlanKey = 'Starter' | 'Standard' | 'Premium';
+type Cycle = 'monthly' | 'annual';
 
 interface SubscriptionInfo {
   slug: string;
@@ -85,6 +89,9 @@ export default function MonAbonnementPage() {
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [changePlanOpen, setChangePlanOpen] = useState(false);
+  // Devis affiché en modale par-dessus la liste des packs (Dougs-style).
+  // null = fermée ; non-null = ouverte sur le pack/cycle sélectionné.
+  const [devisDialog, setDevisDialog] = useState<{ plan: PlanKey; cycle: Cycle } | null>(null);
   // Polling de confirmation post-Stripe : tant que `pollingReactivation` est vrai,
   // on affiche un overlay « Confirmation du paiement en cours » et on interroge
   // /billing/subscription jusqu'à ce que le webhook checkout.session.completed
@@ -353,15 +360,7 @@ export default function MonAbonnementPage() {
             {canManage && (
               <Button
                 variant="contained"
-                onClick={() => {
-                  // Active/Trialing avec subscription Stripe : modale en place ; sinon
-                  // Checkout complet (cf. handler bouton Voir les autres packs plus bas).
-                  const canMutateInPlace =
-                    info?.hasActiveStripeSubscription === true &&
-                    (info?.status === 'Active' || info?.status === 'Trialing');
-                  if (canMutateInPlace) setChangePlanOpen(true);
-                  else navigate('/dashboard/plan-configuration');
-                }}
+                onClick={() => setChangePlanOpen(true)}
                 sx={{
                   textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3,
                   bgcolor: '#0040a1', '&:hover': { bgcolor: '#003080' },
@@ -509,16 +508,7 @@ export default function MonAbonnementPage() {
             <Button
               variant="contained"
               startIcon={<RocketLaunchIcon />}
-              onClick={() => {
-                // Active/Trialing avec subscription Stripe : on mute en place via le modal
-                // (Subscription.UpdateAsync + proration). Sinon (PendingPayment, Suspended,
-                // ou pas de subscription) : on relance un Checkout complet.
-                const canMutateInPlace =
-                  info?.hasActiveStripeSubscription === true &&
-                  (info?.status === 'Active' || info?.status === 'Trialing');
-                if (canMutateInPlace) setChangePlanOpen(true);
-                else navigate('/dashboard/plan-configuration');
-              }}
+              onClick={() => setChangePlanOpen(true)}
               sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3 }}
             >
               Voir les autres packs
@@ -652,11 +642,27 @@ export default function MonAbonnementPage() {
         open={changePlanOpen}
         onClose={() => setChangePlanOpen(false)}
         currentPlan={info?.planCode ?? null}
+        // Branche "changement en un clic" (preview prorata + bouton confirmation) :
+        // uniquement disponible quand il existe déjà une subscription Stripe à muter.
+        // Pour les essais sans carte, la modale agit en pure vitrine et seul le CTA
+        // « Voir le devis → » mène à un parcours payant via Stripe Checkout.
+        canChangeInPlace={
+          info?.hasActiveStripeSubscription === true &&
+          (info?.status === 'Active' || info?.status === 'Trialing')
+        }
+        onViewDevis={(plan, cycle) => setDevisDialog({ plan, cycle })}
         onSuccess={(newPlan) => {
           setChangePlanOpen(false);
           setSuccessMsg(`Votre formule a été changée pour ${newPlan}. Le différentiel est ajusté sur votre prochaine facture.`);
           fetchInfo();
         }}
+      />
+
+      <DevisPackDialog
+        open={devisDialog !== null}
+        onClose={() => setDevisDialog(null)}
+        plan={devisDialog?.plan ?? null}
+        cycle={devisDialog?.cycle ?? 'monthly'}
       />
     </Box>
   );

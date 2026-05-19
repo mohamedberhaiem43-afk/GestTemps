@@ -159,6 +159,40 @@ namespace ABRPOINT.Server.Helpers
             return (true, url, null);
         }
 
+        /// <summary>
+        /// Persiste un blob binaire déjà en mémoire (par ex. un PDF généré côté serveur via
+        /// DinkToPdf) en utilisant les mêmes règles que <see cref="SaveFile(IFormFile,string?)"/>
+        /// : whitelist d'extension, taille max, sous-dossier tenant si slug valide, nom de
+        /// fichier UUID. Renvoie l'URL <c>/api/uploads/...</c> à stocker en DB.
+        /// </summary>
+        public static async Task<(bool Success, string FilePath, string Error)> SaveBytes(byte[] bytes, string extension, string? tenantSlug)
+        {
+            if (bytes == null || bytes.Length == 0)
+                return (false, null!, "No data.");
+
+            var maxBytes = ResolveMaxBytes();
+            if (bytes.Length > maxBytes)
+                return (false, null!, $"Fichier trop volumineux ({bytes.Length / 1024 / 1024} Mo). Limite : {maxBytes / 1024 / 1024} Mo.");
+
+            if (string.IsNullOrEmpty(extension)) extension = ".bin";
+            if (!extension.StartsWith(".")) extension = "." + extension;
+            if (!AllowedExtensions.Contains(extension))
+                return (false, null!, $"Type de fichier non autorisé ({extension}).");
+
+            var useTenantFolder = IsValidTenantSlug(tenantSlug);
+            var uploads = useTenantFolder ? GetTenantUploadsPath(tenantSlug) : GetUploadsPath();
+            Directory.CreateDirectory(uploads);
+
+            var fileName = Guid.NewGuid().ToString("N") + extension.ToLowerInvariant();
+            var filePath = Path.Combine(uploads, fileName);
+            await File.WriteAllBytesAsync(filePath, bytes);
+
+            var url = useTenantFolder
+                ? $"/api/uploads/{tenantSlug}/{fileName}"
+                : "/api/uploads/" + fileName;
+            return (true, url, null!);
+        }
+
         public static Task<(bool Success, string FilePath, string Error)> SaveBase64Image(string base64Data)
             => SaveBase64Image(base64Data, tenantSlug: null);
 

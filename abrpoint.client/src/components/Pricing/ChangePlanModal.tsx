@@ -1,34 +1,35 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, Box, Typography, RadioGroup, FormControlLabel, Radio, Paper, Alert,
-  CircularProgress, Chip, Stack, Divider,
+  Button, Box, Typography, Paper, Alert, IconButton,
+  CircularProgress, Stack, Divider,
 } from '@mui/material';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useNavigate } from 'react-router-dom';
 import apiInstance from '../API/apiInstance';
 
 /**
- * Modale de changement de plan pour un tenant avec abonnement Stripe actif.
+ * Modale "Choisissez votre pack" — affichée au clic sur « Voir les tarifs »
+ * ou « Voir les autres packs » depuis la page abonnement.
  *
- * Workflow :
- *   1. L'admin choisit le nouveau plan (Starter / Standard / Premium) — le plan actuel
- *      est désactivé dans la liste.
- *   2. Au changement de sélection, on appelle /api/billing/preview-plan-change pour
- *      afficher le différentiel prorata-temporis ("Vous serez facturé 18,40 € sur
- *      votre prochaine facture du 12 juin").
- *   3. Si le nouveau plan est INFÉRIEUR à l'actuel, on affiche un warning listant
- *      les features perdues — l'admin doit explicitement confirmer (pas de blocage).
- *   4. Au clic Confirmer : POST /api/billing/change-plan, Stripe applique le change,
- *      le tenant.PlanCode est mis à jour côté master DB, l'UI refresh.
+ * Présentation 3 colonnes inspirée du parcours Dougs : chaque pack expose son
+ * prix, son tagline et la liste des fonctionnalités, avec un CTA principal
+ * « Voir le devis → » qui ouvre DevisPackPage. Le pack courant est verrouillé
+ * (« ✓ Pack choisi »).
  *
- * Pas de blocage strict : la promesse commerciale "transition immédiate, différentiel
- * prorata-temporis" doit toujours pouvoir être tenue. L'admin est averti des risques
- * (downgrade avec features actives) mais reste libre de décider.
+ * Pour les tenants déjà abonnés (Active/Trialing + StripeSubscriptionId) on
+ * conserve aussi un parcours "changement en un clic" : cliquer sur la carte
+ * sélectionne le pack, ce qui révèle le différentiel prorata-temporis sous les
+ * cartes + un bouton de confirmation dans le footer. Cette branche est désactivée
+ * pour les essais sans carte (qui doivent passer par /billing/checkout via le
+ * devis pour transmettre un moyen de paiement à Stripe).
  */
 type PlanKey = 'Starter' | 'Standard' | 'Premium';
 
@@ -48,15 +49,67 @@ interface ChangePlanModalProps {
   onClose: () => void;
   currentPlan: string | null;
   onSuccess: (newPlan: string) => void;
+  // Active la branche "changement en un clic" (preview prorata + bouton confirmation).
+  // À mettre à false pour les tenants sans subscription Stripe (essais purs) : seul
+  // le parcours « Voir le devis → DevisPackDialog → Stripe Checkout » est alors actif.
+  canChangeInPlace?: boolean;
+  // Callback déclenché au clic sur "Voir le devis" d'une carte. Si non fourni, la
+  // modale retombe sur une navigation vers /dashboard/devis-pack (page legacy).
+  // Le parent (MonAbonnementPage) l'utilise pour ouvrir DevisPackDialog par-dessus.
+  onViewDevis?: (plan: 'Starter' | 'Standard' | 'Premium', cycle: 'monthly' | 'annual') => void;
 }
 
-// Définition simplifiée (label + tagline + ordre commercial). Doit rester aligné avec
-// ABRPOINT.Server.Tenancy.PlanCatalog côté backend — la source de vérité reste serveur.
-const PLAN_META: Record<PlanKey, { label: string; tagline: string; baseEur: number; includedSeats: number; maxSeats: number; rank: number }> = {
-  // Grille Early Launch 2026-05-17. Aligné avec ABRPOINT.Server.Tenancy.PlanCatalog.
-  Starter:  { label: 'Starter',  tagline: 'Pointage simple, sans workflow RH',         baseEur: 29.50, includedSeats: 10, maxSeats: 30,  rank: 1 },
-  Standard: { label: 'Standard', tagline: 'Mobile, géolocalisation, coffre numérique', baseEur: 54.00, includedSeats: 15, maxSeats: 100, rank: 2 },
-  Premium:  { label: 'Premium',  tagline: 'Multi-filiales, sécurité avancée',          baseEur: 149.00, includedSeats: 30, maxSeats: 200, rank: 3 },
+// Aligné avec ABRPOINT.Server.Tenancy.PlanCatalog (source de vérité côté serveur).
+// On garde ici uniquement ce qui est nécessaire à l'affichage de la grille.
+const PLAN_META: Record<PlanKey, {
+  label: string;
+  tagline: string;
+  baseEur: number;
+  rank: number;
+  intro: string;
+  features: string[];
+  popular?: boolean;
+}> = {
+  Starter: {
+    label: 'Starter',
+    tagline: 'Pointage essentiel pour démarrer rapidement, sans workflow RH avancé.',
+    baseEur: 29.50,
+    rank: 1,
+    intro: 'Ce pack comprend les avantages :',
+    features: [
+      'Pointage web et mobile',
+      'Suivi des heures et présences',
+      'Export paie standard',
+      'Jusqu\'à 30 salariés',
+    ],
+  },
+  Standard: {
+    label: 'Standard',
+    tagline: 'Mobile, géolocalisation, coffre numérique et obligations RH.',
+    baseEur: 54.00,
+    rank: 2,
+    intro: 'L\'intégralité du Pack Starter plus :',
+    features: [
+      'App mobile + géolocalisation',
+      'Coffre numérique + signature électronique',
+      'Gestion congés, missions, autorisations',
+      'Tableaux de bord avancés',
+    ],
+    popular: true,
+  },
+  Premium: {
+    label: 'Premium',
+    tagline: 'Multi-filiales, assistant IA et sécurité avancée pour les grands comptes.',
+    baseEur: 149.00,
+    rank: 3,
+    intro: 'L\'intégralité du Pack Standard plus :',
+    features: [
+      'Multi-filiales (sociétés illimitées)',
+      'Assistant IA (RAG)',
+      'Audit avancé + branding personnalisé',
+      'Sécurité mobile renforcée',
+    ],
+  },
 };
 
 // Features perdues quand on passe d'un plan supérieur à un inférieur (pour le warning).
@@ -89,7 +142,7 @@ function formatDate(d: string | null | undefined): string {
   catch { return d; }
 }
 
-export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess }: ChangePlanModalProps) {
+export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess, canChangeInPlace = true, onViewDevis }: ChangePlanModalProps) {
   const navigate = useNavigate();
   const normalizedCurrent = (currentPlan ?? '').trim();
   const currentKey: PlanKey | null = (['Starter', 'Standard', 'Premium'] as PlanKey[]).find(
@@ -113,10 +166,9 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess 
     }
   }, [open]);
 
-  // Auto-preview à chaque changement de sélection. Debounced via le setSelected lui-même
-  // (le user ne peut pas spammer plus vite qu'un clic). Pas besoin de useCallback.
+  // Auto-preview à chaque changement de sélection (seulement si on est en mode in-place).
   useEffect(() => {
-    if (!open || !selected || selected === currentKey) {
+    if (!open || !canChangeInPlace || !selected || selected === currentKey) {
       setPreview(null);
       setPreviewError(null);
       return;
@@ -142,7 +194,7 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess 
       }
     })();
     return () => { cancelled = true; };
-  }, [selected, currentKey, open]);
+  }, [selected, currentKey, open, canChangeInPlace]);
 
   const isDowngrade = useMemo(() => {
     if (!selected || !currentKey) return false;
@@ -178,89 +230,187 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess 
     }
   };
 
-  return (
-    <Dialog open={open} onClose={() => !submitting && onClose()} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>
-        Changer de formule
-      </DialogTitle>
-      <DialogContent>
-        <Typography sx={{ mb: 2.5, color: '#475569', fontSize: 14 }}>
-          Choisissez votre nouvelle formule. Les fonctionnalités sont mises à jour immédiatement
-          et le différentiel est facturé/crédité prorata-temporis sur votre prochaine facture.
-        </Typography>
+  const goToDevis = (key: PlanKey) => {
+    if (onViewDevis) {
+      // Parent va ouvrir DevisPackDialog par-dessus — on n'a plus à naviguer.
+      // On ferme la modale "Choisissez votre pack" pour laisser place au devis.
+      onClose();
+      onViewDevis(key, 'monthly');
+      return;
+    }
+    onClose();
+    navigate(`/dashboard/devis-pack?plan=${key}&cycle=monthly`);
+  };
 
-        <RadioGroup value={selected ?? ''} onChange={(e) => setSelected(e.target.value as PlanKey)}>
+  return (
+    <Dialog
+      open={open}
+      onClose={() => !submitting && onClose()}
+      maxWidth="lg"
+      fullWidth
+      PaperProps={{ sx: { borderRadius: '20px' } }}
+    >
+      <DialogTitle sx={{ fontWeight: 800, pb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 2 }}>
+        <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a' }}>
+          Choisissez votre pack
+        </Typography>
+        <IconButton onClick={onClose} disabled={submitting} size="small" aria-label="Fermer">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent sx={{ pt: 1 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+            gap: 2.5,
+            mt: 2.5,
+            alignItems: 'stretch',
+          }}
+        >
           {(Object.keys(PLAN_META) as PlanKey[]).map((key) => {
             const meta = PLAN_META[key];
             const isCurrent = key === currentKey;
             const isSelected = key === selected;
+            const isPopular = meta.popular;
+            const cardClickable = !isCurrent && canChangeInPlace;
             return (
               <Paper
                 key={key}
                 elevation={0}
+                onClick={() => cardClickable && setSelected(key)}
                 sx={{
-                  p: 2, mb: 1.5, borderRadius: '12px',
-                  border: isSelected ? '2px solid #0040a1' : '1px solid #e2e8f0',
-                  background: isSelected ? '#f0f6ff' : isCurrent ? '#f8fafc' : '#fff',
-                  opacity: isCurrent ? 0.7 : 1,
-                  cursor: isCurrent ? 'not-allowed' : 'pointer',
+                  position: 'relative',
+                  p: 3,
+                  pt: isPopular ? 4.5 : 3,
+                  borderRadius: '16px',
+                  border: isSelected
+                    ? '2px solid #0040a1'
+                    : isPopular
+                      ? '1.5px solid #0040a1'
+                      : '1px solid #e2e8f0',
+                  bgcolor: isCurrent ? '#f8fafc' : '#fff',
+                  cursor: cardClickable ? 'pointer' : 'default',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  '&:hover': cardClickable ? {
+                    borderColor: '#0040a1',
+                    boxShadow: '0 4px 16px rgba(0, 64, 161, 0.1)',
+                  } : {},
                 }}
-                onClick={() => !isCurrent && setSelected(key)}
               >
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <FormControlLabel
-                    value={key}
-                    disabled={isCurrent}
-                    control={<Radio />}
-                    sx={{ flex: 1, m: 0 }}
-                    label={
-                      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <Typography sx={{ fontWeight: 800, fontSize: 16 }}>{meta.label}</Typography>
-                          {isCurrent && <Chip label="Plan actuel" size="small" sx={{ fontWeight: 700, bgcolor: '#e2e8f0' }} />}
-                          <Typography sx={{ ml: 'auto', fontWeight: 800, color: '#0040a1' }}>
-                            {meta.baseEur.toFixed(2)} € / mois
-                          </Typography>
-                        </Box>
-                        <Typography sx={{ fontSize: 13, color: '#64748b', mt: 0.5 }}>
-                          {meta.tagline} · {meta.includedSeats} inclus · jusqu'à {meta.maxSeats} max
-                        </Typography>
-                      </Box>
-                    }
-                  />
-                  {/* Bouton « Voir le devis » : ouvre la page DevisPackPage avec le détail
-                      des prochaines factures + souscription. Permet à l'utilisateur de
-                      consulter le détail AVANT d'engager le changement (différentiel
-                      prorata calculé dans le panel ci-dessous est utile pour les actifs ;
-                      la page devis cible plutôt les essais ou prospects). Masqué pour le
-                      plan actuel (qu'on ne peut pas re-souscrire). */}
-                  {!isCurrent && (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      endIcon={<ArrowForwardIcon sx={{ fontSize: 14 }} />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onClose();
-                        navigate(`/dashboard/devis-pack?plan=${key}&cycle=monthly`);
-                      }}
-                      sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px', flexShrink: 0 }}
-                    >
-                      Voir le devis
-                    </Button>
-                  )}
+                {isPopular && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 12,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      bgcolor: '#0f172a',
+                      color: '#fff',
+                      px: 1.5,
+                      py: 0.4,
+                      borderRadius: '999px',
+                      fontWeight: 700,
+                      fontSize: 10,
+                      letterSpacing: '0.1em',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    ✦ POPULAIRE ✦
+                  </Box>
+                )}
+
+                <Typography sx={{ fontSize: 20, fontWeight: 800, color: '#0f172a', mb: 0.5 }}>
+                  Pack <Box component="span" sx={{ color: '#0040a1' }}>{meta.label}</Box>
+                </Typography>
+
+                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 1 }}>
+                  <Typography sx={{ color: '#64748b', fontSize: 14 }}>dès</Typography>
+                  <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#0f172a' }}>
+                    {meta.baseEur.toFixed(0)} €
+                  </Typography>
+                  <Typography sx={{ color: '#64748b', fontSize: 13 }}>HT/mois</Typography>
+                </Box>
+
+                <Typography sx={{ color: '#475569', fontSize: 13, mb: 2.5, lineHeight: 1.5, minHeight: 56 }}>
+                  {meta.tagline}
+                </Typography>
+
+                {isCurrent ? (
+                  <Button
+                    fullWidth
+                    disabled
+                    startIcon={<CheckIcon />}
+                    sx={{
+                      bgcolor: '#e2e8f0 !important',
+                      color: '#475569 !important',
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      borderRadius: '10px',
+                      py: 1.2,
+                      mb: 2.5,
+                    }}
+                  >
+                    Pack choisi
+                  </Button>
+                ) : (
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    endIcon={<ArrowForwardIcon />}
+                    onClick={(e) => { e.stopPropagation(); goToDevis(key); }}
+                    sx={{
+                      bgcolor: '#0040a1',
+                      '&:hover': { bgcolor: '#003080' },
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      borderRadius: '10px',
+                      py: 1.2,
+                      mb: 2.5,
+                      boxShadow: 'none',
+                    }}
+                  >
+                    Voir le devis
+                  </Button>
+                )}
+
+                <Divider sx={{ mb: 2 }} />
+
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#0f172a', mb: 1.5 }}>
+                  {meta.intro}
+                </Typography>
+
+                <Stack spacing={1.25} sx={{ flex: 1 }}>
+                  {meta.features.map((f) => (
+                    <Stack key={f} direction="row" spacing={1} alignItems="flex-start">
+                      <CheckCircleIcon sx={{ color: '#0040a1', fontSize: 18, mt: 0.25, flexShrink: 0 }} />
+                      <Typography sx={{ fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
+                        {f}
+                      </Typography>
+                    </Stack>
+                  ))}
                 </Stack>
+
+                {isSelected && !isCurrent && canChangeInPlace && (
+                  <Box sx={{ mt: 2, pt: 2, borderTop: '1px dashed #cbd5e1' }}>
+                    <Typography sx={{ fontSize: 11, color: '#0040a1', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      ✓ Sélectionné — voir le différentiel ci-dessous
+                    </Typography>
+                  </Box>
+                )}
               </Paper>
             );
           })}
-        </RadioGroup>
+        </Box>
 
-        {/* Preview chiffré */}
-        {selected && selected !== currentKey && (
+        {/* Preview chiffré + warning downgrade — branche "in-place" uniquement */}
+        {canChangeInPlace && selected && selected !== currentKey && (
           <Paper
             elevation={0}
             sx={{
-              mt: 1, p: 2.5, borderRadius: '12px',
+              mt: 3, p: 2.5, borderRadius: '12px',
               border: '1px solid #bfdbfe',
               background: 'linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)',
             }}
@@ -269,7 +419,7 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess 
               {isUpgrade && <ArrowUpwardIcon sx={{ color: '#0040a1', fontSize: 18 }} />}
               {isDowngrade && <ArrowDownwardIcon sx={{ color: '#64748b', fontSize: 18 }} />}
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#0040a1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Estimation
+                Estimation pour passer à {selected}
               </Typography>
             </Stack>
 
@@ -316,8 +466,7 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess 
           </Paper>
         )}
 
-        {/* Warning downgrade */}
-        {isDowngrade && lostFeatures.length > 0 && (
+        {canChangeInPlace && isDowngrade && lostFeatures.length > 0 && (
           <Alert
             severity="warning"
             icon={<WarningAmberIcon />}
@@ -338,21 +487,25 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess 
 
         {submitError && <Alert severity="error" sx={{ mt: 2, borderRadius: '8px' }}>{submitError}</Alert>}
       </DialogContent>
-      <DialogActions sx={{ p: 3, pt: 1 }}>
-        <Button onClick={onClose} disabled={submitting}>Annuler</Button>
-        <Button
-          variant="contained"
-          onClick={handleConfirm}
-          disabled={submitting || !selected || selected === currentKey || previewing || !!previewError}
-          startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <RocketLaunchIcon />}
-          sx={{
-            textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3,
-            background: isDowngrade ? undefined : 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)',
-          }}
-          color={isDowngrade ? 'warning' : 'primary'}
-        >
-          {isDowngrade ? `Rétrograder vers ${selected ?? ''}` : `Passer au pack ${selected ?? ''}`}
+      <DialogActions sx={{ p: 3, pt: 2 }}>
+        <Button onClick={onClose} disabled={submitting} sx={{ textTransform: 'none', fontWeight: 700 }}>
+          Fermer
         </Button>
+        {canChangeInPlace && selected && selected !== currentKey && (
+          <Button
+            variant="contained"
+            onClick={handleConfirm}
+            disabled={submitting || previewing || !!previewError}
+            startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <RocketLaunchIcon />}
+            sx={{
+              textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3,
+              background: isDowngrade ? undefined : 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)',
+            }}
+            color={isDowngrade ? 'warning' : 'primary'}
+          >
+            {isDowngrade ? `Rétrograder vers ${selected}` : `Passer au pack ${selected} en un clic`}
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   );
