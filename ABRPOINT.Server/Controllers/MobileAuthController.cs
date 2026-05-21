@@ -1,5 +1,6 @@
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Services;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -120,11 +121,11 @@ namespace ABRPOINT.Server.Controllers
                 var token = GenerateJwtToken(dbUser.Uticod);
                 var refreshToken = GenerateRefreshToken();
 
-                // Save refresh token
+                // Save refresh token (hash SHA-256 only — cf. RefreshTokenHasher).
                 var refreshTokenEntity = new RefreshToken
                 {
                     Uticod = dbUser.Uticod,
-                    Token = refreshToken,
+                    Token = RefreshTokenHasher.Hash(refreshToken),
                     ExpiresAt = DateTime.UtcNow.AddDays(30),
                     Purpose = "Refresh",
                     LastUsedAt = DateTime.UtcNow,
@@ -173,8 +174,9 @@ namespace ABRPOINT.Server.Controllers
             if (string.IsNullOrEmpty(model.RefreshToken))
                 return Unauthorized(new { message = "Refresh token requis" });
 
+            var hashedIncoming = RefreshTokenHasher.Hash(model.RefreshToken);
             var refreshToken = await _dbContext.RefreshTokens
-                .FirstOrDefaultAsync(rt => rt.Token == model.RefreshToken && !rt.Revoked);
+                .FirstOrDefaultAsync(rt => rt.Token == hashedIncoming && !rt.Revoked);
 
             if (refreshToken == null || refreshToken.ExpiresAt < DateTime.UtcNow)
                 return Unauthorized(new { message = "Refresh token invalide ou expiré" });
@@ -206,7 +208,7 @@ namespace ABRPOINT.Server.Controllers
             var newRefreshTokenEntity = new RefreshToken
             {
                 Uticod = user.Uticod,
-                Token = newRefreshToken,
+                Token = RefreshTokenHasher.Hash(newRefreshToken),
                 ExpiresAt = DateTime.UtcNow.AddDays(30),
                 Purpose = "Refresh",
                 LastUsedAt = DateTime.UtcNow,
@@ -434,7 +436,7 @@ namespace ABRPOINT.Server.Controllers
             _dbContext.RefreshTokens.Add(new RefreshToken
             {
                 Uticod = uticod,
-                Token = bioToken,
+                Token = RefreshTokenHasher.Hash(bioToken),
                 ExpiresAt = DateTime.UtcNow.AddDays(90),
                 Purpose = "Biometric",
                 LastUsedAt = DateTime.UtcNow,
@@ -456,8 +458,9 @@ namespace ABRPOINT.Server.Controllers
             if (string.IsNullOrEmpty(model.RefreshToken))
                 return Unauthorized(new { message = "Bio-token requis" });
 
+            var hashedBio = RefreshTokenHasher.Hash(model.RefreshToken);
             var bio = await _dbContext.RefreshTokens
-                .FirstOrDefaultAsync(rt => rt.Token == model.RefreshToken && !rt.Revoked && rt.Purpose == "Biometric");
+                .FirstOrDefaultAsync(rt => rt.Token == hashedBio && !rt.Revoked && rt.Purpose == "Biometric");
 
             if (bio == null || bio.ExpiresAt < DateTime.UtcNow)
                 return Unauthorized(new { message = "Session biométrique expirée — reconnectez-vous avec votre mot de passe." });
@@ -485,7 +488,7 @@ namespace ABRPOINT.Server.Controllers
             _dbContext.RefreshTokens.Add(new RefreshToken
             {
                 Uticod = user.Uticod,
-                Token = newBioToken,
+                Token = RefreshTokenHasher.Hash(newBioToken),
                 ExpiresAt = DateTime.UtcNow.AddDays(90),
                 Purpose = "Biometric",
                 LastUsedAt = DateTime.UtcNow,
@@ -497,7 +500,7 @@ namespace ABRPOINT.Server.Controllers
             _dbContext.RefreshTokens.Add(new RefreshToken
             {
                 Uticod = user.Uticod,
-                Token = refreshToken,
+                Token = RefreshTokenHasher.Hash(refreshToken),
                 ExpiresAt = DateTime.UtcNow.AddDays(30),
                 Purpose = "Refresh",
                 LastUsedAt = DateTime.UtcNow,
@@ -604,6 +607,66 @@ namespace ABRPOINT.Server.Controllers
             }
             await _dbContext.SaveChangesAsync(ct);
             return Ok(new { registered = true });
+        }
+
+        /// <summary>
+        /// SEC-G3 — Reçoit le rapport de confiance du device produit par
+        /// `deviceSecurity.assessDeviceTrust()` côté mobile. Journalise dans
+        /// l'AuditLog (RGPD : aucune donnée plus précise que le niveau et la
+        /// liste des reasons — pas d'identifiant unique d'appareil).
+        ///
+        /// Utile pour :
+        ///   - Détecter en amont un user dont les devices sont systématiquement
+        ///     `low` (vol de compte sur appareil compromis).
+        ///   - Statistiques tenant : combien d'employés sur émulateur/jailbreak.
+        ///   - Trigger d'enquête sur niveau `low` + accès à une fonction sensible.
+        ///
+        /// L'endpoint accepte aussi des reports non authentifiés (au tout
+        /// premier lancement, avant login) — dans ce cas Uticod est null.
+        /// </summary>
+        [HttpPost("device-trust-report")]
+        public async Task<IActionResult> ReportDeviceTrust([FromBody] DeviceTrustReportDto report, CancellationToken ct)
+        {
+            if (report is null) return BadRequest();
+
+            // Borne la taille pour éviter qu'un client malveillant ne loggue
+            // des Mo de "reasons". On garde les 5 premières raisons max et on
+            // tronque chaque libellé à 30 chars (slug-like).
+            var reasons = (report.Reasons ?? Array.Empty<string>())
+                .Take(5)
+                .Select(r => (r ?? string.Empty).Trim().Substring(0, Math.Min(30, (r ?? string.Empty).Length)))
+                .Where(r => r.Length > 0)
+                .ToList();
+
+            var level = (report.Level ?? "unknown").ToLowerInvariant();
+            if (level is not ("high" or "medium" or "low" or "unknown"))
+                level = "unknown";
+
+            var uticod = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var actionLabel = $"TrustReport:level={level};reasons={string.Join(",", reasons)}";
+            // Cap à 100 chars (contrainte StringLength de la colonne Action).
+            if (actionLabel.Length > 100) actionLabel = actionLabel.Substring(0, 100);
+
+            _dbContext.AuditLogs.Add(new Models.AuditLog
+            {
+                Uticod = uticod,
+                Action = actionLabel,
+                TableName = "device_trust",
+                DateAction = DateTime.UtcNow,
+            });
+            try { await _dbContext.SaveChangesAsync(ct); }
+            catch { /* journalisation best-effort, jamais bloquante */ }
+
+            return Ok(new { received = true });
+        }
+
+        public sealed class DeviceTrustReportDto
+        {
+            public string? Level { get; set; }
+            public bool? IsPhysicalDevice { get; set; }
+            public bool? IsEmulator { get; set; }
+            public string[]? Reasons { get; set; }
+            public string? Platform { get; set; }
         }
 
         private string GenerateJwtToken(string username)

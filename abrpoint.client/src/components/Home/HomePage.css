@@ -133,7 +133,10 @@
   min-height: 90vh;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  padding: 245px 48px 60px; /* 80px buffer + 76px nav + 46px marquee + 43px bandeau Early Launch (tous fixés en haut) */
+  /* Avant : 245px (nav 76 + marquee 46 + bande Early Launch 43 + air 80).
+     Les 3 bandeaux fixes ont été retirés → seul .hp-nav (76px) à compenser
+     plus un peu d'air respiratoire. */
+  padding: 140px 48px 60px;
   text-align: center;
 }
 .home-page .hero-badge {
@@ -1031,7 +1034,12 @@
 @media (max-width: 768px) {
   .home-page .hp-nav { padding: 0 20px; }
   .home-page .nav-links { display: none; }
-  .home-page .hero { padding: 160px 20px 40px; }
+  .home-page .nav-mobile-toggle { display: inline-flex; }
+  /* Sur mobile, les boutons Connexion / Créer un compte deviennent compacts
+     pour laisser la place au hamburger sans déborder. */
+  .home-page .nav-right .btn-ghost { padding: 8px 14px; font-size: 13px; }
+  .home-page .nav-right .btn-primary { padding: 8px 14px; font-size: 13px; }
+  .home-page .hero { padding: 110px 20px 40px; }
   .home-page section { padding: 60px 20px; }
   .home-page .stats-strip { padding: 24px 20px; gap: 12px; }
   .home-page footer { padding: 48px 20px 24px; }
@@ -1040,4 +1048,221 @@
   .home-page .promo-cta-wrap { padding: 40px 0; }
   .home-page .hero-trust { gap: 12px; }
   .home-page .trust-divider { display: none; }
+  /* Promo unifiée : passage en colonne et padding latéral plus compact. */
+  .home-page .promo-launch { padding: 32px 16px; }
+  .home-page .promo-launch-inner { padding: 24px 18px; border-radius: 18px; }
+  .home-page .promo-launch-grid { grid-template-columns: 1fr; gap: 18px; }
+  .home-page .promo-launch-title { font-size: 26px; line-height: 1.18; }
+  .home-page .promo-launch-num { font-size: 1.1em; }
+  .home-page .promo-launch-sub { font-size: 14px; }
+  .home-page .promo-launch-right { padding: 18px; }
+  .home-page .promo-launch-features li { gap: 10px; }
+  .home-page .promo-launch-cta {
+    width: 100%; font-size: 15px; padding: 14px 18px;
+  }
+  .home-page .promo-launch-trust { flex-direction: column; gap: 10px; font-size: 12px; }
+}
+
+/* ── HAMBURGER & MENU MOBILE ── */
+.home-page .nav-mobile-toggle {
+  display: none; /* basculé sur display:inline-flex à @media max-width:768px */
+  width: 40px; height: 40px;
+  align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--hp-outline-variant);
+  border-radius: 10px; cursor: pointer;
+  padding: 0; margin-left: 6px;
+  position: relative;
+}
+.home-page .nav-mobile-toggle span {
+  position: absolute; left: 10px; width: 20px; height: 2px;
+  background: var(--hp-on-surface); border-radius: 2px;
+  transition: transform .25s ease, opacity .2s ease, top .25s ease;
+}
+.home-page .nav-mobile-toggle span:nth-child(1) { top: 13px; }
+.home-page .nav-mobile-toggle span:nth-child(2) { top: 19px; }
+.home-page .nav-mobile-toggle span:nth-child(3) { top: 25px; }
+.home-page .nav-mobile-toggle.is-open span:nth-child(1) { top: 19px; transform: rotate(45deg); }
+.home-page .nav-mobile-toggle.is-open span:nth-child(2) { opacity: 0; }
+.home-page .nav-mobile-toggle.is-open span:nth-child(3) { top: 19px; transform: rotate(-45deg); }
+
+.home-page .nav-mobile-menu {
+  position: fixed; top: 76px; left: 0; right: 0;
+  z-index: 109; /* sous la nav (110), au-dessus du contenu */
+  background: rgba(247,249,251,0.98);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--hp-surface-container);
+  box-shadow: 0 10px 24px rgba(15,23,42,0.08);
+  display: flex; flex-direction: column;
+  padding: 8px 0;
+  animation: hp-fadeInUp .22s ease both;
+}
+.home-page .nav-mobile-menu a {
+  padding: 14px 24px;
+  color: var(--hp-on-surface);
+  text-decoration: none;
+  font-size: 15px; font-weight: 600;
+  border-bottom: 1px solid var(--hp-surface-container);
+}
+.home-page .nav-mobile-menu a:last-child { border-bottom: none; }
+.home-page .nav-mobile-menu a:hover { color: var(--hp-primary); background: var(--hp-surface-container); }
+
+/* ── PROMO UNIFIÉE (remplace les 3 anciens bandeaux Early Launch) ── */
+.home-page .promo-launch {
+  position: relative; z-index: 1;
+  padding: 56px 32px;
+  display: flex; justify-content: center;
+}
+.home-page .promo-launch-inner {
+  position: relative;
+  width: 100%; max-width: 1180px;
+  padding: 42px 48px 36px;
+  border-radius: 28px;
+  /* Fond navy profond avec lueurs dorées en arrière-plan — on garde la palette
+     primaire bleue du site et on accentue avec de l'or pour signaler l'offre
+     exclusive (même code couleur que le pack Premium). */
+  background:
+    radial-gradient(circle at 12% 88%, rgba(245,185,77,0.35) 0%, transparent 38%),
+    radial-gradient(circle at 92% 18%, rgba(124,58,237,0.18) 0%, transparent 50%),
+    linear-gradient(135deg, #0a1330 0%, #0a2463 50%, #1e1b4b 100%);
+  color: #fff;
+  box-shadow: 0 20px 50px rgba(10,36,99,0.35);
+  overflow: hidden;
+}
+.home-page .promo-launch-inner::after {
+  /* Filet doré décoratif au bas — rappel visuel du pack Premium. */
+  content: '';
+  position: absolute; left: -10%; right: -10%; bottom: -8%;
+  height: 120px;
+  background: radial-gradient(ellipse at center, rgba(245,185,77,0.20) 0%, transparent 70%);
+  pointer-events: none;
+}
+.home-page .promo-launch-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+  padding: 9px 22px;
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  border: 1.5px solid rgba(245,185,77,0.6);
+  border-radius: 999px;
+  font-size: 12px; font-weight: 800; letter-spacing: 0.18em;
+  color: #fde68a;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+  white-space: nowrap;
+}
+.home-page .promo-launch-pill-icon { font-size: 14px; }
+
+.home-page .promo-launch-grid {
+  position: relative;
+  display: grid; grid-template-columns: 1.4fr 1fr;
+  gap: 36px; align-items: center;
+  margin-top: 14px;
+}
+.home-page .promo-launch-left { min-width: 0; }
+.home-page .promo-launch-title {
+  font-family: var(--hp-font-headline);
+  font-size: clamp(28px, 3.4vw, 44px);
+  font-weight: 800; line-height: 1.12; letter-spacing: -0.01em;
+  margin: 0 0 14px;
+  color: #ffffff;
+}
+.home-page .promo-launch-num {
+  display: inline-block; position: relative;
+  color: #fde68a;
+  text-shadow: 0 2px 12px rgba(245,185,77,0.45);
+}
+.home-page .promo-launch-num::before {
+  content: '👑'; position: absolute; top: -0.55em; left: 50%;
+  transform: translateX(-50%); font-size: 0.45em;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+.home-page .promo-launch-accent {
+  background: linear-gradient(135deg, #fde68a 0%, #f5b94d 60%, #fbbf24 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 8px rgba(245,185,77,0.4));
+}
+.home-page .promo-launch-sub {
+  margin: 0; font-size: 15.5px; line-height: 1.55;
+  color: rgba(255,255,255,0.82); font-weight: 500;
+}
+.home-page .promo-launch-sub-hl { color: #fde68a; font-weight: 700; }
+
+.home-page .promo-launch-right {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  padding: 22px 22px 20px;
+  backdrop-filter: blur(8px);
+}
+.home-page .promo-launch-right-head {
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em;
+  color: rgba(253,230,138,0.85);
+  text-transform: uppercase;
+  text-align: center; margin-bottom: 14px;
+}
+.home-page .promo-launch-features {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.home-page .promo-launch-features li {
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.home-page .plf-icon {
+  flex-shrink: 0;
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(245,185,77,0.15);
+  border: 1px solid rgba(245,185,77,0.35);
+  border-radius: 12px;
+  font-size: 18px;
+}
+.home-page .plf-text {
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 0;
+}
+.home-page .plf-text strong {
+  color: #ffffff; font-weight: 800; font-size: 14px;
+}
+.home-page .plf-yellow { color: #fde68a; }
+.home-page .plf-text span {
+  color: rgba(255,255,255,0.7); font-size: 12.5px; line-height: 1.4;
+}
+
+.home-page .promo-launch-cta {
+  position: relative;
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  margin: 32px auto 22px;
+  padding: 18px 42px;
+  min-width: 320px; max-width: 100%;
+  background: linear-gradient(135deg, #fbbf24 0%, #f5b94d 50%, #fde68a 100%);
+  border: none; border-radius: 999px;
+  color: #1e1b4b; font-family: var(--hp-font-body);
+  font-size: 17px; font-weight: 800; letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(245,185,77,0.45), inset 0 1px 0 rgba(255,255,255,0.5);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.home-page .promo-launch-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 38px rgba(245,185,77,0.55), inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.home-page .promo-launch-cta-icon { font-size: 20px; }
+.home-page .promo-launch-cta-arrow { font-weight: 900; transition: transform .2s; }
+.home-page .promo-launch-cta:hover .promo-launch-cta-arrow { transform: translateX(4px); }
+
+.home-page .promo-launch-trust {
+  display: flex; justify-content: center; flex-wrap: wrap;
+  gap: 28px; padding-top: 6px;
+  color: rgba(255,255,255,0.78);
+  font-size: 13px; font-weight: 600;
+}
+.home-page .promo-launch-trust span {
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.home-page .plt-icon { font-size: 15px; }
+
+/* Tablette : on resserre la grille à 2 colonnes proportionnelles avant
+   le breakpoint mobile pour éviter que le côté droit écrase le titre. */
+@media (max-width: 960px) {
+  .home-page .promo-launch-inner { padding: 38px 28px 30px; }
+  .home-page .promo-launch-grid { gap: 24px; }
 }

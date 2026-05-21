@@ -1,12 +1,30 @@
 {
   "cookieConsent": {
-    "title": "Ce site utilise des cookies",
-    "body1": "ABRPOINT utilise des cookies et traite des données personnelles pour assurer le bon fonctionnement de l'application (authentification, préférences de session, sécurité) et améliorer votre expérience.",
-    "body2": "Aucune donnée n'est partagée avec des tiers à des fins publicitaires. Conformément au RGPD, vous pouvez accepter l'usage de tous les cookies ou refuser les cookies non strictement nécessaires.",
+    "title": "Vos préférences cookies",
+    "intro": "ABRPOINT et ses sous-traitants utilisent des traceurs (cookies et technologies similaires) pour assurer le fonctionnement du Service, mesurer son audience et, le cas échéant, personnaliser votre expérience. Conformément au RGPD et aux lignes directrices de la CNIL, vous pouvez accepter, refuser ou paramétrer ces traceurs avec la même simplicité.",
     "aiProcessor": "Assistant IA : vos questions et les extraits récupérés sont envoyés à un fournisseur LLM (par défaut OpenRouter routant vers un modèle Llama / DeepSeek / Gemini ; en option directement Anthropic en région UE) pour générer des réponses. Les sous-traitants sont conformes RGPD. Aucune donnée n'est utilisée pour entraîner le modèle. Les CIN sont automatiquement masqués avant transmission.",
-    "changeLater": "Vous pouvez modifier vos préférences à tout moment depuis les paramètres de votre profil.",
-    "reject": "Refuser les cookies",
-    "accept": "Accepter les cookies"
+    "changeLater": "Vous pouvez modifier vos préférences à tout moment depuis le lien « Gérer mes cookies » dans les paramètres de votre profil ou le pied de page.",
+    "customize": "Personnaliser mes choix",
+    "hideDetails": "Masquer le détail",
+    "acceptAll": "Tout accepter",
+    "rejectAll": "Tout refuser",
+    "saveChoices": "Confirmer mes choix",
+    "alwaysActive": "Toujours actifs",
+    "manage": "Gérer mes cookies",
+    "cat": {
+      "necessary": {
+        "title": "Cookies strictement nécessaires",
+        "desc": "Indispensables au fonctionnement du Service : authentification, sécurité, équilibrage de charge et mémorisation de vos choix (langue, thème, consentement). Dispensés du recueil du consentement conformément à l'article 82 de la loi Informatique et Libertés."
+      },
+      "audience": {
+        "title": "Mesure d'audience",
+        "desc": "Nous aident à comprendre l'utilisation du Service pour l'améliorer. Lorsqu'ils sont configurés conformément aux exemptions de la CNIL (anonymisation, finalité strictement statistique, absence de croisement), ils sont dispensés de consentement ; à défaut, ils requièrent votre accord."
+      },
+      "marketing": {
+        "title": "Personnalisation et marketing",
+        "desc": "Permettent d'adapter le contenu, de mesurer l'efficacité de nos communications et, le cas échéant, de personnaliser des recommandations. Ces traceurs sont activés uniquement avec votre consentement libre, spécifique, éclairé et univoque."
+      }
+    }
   },
   "navigation": {
     "dashboard": "Tableau de bord",

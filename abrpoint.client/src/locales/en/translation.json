@@ -1,12 +1,30 @@
 {
   "cookieConsent": {
-    "title": "This website uses cookies",
-    "body1": "ABRPOINT uses cookies and processes personal data to keep the application running properly (authentication, session preferences, security) and to improve your experience.",
-    "body2": "No data is shared with third parties for advertising purposes. In accordance with GDPR, you can accept all cookies or reject the non-essential ones.",
+    "title": "Your cookie preferences",
+    "intro": "ABRPOINT and its processors use trackers (cookies and similar technologies) to operate the Service, measure its audience and, where applicable, personalise your experience. In accordance with the GDPR and the CNIL guidelines, you can accept, reject or fine-tune these trackers with equivalent ease.",
     "aiProcessor": "AI assistant: your questions and the retrieved excerpts are sent to an LLM provider (default OpenRouter routing to a Llama / DeepSeek / Gemini model; optionally directly to Anthropic in the EU region) to generate answers. Processors are GDPR-compliant. No data is used to train the model. National IDs are automatically masked before transmission.",
-    "changeLater": "You can change your preferences at any time from your profile settings.",
-    "reject": "Reject cookies",
-    "accept": "Accept cookies"
+    "changeLater": "You can change your preferences at any time from the \"Manage my cookies\" link in your profile settings or in the footer.",
+    "customize": "Customise my choices",
+    "hideDetails": "Hide details",
+    "acceptAll": "Accept all",
+    "rejectAll": "Reject all",
+    "saveChoices": "Confirm my choices",
+    "alwaysActive": "Always on",
+    "manage": "Manage my cookies",
+    "cat": {
+      "necessary": {
+        "title": "Strictly necessary cookies",
+        "desc": "Required for the Service to work: authentication, security, load balancing and remembering your choices (language, theme, consent). Exempt from consent under article 82 of the French Data Protection Act."
+      },
+      "audience": {
+        "title": "Audience measurement",
+        "desc": "Help us understand how the Service is used so we can improve it. When configured according to CNIL exemptions (anonymisation, strictly statistical purpose, no cross-referencing) they are exempt from consent; otherwise your agreement is required."
+      },
+      "marketing": {
+        "title": "Personalisation and marketing",
+        "desc": "Allow us to tailor content, measure the effectiveness of our communications and, where relevant, personalise recommendations. These trackers are activated only with your free, specific, informed and unambiguous consent."
+      }
+    }
   },
   "navigation": {
     "dashboard": "Dashboard",

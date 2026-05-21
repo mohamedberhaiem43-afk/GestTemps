@@ -1,0 +1,110 @@
+# Dependabot — RGPD Art. 32 « vérification automatique des vulnérabilités
+# des dépendances logicielles ». GitHub ouvre un PR auto dès qu'une CVE est
+# publiée sur l'une de nos dépendances. Plafonds restreints pour limiter le
+# bruit ; les CVE critiques passent toujours en premier (priority order).
+version: 2
+updates:
+  # .NET backend
+  - package-ecosystem: "nuget"
+    directory: "/ABRPOINT.Server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "backend"
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: "nuget"
+    directory: "/ABRPOINT.Server.Tests"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "tests"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # Front web
+  - package-ecosystem: "npm"
+    directory: "/abrpoint.client"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "frontend"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # App mobile
+  - package-ecosystem: "npm"
+    directory: "/abrpoint.mobile"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "mobile"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # Sidecar RAG (Python)
+  - package-ecosystem: "pip"
+    directory: "/services/rag"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "rag"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # GitHub Actions elles-mêmes (la chaîne CI/CD fait partie de la surface
+  # d'attaque : tag immuable indispensable, on suit les versions majeures).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"
+
+  # Dockerfiles (images de base : alpine, mcr.microsoft.com/dotnet, node)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(docker)"

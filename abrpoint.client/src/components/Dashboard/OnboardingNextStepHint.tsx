@@ -110,10 +110,34 @@ export default function OnboardingNextStepHint({ currentStep, dataCount, hideWhe
   const prevAllDoneRef = useRef<boolean>(false);
 
   const current = useMemo(() => STEPS.find(s => s.key === currentStep)!, [currentStep]);
-  const next = useMemo(() => STEPS[current.index] /* index is 1-based, array is 0-based, so STEPS[current.index] = next */, [current]);
 
   const isCurrentDone = state.done[currentStep];
-  const allDone = STEPS.every(s => state.done[s.key]);
+  // Note : on calcule le nombre d'étapes terminées en incluant l'étape
+  // courante même si state.done[currentStep] n'a pas encore basculé (le
+  // useEffect ci-dessous est asynchrone). C'est nécessaire pour que la chip
+  // affiche immédiatement le bon ratio après création (sinon on voit "4/5"
+  // une frame avant que setState ne re-déclenche le render).
+  const currentJustDone = typeof dataCount === 'number' && dataCount > 0;
+  const doneCount = STEPS.reduce((acc, s) => {
+    const done = state.done[s.key] || (s.key === currentStep && currentJustDone);
+    return acc + (done ? 1 : 0);
+  }, 0);
+  const allDone = doneCount === STEPS.length;
+
+  // L'étape "suivante" est la première étape non terminée APRÈS la courante,
+  // pas simplement l'étape n°(index+1). Sinon : si l'admin attaque par
+  // l'étape 5 (cas d'un parcours en zigzag), on lui annonçait "vous avez tout
+  // fini" alors que 1-4 sont encore à faire. On regarde aussi les étapes
+  // antérieures pour proposer la première qui reste à compléter.
+  const next = useMemo(() => {
+    // 1) Première étape non faite située APRÈS la courante (parcours normal).
+    const afterCurrent = STEPS.slice(current.index).find(s => !state.done[s.key]);
+    if (afterCurrent) return afterCurrent;
+    // 2) Sinon, on remonte chercher la première étape antérieure non faite
+    //    (l'admin a sauté des étapes — on lui rappelle ce qui manque).
+    const beforeCurrent = STEPS.slice(0, current.index - 1).find(s => !state.done[s.key]);
+    return beforeCurrent;
+  }, [current, state.done]);
 
   // Auto-marque l'étape comme faite dès qu'au moins un élément existe sur la
   // page. L'admin n'a rien à cocher : on observe simplement le résultat de son action.
@@ -211,7 +235,7 @@ export default function OnboardingNextStepHint({ currentStep, dataCount, hideWhe
           </Typography>
           <Chip
             size="small"
-            label={`${current.index}/5`}
+            label={`${doneCount}/5`}
             sx={{
               fontWeight: 800, height: 20, fontSize: 11,
               bgcolor: isSuccessMode ? '#10b981' : '#0040a1',
@@ -221,15 +245,19 @@ export default function OnboardingNextStepHint({ currentStep, dataCount, hideWhe
         </Stack>
         <Typography sx={{ fontSize: 12.5, color: '#475569', mt: 0.25, lineHeight: 1.4 }}>
           {isSuccessMode
-            ? next
-              ? <>Prochaine étape : <strong>{next.label}</strong> — {next.cta.toLowerCase()} pour continuer la configuration.</>
-              : 'Vous avez terminé toutes les étapes de configuration. Bravo !'
+            ? allDone
+              ? 'Vous avez terminé toutes les étapes de configuration. Bravo !'
+              : next
+                ? <>Prochaine étape : <strong>{next.label}</strong> — {next.cta.toLowerCase()} pour continuer la configuration.</>
+                : 'Vous avez terminé toutes les étapes de configuration. Bravo !'
             : `Cette page sert à ${current.cta.toLowerCase()}. Une fois fait, on enchaînera avec la suite du parcours.`}
         </Typography>
       </Box>
 
-      {/* CTA principal */}
-      {next && isSuccessMode && (
+      {/* CTA principal : on pousse vers la prochaine étape non faite tant qu'il
+          en reste ; on ne propose "Retour au tableau de bord" que lorsque le
+          parcours est réellement complet (sinon l'admin pense avoir fini). */}
+      {isSuccessMode && next && (
         <Button
           variant="contained"
           endIcon={<ChevronRightIcon />}
@@ -243,7 +271,7 @@ export default function OnboardingNextStepHint({ currentStep, dataCount, hideWhe
           {next.cta}
         </Button>
       )}
-      {!next && isSuccessMode && (
+      {isSuccessMode && !next && allDone && (
         <Button
           variant="contained"
           onClick={() => navigate('/dashboard')}

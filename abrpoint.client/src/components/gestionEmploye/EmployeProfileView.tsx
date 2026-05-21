@@ -79,18 +79,37 @@ interface EmployeFull {
   utiimg?: string | null;
 }
 
+// Parse tolérant : dayjs(value) accepte ISO 8601 ("1995-05-21",
+// "2026-05-04T00:00:00") mais rejette le legacy "21/05/1995" / "21-05-1995"
+// qu'on retrouve dans des fiches importées ou saisies par d'anciennes versions
+// du front. Sans ce fallback, la carte affichait "—" alors que la même donnée
+// remontait correctement dans le formulaire d'édition (qui, lui, lit la chaîne
+// brute via <input type="date">).
+const tryParseDate = (d: any) => {
+  if (!d) return null;
+  const direct = dayjs(d);
+  if (direct.isValid()) return direct;
+  const m = String(d).match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if (m) {
+    const day = m[1].padStart(2, '0');
+    const month = m[2].padStart(2, '0');
+    const year = m[3].length === 2 ? `20${m[3]}` : m[3];
+    const recomposed = dayjs(`${year}-${month}-${day}`);
+    if (recomposed.isValid()) return recomposed;
+  }
+  return null;
+};
+
 const fmtDate = (d: any): string => {
-  if (!d) return '—';
-  const parsed = dayjs(d);
-  return parsed.isValid() ? parsed.format('DD MMMM YYYY') : '—';
+  const parsed = tryParseDate(d);
+  return parsed ? parsed.format('DD MMMM YYYY') : '—';
 };
 
 const computeSeniority = (hireDate: any, exitDate: any): string => {
-  if (!hireDate) return '—';
-  const start = dayjs(hireDate);
-  if (!start.isValid()) return '—';
-  const end = exitDate ? dayjs(exitDate) : dayjs();
-  if (!end.isValid()) return '—';
+  const start = tryParseDate(hireDate);
+  if (!start) return '—';
+  const end = exitDate ? tryParseDate(exitDate) : dayjs();
+  if (!end) return '—';
   const years = end.diff(start, 'year');
   const months = end.diff(start.add(years, 'year'), 'month');
   if (years === 0 && months === 0) return 'Moins d\'1 mois';

@@ -24,13 +24,19 @@ public sealed class RagOptions
 public sealed class AnthropicOptions
 {
     /// <summary>
-    /// Quand true (défaut), le service RAG passe par OpenRouter (clé partagée
-    /// <c>OpenRouter:ApiKey</c> déjà présente dans appsettings) au format Chat
-    /// Completions. Permet de démarrer sans budget Anthropic dédié et d'utiliser
-    /// un modèle gratuit (<c>OpenRouterModel</c>). Quand false, on appelle
-    /// directement l'API Messages Anthropic avec <c>ApiKey</c> ci-dessous.
+    /// RGPD — défaut désormais <c>false</c> : on appelle directement l'API
+    /// Messages Anthropic, qui peut être servie depuis la région UE pour les
+    /// comptes Enterprise (cf. <see cref="BaseUrl"/>). Cela élimine tout
+    /// transfert hors UE.
+    ///
+    /// Quand <c>true</c>, le service RAG passe par OpenRouter (clé partagée
+    /// <c>OpenRouter:ApiKey</c>) au format Chat Completions. À utiliser
+    /// uniquement en environnement de développement ou si une décision
+    /// documentée encadre le transfert hors UE (CCT + clause « no training »).
+    /// Les appels OpenRouter ajoutent <c>provider.data_collection=deny</c> et
+    /// <c>provider.allow_fallbacks=false</c> en defense in depth.
     /// </summary>
-    public bool UseOpenRouter { get; set; } = true;
+    public bool UseOpenRouter { get; set; } = false;
 
     /// <summary>
     /// Modèle OpenRouter utilisé quand <see cref="UseOpenRouter"/> est true.
@@ -41,6 +47,15 @@ public sealed class AnthropicOptions
     /// </summary>
     public string OpenRouterModel { get; set; } = "google/gemini-2.0-flash-001";
 
+    /// <summary>
+    /// Endpoint Anthropic. Par défaut <c>https://api.anthropic.com</c>. Pour
+    /// garantir l'absence de transfert hors UE, configurer un compte Anthropic
+    /// Enterprise avec résidence des données en UE (clause contractuelle) et
+    /// conserver cette URL — Anthropic route les requêtes vers ses datacenters
+    /// UE pour ces comptes. Alternative : passer par Vertex AI région
+    /// <c>europe-west*</c> ou AWS Bedrock <c>eu-*</c> (SDK différent, non
+    /// supporté par ce service).
+    /// </summary>
     public string BaseUrl { get; set; } = "https://api.anthropic.com";
     public string ApiKey { get; set; } = string.Empty;
     public string Model { get; set; } = "claude-sonnet-4-6";

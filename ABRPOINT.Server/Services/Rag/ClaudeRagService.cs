@@ -198,6 +198,14 @@ Ne commente pas, ne préfixe pas — renvoie directement le HTML reformulé.";
 
         // Format Chat Completions (OpenAI-compatible). OpenRouter accepte aussi
         // optionnellement les headers HTTP-Referer/X-Title pour l'attribution.
+        //
+        // RGPD — defense in depth si OpenRouter reste activé :
+        //   - `data_collection: "deny"` : interdit aux providers d'utiliser le
+        //     prompt à des fins d'entraînement (clause "no training" technique).
+        //   - `allow_fallbacks: false` : empêche un fallback vers un provider
+        //     non choisi en cas d'indisponibilité du provider primaire.
+        // Pour un mode UE strict, on recommande `UseOpenRouter=false` et l'appel
+        // direct Anthropic en région UE (cf. CallAnthropicAsync).
         var requestBody = new
         {
             model,
@@ -207,6 +215,11 @@ Ne commente pas, ne préfixe pas — renvoie directement le HTML reformulé.";
             {
                 new { role = "system", content = systemPrompt },
                 new { role = "user", content = userMessage }
+            },
+            provider = new
+            {
+                data_collection = "deny",
+                allow_fallbacks = false,
             }
         };
 

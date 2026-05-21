@@ -145,6 +145,7 @@ import {
   History,
   ShieldCheck,
   Smartphone,
+  Cookie,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
@@ -725,6 +726,18 @@ function makeToolbarActions(
               secondary={t('navigation.mobileAppHint', 'Télécharger pour iOS / Android')}
               primaryTypographyProps={{ fontSize: '13px', fontWeight: 600 }}
               secondaryTypographyProps={{ fontSize: '11px' }}
+            />
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              handleClose();
+              window.dispatchEvent(new CustomEvent('cookie-consent:open'));
+            }}
+          >
+            <ListItemIcon><Cookie size={22} /></ListItemIcon>
+            <ListItemText
+              primary={t('cookieConsent.manage')}
+              primaryTypographyProps={{ fontSize: '13px', fontWeight: 600 }}
             />
           </MenuItem>
           <Divider />

@@ -37,9 +37,12 @@
             "concorde-work-force.com": {
               "NSIncludesSubdomains": true,
               "NSPinnedCAIdentities": [
-                {
-                  "_comment": "iOS 14+ — pin SHA-256 SPKI base64 des CAs intermédiaires Let's Encrypt. Pin vide = pinning inactif (validation TLS standard). Lancer scripts/get-cert-pins.sh pour calculer les valeurs avant build production."
-                }
+                { "SPKI-SHA256-BASE64": "placeholder-isrg-root-x1-run-generate-le-pins-sh" },
+                { "SPKI-SHA256-BASE64": "placeholder-isrg-root-x2-run-generate-le-pins-sh" },
+                { "SPKI-SHA256-BASE64": "placeholder-le-r10-run-generate-le-pins-sh" },
+                { "SPKI-SHA256-BASE64": "placeholder-le-r11-run-generate-le-pins-sh" },
+                { "SPKI-SHA256-BASE64": "placeholder-le-e5-run-generate-le-pins-sh" },
+                { "SPKI-SHA256-BASE64": "placeholder-le-e6-run-generate-le-pins-sh" }
               ]
             }
           }

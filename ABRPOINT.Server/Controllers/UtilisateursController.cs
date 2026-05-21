@@ -542,7 +542,9 @@ namespace GestionDesTickets.Server.Controllers
                 var refreshTokenEntity = new RefreshToken
                 {
                     Uticod = dbUser.Uticod,
-                    Token = refreshToken,
+                    // SEC — On stocke uniquement le hash SHA-256, le token en clair n'existe
+                    // qu'en mémoire et dans le cookie HttpOnly du client.
+                    Token = RefreshTokenHasher.Hash(refreshToken),
                     ExpiresAt = DateTime.UtcNow.AddDays(7)
                 };
                 await _dbContext.RefreshTokens.AddAsync(refreshTokenEntity);
@@ -604,8 +606,9 @@ namespace GestionDesTickets.Server.Controllers
                     return Unauthorized(new { message = "Refresh token is required" });
                 }
 
+                var hashedIncoming = RefreshTokenHasher.Hash(refreshTokenValue);
                 var refreshToken = await _dbContext.RefreshTokens
-                    .FirstOrDefaultAsync(rt => rt.Token == refreshTokenValue && !rt.Revoked);
+                    .FirstOrDefaultAsync(rt => rt.Token == hashedIncoming && !rt.Revoked);
 
                 if (refreshToken == null || refreshToken.ExpiresAt < DateTime.UtcNow)
                 {
@@ -624,11 +627,11 @@ namespace GestionDesTickets.Server.Controllers
                 // Revoke old refresh token
                 refreshToken.Revoked = true;
 
-                // Save new refresh token
+                // Save new refresh token (hash only — voir RefreshTokenHasher).
                 var newRefreshTokenEntity = new RefreshToken
                 {
                     Uticod = user.Uticod,
-                    Token = newRefreshToken,
+                    Token = RefreshTokenHasher.Hash(newRefreshToken),
                     ExpiresAt = DateTime.UtcNow.AddDays(7)
                 };
                 _dbContext.RefreshTokens.Add(newRefreshTokenEntity);

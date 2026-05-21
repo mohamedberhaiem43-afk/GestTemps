@@ -83,7 +83,11 @@ builder.Services.AddScoped<ApplicationDbContext>(sp =>
         new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseNpgsql(cs, npg => npg.EnableRetryOnFailure())
             .Options);
-    return new ApplicationDbContext(options);
+    // RGPD Art. 32 — on injecte EncryptionService pour que EF Core chiffre
+    // transparentement les PII via EncryptedStringConverter. Voir
+    // ApplicationDbContext.OnModelCreating pour la liste des colonnes couvertes.
+    var encryption = sp.GetRequiredService<ABRPOINT.Server.Services.EncryptionService>();
+    return new ApplicationDbContext(options, encryption);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -312,6 +316,13 @@ builder.Services.AddHttpClient(nameof(ABRPOINT.Server.Services.ExpoPushService))
 builder.Services.AddSingleton<ABRPOINT.Server.Services.IExpoPushService, ABRPOINT.Server.Services.ExpoPushService>();
 builder.Services.AddScoped<ABRPOINT.Server.Services.IUserNotificationService, ABRPOINT.Server.Services.UserNotificationService>();
 builder.Services.AddHostedService<ABRPOINT.Server.Services.PunctualityReminderHostedService>();
+// RGPD Art. 32 — purge quotidienne des journaux d'audit > 6 mois (configurable
+// via Security:AuditLogRetentionDays, minimum applicatif 30j).
+builder.Services.AddHostedService<ABRPOINT.Server.Services.AuditLogRetentionHostedService>();
+// RGPD Art. 5.1.e + Art. 32 — purge quotidienne des données techniques expirées
+// (refresh tokens, known devices, push tokens, logs IA). Durées configurables
+// via Security:Retention:*, plancher applicatif 7 jours.
+builder.Services.AddHostedService<ABRPOINT.Server.Services.DataRetentionHostedService>();
 // Scoped : le validateur lit les sites du tenant courant via ApplicationDbContext (Scoped).
 builder.Services.AddScoped<ABRPOINT.Server.Services.IGeoZoneValidator, ABRPOINT.Server.Services.GeoZoneValidator>();
 

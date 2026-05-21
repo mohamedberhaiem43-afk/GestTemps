@@ -40,6 +40,10 @@ export default function HomePage() {
   const [activeStep, setActiveStep] = useState<StepIndex>(0);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
   const [scrolled, setScrolled] = useState(false);
+  // Menu mobile : sous 900px on masque .nav-links et on remplace par un
+  // hamburger qui déplie cette liste verticalement. Avant : aucun moyen
+  // d'accéder à #pricing depuis mobile sans scroller jusqu'au footer.
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Pack pré-sélectionné transmis à InlineAuthCard. `nonce` incrémenté à chaque
   // clic pour forcer le ré-déclenchement de l'effet de pré-sélection côté carte
@@ -136,8 +140,7 @@ export default function HomePage() {
     <div className="home-page" ref={containerRef}>
       <div className="bg-mesh" />
 
-      {/* NAV — fixée en tête de page. La marquee d'offres défile juste en
-          dessous (cf. .offers-marquee-top dans HomePage.css). */}
+      {/* NAV — fixée en tête de page. */}
       <nav className={`hp-nav${scrolled ? ' scrolled' : ''}`}>
         <div className="nav-logo">
           <img className="logo-mark" src="/concorde-wrokly-logo.jpg" alt="Concorde Workforce" />
@@ -155,128 +158,39 @@ export default function HomePage() {
           <button type="button" className="btn-primary" onClick={goToSignup}>
             Créer un compte <span>→</span>
           </button>
+          {/* Hamburger : visible uniquement sur mobile (cf. CSS @media).
+              Sur desktop, .nav-links est affichée et le bouton est masqué. */}
+          <button
+            type="button"
+            className={`nav-mobile-toggle${mobileMenuOpen ? ' is-open' : ''}`}
+            aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen(o => !o)}
+          >
+            <span /><span /><span />
+          </button>
         </div>
       </nav>
 
-      {/* Annonce « Early Launch » — bandeau fixe juste sous la marquee, en haut
-          de page. Communique la condition commerciale prioritaire (10 premières
-          entreprises, engagement annuel, 1 mois gratuit) avant que l'utilisateur
-          n'arrive sur le hero ou la grille de prix. Style or pour faire écho au
-          pack Premium et signaler le caractère exclusif de l'offre.
-          Position : top = 76px (nav) + 46px (marquee) = 122px. Le `.hero` a
-          padding-top: 200px qui couvre l'empilement entier des bandeaux fixes. */}
-      <div
-        role="note"
-        aria-label="Offre Early Launch"
-        style={{
-          position: 'fixed',
-          top: 122,
-          left: 0,
-          right: 0,
-          zIndex: 99,
-          padding: '9px 24px',
-          background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%)',
-          borderBottom: '1px solid #d4af37',
-          color: '#7c5a0b',
-          fontSize: 13,
-          fontWeight: 600,
-          textAlign: 'center',
-          lineHeight: 1.5,
-          letterSpacing: 0.1,
-          boxShadow: '0 2px 6px rgba(212,175,55,0.18)',
-        }}
-      >
-        <span style={{ fontWeight: 800, marginRight: 6, color: '#92400e' }}>✦ Offre Early Launch :</span>
-        réservée aux <strong>10 premières entreprises</strong> ; engagement annuel obligatoire ;
-        <strong> 1 mois gratuit</strong>. Le mensuel standard sera disponible plus tard aux
-        conditions tarifaires normales.
-      </div>
-
-      {/* MARQUEE — barre défilante d'offres / arguments commerciaux fixée
-          juste sous la nav. Le contenu est dupliqué une fois pour que
-          l'animation CSS (translateX -50%) boucle sans saut visible. */}
-      <div className="offers-marquee offers-marquee-top" aria-hidden="false">
-        <div className="offers-marquee-track">
-          {[0, 1].map((dup) => (
-            <div className="offers-marquee-row" key={dup}>
-              <span className="offer-chip"><span className="offer-chip-icon">🎁</span> Essai gratuit 1 mois — sans CB</span>
-              <span className="offer-chip"><span className="offer-chip-icon">⚡</span> Déploiement en 2 semaines</span>
-              <span className="offer-chip"><span className="offer-chip-icon">🤖</span> IA Assistant RH dès 49 € / mois</span>
-              <span className="offer-chip"><span className="offer-chip-icon">💾</span> +100 Go de stockage à 29 €</span>
-              <span className="offer-chip"><span className="offer-chip-icon">🇫🇷</span> Hébergement France (OVH)</span>
-              <span className="offer-chip"><span className="offer-chip-icon">🔒</span> Conformité RGPD · AES-256</span>
-              <span className="offer-chip"><span className="offer-chip-icon">📱</span> Application iOS / Android incluse</span>
-              <span className="offer-chip"><span className="offer-chip-icon">✋</span> Sans engagement — annulation en 1 clic</span>
-              <span className="offer-chip"><span className="offer-chip-icon">🌍</span> Multi-pays FR · BE · MA · SN</span>
-            </div>
-          ))}
+      {/* Menu mobile déplié — affiché uniquement quand mobileMenuOpen=true.
+          Clic sur un lien : ferme le menu pour éviter qu'il reste ouvert
+          après le smooth-scroll vers l'ancre. */}
+      {mobileMenuOpen && (
+        <div className="nav-mobile-menu" role="menu" onClick={() => setMobileMenuOpen(false)}>
+          <a href="#features" role="menuitem">Fonctionnalités</a>
+          <a href="#how" role="menuitem">Comment ça marche</a>
+          <a href="#secteurs" role="menuitem">Secteurs</a>
+          <a href="#pricing" role="menuitem">Tarifs</a>
+          <a href="#download" role="menuitem">Téléchargement</a>
+          <a href="#temoignages" role="menuitem">Témoignages</a>
         </div>
-      </div>
+      )}
 
-      {/* HERO */}
+      {/* HERO — les 3 bandeaux d'offre (Early Launch fixe + marquee chips + carte
+          jaune inline) ont été retirés au profit d'une bannière promo unifiée
+          insérée juste après le hero (cf. .promo-launch ci-dessous). Le hero
+          reste sobre : titre + sous-titre + CTAs + indicateurs de confiance. */}
       <section className="hero">
-        {/* Urgence commerciale "Early Launch" — bloc d'entrée plus visible que
-            le bandeau or fixé en haut, pour pousser à l'inscription rapide
-            pendant la phase de lancement (10 premiers tenants payants).
-            Visuel : dégradé or + pastille rouge pulsante + CTA "Réserver ma
-            place" qui scrolle directement au formulaire d'inscription. */}
-        <div
-          role="region"
-          aria-label="Offre de lancement limitée aux 10 premières entreprises"
-          onClick={scrollToAuth}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 14,
-            padding: '10px 18px 10px 14px',
-            marginBottom: 18,
-            background: 'linear-gradient(135deg, #fffbeb 0%, #fde68a 60%, #fcd34d 100%)',
-            border: '1.5px solid #d4af37',
-            borderRadius: 999,
-            boxShadow: '0 6px 20px rgba(212,175,55,0.25)',
-            cursor: 'pointer',
-            animation: 'hp-fadeInUp 0.6s ease both',
-            maxWidth: 720,
-          }}
-        >
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 28, height: 28, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
-            color: '#fff', fontSize: 13, fontWeight: 800,
-            boxShadow: '0 0 0 0 rgba(220,38,38,0.5)',
-            animation: 'hp-pulse-red 1.8s ease-out infinite',
-            flexShrink: 0,
-          }}>10</span>
-          <div style={{ textAlign: 'left', lineHeight: 1.4 }}>
-            <div style={{ color: '#7c2d12', fontWeight: 800, fontSize: 13.5, letterSpacing: 0.2 }}>
-              Lancement commercial · Offre limitée
-            </div>
-            <div style={{ color: '#7c5a0b', fontSize: 12.5, fontWeight: 600 }}>
-              Réservée aux <strong>10 premières entreprises</strong> — profitez-en avant la fin de l'Early Launch.
-            </div>
-          </div>
-          <span style={{
-            color: '#92400e', fontWeight: 800, fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0,
-          }}>Réserver ma place →</span>
-        </div>
-        <style>{`
-          @keyframes hp-pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(220,38,38,0.55); }
-            70% { box-shadow: 0 0 0 12px rgba(220,38,38,0); }
-            100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
-          }
-        `}</style>
-
-        <div className="hero-badge">
-          <div className="hero-badge-dot" />
-          Plateforme RH multi-pays · Pointage, congés, paie
-        </div>
-        <div className="hero-trial-badge" onClick={scrollToAuth} role="button" tabIndex={0}>
-          <span className="hero-trial-icon">🎁</span>
-          <span className="hero-trial-text"><strong>Essai gratuit 1 mois</strong> — sans carte bancaire, sans engagement</span>
-          <span className="hero-trial-arrow">→</span>
-        </div>
         <h1 className="hero-title">
           Le pointage et la gestion<br />du temps <span className="accent">simplifiés</span>
         </h1>
@@ -362,6 +276,72 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PROMO UNIFIÉE — remplace les 3 anciens bandeaux (marquee chips + bande
+          jaune Early Launch fixe + carte inline). Une seule bannière sombre
+          met en avant l'offre « 10 premières entreprises à vie » et regroupe
+          les arguments commerciaux (essai 1 mois, sans CB, sans engagement)
+          dans un encart annexe. Le bouton or principal scrolle vers le
+          formulaire d'inscription. */}
+      <section className="promo-launch reveal" aria-label="Offre de lancement">
+        <div className="promo-launch-inner">
+          <span className="promo-launch-pill">
+            <span className="promo-launch-pill-icon">🚀</span>
+            OFFRE EXCLUSIVE
+          </span>
+
+          <div className="promo-launch-grid">
+            <div className="promo-launch-left">
+              <h2 className="promo-launch-title">
+                Les <span className="promo-launch-num">10</span> premières entreprises<br />
+                profitent de l'offre <span className="promo-launch-accent">À VIE !</span>
+              </h2>
+              <p className="promo-launch-sub">
+                <span className="promo-launch-sub-hl">Une opportunité unique</span> pour simplifier votre gestion RH et gagner du temps.
+              </p>
+            </div>
+
+            <aside className="promo-launch-right" aria-label="Conditions pour les autres entreprises">
+              <div className="promo-launch-right-head">POUR TOUTES LES AUTRES ENTREPRISES</div>
+              <ul className="promo-launch-features">
+                <li>
+                  <div className="plf-icon">🎁</div>
+                  <div className="plf-text">
+                    <strong>1 mois d'essai <span className="plf-yellow">GRATUIT</span></strong>
+                    <span>sans carte bancaire, sans engagement</span>
+                  </div>
+                </li>
+                <li>
+                  <div className="plf-icon">💳</div>
+                  <div className="plf-text">
+                    <strong>Sans carte bancaire</strong>
+                    <span>Aucune donnée bancaire demandée</span>
+                  </div>
+                </li>
+                <li>
+                  <div className="plf-icon">📅</div>
+                  <div className="plf-text">
+                    <strong>Sans engagement</strong>
+                    <span>Vous décidez après l'essai</span>
+                  </div>
+                </li>
+              </ul>
+            </aside>
+          </div>
+
+          <button type="button" className="promo-launch-cta" onClick={scrollToAuth}>
+            <span className="promo-launch-cta-icon">🚀</span>
+            J'en profite maintenant
+            <span className="promo-launch-cta-arrow">→</span>
+          </button>
+
+          <div className="promo-launch-trust">
+            <span><span className="plt-icon">🛡</span> Sécurisé &amp; conforme RGPD</span>
+            <span><span className="plt-icon">🎧</span> Support réactif</span>
+            <span><span className="plt-icon">⚡</span> Mise en place rapide</span>
           </div>
         </div>
       </section>

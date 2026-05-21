@@ -7,17 +7,35 @@
 # - Rotation : conserve les 7 derniers jours quotidiens + 4 hebdo + 6 mensuels.
 # - À planifier via cron : `0 3 * * * /opt/abrpoint/scripts/backup.sh >> /var/log/abrpoint-backup.log 2>&1`
 #
+# RGPD Art. 32 — « Sauvegardes quotidiennes chiffrées hors site (S3 EU), avec
+# tests de restauration au moins mensuels » :
+#   - Chaque dump est chiffré CÔTÉ CLIENT en AES-256-CBC (openssl) avant
+#     d'être envoyé sur S3. La clé `BACKUP_ENC_KEY` n'est jamais stockée sur
+#     S3, donc même en cas de compromission du bucket les dumps restent
+#     inutilisables sans le secret.
+#   - Le bucket cible DOIT être en région UE (eu-west-3 Paris ou eu-central-1
+#     Frankfurt) avec versioning + Object Lock activés côté infrastructure.
+#   - Le test de restauration est automatisé par scripts/restore-test.sh
+#     (à planifier 0 5 1 * * pour le 1er du mois).
+#
 # Migré SQL Server → PostgreSQL :
 #   - sqlcmd BACKUP DATABASE → pg_dump (format custom -Fc, le plus compact + portable)
 #   - SA_PASSWORD → POSTGRES_PASSWORD
 #   - sys.databases LIKE 'ABRPOINT%' → pg_database lookup avec préfixe tenant_ ou nom master
 #
 # Variables d'environnement :
-#   BACKUP_DIR          Dossier de sortie (défaut: /var/backups/abrpoint)
+#   BACKUP_DIR          Dossier de sortie local (défaut: /var/backups/abrpoint)
 #   POSTGRES_PASSWORD   Mot de passe du superuser Postgres (depuis docker-compose.yml)
 #   POSTGRES_USER       User Postgres (défaut: abrpoint)
 #   DB_CONTAINER        Nom du conteneur Postgres (défaut: abrpoint.database)
 #   SERVER_CONTAINER    Nom du conteneur backend (défaut: abrpoint.server)
+#   BACKUP_ENC_KEY      Clé symétrique 32+ chars (sortie de `openssl rand -base64 48`).
+#                       REQUISE : si absente, le script ne pousse pas sur S3 et n'écrit
+#                       que des dumps en clair locaux (mode dev/legacy).
+#   S3_BUCKET           Bucket cible (ex: abrpoint-backups-eu). Optionnel : si vide,
+#                       upload distant désactivé (mode purement local).
+#   S3_PREFIX           Préfixe S3 (défaut: prod/). Permet de séparer par environnement.
+#   AWS_DEFAULT_REGION  Région AWS (DOIT être UE, défaut: eu-west-3).
 # =============================================================================
 
 set -euo pipefail
@@ -27,12 +45,34 @@ POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-}"
 POSTGRES_USER="${POSTGRES_USER:-abrpoint}"
 DB_CONTAINER="${DB_CONTAINER:-abrpoint.database}"
 SERVER_CONTAINER="${SERVER_CONTAINER:-abrpoint.server}"
+BACKUP_ENC_KEY="${BACKUP_ENC_KEY:-}"
+S3_BUCKET="${S3_BUCKET:-}"
+S3_PREFIX="${S3_PREFIX:-prod/}"
+AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-eu-west-3}"
+export AWS_DEFAULT_REGION
 TIMESTAMP="$(date +%F_%H%M%S)"
 DAY_DIR="${BACKUP_DIR}/daily/${TIMESTAMP}"
 
 if [[ -z "$POSTGRES_PASSWORD" ]]; then
   echo "[ERR] POSTGRES_PASSWORD env var requise — abandon." >&2
   exit 1
+fi
+
+# Garde-fou région UE : on refuse d'expédier hors UE même si l'opérateur
+# se trompe en passant `us-east-1` à la barre du clavier.
+case "$AWS_DEFAULT_REGION" in
+  eu-*) : ;;
+  *)
+    echo "[ERR] AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION n'est pas une région UE. Abandon (RGPD)." >&2
+    exit 1
+    ;;
+esac
+
+UPLOAD_ENABLED=1
+if [[ -z "$S3_BUCKET" || -z "$BACKUP_ENC_KEY" ]]; then
+  UPLOAD_ENABLED=0
+  echo "[WARN] S3_BUCKET ou BACKUP_ENC_KEY absent → upload distant désactivé."
+  echo "[WARN] Mode local uniquement (rétention 7/4/6 mois). Configurer pour conformité Art. 32."
 fi
 
 echo "[$(date -Iseconds)] Backup démarré → $DAY_DIR"
@@ -80,9 +120,54 @@ done
 # ── 3. Checksum manifest ──────────────────────────────────────────────────────
 (cd "$DAY_DIR" && sha256sum * > manifest.sha256)
 
+# ── 3.bis. Chiffrement AES-256-CBC + upload S3 EU ────────────────────────────
+# On chiffre AVANT l'upload (chiffrement côté client) : même si le bucket est
+# compromis ou que les credentials AWS fuient, les dumps restent inutilisables
+# sans BACKUP_ENC_KEY. PBKDF2 100k itérations contre les attaques brute-force
+# sur la passphrase.
+if [[ "$UPLOAD_ENABLED" == "1" ]]; then
+  if ! command -v openssl >/dev/null 2>&1; then
+    echo "[ERR] openssl manquant — install: apt-get install openssl" >&2
+    exit 1
+  fi
+  if ! command -v aws >/dev/null 2>&1; then
+    echo "[ERR] aws CLI manquant — install: apt-get install awscli" >&2
+    exit 1
+  fi
+
+  ENC_DIR="${DAY_DIR}.enc"
+  mkdir -p "$ENC_DIR"
+  echo "[$(date -Iseconds)] Chiffrement AES-256-CBC → $ENC_DIR"
+  for FILE in "$DAY_DIR"/*; do
+    NAME=$(basename "$FILE")
+    # -salt + -pbkdf2 + -iter 100000 : durcissement contre les attaques offline
+    # si la clé est devinable. -in/-out streamés, pas de duplication en RAM.
+    openssl enc -aes-256-cbc -salt -pbkdf2 -iter 100000 \
+      -pass env:BACKUP_ENC_KEY \
+      -in "$FILE" -out "${ENC_DIR}/${NAME}.enc"
+  done
+
+  # Manifest des fichiers chiffrés (pour vérifier l'intégrité côté S3 sans
+  # devoir déchiffrer pour comparer).
+  (cd "$ENC_DIR" && sha256sum * > manifest.sha256)
+
+  echo "[$(date -Iseconds)] Upload S3 → s3://${S3_BUCKET}/${S3_PREFIX}daily/${TIMESTAMP}/"
+  # --only-show-errors : verbeux par fichier inutile, --no-progress pour cron.
+  # Server-side encryption AES-256 en plus (defense-in-depth, même si nos
+  # fichiers sont déjà chiffrés côté client).
+  aws s3 cp "$ENC_DIR" "s3://${S3_BUCKET}/${S3_PREFIX}daily/${TIMESTAMP}/" \
+    --recursive \
+    --sse AES256 \
+    --only-show-errors
+
+  # On garde le dossier chiffré local le temps de la rotation (find ... -mtime),
+  # ça évite de re-chiffrer pour un éventuel ré-upload manuel.
+fi
+
 # ── 4. Rotation : 7 quotidiens, 4 hebdo (lundi), 6 mensuels (1er du mois) ─────
 echo "[$(date -Iseconds)] Rotation"
 find "$BACKUP_DIR/daily" -maxdepth 1 -type d -mtime +7 -exec rm -rf {} \;
+find "$BACKUP_DIR/daily" -maxdepth 1 -type d -name "*.enc" -mtime +7 -exec rm -rf {} \;
 DOW=$(date +%u) # 1=lundi
 DOM=$(date +%d)
 if [[ "$DOW" == "1" ]]; then
@@ -98,3 +183,6 @@ fi
 
 echo "[$(date -Iseconds)] ✅ Backup terminé : $DAY_DIR"
 du -sh "$DAY_DIR"
+if [[ "$UPLOAD_ENABLED" == "1" ]]; then
+  echo "[$(date -Iseconds)] ✅ Upload S3 EU terminé : s3://${S3_BUCKET}/${S3_PREFIX}daily/${TIMESTAMP}/"
+fi

@@ -2,31 +2,43 @@
 <!--
   Android Network Security Config — Certificate Pinning.
 
-  Pour activer le pinning :
-    1. Lancer scripts/get-cert-pins.sh <domain> pour obtenir les hashs SHA-256
-       SPKI du certificat leaf + des intermédiaires Let's Encrypt.
-    2. Coller les hashs dans <pin-set> ci-dessous (pin primaire + pin de backup
-       OBLIGATOIRE — sinon la rotation cert briquerait l'app).
-    3. Rebuild l'APK via EAS.
+  Workflow de mise à jour des pins avant build de production :
+    1. Lancer `scripts/generate-le-pins.sh` (télécharge les CAs Let's Encrypt
+       depuis letsencrypt.org/certs et calcule les SPKI SHA-256 Base64).
+    2. Coller les blocs <pin /> dans <pin-set> ci-dessous en respectant la
+       redondance : minimum 4 pins (2 roots ISRG + 2 intermédiaires).
+    3. Vérifier en double via `scripts/get-cert-pins.sh concorde-work-force.com`
+       et comparer les SPKI affichés positions 2+ avec ce fichier.
+    4. Lancer `scripts/check-pins-filled.sh` (intégré dans le hook EAS prebuild).
+    5. Rebuild l'APK via EAS.
 
-  Tant que <pin-set> est vide, le pinning est INACTIF (validation HTTPS standard).
-  C'est volontaire : éviter de bricker l'app si la config est déployée sans pins
-  valides. Un développeur doit explicitement remplir les pins pre-prod.
+  Tant que <pin-set> est `placeholder-...`, le pinning est INACTIF — le check
+  `check-pins-filled.sh` empêche un build prod sans pins valides remplis.
 
-  Important : pinner les CA intermédiaires (Let's Encrypt R10/R11) plutôt que
-  le certificat leaf — celui-ci tourne tous les 90 jours, le pinning leaf
-  obligerait à rebuild + republier l'app à chaque renouvellement.
+  Stratégie de rotation :
+    - ISRG Root X1 + X2 : valides jusqu'en 2035-09, à ne PAS retirer.
+    - Intermédiaires R10/R11/E5/E6 : LE les renouvelle tous les 5 ans.
+      Rappel calendrier ops à mettre dans le runbook.
+    - Le leaf (le certif spécifique au domaine) n'est JAMAIS pinné : LE le
+      renouvelle tous les 90 jours via certbot, le pinning casserait l'app.
 -->
 <network-security-config>
     <!-- Domain principal SaaS -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">concorde-work-force.com</domain>
-        <pin-set expiration="2027-12-31">
-            <!-- TODO: remplir avant le build de production
-                 Ex (Let's Encrypt R10, exemple non vérifié — utiliser get-cert-pins.sh) :
-                 <pin digest="SHA-256">XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=</pin>
-                 <pin digest="SHA-256">YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY=</pin>
-            -->
+        <pin-set expiration="2035-09-15">
+            <!-- ISRG Root X1 (RSA) — racine primaire LE, valide jusqu'en 2035 -->
+            <pin digest="SHA-256">placeholder-isrg-root-x1-run-generate-le-pins-sh</pin>
+            <!-- ISRG Root X2 (ECDSA) — racine backup LE, valide jusqu'en 2035 -->
+            <pin digest="SHA-256">placeholder-isrg-root-x2-run-generate-le-pins-sh</pin>
+            <!-- Let's Encrypt R10 — intermédiaire RSA actuel, rotation 5 ans -->
+            <pin digest="SHA-256">placeholder-le-r10-run-generate-le-pins-sh</pin>
+            <!-- Let's Encrypt R11 — backup RSA -->
+            <pin digest="SHA-256">placeholder-le-r11-run-generate-le-pins-sh</pin>
+            <!-- Let's Encrypt E5 — intermédiaire ECDSA actuel -->
+            <pin digest="SHA-256">placeholder-le-e5-run-generate-le-pins-sh</pin>
+            <!-- Let's Encrypt E6 — backup ECDSA -->
+            <pin digest="SHA-256">placeholder-le-e6-run-generate-le-pins-sh</pin>
         </pin-set>
         <trust-anchors>
             <certificates src="system" />

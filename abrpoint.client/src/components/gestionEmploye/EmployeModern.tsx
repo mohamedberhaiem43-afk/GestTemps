@@ -780,6 +780,23 @@ const EmployeModernInner = () => {
             if (!proceed) return;
         }
 
+        // Pré-validation des champs structurellement obligatoires (avant le setIsSaving),
+        // pour donner un retour utilisateur clair plutôt que le générique "Erreur lors
+        // de la sauvegarde". `useUpdateEmploye` rejette en local quand un de ces champs
+        // est vide — sans cette pré-validation, le snackbar affiche le fallback i18n et
+        // l'utilisateur ne sait pas quelle case remplir (typiquement la FILIALE pour
+        // des fiches importées sans sitcod, ou pour un admin sans sitcod en session).
+        const effectiveSoccod = String(soccod || formData.soccod || '').trim();
+        const effectiveSitcod = String(formData.sitcod || sitcod || '').trim();
+        if (!effectiveSoccod) {
+            showSnackbar('Session expirée — veuillez vous reconnecter.', 'error');
+            return;
+        }
+        if (!effectiveSitcod) {
+            showSnackbar('Veuillez sélectionner une filiale (site) avant d\'enregistrer.', 'error');
+            return;
+        }
+
         setIsSaving(true);
         // sitcod : on prend celui chargé sur la fiche (formData.sitcod), pas celui de l'utilisateur
         // connecté. Sinon un manager dont auth.sitcod ≠ sitcod de l'employé édité provoque un
@@ -797,8 +814,8 @@ const EmployeModernInner = () => {
 
         const payload: Employe = {
             ...formData,
-            soccod: soccod || '',
-            sitcod: formData.sitcod || sitcod || '',
+            soccod: effectiveSoccod,
+            sitcod: effectiveSitcod,
             empemb: formatDate(formData.empemb), empretraite: formatDate(formData.empretraite),
             empsort: formatDate(formData.empsort), empdcin: formatDate(formData.empdcin) || new Date(),
             empoptim: formatDate(formData.empoptim),
@@ -836,7 +853,15 @@ const EmployeModernInner = () => {
             await refreshEmpHoraires(formData.empcod);
             showSnackbar(res?.message || t('employe.changesSaved'), 'success');
         };
-        const onError = (err: any) => { showSnackbar(err?.response?.data?.message || t('employe.saveError'), 'error'); setIsSaving(false); };
+        const onError = (err: any) => {
+            // Ordre : message backend (axios) → message d'une rejection client-side (Error
+            // brut levé dans useAddEmploye/useUpdateEmploye, ex: "Données de l'employé non
+            // valides") → fallback i18n. Sans `err.message`, l'utilisateur voyait toujours
+            // la même chaîne générique alors que la cause exacte est lisible côté JS.
+            const msg = err?.response?.data?.message || err?.message || t('employe.saveError');
+            showSnackbar(msg, 'error');
+            setIsSaving(false);
+        };
         mode === 'save' ? addEmploye(payload, { onSuccess, onError }) : updateEmploye(payload, { onSuccess, onError });
     };
 

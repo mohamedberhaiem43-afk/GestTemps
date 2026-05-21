@@ -1,11 +1,21 @@
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace ABRPOINT.Server.Data;
 
 public partial class ApplicationDbContext : DbContext
 {
+    // Optionnel : si DI fournit EncryptionService, on l'utilise pour chiffrer
+    // transparentement les PII via EncryptedStringConverter. En son absence
+    // (ex : ApplicationDbContext() sans paramètre pour migrations design-time
+    // ou hosted services qui ne lisent pas les champs chiffrés) les colonnes
+    // restent traitées comme des string normales — c'est l'état historique.
+    // Aucune migration de schéma n'est requise puisque le format ciphertext
+    // v2: tient déjà dans la même colonne VARCHAR.
+    private readonly EncryptionService? _encryption;
 
     public ApplicationDbContext()
     {
@@ -14,6 +24,33 @@ public partial class ApplicationDbContext : DbContext
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
+    }
+
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, EncryptionService encryption)
+        : base(options)
+    {
+        _encryption = encryption;
+    }
+
+    // EF Core met en cache le modèle (IModel) par (type contexte, clé de cache).
+    // La clé par défaut ne dépend que du type, donc le premier contexte créé
+    // fige la configuration des converters pour tous les suivants. On force
+    // une clé différente selon que _encryption est branché ou non — sinon les
+    // hosted services (1er à démarrer parfois) figeraient le modèle SANS
+    // converters et les contextes DI ne chiffreraient plus rien.
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.ReplaceService<IModelCacheKeyFactory, EncryptionAwareModelCacheKeyFactory>();
+        base.OnConfiguring(optionsBuilder);
+    }
+
+    private sealed class EncryptionAwareModelCacheKeyFactory : IModelCacheKeyFactory
+    {
+        public object Create(DbContext context, bool designTime)
+        {
+            var withEncryption = context is ApplicationDbContext app && app._encryption is not null;
+            return (context.GetType(), withEncryption, designTime);
+        }
     }
 
     public virtual DbSet<Absence> Absences { get; set; }
@@ -383,6 +420,23 @@ public partial class ApplicationDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // RGPD Art. 32 — pseudonymisation transparente des PII via EF Core
+        // ValueConverter. Branchée uniquement si EncryptionService a été injecté
+        // (cf. constructeur). Couvre les colonnes sensibles d'Employe : CIN,
+        // téléphone, et l'ensemble des salaires (base, brut, net).
+        if (_encryption is not null)
+        {
+            var converter = new EncryptedStringConverter(_encryption);
+            modelBuilder.Entity<Employe>(entity =>
+            {
+                entity.Property(e => e.Empcin).HasConversion(converter);
+                entity.Property(e => e.Emptel).HasConversion(converter);
+                entity.Property(e => e.Empsbase).HasConversion(converter);
+                entity.Property(e => e.Empsbrut).HasConversion(converter);
+                entity.Property(e => e.Empsnet).HasConversion(converter);
+            });
+        }
+
         // Explicit table mapping for Societe
         modelBuilder.Entity<Societe>(entity =>
         {

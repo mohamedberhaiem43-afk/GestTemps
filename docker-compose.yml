@@ -3,10 +3,13 @@ volumes:
   # PostgreSQL. Sur un serveur qui avait l'ancien volume, l'ancien sqlserver-data
   # persiste (jamais supprimé automatiquement) — à nettoyer manuellement via
   # `docker volume rm <project>_sqlserver-data` après migration des données.
-  postgres-data:
+  #postgres-data:
   uploads_data:
   letsencrypt_data:
   qdrant_data:
+  crowdsec_data:
+  crowdsec_config:
+  nginx_logs:
 
 networks:
   app-network:
@@ -22,9 +25,39 @@ services:
       - uploads_data:/app/uploads:ro
       - letsencrypt_data:/etc/letsencrypt:ro
       - /var/www/certbot:/var/www/certbot:ro
+      # Logs nginx exposés à CrowdSec via un volume nommé partagé — CrowdSec lit
+      # /var/log/nginx pour détecter brute-force, scrapping, scan de vulnérabilités.
+      - nginx_logs:/var/log/nginx
     depends_on:
       - abrpoint.server
       - abrpoint.client
+    networks:
+      - app-network
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # CrowdSec — IDS / IPS communautaire, défense en profondeur RGPD Art. 32
+  # « Dispositifs anti-malware et de détection d'intrusion ».
+  # Lit les logs nginx pour détecter les patterns d'attaque (brute-force auth,
+  # path traversal, scan de CVE, scrapping massif) ; pousse les IPs malveillantes
+  # vers le bouncer nginx qui les bloque au niveau du reverse-proxy.
+  # ─────────────────────────────────────────────────────────────────────────
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: abrpoint.crowdsec
+    environment:
+      # Collections à charger : nginx (brute-force, scan), http-cve (exploits
+      # connus), base-http-scenarios (génériques OWASP top 10).
+      COLLECTIONS: "crowdsecurity/nginx crowdsecurity/http-cve crowdsecurity/base-http-scenarios"
+      # Empêche CrowdSec de partager nos données avec la community blocklist
+      # API tant qu'on n'a pas validé contractuellement (RGPD : prudence,
+      # CrowdSec lit déjà nos logs HTTP). Décommenter une fois la décision prise.
+      DISABLE_ONLINE_API: "true"
+    volumes:
+      - crowdsec_data:/var/lib/crowdsec/data
+      - crowdsec_config:/etc/crowdsec
+      # Lecture seule sur les logs nginx — CrowdSec n'écrit jamais dedans.
+      - nginx_logs:/var/log/nginx:ro
+    restart: unless-stopped
     networks:
       - app-network
 
@@ -66,8 +99,7 @@ services:
       # à reverifier avec ICU collation côté Postgres au cas par cas).
       LANG: "fr_FR.utf8"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-      # Dossier monté pour les dumps/restores manuels (pg_dump / pg_restore).
+      - /var/lib/abrpoint/postgres:/var/lib/postgresql/data
       - ./postgres-backup:/var/lib/postgresql/backups
     ports:
       # Bound à 127.0.0.1 uniquement — JAMAIS exposé à l'extérieur du VPS.
@@ -98,7 +130,7 @@ services:
       DB_HOST: "abrpoint.database"
       DB_NAME: "abrpoint_master"
       DB_USER: "abrpoint"
-      DB_PASSWORD: "${POSTGRES_PASSWORD:-sdfsdfsdf}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:-}"
       ConnectionStrings__MasterConnection: "Host=abrpoint.database;Database=abrpoint_master;Username=abrpoint;Password=${POSTGRES_PASSWORD:-}"
       ConnectionStrings__TenantTemplate: "Host=abrpoint.database;Database={DbName};Username=abrpoint;Password=${POSTGRES_PASSWORD:-}"
       Hosting__RootDomain: "concorde-work-force.com"

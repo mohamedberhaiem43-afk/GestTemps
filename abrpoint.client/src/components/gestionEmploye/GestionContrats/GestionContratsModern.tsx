@@ -264,6 +264,21 @@ const GestionContratsModernInner = () => {
   const handleSelect = (name: string) => (e: any) =>
     setForm(p => ({ ...p, [name]: e.target.value }));
 
+  // CDI = contrat à durée indéterminée : pas de date de fin contractuelle.
+  // On masque le champ Date Fin et on purge `empsort` au passage en CDI pour
+  // éviter qu'une date résiduelle (saisie avant le changement de type, ou
+  // héritée de l'employé) ne soit envoyée au backend.
+  const isCDI = (form.empcontrat || form.contype) === 'CDI';
+
+  const handleTypeChange = (e: any) => {
+    const next = e.target.value;
+    setForm(p => ({
+      ...p,
+      empcontrat: next,
+      empsort: next === 'CDI' ? undefined : p.empsort,
+    }));
+  };
+
   const handleEmployeeSelect = async (empcod: string) => {
     if (!empcod) {
       setForm(emptyForm(soccod || ''));
@@ -552,25 +567,27 @@ const GestionContratsModernInner = () => {
               <Box>
                 <Typography sx={labelSx}>{t('contrat.typeLabel')}</Typography>
                 <FormControl fullWidth size="small">
-                  <Select value={form.empcontrat || form.contype || 'CDI'} onChange={handleSelect('empcontrat')} sx={selectSx}>
+                  <Select value={form.empcontrat || form.contype || 'CDI'} onChange={handleTypeChange} sx={selectSx}>
                     {CONTRACT_TYPES.map(ct => <MenuItem key={ct} value={ct} sx={{ fontSize: '13px' }}>{ct}</MenuItem>)}
                   </Select>
                 </FormControl>
               </Box>
             </Box>
 
-            {/* Date début + Date fin */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+            {/* Date début + Date fin — pour un CDI, on masque Date Fin */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: isCDI ? '1fr' : '1fr 1fr', gap: 1.5 }}>
               <Box>
                 <Typography sx={labelSx}>{t('contrat.dateStart')}</Typography>
                 <TextField name="empemb" type="date" value={fmtDateInput(form.empemb)} onChange={handleField}
                   size="small" fullWidth sx={fieldSx} InputLabelProps={{ shrink: true }} />
               </Box>
-              <Box>
-                <Typography sx={labelSx}>{t('contrat.dateEnd')}</Typography>
-                <TextField name="empsort" type="date" value={fmtDateInput(form.empsort)} onChange={handleField}
-                  size="small" fullWidth sx={fieldSx} InputLabelProps={{ shrink: true }} />
-              </Box>
+              {!isCDI && (
+                <Box>
+                  <Typography sx={labelSx}>{t('contrat.dateEnd')}</Typography>
+                  <TextField name="empsort" type="date" value={fmtDateInput(form.empsort)} onChange={handleField}
+                    size="small" fullWidth sx={fieldSx} InputLabelProps={{ shrink: true }} />
+                </Box>
+              )}
             </Box>
 
             {/* Poste + Salaire */}

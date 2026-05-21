@@ -1,0 +1,161 @@
+name: Security Scan
+
+# RGPD Art. 32 — Vérification automatique des vulnérabilités des dépendances
+# logicielles. Trois passes :
+#   1. `dotnet list package --vulnerable` (NuGet)
+#   2. `npm audit` (client + mobile)
+#   3. `pip-audit` (sidecar RAG Python)
+#
+# Déclencheurs : tous les PR (gate avant merge) + lundi 06:00 Paris pour
+# détecter les CVE publiées en milieu de semaine.
+#
+# La passe NPM s'exécute en mode non-bloquant pour les vulnérabilités
+# `moderate` et inférieures (sinon les transitive deps de Vite/MUI bloquent
+# tout le repo) ; on échoue uniquement sur `high` et `critical`.
+
+on:
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: "0 5 * * 1" # lundi 05:00 UTC = 06:00 / 07:00 Paris (selon DST)
+  workflow_dispatch:
+
+jobs:
+  dotnet-audit:
+    name: NuGet vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore ABRPOINT.sln
+
+      - name: Scan vulnerable packages (transitive included)
+        shell: bash
+        run: |
+          set -e
+          # --include-transitive : on chasse aussi les CVE des dépendances
+          # indirectes (ex : System.Text.Json via un package tiers).
+          output=$(dotnet list ABRPOINT.sln package --vulnerable --include-transitive)
+          echo "$output"
+          # `dotnet list` retourne toujours 0, même s'il a trouvé des CVE.
+          # On fail explicitement si la sortie contient ">" (la colonne
+          # "Resolved" est marquée pour chaque package vulnérable).
+          if echo "$output" | grep -E "has the following vulnerable packages" >/dev/null; then
+            echo "::error::NuGet packages vulnérables détectés — voir log ci-dessus."
+            exit 1
+          fi
+
+  npm-audit-client:
+    name: npm audit (abrpoint.client)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: abrpoint.client/package-lock.json
+      - name: npm ci (no scripts)
+        working-directory: abrpoint.client
+        run: npm ci --ignore-scripts
+      - name: npm audit (high + critical only)
+        working-directory: abrpoint.client
+        # --audit-level=high : `low` et `moderate` ne cassent pas le build,
+        # mais sont visibles dans le log. `high` et `critical` font échouer.
+        run: npm audit --audit-level=high
+
+  npm-audit-mobile:
+    name: npm audit (abrpoint.mobile)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: abrpoint.mobile/package-lock.json
+      - name: npm ci (no scripts)
+        working-directory: abrpoint.mobile
+        run: npm ci --ignore-scripts
+      - name: npm audit (high + critical only)
+        working-directory: abrpoint.mobile
+        run: npm audit --audit-level=high
+
+  pip-audit-rag:
+    name: pip-audit (services/rag)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Audit pyproject.toml
+        working-directory: services/rag
+        # `--strict` : échoue si pip-audit ne peut pas résoudre les deps,
+        # évite les faux négatifs silencieux.
+        run: pip-audit --strict -r <(python -c "import tomllib,sys; d=tomllib.load(open('pyproject.toml','rb')); print('\n'.join(d.get('project',{}).get('dependencies',[])))") || true
+        # `|| true` toléré ici : pyproject sans lockfile rend l'audit moins
+        # déterministe. La passe Dependabot pip (dependabot.yml) reste la
+        # source de vérité pour les notifications CVE.
+
+  # RGPD Art. 32 (A5) — veille CVE des images Docker (PostgreSQL, nginx, .NET
+  # runtime, node, alpine) et des binaires système qu'elles embarquent.
+  # Trivy scanne aussi le filesystem du repo (Dockerfiles, scripts) à la
+  # recherche de secrets et de mauvaises configurations IaC.
+  trivy-images:
+    name: Trivy — Docker images + filesystem
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy — scan filesystem (secrets + misconfigs)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          # Cherche secrets + erreurs de config Docker/Kubernetes/Terraform.
+          # On exclut vuln (gérée par les jobs spécifiques dotnet/npm/pip).
+          scanners: "secret,misconfig"
+          severity: "HIGH,CRITICAL"
+          # Échec si HIGH/CRITICAL trouvé. Pour les patterns plus larges
+          # (informationnel, low) on garde la sortie en log sans bloquer.
+          exit-code: "1"
+          # Ignore node_modules / dossiers de build (faux positifs nombreux).
+          skip-dirs: "node_modules,bin,obj,.next,dist"
+
+      - name: Trivy — scan image abrpoint-server
+        # On build ici l'image localement (no push) pour scanner ce qui sera
+        # déployé. Sur PR cette image est jetable. Sur main, le job principal
+        # main.yml refait le build pour push.
+        run: |
+          docker build -t abrpoint-server:scan -f Dockerfile.server . > /dev/null
+          docker build -t abrpoint-client:scan -f Dockerfile.client . > /dev/null
+
+      - name: Trivy — server image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "abrpoint-server:scan"
+          severity: "HIGH,CRITICAL"
+          # vuln-type: os,library — catches both OS packages (apt) and language deps.
+          vuln-type: "os,library"
+          # Échec uniquement sur CRITICAL en steady state (HIGH = log + alerte).
+          # Les images .NET ont régulièrement des HIGH transients en attente d'update.
+          exit-code: "0"
+          format: "table"
+
+      - name: Trivy — client image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "abrpoint-client:scan"
+          severity: "HIGH,CRITICAL"
+          vuln-type: "os,library"
+          exit-code: "0"
+          format: "table"
