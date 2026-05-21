@@ -17,7 +17,7 @@ dependencies = [
   "langchain-huggingface==0.1.2",
   # Backends
   "qdrant-client==1.12.1",
-  "sentence-transformers==3.3.1",
+  "sentence-transformers==5.5.1",
   # CPU-only Torch — passer a la variante GPU au build si besoin.
   # Pin compatible avec sentence-transformers 3.3.x (Torch >=1.11, <3.0).
   "torch==2.5.1",
