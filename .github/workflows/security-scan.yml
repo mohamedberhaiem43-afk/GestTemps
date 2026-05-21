@@ -33,7 +33,14 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Restore
-        run: dotnet restore ABRPOINT.sln
+        # On restaure UNIQUEMENT le projet serveur .NET. La solution contient
+        # aussi `abrpoint.client.esproj` (wrapper JS SDK pour Vite/React, audité
+        # par npm-audit-client) et `docker-compose.dcproj` (pas de NuGet). Ces
+        # deux projets font échouer `dotnet list package --vulnerable` avec
+        # « uses package.config » car le JS SDK n'expose pas la métadonnée
+        # PackageReference attendue par la commande. Scoper au .csproj évite
+        # ce faux positif sans rien perdre côté couverture.
+        run: dotnet restore ABRPOINT.Server/ABRPOINT.Server.csproj
 
       - name: Scan vulnerable packages (transitive included)
         shell: bash
@@ -41,11 +48,11 @@ jobs:
           set -e
           # --include-transitive : on chasse aussi les CVE des dépendances
           # indirectes (ex : System.Text.Json via un package tiers).
-          output=$(dotnet list ABRPOINT.sln package --vulnerable --include-transitive)
+          output=$(dotnet list ABRPOINT.Server/ABRPOINT.Server.csproj package --vulnerable --include-transitive)
           echo "$output"
           # `dotnet list` retourne toujours 0, même s'il a trouvé des CVE.
-          # On fail explicitement si la sortie contient ">" (la colonne
-          # "Resolved" est marquée pour chaque package vulnérable).
+          # On fail explicitement si la sortie contient le marqueur
+          # "has the following vulnerable packages".
           if echo "$output" | grep -E "has the following vulnerable packages" >/dev/null; then
             echo "::error::NuGet packages vulnérables détectés — voir log ci-dessus."
             exit 1
@@ -117,7 +124,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Trivy — scan filesystem (secrets + misconfigs)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: "fs"
           scan-ref: "."
@@ -140,7 +147,7 @@ jobs:
           docker build -t abrpoint-client:scan -f Dockerfile.client . > /dev/null
 
       - name: Trivy — server image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: "abrpoint-server:scan"
           severity: "HIGH,CRITICAL"
@@ -152,7 +159,7 @@ jobs:
           format: "table"
 
       - name: Trivy — client image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: "abrpoint-client:scan"
           severity: "HIGH,CRITICAL"
