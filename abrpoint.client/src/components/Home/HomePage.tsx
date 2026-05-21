@@ -186,10 +186,73 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* HERO — les 3 bandeaux d'offre (Early Launch fixe + marquee chips + carte
-          jaune inline) ont été retirés au profit d'une bannière promo unifiée
-          insérée juste après le hero (cf. .promo-launch ci-dessous). Le hero
-          reste sobre : titre + sous-titre + CTAs + indicateurs de confiance. */}
+      {/* PROMO UNIFIÉE — placée juste sous la nav pour que le visiteur la
+          découvre dès l'ouverture de la page (avant même le hero). Le padding
+          haut de la section compense la hauteur de .hp-nav (fixed, 76px).
+          Remplace les 3 anciens bandeaux Early Launch / multi-pays / essai. */}
+      <section className="promo-launch promo-launch--top reveal" aria-label="Offre de lancement">
+        <div className="promo-launch-inner">
+          <span className="promo-launch-pill">
+            <span className="promo-launch-pill-icon">🚀</span>
+            OFFRE EXCLUSIVE
+          </span>
+
+          <div className="promo-launch-grid">
+            <div className="promo-launch-left">
+              <h2 className="promo-launch-title">
+                Conditions tarifaires <span className="promo-launch-accent">privilégiées</span><br />
+                réservées aux <span className="promo-launch-num">10</span> premières entreprises partenaires.
+              </h2>
+              <p className="promo-launch-sub">
+                <span className="promo-launch-sub-hl">1 mois offert</span> • activation immédiate • sans carte bancaire requise.
+              </p>
+            </div>
+
+            <aside className="promo-launch-right" aria-label="Conditions pour les autres entreprises">
+              <div className="promo-launch-right-head">POUR TOUTES LES AUTRES ENTREPRISES</div>
+              <ul className="promo-launch-features">
+                <li>
+                  <div className="plf-icon">🎁</div>
+                  <div className="plf-text">
+                    <strong>1 mois d'essai <span className="plf-yellow">GRATUIT</span></strong>
+                    <span>sans carte bancaire, sans engagement</span>
+                  </div>
+                </li>
+                <li>
+                  <div className="plf-icon">💳</div>
+                  <div className="plf-text">
+                    <strong>Sans carte bancaire</strong>
+                    <span>Aucune donnée bancaire demandée</span>
+                  </div>
+                </li>
+                <li>
+                  <div className="plf-icon">📅</div>
+                  <div className="plf-text">
+                    <strong>Sans engagement</strong>
+                    <span>Vous décidez après l'essai</span>
+                  </div>
+                </li>
+              </ul>
+            </aside>
+          </div>
+
+          <button type="button" className="promo-launch-cta" onClick={scrollToAuth}>
+            <span className="promo-launch-cta-icon">🚀</span>
+            J'en profite maintenant
+            <span className="promo-launch-cta-arrow">→</span>
+          </button>
+
+          <div className="promo-launch-trust">
+            <span><span className="plt-icon">🛡</span> Sécurisé &amp; conforme RGPD</span>
+            <span><span className="plt-icon">🎧</span> Support réactif</span>
+            <span><span className="plt-icon">⚡</span> Mise en place rapide</span>
+          </div>
+        </div>
+      </section>
+
+      {/* HERO — sobre depuis que les bandeaux promo sont consolidés dans la
+          bannière au-dessus : titre + sous-titre + CTAs + indicateurs de
+          confiance + preview dashboard. */}
       <section className="hero">
         <h1 className="hero-title">
           Le pointage et la gestion<br />du temps <span className="accent">simplifiés</span>
@@ -276,72 +339,6 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* PROMO UNIFIÉE — remplace les 3 anciens bandeaux (marquee chips + bande
-          jaune Early Launch fixe + carte inline). Une seule bannière sombre
-          met en avant l'offre « 10 premières entreprises à vie » et regroupe
-          les arguments commerciaux (essai 1 mois, sans CB, sans engagement)
-          dans un encart annexe. Le bouton or principal scrolle vers le
-          formulaire d'inscription. */}
-      <section className="promo-launch reveal" aria-label="Offre de lancement">
-        <div className="promo-launch-inner">
-          <span className="promo-launch-pill">
-            <span className="promo-launch-pill-icon">🚀</span>
-            OFFRE EXCLUSIVE
-          </span>
-
-          <div className="promo-launch-grid">
-            <div className="promo-launch-left">
-              <h2 className="promo-launch-title">
-                Les <span className="promo-launch-num">10</span> premières entreprises<br />
-                profitent de l'offre <span className="promo-launch-accent">À VIE !</span>
-              </h2>
-              <p className="promo-launch-sub">
-                <span className="promo-launch-sub-hl">Une opportunité unique</span> pour simplifier votre gestion RH et gagner du temps.
-              </p>
-            </div>
-
-            <aside className="promo-launch-right" aria-label="Conditions pour les autres entreprises">
-              <div className="promo-launch-right-head">POUR TOUTES LES AUTRES ENTREPRISES</div>
-              <ul className="promo-launch-features">
-                <li>
-                  <div className="plf-icon">🎁</div>
-                  <div className="plf-text">
-                    <strong>1 mois d'essai <span className="plf-yellow">GRATUIT</span></strong>
-                    <span>sans carte bancaire, sans engagement</span>
-                  </div>
-                </li>
-                <li>
-                  <div className="plf-icon">💳</div>
-                  <div className="plf-text">
-                    <strong>Sans carte bancaire</strong>
-                    <span>Aucune donnée bancaire demandée</span>
-                  </div>
-                </li>
-                <li>
-                  <div className="plf-icon">📅</div>
-                  <div className="plf-text">
-                    <strong>Sans engagement</strong>
-                    <span>Vous décidez après l'essai</span>
-                  </div>
-                </li>
-              </ul>
-            </aside>
-          </div>
-
-          <button type="button" className="promo-launch-cta" onClick={scrollToAuth}>
-            <span className="promo-launch-cta-icon">🚀</span>
-            J'en profite maintenant
-            <span className="promo-launch-cta-arrow">→</span>
-          </button>
-
-          <div className="promo-launch-trust">
-            <span><span className="plt-icon">🛡</span> Sécurisé &amp; conforme RGPD</span>
-            <span><span className="plt-icon">🎧</span> Support réactif</span>
-            <span><span className="plt-icon">⚡</span> Mise en place rapide</span>
           </div>
         </div>
       </section>
@@ -757,7 +754,7 @@ export default function HomePage() {
             }}>
               ★ Haut de gamme
             </div>
-            <div className="price-tier" style={{ color: '#b8860b' }}>Premium</div>
+            <div className="price-tier" style={{ color: '#b8860b' }}>Business</div>
             <div className="price-amount" style={{ color: '#92670a' }}>
               <span className="currency">€</span>{prices.premium}<span className="period" style={{ color: '#b8860b' }}>{pricePeriod}</span>
             </div>
@@ -807,7 +804,7 @@ export default function HomePage() {
                 boxShadow: '0 6px 18px rgba(184,134,11,0.32)',
               }}
             >
-              Choisir Premium
+              Choisir Business
             </button>
           </div>
         </div>

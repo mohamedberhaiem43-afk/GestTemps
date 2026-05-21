@@ -133,10 +133,10 @@
   min-height: 90vh;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  /* Avant : 245px (nav 76 + marquee 46 + bande Early Launch 43 + air 80).
-     Les 3 bandeaux fixes ont été retirés → seul .hp-nav (76px) à compenser
-     plus un peu d'air respiratoire. */
-  padding: 140px 48px 60px;
+  /* La bannière promo (.promo-launch--top) précède désormais le hero et porte
+     le padding qui dégage la nav fixe. Le hero peut donc utiliser un padding
+     standard de section. */
+  padding: 48px 48px 60px;
   text-align: center;
 }
 .home-page .hero-badge {
@@ -1048,19 +1048,29 @@
   .home-page .promo-cta-wrap { padding: 40px 0; }
   .home-page .hero-trust { gap: 12px; }
   .home-page .trust-divider { display: none; }
-  /* Promo unifiée : passage en colonne et padding latéral plus compact. */
+  /* Promo unifiée : passage en colonne et padding latéral plus compact.
+     Le top-padding de .promo-launch--top reste géré par sa propre règle
+     (cf. plus haut) pour conserver le dégagement sous .hp-nav (76px). */
   .home-page .promo-launch { padding: 32px 16px; }
-  .home-page .promo-launch-inner { padding: 24px 18px; border-radius: 18px; }
-  .home-page .promo-launch-grid { grid-template-columns: 1fr; gap: 18px; }
-  .home-page .promo-launch-title { font-size: 26px; line-height: 1.18; }
-  .home-page .promo-launch-num { font-size: 1.1em; }
-  .home-page .promo-launch-sub { font-size: 14px; }
-  .home-page .promo-launch-right { padding: 18px; }
-  .home-page .promo-launch-features li { gap: 10px; }
+  .home-page .promo-launch.promo-launch--top { padding-top: 96px; }
+  .home-page .promo-launch-inner { padding: 28px 18px 24px; border-radius: 18px; }
+  .home-page .promo-launch-grid { grid-template-columns: 1fr; gap: 22px; }
+  /* Mobile : on assouplit la densité — titre plus petit + line-height plus aéré,
+     sous-titre plus respirant, encart de droite avec plus d'air entre items.
+     Avant : titre 26px / 1.18, sub 14px ; trop dense sur écrans 360-400px. */
+  .home-page .promo-launch-title { font-size: 23px; line-height: 1.32; margin-bottom: 10px; }
+  .home-page .promo-launch-num { font-size: 1.08em; }
+  .home-page .promo-launch-sub { font-size: 13.5px; line-height: 1.6; }
+  .home-page .promo-launch-right { padding: 20px 18px; }
+  .home-page .promo-launch-right-head { font-size: 10px; letter-spacing: 0.14em; margin-bottom: 16px; }
+  .home-page .promo-launch-features { gap: 16px; }
+  .home-page .promo-launch-features li { gap: 12px; }
+  .home-page .plf-text strong { font-size: 13.5px; }
+  .home-page .plf-text span { font-size: 12px; line-height: 1.5; }
   .home-page .promo-launch-cta {
-    width: 100%; font-size: 15px; padding: 14px 18px;
+    width: 100%; font-size: 15px; padding: 14px 18px; margin: 28px auto 20px;
   }
-  .home-page .promo-launch-trust { flex-direction: column; gap: 10px; font-size: 12px; }
+  .home-page .promo-launch-trust { flex-direction: column; gap: 12px; font-size: 12.5px; }
 }
 
 /* ── HAMBURGER & MENU MOBILE ── */
@@ -1111,6 +1121,12 @@
   position: relative; z-index: 1;
   padding: 56px 32px;
   display: flex; justify-content: center;
+}
+/* Variante "top" : la bannière est désormais placée au-dessus du hero, donc
+   elle doit compenser la hauteur de .hp-nav (fixed, 76px) + air respiratoire
+   pour ne pas être recouverte par la nav à l'ouverture de la page. */
+.home-page .promo-launch.promo-launch--top {
+  padding-top: 108px;
 }
 .home-page .promo-launch-inner {
   position: relative;
