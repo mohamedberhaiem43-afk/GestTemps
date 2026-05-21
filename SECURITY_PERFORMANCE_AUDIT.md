@@ -44,12 +44,12 @@ public async Task<IActionResult> GetPointageMois(...)
 | Secret | Valeur exposée |
 |--------|---------------|
 | JWT Key | `This is a sample secret key - please don't use in production environment.'` |
-| Stripe Secret Key | `sk_test_51TNzqy...` |
-| Stripe Webhook Secret | `whsec_TwFTXT...` |
-| Gemini API Key | `AIzaSyDbq8eg...` |
-| OpenRouter API Key | `sk-or-v1-f3261c2c...` |
-| SMTP Password | `Concorde@2026!` |
-| AES Encryption Key | `G3stT3mps@2024!S3cur3K3y#Encr1pt10n` |
+| Stripe Secret Key | `sk_test_…` (redacted) |
+| Stripe Webhook Secret | `whsec_…` (redacted) |
+| Gemini API Key | `AIzaSy…` (redacted) |
+| OpenRouter API Key | `sk-or-v1-…` (redacted) |
+| SMTP Password | `Concorde@…` (redacted) |
+| AES Encryption Key | `G3stT3mps@…` (redacted) |
 
 → **Risque :** Ce fichier est dans le dépôt Git. Tout clone expose les credentials.  
 → **Clé JWT faible** = possible forgery de token.
@@ -306,7 +306,7 @@ Les corrections suivantes ont été appliquées dans cette session :
 
 ### Passe finale (08/05/2026)
 
-13. ✅ **S2** — `Helpers/SecretsValidator.cs` exécuté au boot via `Program.cs`. Détecte les valeurs placeholder connues (Jwt:Key sample, Encryption:AesKey codée, SMTP `Concorde@2026!`) et la longueur insuffisante. **Refuse le démarrage en production** ; en dev → warning structuré uniquement. Toute clé peut être surchargée par variable d'environnement (`Jwt__Key`, `Encryption__AesKey`, `Stripe__SecretKey`…). `sk_test_` détecté en prod = échec ; en dev = info.
+13. ✅ **S2** — `Helpers/SecretsValidator.cs` exécuté au boot via `Program.cs`. Détecte les valeurs placeholder connues (Jwt:Key sample, Encryption:AesKey codée, SMTP password historique) et la longueur insuffisante. **Refuse le démarrage en production** ; en dev → warning structuré uniquement. Toute clé peut être surchargée par variable d'environnement (`Jwt__Key`, `Encryption__AesKey`, `Stripe__SecretKey`…). `sk_test_` détecté en prod = échec ; en dev = info.
 14. ✅ **P4** — `GetNbJoursAsync` : 1 seule requête `Conges` sur la fenêtre [minDate, maxDate] au lieu de N appels `GetCongeLibAsync`. Détection de chevauchement faite localement (Conamret pris en compte). Pour 30 jours : 1 requête au lieu de 30.
 15. ✅ **P5** — `Presences.GetAllAsync()` (sans filtre) plafonné à 1000 lignes avec `OrderByDescending(Predat)`. Aucun appelant connu, mais l'interface IRepository impose la signature ; le plafond protège contre la régression future.
 

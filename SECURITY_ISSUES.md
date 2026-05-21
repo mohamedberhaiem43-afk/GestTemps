@@ -68,12 +68,12 @@ Bien que le `SecretsValidator` bloque le démarrage en production pour les valeu
 
 | Secret | Valeur | Risque |
 |--------|--------|--------|
-| `Gemini:ApiKey` | `AIzaSyDbq8egpRZsXvccKt-1MEQoStG9CvwXZW4` | Consommation API Google facturable |
-| `OpenRouter:ApiKey` | `sk-or-v1-f3261c2c...` | Consommation OpenRouter facturable |
-| `Stripe:SecretKey` | `sk_test_51TNzqy...` | Création de paiements, remboursements Stripe |
-| `Stripe:WebhookSecret` | `whsec_TwFTXT...` | Forge de webhooks Stripe |
-| `Smtp:Password` | `Concorde@2026!` | Envoi d'emails au nom de l'entreprise |
-| `Encryption:AesKey` | `G3stT3mps@2024!...` | Déchiffrement de CIN, salaires, données personnelles |
+| `Gemini:ApiKey` | `AIzaSyDbq8…` (redacted) | Consommation API Google facturable |
+| `OpenRouter:ApiKey` | `sk-or-v1-…` (redacted) | Consommation OpenRouter facturable |
+| `Stripe:SecretKey` | `sk_test_…` (redacted) | Création de paiements, remboursements Stripe |
+| `Stripe:WebhookSecret` | `whsec_…` (redacted) | Forge de webhooks Stripe |
+| `Smtp:Password` | `Concorde@…` (redacted) | Envoi d'emails au nom de l'entreprise |
+| `Encryption:AesKey` | `G3stT3mps@…` (redacted) | Déchiffrement de CIN, salaires, données personnelles |
 
 **Recommandation :** Migrer **tous** ces secrets vers des variables d'environnement (la configuration .NET les accepte via `__` : `Gemini__ApiKey`, `Stripe__SecretKey`, etc.) et purger l'historique Git avec `git filter-branch` ou BFG Repo Cleaner.
 
@@ -582,8 +582,8 @@ L'application accepte n'importe quel header `Host`. En cas de confusion de rever
 **Fichier :** `abrpoint.client/.env:6-7`
 
 ```
-VITE_GEMINI_API_KEY=AIzaSyAlaB9Z4FnPo0q5mr-ZgnB85-tFSSpUTvM
-VITE_APP_GEMINI_API=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyAlaB9Z4FnPo0q5mr-ZgnB85-tFSSpUTvM
+VITE_GEMINI_API_KEY=AIzaSy…<redacted>
+VITE_APP_GEMINI_API=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSy…<redacted>
 ```
 
 Les variables d'environnement préfixées par `VITE_` sont **incluses en clair dans le bundle JavaScript** envoyé au navigateur de chaque utilisateur. Toute personne ouvrant les outils de développement peut extraire la clé API Gemini.

@@ -1,0 +1,29 @@
+# Trivy ignore file — RGPD Art. 32 / sécurité CI
+#
+# Convention : on documente CHAQUE entrée avec :
+#   1. Le finding ID Trivy (AVD-* pour misconfig, CVE-* pour vuln)
+#   2. Pourquoi on accepte le risque ou pourquoi c'est un faux positif
+#   3. La condition de levée (qui rouvre quand)
+#
+# Si une entrée n'a plus de justification, la SUPPRIMER plutôt que la laisser pourrir.
+# Tout commit qui ajoute une ligne ici doit l'expliquer dans le message de PR.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Dockerfile.server — utilisateur root pendant les uploads
+# ─────────────────────────────────────────────────────────────────────────────
+# Finding : AVD-DS-0002 (Image user should not be 'root')
+# Statut  : ACCEPTÉ TEMPORAIREMENT (cf. commentaire SEC-22 dans Dockerfile.server).
+# Raison  : Le volume nommé `uploads_data` est créé root par Docker et garde ses
+#           permissions à travers les redéploiements. Activer `USER $APP_UID` casse
+#           les écritures dans /app/uploads (incident 08/05/2026).
+# Levée   : Quand un entrypoint gosu/su-exec sera ajouté pour chown idempotent
+#           + drop privilèges avant `dotnet ABRPOINT.Server.dll`. Tracké dans
+#           Dockerfile.server lignes 79-89.
+AVD-DS-0002
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Empty file or wget+install patterns
+# ─────────────────────────────────────────────────────────────────────────────
+# Finding : AVD-DS-0009 (Use COPY instead of ADD for files and folders) si applicable
+# Statut  : N/A — on n'utilise pas ADD. Laissé ici en archive si jamais un fichier
+#           le déclenche par erreur dans le futur.

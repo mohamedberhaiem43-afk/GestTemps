@@ -46,16 +46,62 @@ jobs:
         shell: bash
         run: |
           set -e
-          # --include-transitive : on chasse aussi les CVE des dépendances
-          # indirectes (ex : System.Text.Json via un package tiers).
+          # --include-transitive : on chasse aussi les CVE des dépendances indirectes
+          # (System.Text.Json via un package tiers, etc.). On fixe la culture en-US
+          # pour stabiliser le parsing du tableau de sortie (sinon les noms de colonnes
+          # peuvent être localisés selon la locale du runner).
+          export DOTNET_CLI_UI_LANGUAGE=en-US
           output=$(dotnet list ABRPOINT.Server/ABRPOINT.Server.csproj package --vulnerable --include-transitive)
           echo "$output"
-          # `dotnet list` retourne toujours 0, même s'il a trouvé des CVE.
-          # On fail explicitement si la sortie contient le marqueur
-          # "has the following vulnerable packages".
-          if echo "$output" | grep -E "has the following vulnerable packages" >/dev/null; then
-            echo "::error::NuGet packages vulnérables détectés — voir log ci-dessus."
+
+          # Allowlist des GHSA explicitement acceptés. Chaque entrée DOIT comporter une
+          # justification : si une advisory entre ici, elle entre aussi dans le suivi
+          # sécurité (SECURITY_ISSUES.md / dependabot). Pour retirer un risque accepté,
+          # supprimer la ligne — le job échouera de nouveau jusqu'à correction réelle.
+          #
+          # GHSA-rvv3-g6hj-g44x — AutoMapper 14.0.0 (HIGH)
+          #   AutoMapper 14.0.0 est la dernière version « free » avant la bascule
+          #   commerciale (15.x+). L'advisory couvre la série 12-14 — il n'existe pas
+          #   de version libre sans cette CVE. Risque ACCEPTÉ jusqu'à souscription
+          #   d'une licence commerciale ou migration vers Mapster (alternative validée).
+          #   Cf. ABRPOINT.Server/ABRPOINT.Server.csproj ligne du PackageReference AutoMapper.
+          ALLOWED_GHSAS=(
+            "GHSA-rvv3-g6hj-g44x"
+          )
+
+          # Construction d'un pattern grep qui supprime les lignes contenant un GHSA allowlisté.
+          allow_pattern=""
+          for ghsa in "${ALLOWED_GHSAS[@]}"; do
+            if [ -z "$allow_pattern" ]; then
+              allow_pattern="$ghsa"
+            else
+              allow_pattern="$allow_pattern|$ghsa"
+            fi
+          done
+
+          # On filtre :
+          #   1. les lignes "High" et "Critical" uniquement (alignement avec
+          #      `npm audit --audit-level=high` utilisé dans les jobs JS de ce fichier)
+          #   2. en excluant les GHSA explicitement allowlistés ci-dessus.
+          if [ -n "$allow_pattern" ]; then
+            blocking=$(echo "$output" | grep -E "\s+(High|Critical)\s+" | grep -vE "$allow_pattern" || true)
+          else
+            blocking=$(echo "$output" | grep -E "\s+(High|Critical)\s+" || true)
+          fi
+
+          if [ -n "$blocking" ]; then
+            echo "::error::Vulnérabilités HIGH/CRITICAL NuGet non allowlistées :"
+            echo "$blocking"
+            echo ""
+            echo "Pour accepter explicitement un risque, ajouter le GHSA à ALLOWED_GHSAS dans .github/workflows/security-scan.yml avec une justification."
             exit 1
+          fi
+
+          # Moderate / Low / GHSA allowlistés : on log "info" pour visibilité sans bloquer.
+          moderate=$(echo "$output" | grep -E "\s+(Moderate|Low)\s+" || true)
+          if [ -n "$moderate" ]; then
+            echo "::notice::Vulnérabilités Moderate/Low détectées (non bloquantes) :"
+            echo "$moderate"
           fi
 
   npm-audit-client:
@@ -135,8 +181,23 @@ jobs:
           # Échec si HIGH/CRITICAL trouvé. Pour les patterns plus larges
           # (informationnel, low) on garde la sortie en log sans bloquer.
           exit-code: "1"
+          # Affichage tableau pour rendre les findings lisibles directement dans
+          # le log Actions (sans avoir à télécharger un SARIF).
+          format: "table"
           # Ignore node_modules / dossiers de build (faux positifs nombreux).
           skip-dirs: "node_modules,bin,obj,.next,dist"
+          # SEC — Fichiers exclus du scan secret-only :
+          #   • SecretsValidator.cs : contient PAR DESIGN des sentinels (chaînes
+          #     « known-bad » comparées à la config au boot pour refuser un
+          #     déploiement prod laissé sur valeurs placeholder). Les flagger
+          #     serait un faux positif structurel.
+          #   • SECURITY_*.md + .env.example : audit docs et template, valeurs
+          #     redactées ou placeholders (REPLACE_*). On les exclut pour ne
+          #     pas dépendre des patterns Trivy variant entre versions.
+          skip-files: "ABRPOINT.Server/Helpers/SecretsValidator.cs,SECURITY_ISSUES.md,SECURITY_AUDIT_MODULES.md,SECURITY_PERFORMANCE_AUDIT.md,.env.example"
+          # Lit `.trivyignore` à la racine pour les misconfigs acceptées (cf.
+          # AVD-DS-0002 root user — documenté dans Dockerfile.server).
+          trivyignores: ".trivyignore"
 
       - name: Trivy — scan image abrpoint-server
         # On build ici l'image localement (no push) pour scanner ce qui sera

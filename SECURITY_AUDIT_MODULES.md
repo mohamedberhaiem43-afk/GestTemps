@@ -50,23 +50,23 @@
 
 ```json
 "Jwt": {
-    "Key": "This is a sample secret key - please don't use in production environment.'"
+    "Key": "<placeholder — sample secret key redacted>"
 },
 "Encryption": {
-    "AesKey": "G3stT3mps@2024!S3cur3K3y#Encr1pt10n"
+    "AesKey": "<redacted — G3stT3mps@…>"
 },
 "Stripe": {
-    "SecretKey": "sk_test_51TNzqyFhqIQIXNC2...",
-    "WebhookSecret": "whsec_TwFTXTIFYStuMf4r..."
+    "SecretKey": "<redacted — sk_test_…>",
+    "WebhookSecret": "<redacted — whsec_…>"
 },
 "Smtp": {
-    "Password": "Concorde@2026!"
+    "Password": "<redacted — Concorde@…>"
 },
 "Gemini": {
-    "ApiKey": "AIzaSyDbq8egpRZsXvccKt-1MEQoStG9CvwXZW4"
+    "ApiKey": "<redacted — AIzaSyDbq8…>"
 },
 "OpenRouter": {
-    "ApiKey": "sk-or-v1-f3261c2c..."
+    "ApiKey": "<redacted — sk-or-v1-…>"
 }
 ```
 
