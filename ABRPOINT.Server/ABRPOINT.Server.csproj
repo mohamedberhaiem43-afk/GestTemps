@@ -37,7 +37,7 @@
 	       accepté + allowlist GHSA dans .github/workflows/security-scan.yml jusqu'à
 	       souscription d'une licence commerciale ou migration vers Mapster (validé
 	       comme alternative drop-in pour ce projet). -->
-	  <PackageReference Include="AutoMapper" Version="14.0.0" />
+	  <PackageReference Include="AutoMapper" Version="16.1.1" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Dapper" Version="2.1.66" />
     <!-- Migré : FastReport.Data.MsSql → FastReport.Data.Postgres pour aligner
