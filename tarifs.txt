@@ -1,0 +1,166 @@
+📦 CONCORDE WORKFORCE
+Plateforme RH SaaS sécurisée • Pointage • Congés • Gestion des temps • Multi-sites • IA
+Hébergement France OVH • RGPD • TLS 1.3 • AES-256
+Conditions tarifaires actuellement appliquées aux nouveaux clients professionnels
+
+✔ 1 mois offert
+✔ Activation rapide
+✔ Sans carte bancaire requise
+✔ Tarification annuelle préférentielle actuellement appliquée
+✔ Les abonnements mensuels restent disponibles aux tarifs standards
+
+🟢 STARTER
+À partir de 69 € HT / mois
+(Abonnement annuel)
+
+99 € HT / mois
+Tarif mensuel standard
+
+Inclus :
+Jusqu’à 10 salariés inclus
+1 administrateur
+Pointage web & mobile
+Gestion RH essentielle
+Gestion congés & absences
+Fiches salariés
+Dashboard simplifié
+Exports PDF / Excel
+Notifications essentielles
+10 Go stockage sécurisé inclus
+Hébergement France OVH
+Support standard
+Utilisateur supplémentaire :
++4,90 € HT / salarié / mois
+Stockage supplémentaire :
++29 € HT / 100 Go
+Limites du pack :
+Jusqu’à 25 salariés maximum
+Jusqu’à 50 Go stockage maximum
+Idéal pour :
+
+✔ TPE
+✔ petites structures
+✔ première digitalisation RH
+
+🟡 STANDARD
+À partir de 119 € HT / mois
+(Abonnement annuel)
+
+219 € HT / mois
+Tarif mensuel standard
+
+Inclus :
+Jusqu’à 25 salariés inclus
+3 administrateurs
+Application mobile native
+Pointage géolocalisé
+Workflow validation
+Gestion RTT & CET
+Préparation paie
+Coffre numérique RH
+Signature électronique simple
+Notifications push & email
+Reporting avancé
+Multi-sites
+Exports RH avancés
+Tableaux de bord opérationnels
+50 Go stockage sécurisé inclus
+Support prioritaire
+Utilisateur supplémentaire :
++6,90 € HT / salarié / mois
+Stockage supplémentaire :
++29 € HT / 100 Go
+Limites du pack :
+Jusqu’à 100 salariés maximum
+Jusqu’à 300 Go stockage maximum
+Idéal pour :
+
+✔ PME
+✔ équipes terrain
+✔ structures multi-sites
+✔ gestion RH centralisée
+
+🔵 BUSINESS
+À partir de 249 € HT / mois
+(Abonnement annuel)
+
+449 € HT / mois
+Tarif mensuel standard
+
+Inclus :
+Jusqu’à 50 salariés inclus
+Administrateurs illimités
+Multi-filiales
+Multi-entités
+Tableaux de bord avancés
+Audit logs avancés
+Sécurité renforcée
+Gestion avancée des rôles & permissions
+Contrôle appareils mobiles
+Branding personnalisé
+SLA prioritaire
+API & futures intégrations
+Exports RH / Paie avancés
+Reporting décisionnel
+Supervision avancée
+200 Go stockage sécurisé inclus
+Support business prioritaire
+Utilisateur supplémentaire :
++9,90 € HT / salarié / mois
+Stockage supplémentaire :
++49 € HT / 100 Go
+Limites du pack :
+Jusqu’à 250 salariés maximum
+Jusqu’à 2 To stockage maximum
+Idéal pour :
+
+✔ PME structurées
+✔ groupes multi-sites
+✔ entreprises avec exigences sécurité & conformité
+✔ organisations en croissance
+
+🟣 ENTERPRISE AI
+Sur devis
+Inclus :
+Assistant IA RH avancé
+Recherche documentaire intelligente
+IA contextuelle avancée
+Analyse documentaire RH
+Automatisations IA
+Workflows intelligents
+Connecteurs spécifiques
+API avancées & SSO
+Hébergement dédié possible
+SLA enterprise
+Accompagnement technique dédié
+Architecture sur mesure
+Déploiement multi-entités
+Stockage évolutif selon besoin
+Idéal pour :
+
+✔ ETI & groupes
+✔ organisations multi-entités
+✔ besoins IA & conformité avancés
+✔ environnements RH complexes
+
+🧩 MODULES OPTIONNELS
+Module	Tarif
+Assistant RH IA	49 € / mois
+IA documentaire avancée	149 € / mois
+Signature électronique avancée	19 € / mois
+API avancée	79 € / mois
+Support prioritaire étendu	49 € / mois
+Stockage supplémentaire 100 Go	29 € à 49 € / mois
+Accompagnement onboarding & déploiement	89 € HT / heure
+Formation RH & équipes	Sur devis
+🔒 SÉCURITÉ & CONFORMITÉ
+
+✔ Hébergement sécurisé en France (OVHcloud)
+✔ Données hébergées au sein de l’Union Européenne
+✔ Conformité RGPD
+✔ Chiffrement TLS 1.3
+✔ Sécurité AES-256
+✔ Sauvegardes sécurisées
+✔ Cloisonnement des environnements
+✔ Journalisation & contrôle des accès
+✔ Authentification sécurisée

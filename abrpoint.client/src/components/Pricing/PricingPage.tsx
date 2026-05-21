@@ -15,30 +15,36 @@ const PricingPage: React.FC = () => {
   const { uticod } = useAuth();
   const isAuthenticated = Boolean(uticod);
 
-  // Packs commerciaux V2 (2026-05) — mapping 1:1 avec PlanCatalog côté backend.
-  // Modèle : forfait mensuel + N salariés inclus + tarif par salarié supplémentaire.
-  // Annuel = -20% sur le forfait (overage facturé identiquement par employé).
-  const ANNUAL_DISCOUNT = 0.8;
+  // Packs commerciaux V2 (2026-05) — mapping 1:1 avec ABRPOINT.Server.Tenancy.PlanCatalog.
+  // Grille tarifs.txt :
+  //   Starter   →  99 €/mois (mensuel) ou  69 €/mois (annuel) — 10 inclus, max 25
+  //   Standard  → 219 €/mois (mensuel) ou 119 €/mois (annuel) — 25 inclus, max 100
+  //   Business  → 449 €/mois (mensuel) ou 249 €/mois (annuel) — 50 inclus, max 250
+  // Le ratio annuel/mensuel n'est PAS uniforme (~30 / ~46 / ~45 %) : impossible de
+  // dériver l'annuel via un coefficient global, on stocke les deux prix explicites.
   const monthly = billingCycle === 'monthly';
-  const flat = (m: number) => monthly ? m : m * 12 * ANNUAL_DISCOUNT;
-  const flatPeriod = monthly ? '/ mois' : '/ an';
+  // En affichage annuel, on continue de montrer un /mois HT pour faciliter la
+  // comparaison côte à côte avec le tarif mensuel (convention Stripe/SaaS).
+  const flat = (m: number, a: number) => monthly ? m : a;
+  const flatPeriod = '/ mois';
 
   const plans = [
     {
       name: 'Starter',
       target: 'TPE & startups',
-      price: flat(29.5),
+      price: flat(99, 69),
       period: flatPeriod,
       included: 10,
       extraRate: 4.9,
-      maxPack: 10,
+      maxPack: 25,
       description: "Pour démarrer la digitalisation RH d'une petite équipe sans engagement.",
       features: [
         'Jusqu’à 10 salariés inclus · 1 administrateur',
-        '5 Go de stockage inclus',
+        '10 Go de stockage inclus (max 50 Go)',
         'Pointage web simple · gestion RH basique',
         'Absences · dashboard basique',
         '1 mois gratuit sans carte bancaire',
+        '+ 4,90 € / salarié supplémentaire (jusqu’à 25 max)',
         'Sans app mobile ni export paie · support standard',
       ],
       cta: '30 jours gratuits',
@@ -47,15 +53,15 @@ const PricingPage: React.FC = () => {
     {
       name: 'Standard',
       target: 'PME en croissance',
-      price: flat(54),
+      price: flat(219, 119),
       period: flatPeriod,
-      included: 15,
+      included: 25,
       extraRate: 6.9,
       maxPack: 100,
       description: 'Suite complète mobile + paie pour les équipes structurées.',
       features: [
-        'Jusqu’à 15 salariés inclus',
-        '20 Go de stockage inclus',
+        'Jusqu’à 25 salariés inclus · 3 administrateurs',
+        '50 Go de stockage inclus (max 300 Go)',
         '+ 6,90 € / salarié supplémentaire (jusqu’à 100 max)',
         '1 mois gratuit sans carte bancaire',
         'Application mobile + pointage géolocalisé',
@@ -69,18 +75,19 @@ const PricingPage: React.FC = () => {
       popular: true,
     },
     {
+      // Code interne « Premium » conservé pour compat Stripe ; libellé commercial = Business.
       name: 'Premium',
       target: 'Entreprises structurées',
-      price: flat(149),
+      price: flat(449, 249),
       period: flatPeriod,
-      included: 30,
+      included: 50,
       extraRate: 9.9,
-      maxPack: 200,
+      maxPack: 250,
       description: 'Multi-filiales, dashboards avancés et sécurité renforcée pour grandes structures.',
       features: [
-        'Jusqu’à 30 salariés inclus',
-        '100 Go de stockage inclus',
-        '+ 9,90 € / salarié supplémentaire (jusqu’à 200 max)',
+        'Jusqu’à 50 salariés inclus · administrateurs illimités',
+        '200 Go de stockage inclus (max 2 To)',
+        '+ 9,90 € / salarié supplémentaire (jusqu’à 250 max)',
         '1 mois gratuit sans carte bancaire',
         'Multi-filiales illimité · dashboards avancés',
         'Audit logs avancés · branding personnalisé',
@@ -240,7 +247,9 @@ const PricingPage: React.FC = () => {
                   className="text-3xl font-extrabold font-headline mb-4 text-on-surface"
                   style={isPremium ? { color: '#92670a' } : undefined}
                 >
-                  {plan.name}
+                  {/* Code interne « Premium » conservé pour la compat Stripe / API ;
+                      libellé commercial 2026-05 = « Business » (cf. tarifs.txt). */}
+                  {plan.name === 'Premium' ? 'Business' : plan.name}
                 </h3>
                 <div className="flex items-baseline gap-1">
                   <span
@@ -261,7 +270,9 @@ const PricingPage: React.FC = () => {
                   {plan.included} salariés inclus · +{formatPrice(plan.extraRate)} € / sup. · cap pack {plan.maxPack}
                 </div>
                 <div className="mt-1 text-[11px] text-tertiary font-bold uppercase tracking-wider">
-                  1 mois gratuit · sans carte bancaire · engagement annuel
+                  {monthly
+                    ? '1 mois gratuit · sans carte bancaire · sans engagement'
+                    : '1 mois gratuit · sans carte bancaire · engagement annuel'}
                 </div>
               </div>
               <p className="text-on-surface-variant mb-8 text-sm leading-relaxed min-h-[3rem]">

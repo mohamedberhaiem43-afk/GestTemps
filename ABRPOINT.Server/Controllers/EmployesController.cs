@@ -678,44 +678,77 @@ namespace ABRPOINT.Server.Controllers
         [CanGetEmploye]
         public IActionResult GenerateAttestationTravailReport(string soccod, string empcod)
         {
-            try
-            {
-                byte[] pdfBytes = _reportsGenerationService.GenerateAttestationTravailReport(soccod, empcod);
-                return File(pdfBytes, "application/pdf", $"Attestation_Travail_{empcod}.pdf");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Erreur interne. Consultez les logs serveur pour le détail." });
-            }
+            return BuildDocumentResponse(
+                () => _reportsGenerationService.GenerateAttestationTravailReport(soccod, empcod),
+                fileName: $"Attestation_Travail_{empcod}.pdf",
+                docLabel: "AttestationTravail",
+                soccod: soccod, empcod: empcod);
         }
 
         [HttpGet("get-certificat-travail/{soccod}/{empcod}")]
         [CanGetEmploye]
         public IActionResult GenerateCertificatTravailReport(string soccod, string empcod)
         {
-            try
-            {
-                byte[] pdfBytes = _reportsGenerationService.GenerateCertificatTravailReport(soccod, empcod);
-                return File(pdfBytes, "application/pdf", $"Certificat_Travail_{empcod}.pdf");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Erreur interne. Consultez les logs serveur pour le détail." });
-            }
+            return BuildDocumentResponse(
+                () => _reportsGenerationService.GenerateCertificatTravailReport(soccod, empcod),
+                fileName: $"Certificat_Travail_{empcod}.pdf",
+                docLabel: "CertificatTravail",
+                soccod: soccod, empcod: empcod);
         }
 
         [HttpGet("get-attestation-salaire/{soccod}/{empcod}")]
         [CanGetEmploye]
         public IActionResult GenerateAttestationSalaireReport(string soccod, string empcod)
         {
+            return BuildDocumentResponse(
+                () => _reportsGenerationService.GenerateAttestationSalaireReport(soccod, empcod),
+                fileName: $"Attestation_Salaire_{empcod}.pdf",
+                docLabel: "AttestationSalaire",
+                soccod: soccod, empcod: empcod);
+        }
+
+        /// <summary>
+        /// Pipeline commun de génération d'un document RH (attestation, certificat).
+        /// Centralise le try/catch pour éviter trois copies identiques et — surtout —
+        /// pour LOGGER l'exception au lieu de la swallow comme avant (les 500
+        /// observés en prod ne laissaient aucune trace côté logs, impossible à
+        /// diagnostiquer). Distingue deux cas :
+        ///   - « Modèle introuvable… » (FileNotFoundException déguisée par le service
+        ///     en Exception standard) → 404 explicite, c'est un défaut de déploiement
+        ///     (template HTML/FRX manquant dans VaultTemplates ou Reports), pas un
+        ///     bug runtime. Le front affiche un message exploitable au lieu d'un 500
+        ///     opaque qui pousse l'utilisateur à re-cliquer en boucle.
+        ///   - Toute autre exception → 500 avec le message racine (Empty/null deref
+        ///     sur un champ employé manquant, échec de rendu FastReport, etc.).
+        /// </summary>
+        private IActionResult BuildDocumentResponse(Func<byte[]> generate, string fileName, string docLabel, string soccod, string empcod)
+        {
             try
             {
-                byte[] pdfBytes = _reportsGenerationService.GenerateAttestationSalaireReport(soccod, empcod);
-                return File(pdfBytes, "application/pdf", $"Attestation_Salaire_{empcod}.pdf");
+                byte[] pdfBytes = generate();
+                return File(pdfBytes, "application/pdf", fileName);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur interne. Consultez les logs serveur pour le détail." });
+                // ReportsGenerationService re-emballe systématiquement l'exception interne :
+                // on remonte la chaîne pour récupérer le message racine (sinon on lit
+                // « Erreur lors de la génération de X : Modèle introuvable… »).
+                var root = ex;
+                while (root.InnerException != null) root = root.InnerException;
+                var rootMsg = root.Message ?? string.Empty;
+
+                _log.LogError(ex, "Échec génération document {DocLabel} pour Soccod={Soccod} Empcod={Empcod} : {RootMessage}",
+                    docLabel, soccod, empcod, rootMsg);
+
+                // Template absent du déploiement (cas observé : CertificatTravail.html
+                // et AttestationSalaire.html non livrés) → 404 avec message clair.
+                if (rootMsg.Contains("Modèle introuvable", StringComparison.OrdinalIgnoreCase)
+                    || root is FileNotFoundException)
+                {
+                    return NotFound(new { message = $"Le modèle « {docLabel} » n'est pas configuré pour cette société. Contactez l'administrateur." });
+                }
+
+                return StatusCode(500, new { message = $"Erreur lors de la génération du document : {rootMsg}" });
             }
         }
 

@@ -34,19 +34,28 @@ namespace ABRPOINT.Server.Controllers
         [HttpGet("deb-mois/{soccod}")]
         public async Task<ActionResult<ParametreMoisPointageDto>> Get(string soccod)
         {
-            try
+            // Bug log #1 — Avant : retournait 404 quand aucun Parametre n'existe pour la
+            // société, ce qui cassait silencieusement le filtre par défaut sur les pages
+            // cahier-conge, etat-des-absences, etat-de-retard, etat-periodique et préparation
+            // paie (toutes ces pages utilisaient les dates pour initialiser leur range).
+            // On retombe désormais sur un default 01→30 / mois courant qui est exactement le
+            // fallback déjà implémenté côté front, mais sans la console error et le 404 dans
+            // les logs serveur.
+            var result = await _parametreRepository.GetParametreMoisPointageAsync(soccod);
+            if (result == null)
             {
-                var result = await _parametreRepository.GetParametreMoisPointageAsync(soccod);
-                if (result == null)
+                result = new ParametreMoisPointageDto
                 {
-                    return NotFound();
-                }
-                return Ok(result);
+                    Joudeb = "01",
+                    Joufin = "30",
+                    Moisdeb = "C",
+                    Moisfin = "C",
+                    Nbhconge = null,
+                    Socpresence = null,
+                    Sochsup = null,
+                };
             }
-            catch (Exception)
-            {
-                throw;
-            }
+            return Ok(result);
         }
         // SEC-12 — Les paramètres complets contiennent la configuration de paie
         // (taux de majoration, règles métier). Restreint aux admins.

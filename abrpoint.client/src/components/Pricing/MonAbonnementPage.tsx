@@ -161,6 +161,27 @@ export default function MonAbonnementPage() {
     }
   };
 
+  // Retour de Stripe après abandon du checkout (bouton « Annuler » Stripe).
+  // Le cancelUrl de DevisPackDialog/handleReactivate ramène vers cette page avec
+  // un query param marqueur. Avant : la page se rechargeait silencieusement et
+  // l'utilisateur ne comprenait pas si son abandon avait été pris en compte —
+  // certains relançaient un checkout 2s plus tard (cf. logs serveur 12:38:42).
+  // On affiche maintenant une bannière explicite « Paiement annulé » et on
+  // nettoie l'URL pour éviter toute relance involontaire au re-render.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cancelled = params.get('checkout') === 'cancelled' || params.get('reactivate') === 'cancelled';
+    if (!cancelled) return;
+    setError('Paiement annulé. Aucun prélèvement n\'a été effectué. Vous pouvez relancer la souscription à tout moment.');
+    // Nettoyage du query param pour éviter qu'un refresh ne réaffiche le message
+    // et pour neutraliser toute logique conditionnée à ?checkout=cancelled.
+    const url = new URL(window.location.href);
+    url.searchParams.delete('checkout');
+    url.searchParams.delete('reactivate');
+    window.history.replaceState({}, '', url.toString());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Retour de Stripe après réactivation : on est redirigé ici avec `?reactivated=1`.
   // Le webhook `checkout.session.completed` est asynchrone (latence Stripe ~1-3s),
   // donc on poll /billing/subscription jusqu'à observer Status === 'Active'.

@@ -22,18 +22,24 @@ const formatPrice = (value: number): string =>
 type PlanKey = 'Starter' | 'Standard' | 'Premium';
 const PLAN_CATALOG: Record<PlanKey, {
   displayName: string;
-  flatPriceMonthlyEur: number;
+  flatPriceMonthlyEur: number;         // tarif d'engagement MENSUEL (sans engagement annuel)
+  flatPriceAnnualMonthlyEur: number;   // équivalent mensuel quand l'engagement est annuel
   includedEmployees: number;
   overageRatePerEmployeeEur: number;
   maxEmployees: number;
   moduleCount: number;
 }> = {
-  // Grille Early Launch 2026-05-17 (alignée avec ABRPOINT.Server.Tenancy.PlanCatalog) :
-  // Standard repositionné 54€/15 inclus (avant 59.50€/25), Premium 149€/30 inclus (avant 119€/50).
-  // maxEmployees = plafond ABSOLU du pack — au-delà, upgrade obligatoire.
-  Starter:  { displayName: 'Starter',  flatPriceMonthlyEur: 29.50, includedEmployees: 10, overageRatePerEmployeeEur: 4.90, maxEmployees: 30,  moduleCount: 7  },
-  Standard: { displayName: 'Standard', flatPriceMonthlyEur: 54.00, includedEmployees: 15, overageRatePerEmployeeEur: 6.90, maxEmployees: 100, moduleCount: 14 },
-  Premium:  { displayName: 'Premium',  flatPriceMonthlyEur: 149.00, includedEmployees: 30, overageRatePerEmployeeEur: 9.90, maxEmployees: 200, moduleCount: 19 },
+  // Grille tarifs.txt 2026-05 — alignée avec ABRPOINT.Server.Tenancy.PlanCatalog :
+  //   Starter   :  99 €/mois (mensuel) ou  69 €/mois (annuel) — 10 inclus, max 25
+  //   Standard  : 219 €/mois (mensuel) ou 119 €/mois (annuel) — 25 inclus, max 100
+  //   Business  : 449 €/mois (mensuel) ou 249 €/mois (annuel) — 50 inclus, max 250
+  // Le ratio annuel/mensuel n'est PAS uniforme entre les packs : on stocke les deux
+  // prix explicitement (impossible à dériver via un coefficient global). Le code
+  // interne « Premium » est conservé pour la compat Stripe ; le libellé commercial
+  // affiché est « Business ».
+  Starter:  { displayName: 'Starter',  flatPriceMonthlyEur: 99,  flatPriceAnnualMonthlyEur: 69,  includedEmployees: 10, overageRatePerEmployeeEur: 4.90, maxEmployees: 25,  moduleCount: 7  },
+  Standard: { displayName: 'Standard', flatPriceMonthlyEur: 219, flatPriceAnnualMonthlyEur: 119, includedEmployees: 25, overageRatePerEmployeeEur: 6.90, maxEmployees: 100, moduleCount: 14 },
+  Premium:  { displayName: 'Business', flatPriceMonthlyEur: 449, flatPriceAnnualMonthlyEur: 249, includedEmployees: 50, overageRatePerEmployeeEur: 9.90, maxEmployees: 250, moduleCount: 19 },
 };
 
 const PlanConfigurationPage: React.FC = () => {
@@ -83,13 +89,16 @@ const PlanConfigurationPage: React.FC = () => {
   // l'admin l'active à la création d'un collab via la fiche (cf. AjoutEmploye). Le
   // simulateur reste indicatif ; Stripe applique le prix réel des price_id
   // `Stripe:Prices:{Plan}:base:{cycle}` côté backend.
-  // En cycle annuel, on calcule également le total annuel (mensuel × 12) et la
-  // remise annuelle totale pour les afficher dans le récapitulatif — l'utilisateur
-  // veut voir le montant prélevé une fois par an, pas un mensuel équivalent.
+  //
+  // Grille tarifs.txt 2026-05 : les prix mensuel et annuel sont stockés explicitement
+  // dans PLAN_CATALOG. Le ratio n'est plus uniforme (~30 % Starter, ~46 % Standard,
+  // ~45 % Business), donc on ne dérive plus l'annuel via un coefficient global.
+  // En cycle annuel, on affiche aussi le total annuel (mensuel × 12) et la remise
+  // annuelle totale (vs tarif mensuel sans engagement × 12).
   const { baseMonthly, monthlyTotal, annualTotal, annualDiscountTotal } = useMemo(() => {
     const baseM = plan.flatPriceMonthlyEur;
-    const monthly = billingCycle === 'annual' ? baseM * 0.80 : baseM;
-    const discountPerMonth = billingCycle === 'annual' ? baseM * 0.20 : 0;
+    const monthly = billingCycle === 'annual' ? plan.flatPriceAnnualMonthlyEur : baseM;
+    const discountPerMonth = billingCycle === 'annual' ? Math.max(0, baseM - plan.flatPriceAnnualMonthlyEur) : 0;
     return {
       baseMonthly: baseM,
       monthlyTotal: monthly,

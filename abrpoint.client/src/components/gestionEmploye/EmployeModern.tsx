@@ -854,12 +854,36 @@ const EmployeModernInner = () => {
             showSnackbar(res?.message || t('employe.changesSaved'), 'success');
         };
         const onError = (err: any) => {
-            // Ordre : message backend (axios) → message d'une rejection client-side (Error
-            // brut levé dans useAddEmploye/useUpdateEmploye, ex: "Données de l'employé non
-            // valides") → fallback i18n. Sans `err.message`, l'utilisateur voyait toujours
-            // la même chaîne générique alors que la cause exacte est lisible côté JS.
-            const msg = err?.response?.data?.message || err?.message || t('employe.saveError');
-            showSnackbar(msg, 'error');
+            // Extraction du message le plus utile dans l'ordre :
+            //   1. data.message            — réponse maison (BadRequest/Conflict { message })
+            //   2. data.errors             — ProblemDetails ASP.NET (ModelState validation auto :
+            //                                champs obligatoires manquants, StringLength, etc.)
+            //                                Format : { errors: { Sitcod: ["The Sitcod field is required."] }, … }
+            //   3. data.title              — ProblemDetails titre générique ("One or more validation errors occurred.")
+            //   4. err.message             — rejection client-side (useUpdateEmploye)
+            //   5. fallback i18n générique
+            // Avant : seul (1) était consulté → les 400 ModelState (281 octets observés
+            // côté logs serveur) tombaient dans le fallback générique « Erreur lors de
+            // la sauvegarde » et l'utilisateur retentait sans savoir quel champ corriger.
+            const data = err?.response?.data;
+            let msg: string | undefined;
+            if (data && typeof data === 'object') {
+                if (typeof data.message === 'string' && data.message) {
+                    msg = data.message;
+                } else if (data.errors && typeof data.errors === 'object') {
+                    const parts = Object.entries(data.errors)
+                        .map(([field, raw]) => {
+                            const list = Array.isArray(raw) ? raw : [raw];
+                            return `${field} : ${list.join(' ')}`;
+                        });
+                    if (parts.length > 0) msg = `Champs invalides — ${parts.join(' · ')}`;
+                } else if (typeof data.title === 'string' && data.title) {
+                    msg = data.title;
+                }
+            } else if (typeof data === 'string' && data) {
+                msg = data;
+            }
+            showSnackbar(msg || err?.message || t('employe.saveError'), 'error');
             setIsSaving(false);
         };
         mode === 'save' ? addEmploye(payload, { onSuccess, onError }) : updateEmploye(payload, { onSuccess, onError });

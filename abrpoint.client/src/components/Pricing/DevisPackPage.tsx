@@ -25,10 +25,14 @@ import { useAuth } from '../helper/AuthProvider';
 type PlanKey = 'Starter' | 'Standard' | 'Premium';
 type Cycle = 'monthly' | 'annual';
 
+// Grille tarifs.txt 2026-05 — alignée avec ABRPOINT.Server.Tenancy.PlanCatalog.
+// Le ratio annuel/mensuel n'est PAS uniforme entre les packs : on stocke les deux
+// prix explicitement. Code interne « Premium » conservé pour la compat Stripe,
+// libellé commercial = « Business » côté UI.
 const PLAN_PRICES: Record<PlanKey, { monthly: number; annual: number; tagline: string }> = {
-  Starter:  { monthly: 29.50, annual: 23.60, tagline: 'TPE & startups' },
-  Standard: { monthly: 54.00, annual: 43.20, tagline: 'PME en croissance' },
-  Premium:  { monthly: 149.00, annual: 119.20, tagline: 'Multi-filiales & sécurité avancée' },
+  Starter:  { monthly: 99,  annual: 69,  tagline: 'TPE & startups' },
+  Standard: { monthly: 219, annual: 119, tagline: 'PME en croissance' },
+  Premium:  { monthly: 449, annual: 249, tagline: 'Multi-filiales & sécurité avancée' },
 };
 
 const VAT_RATE = 0.20; // TVA 20 % France (à ajuster si tenant ≠ FR ultérieurement).

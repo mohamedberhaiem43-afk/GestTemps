@@ -70,23 +70,26 @@ const PLAN_META: Record<PlanKey, {
   features: string[];
   popular?: boolean;
 }> = {
+  // baseEur = prix d'engagement ANNUEL (équivalent mensuel) — c'est le « dès »
+  // affiché sur les cartes, le plus bas affiché à l'utilisateur. Aligné avec
+  // tarifs.txt 2026-05 : Starter 69 €, Standard 119 €, Business 249 €.
   Starter: {
     label: 'Starter',
     tagline: 'Pointage web essentiel pour démarrer, sans mobile ni export paie.',
-    baseEur: 29.50,
+    baseEur: 69,
     rank: 1,
     intro: 'Ce pack comprend les avantages :',
     features: [
       'Pointage web (poste fixe)',
       'Suivi des heures et présences',
       'Gestion RH basique (fiches, contrats)',
-      'Jusqu\'à 10 salariés',
+      'Jusqu\'à 10 salariés inclus · 10 Go stockage',
     ],
   },
   Standard: {
     label: 'Standard',
     tagline: 'Mobile, géolocalisation, coffre numérique, export paie et obligations RH.',
-    baseEur: 54.00,
+    baseEur: 119,
     rank: 2,
     intro: 'L\'intégralité du Pack Starter plus :',
     features: [
@@ -94,21 +97,22 @@ const PLAN_META: Record<PlanKey, {
       'Coffre numérique + signature électronique',
       'Export paie + préparation paie',
       'Gestion congés, missions, autorisations',
-      'Tableaux de bord avancés · jusqu\'à 15 salariés inclus',
+      'Tableaux de bord avancés · 25 salariés inclus · 50 Go stockage',
     ],
     popular: true,
   },
+  // Code interne « Premium » conservé pour compat Stripe ; libellé commercial = Business.
   Premium: {
-    label: 'Premium',
+    label: 'Business',
     tagline: 'Multi-filiales, assistant IA et sécurité avancée pour les grands comptes.',
-    baseEur: 149.00,
+    baseEur: 249,
     rank: 3,
     intro: 'L\'intégralité du Pack Standard plus :',
     features: [
       'Multi-filiales (sociétés illimitées)',
       'Assistant IA (RAG)',
       'Audit avancé + branding personnalisé',
-      'Sécurité mobile renforcée',
+      'Sécurité mobile renforcée · 50 salariés inclus · 200 Go stockage',
     ],
   },
 };

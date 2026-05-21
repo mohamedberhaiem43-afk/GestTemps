@@ -642,6 +642,13 @@ ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""StorageUsageCheckedAt"" TIMES
 
 app.UseDefaultFiles();
 
+// SEC — Filtre des scans hostiles (WordPress probes, path traversal, RFI PHP,
+// tentatives Mozi…). Renvoie 404 sans toucher au pipeline applicatif, AVANT
+// que MapFallbackToFile ne serve trompeusement /index.html avec un 200. Placé
+// en tête pour épargner CORS/auth/tenant sur les requêtes manifestement
+// malveillantes (cf. logs 2026-05 — IPs 58.37.0.5, 43.156.71.219, 78.153.140.250).
+app.UseMiddleware<ABRPOINT.Server.Middleware.HostileScannerFilterMiddleware>();
+
 // SEC — Handler global d'exception : intercepte tout ce qui remonte sans avoir été
 // capturé par un controller, logue côté serveur avec le TraceIdentifier, et renvoie
 // au client une réponse 500 générique + correlationId (pas de stack trace ni de

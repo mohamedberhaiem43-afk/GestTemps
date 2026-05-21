@@ -15,25 +15,40 @@ namespace ABRPOINT.Server.Tenancy;
 public sealed record PlanDefinition(
     string Code,
     string DisplayName,
+    // Tarification 2026-05 (cf. tarifs.txt — grille commerciale officielle) :
+    //   • FlatPriceMonthlyEur     = prix d'engagement MENSUEL (sans engagement annuel).
+    //   • FlatPriceAnnualMonthlyEur = équivalent mensuel quand l'engagement est ANNUEL
+    //     (= MontantAnnuel / 12). Le montant annuel total est ces deux × 12.
+    // Les deux prix sont stockés explicitement : le ratio n'est PAS uniforme entre les
+    // packs (Starter ~30%, Standard ~46%, Business ~45% de remise annuelle), donc on
+    // ne peut plus dériver l'un de l'autre via un coefficient global.
     decimal FlatPriceMonthlyEur,
+    decimal FlatPriceAnnualMonthlyEur,
     int IncludedEmployees,
+    // Nombre d'administrateurs inclus dans le pack. null = illimité (Business).
+    int? IncludedAdmins,
     decimal OverageRatePerEmployeeEur,
     // Plafond ABSOLU de salariés autorisés sur le pack — au-delà, l'admin doit
-    // upgrader (Starter→Standard→Premium→Enterprise). Soft cap : retournés
+    // upgrader (Starter→Standard→Business→Enterprise). Soft cap : retournés
     // par EmployesController.Post avec un 402 "plan_max_employees_reached".
-    //   Starter  →  30 salariés max  (10 inclus + jusqu'à 20 supplémentaires)
-    //   Standard → 100 salariés max  (15 inclus + jusqu'à 85 supplémentaires)
-    //   Premium  → 200 salariés max  (30 inclus + jusqu'à 170 supplémentaires)
+    //   Starter  →  25 salariés max  (10 inclus + jusqu'à 15 supplémentaires)
+    //   Standard → 100 salariés max  (25 inclus + jusqu'à 75 supplémentaires)
+    //   Business → 250 salariés max  (50 inclus + jusqu'à 200 supplémentaires)
     int MaxEmployees,
     int? MaxSocietes,
     int? MaxSites,
     // Quota de stockage par tenant (Mo binaires, 1 Mo = 1 048 576 octets).
-    // Affiché en "Go" côté UI (binary GiB ≈ Go en français marketing) :
-    //   Starter   5 120 Mo →  5 Go
-    //   Standard 20 480 Mo → 20 Go
-    //   Premium 102 400 Mo → 100 Go
+    // Grille 2026-05 (cf. tarifs.txt) :
+    //   Starter   10 240 Mo →  10 Go inclus  (max 50 Go avec stockage supplémentaire)
+    //   Standard  51 200 Mo →  50 Go inclus  (max 300 Go avec stockage supplémentaire)
+    //   Business 204 800 Mo → 200 Go inclus  (max 2 To  avec stockage supplémentaire)
     // Mesure = pg_database_size(DbName) + taille du dossier uploads/{slug}/, refresh hourly.
     long StorageQuotaMb,
+    // Prix HT du bloc de stockage supplémentaire (29 € / 100 Go sur Starter/Standard,
+    // 49 € / 100 Go sur Business). Marketing : exposé sur la page tarifs et MonAbonnement.
+    decimal StorageSupplementBlockEur,
+    // Plafond ABSOLU du stockage (Mo). Au-delà, l'admin doit passer au pack supérieur.
+    long MaxStorageMb,
     PlanFeatures Features);
 
 /// <summary>
@@ -98,13 +113,19 @@ public static class PlanCatalog
     public static readonly PlanDefinition Starter = new(
         Code: StarterCode,
         DisplayName: "Starter",
-        FlatPriceMonthlyEur: 29.50m,
+        // Grille tarifs.txt 2026-05 : 99 €/mois en mensuel, 69 €/mois en annuel
+        // (soit 828 € HT / an, ~30 % de remise sur l'engagement annuel).
+        FlatPriceMonthlyEur: 99m,
+        FlatPriceAnnualMonthlyEur: 69m,
         IncludedEmployees: 10,
+        IncludedAdmins: 1,
         OverageRatePerEmployeeEur: 4.90m,
-        MaxEmployees: 10,             // cap dur : 10 salariés max (pas de salariés supplémentaires)
+        MaxEmployees: 25,             // cap dur : jusqu'à 25 salariés max (10 inclus + 15 supplémentaires)
         MaxSocietes: 1,
         MaxSites: 1,
-        StorageQuotaMb: 5L * 1024,    // 5 Go
+        StorageQuotaMb: 10L * 1024,   // 10 Go inclus
+        StorageSupplementBlockEur: 29m, // +29 € / 100 Go supplémentaires
+        MaxStorageMb: 50L * 1024,     // 50 Go max
         Features: new PlanFeatures(
             MobileApp: false,
             Geolocation: false,
@@ -129,20 +150,23 @@ public static class PlanCatalog
     public static readonly PlanDefinition Standard = new(
         Code: StandardCode,
         DisplayName: "Standard",
-        // 2026-05-17 : grille Early Launch — 54€ flat, 15 salariés inclus (avant 59.50€/25).
-        // L'offre est réservée aux 10 premières entreprises partenaires avec engagement
-        // annuel ; les anciens tenants déjà sur Standard conservent leur price_id Stripe
-        // (grandfathering implicite — le price_id ne change pas, seule la grille publique).
-        FlatPriceMonthlyEur: 54m,
-        IncludedEmployees: 15,
+        // Grille tarifs.txt 2026-05 : 219 €/mois en mensuel, 119 €/mois en annuel
+        // (soit 1 428 € HT / an, ~46 % de remise sur l'engagement annuel).
+        // 25 salariés inclus (était 15) pour mieux capter les PME en croissance.
+        FlatPriceMonthlyEur: 219m,
+        FlatPriceAnnualMonthlyEur: 119m,
+        IncludedEmployees: 25,
+        IncludedAdmins: 3,
         OverageRatePerEmployeeEur: 6.90m,
-        MaxEmployees: 100,            // cap dur : 15 inclus + jusqu'à 85 supplémentaires
+        MaxEmployees: 100,            // cap dur : 25 inclus + jusqu'à 75 supplémentaires
         // 2026-05 : Standard capé à 1 société / 1 filiale (avant : 3 sites). Le multi-filiales
-        // devient un différenciateur exclusif Premium pour clarifier le positionnement
-        // commercial (Standard = PME mono-entité, Premium = groupes multi-entités).
+        // devient un différenciateur exclusif Business pour clarifier le positionnement
+        // commercial (Standard = PME mono-entité, Business = groupes multi-entités).
         MaxSocietes: 1,
         MaxSites: 1,
-        StorageQuotaMb: 20L * 1024,   // 20 Go
+        StorageQuotaMb: 50L * 1024,   // 50 Go inclus
+        StorageSupplementBlockEur: 29m, // +29 € / 100 Go supplémentaires
+        MaxStorageMb: 300L * 1024,    // 300 Go max
         Features: new PlanFeatures(
             MobileApp: true,
             Geolocation: true,
@@ -166,18 +190,26 @@ public static class PlanCatalog
 
     public static readonly PlanDefinition Premium = new(
         Code: PremiumCode,
-        DisplayName: "Premium",
-        // 2026-05-17 : grille Early Launch — 149€ flat, 30 salariés inclus (avant 119€/50).
-        // Premium devient repositionné "entreprises structurées" : moins de salariés
-        // inclus mais cap pack à 200 (multi-sites/multi-filiales reste exclusif Premium).
-        // Au-delà de 200, l'offre Enterprise sur devis prend le relais.
-        FlatPriceMonthlyEur: 149m,
-        IncludedEmployees: 30,
+        // Code interne « Premium » conservé pour compat ascendante (price_id Stripe,
+        // tenants legacy, références dans EF et Stripe metadata). DisplayName commercial
+        // 2026-05 = « Business » (cf. tarifs.txt). Cohérent avec le naming UI du Home /
+        // PricingPage / ChangePlanModal qui affichent déjà « Business » à l'utilisateur.
+        DisplayName: "Business",
+        // Grille tarifs.txt 2026-05 : 449 €/mois en mensuel, 249 €/mois en annuel
+        // (soit 2 988 € HT / an, ~45 % de remise sur l'engagement annuel).
+        // 50 salariés inclus (était 30), cap pack 250 (était 200) — alignés sur le
+        // positionnement « PME structurées + groupes multi-sites ».
+        FlatPriceMonthlyEur: 449m,
+        FlatPriceAnnualMonthlyEur: 249m,
+        IncludedEmployees: 50,
+        IncludedAdmins: null,         // administrateurs illimités
         OverageRatePerEmployeeEur: 9.90m,
-        MaxEmployees: 200,            // cap dur : 30 inclus + jusqu'à 170 supplémentaires
+        MaxEmployees: 250,            // cap dur : 50 inclus + jusqu'à 200 supplémentaires
         MaxSocietes: null,
         MaxSites: null,
-        StorageQuotaMb: 100L * 1024,  // 100 Go
+        StorageQuotaMb: 200L * 1024,  // 200 Go inclus
+        StorageSupplementBlockEur: 49m, // +49 € / 100 Go supplémentaires
+        MaxStorageMb: 2048L * 1024,   // 2 To (= 2 048 Go) max
         Features: new PlanFeatures(
             MobileApp: true,
             Geolocation: true,

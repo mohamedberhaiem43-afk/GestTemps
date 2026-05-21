@@ -322,11 +322,20 @@ function AppContent() {
   );
 }
 
+// Bug log #3 — Avant : refetchOnWindowFocus laissé à true (default React Query) +
+// staleTime court (30 s) provoquaient un re-fetch complet à chaque retour de focus
+// sur l'onglet, observable sur /Contrats/{soccod}/{uticod} + tous les /Employes/get-libs
+// (cf. logs 12:39:04 → 12:39:39 → 12:47:18…). Pour une app RH, les libs (sites,
+// employés, fonctions) ne changent pas toutes les 30 s : on remonte le staleTime à
+// 5 min et on coupe le refetch on-focus côté défaut — les hooks qui ont besoin de
+// fraîcheur (notifications, dashboards live) peuvent toujours opter-out localement.
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      staleTime: 30_000,
+      staleTime: 5 * 60_000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     },
   },
 });

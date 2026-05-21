@@ -102,21 +102,26 @@ export default function HomePage() {
     ref.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Prix : annuel = mensuel × 12, sans remise pour le moment.
-  // L'ancienne remise commerciale de -20 % a été retirée à la demande produit
-  // (cf. badges « -20 % » masqués sur toggles et marquee). Si elle revient,
-  // remplacer 12 par `12 * 0.8` ici et restaurer les badges.
+  // Grille tarifs.txt 2026-05 — alignée avec ABRPOINT.Server.Tenancy.PlanCatalog
+  // et PlanConfigurationPage. On affiche le prix « à partir de » selon le cycle :
+  //   • Mensuel : tarif d'engagement mensuel sans engagement annuel (99/219/449).
+  //   • Annuel  : équivalent mensuel quand l'engagement est annuel (69/119/249).
+  // En cycle annuel on continue d'afficher « / mois HT » (et non « / an ») pour
+  // que le visiteur compare facilement les deux cycles côte à côte — c'est la
+  // convention adoptée par Stripe, Doctolib et la plupart des SaaS RH.
   const monthly = billingCycle === 'monthly';
   const formatPrice = (v: number) =>
     new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(v);
-  const monthlyBase = { starter: 29.5, standard: 54, premium: 149 };
-  const annualFactor = 12;
+  const monthlyBase  = { starter: 99,  standard: 219, premium: 449 };
+  const annualMonthly = { starter: 69,  standard: 119, premium: 249 };
   const prices = {
-    starter: monthly ? formatPrice(monthlyBase.starter) : formatPrice(monthlyBase.starter * annualFactor),
-    standard: monthly ? formatPrice(monthlyBase.standard) : formatPrice(monthlyBase.standard * annualFactor),
-    premium: monthly ? formatPrice(monthlyBase.premium) : formatPrice(monthlyBase.premium * annualFactor),
+    starter:  monthly ? formatPrice(monthlyBase.starter)  : formatPrice(annualMonthly.starter),
+    standard: monthly ? formatPrice(monthlyBase.standard) : formatPrice(annualMonthly.standard),
+    premium:  monthly ? formatPrice(monthlyBase.premium)  : formatPrice(annualMonthly.premium),
   };
-  const pricePeriod = monthly ? ' / mois HT' : ' / an HT';
+  const pricePeriod = monthly ? ' / mois HT' : ' / mois HT';
+  // Sous-libellé indiquant l'engagement (« sans engagement » vs « facturé annuellement »)
+  const priceCommitmentLabel = monthly ? 'Sans engagement · tarif mensuel' : 'Engagement annuel · -30 à -45 %';
 
   // Smooth-scroll vers la section "Rejoindre Concorde Workforce" : nav header
   // + CTAs hero/promo cliquent ici plutôt que de partir vers /signup ou /login.
@@ -650,8 +655,8 @@ export default function HomePage() {
             <div className="price-amount">
               <span className="currency">€</span>{prices.starter}<span className="period">{pricePeriod}</span>
             </div>
-            <div className="price-included">10 collaborateurs · 5 Go de stockage</div>
-            <div className="price-per">Cap dur à 10 salariés · pas de salariés supplémentaires</div>
+            <div className="price-included">10 collaborateurs inclus · 10 Go de stockage</div>
+            <div className="price-per">+ 4,90 € / collaborateur supplémentaire · jusqu'à 25 max · {priceCommitmentLabel}</div>
             <div className="price-desc">Pour les TPE et startups qui démarrent la digitalisation RH d'une petite équipe.</div>
             <div className="price-features">
               {(() => {
@@ -696,8 +701,8 @@ export default function HomePage() {
             <div className="price-amount">
               <span className="currency">€</span>{prices.standard}<span className="period">{pricePeriod}</span>
             </div>
-            <div className="price-included">15 collaborateurs inclus · 20 Go de stockage</div>
-            <div className="price-per">+ 6,90 € / collaborateur supplémentaire · jusqu'à 100 max</div>
+            <div className="price-included">25 collaborateurs inclus · 50 Go de stockage</div>
+            <div className="price-per">+ 6,90 € / collaborateur supplémentaire · jusqu'à 100 max · {priceCommitmentLabel}</div>
             <div className="price-desc">Suite complète mobile + paie pour les PME en croissance et équipes structurées.</div>
             <div className="price-features">
               {(() => {
@@ -758,8 +763,8 @@ export default function HomePage() {
             <div className="price-amount" style={{ color: '#92670a' }}>
               <span className="currency">€</span>{prices.premium}<span className="period" style={{ color: '#b8860b' }}>{pricePeriod}</span>
             </div>
-            <div className="price-included">30 collaborateurs inclus · 100 Go de stockage</div>
-            <div className="price-per">+ 9,90 € / collaborateur supplémentaire · jusqu'à 200 max</div>
+            <div className="price-included">50 collaborateurs inclus · 200 Go de stockage</div>
+            <div className="price-per">+ 9,90 € / collaborateur supplémentaire · jusqu'à 250 max · {priceCommitmentLabel}</div>
             <div className="price-desc">Multi-filiales, IA contextuelle et sécurité renforcée pour les grandes structures.</div>
             <div className="price-features">
               {(() => {

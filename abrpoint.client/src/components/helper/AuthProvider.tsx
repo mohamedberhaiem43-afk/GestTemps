@@ -138,9 +138,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     permissions: [] as RolePermission[],
   });
 
+  // Routes où l'utilisateur est attendu DÉCONNECTÉ. Sur ces pages, déclencher
+  // GET /me + POST /refresh provoque deux 401 inutiles et bruite les logs serveur
+  // (cf. cycle redondant observé après logout : /parametres → /me 401 → /refresh
+  // 401 → redirect /login → /me 401 + /refresh 401 à nouveau). On court-circuite
+  // donc refreshAuth() en posant immédiatement l'état "logged-out".
+  // NB : /, /about, /download, /contact-sales restent intacts — sur ces landing
+  // pages publiques, savoir si le visiteur est déjà connecté reste utile (lien
+  // « Dashboard » dans la nav vs « Connexion »).
+  const AUTH_FREE_PATHS = new Set(['/login', '/signup', '/reset-password', '/forgot-password']);
+
   const refreshAuth = useCallback(async () => {
     const requestId = ++requestIdRef.current;
     setAuthReady(false);
+
+    // Court-circuit : sur les pages d'auth, l'utilisateur est par définition
+    // déconnecté. On évite l'aller-retour /me + /refresh qui retourneront 401.
+    if (typeof window !== 'undefined' && AUTH_FREE_PATHS.has(window.location.pathname)) {
+      setAuthData((prev) => ({
+        ...prev,
+        uticod: null, utiadm: null, roleName: null,
+        isAdmin: false, isEmp: false, isManager: false,
+        sercod: null, isTrialing: false, trialEndsAt: null,
+        trialDaysRemaining: null, planCode: null,
+        planLimits: null, planFeatures: null, permissions: [],
+      }));
+      setAuthReady(true);
+      return;
+    }
 
     try {
       // apiInstance injecte automatiquement le header X-Tenant-Slug depuis localStorage('tenantSlug')
