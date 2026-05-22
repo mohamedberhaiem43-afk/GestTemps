@@ -623,33 +623,35 @@ class ApiService {
   }
 
   async createExpense(expense: any, fileUri?: string) {
+    // Le backend NoteDeFraisController.Add utilise [FromForm] — on doit donc
+    // TOUJOURS envoyer du multipart/form-data, y compris sans pièce jointe.
+    // Précédemment, le cas "sans fichier" envoyait un body JSON, que [FromForm]
+    // ne bind pas : Soccod/Empcod/Titre/Categorie restaient null et ASP.NET
+    // retournait un 400 ModelState ("The Soccod field is required." …).
+    const formData = new FormData();
     if (fileUri) {
-      const formData = new FormData();
       const filename = fileUri.split('/').pop() || 'justificatif.jpg';
       formData.append('file', {
         uri: fileUri,
         type: 'image/jpeg',
         name: filename,
       } as any);
-      formData.append('Soccod', expense.soccod);
-      formData.append('Empcod', expense.empcod);
-      formData.append('Titre', expense.titre);
-      formData.append('Categorie', expense.categorie);
-      formData.append('Montant', String(expense.montant));
-      formData.append('DateDepense', expense.dateDepense);
-      if (expense.projet) formData.append('Projet', expense.projet);
-      if (expense.devise) formData.append('Devise', expense.devise);
-      if (expense.missionId != null) formData.append('MissionId', String(expense.missionId));
-
-      const response = await this.client.post('/NoteDeFrais/add', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 60000,
-      });
-      return response.data;
-    } else {
-      const response = await this.client.post('/NoteDeFrais/add', expense);
-      return response.data;
     }
+    formData.append('Soccod', expense.soccod);
+    formData.append('Empcod', expense.empcod);
+    formData.append('Titre', expense.titre);
+    formData.append('Categorie', expense.categorie);
+    formData.append('Montant', String(expense.montant));
+    formData.append('DateDepense', expense.dateDepense);
+    if (expense.projet) formData.append('Projet', expense.projet);
+    if (expense.devise) formData.append('Devise', expense.devise);
+    if (expense.missionId != null) formData.append('MissionId', String(expense.missionId));
+
+    const response = await this.client.post('/NoteDeFrais/add', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    });
+    return response.data;
   }
 
   async deleteExpense(id: number) {

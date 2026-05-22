@@ -80,6 +80,10 @@ public class SignupController : ControllerBase
     private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
     private readonly ISiretValidator _siretValidator;
     private readonly IPasswordBreachChecker _passwordBreach;
+    // SMTP optionnel : injecté en nullable pour que le signup continue de fonctionner
+    // si la conf SMTP est absente (dev local sans .env). L'email de bienvenue devient
+    // alors un no-op silencieux — l'inscription ne doit jamais échouer à cause du mail.
+    private readonly ABRPOINT.Server.Interfaces.IEmailService? _email;
     private readonly ILogger<SignupController> _log;
 
     public SignupController(
@@ -91,7 +95,8 @@ public class SignupController : ControllerBase
         Microsoft.Extensions.Caching.Memory.IMemoryCache cache,
         ISiretValidator siretValidator,
         IPasswordBreachChecker passwordBreach,
-        ILogger<SignupController> log)
+        ILogger<SignupController> log,
+        ABRPOINT.Server.Interfaces.IEmailService? email = null)
     {
         _masterFactory = masterFactory;
         _provisioning = provisioning;
@@ -101,6 +106,7 @@ public class SignupController : ControllerBase
         _cache = cache;
         _siretValidator = siretValidator;
         _passwordBreach = passwordBreach;
+        _email = email;
         _log = log;
     }
 
@@ -459,6 +465,15 @@ public class SignupController : ControllerBase
             var rootDomain = _cfg["Hosting:RootDomain"] ?? "concorde.com";
             var redirectUrl = $"https://{slug}.{rootDomain}/dashboard";
 
+            // Email de bienvenue professionnel — best practice SaaS : l'admin sait
+            // immédiatement (1) que son inscription est confirmée, (2) son URL d'accès
+            // dédiée (sous-domaine tenant), (3) la durée + la fin de son essai gratuit,
+            // (4) qu'aucune CB n'est requise pendant l'essai. Sert aussi de trace écrite
+            // pour retrouver le tenant si l'admin oublie son URL (typique au moment d'inviter
+            // l'équipe quelques jours plus tard). On envoie en best-effort : un échec SMTP
+            // ne doit jamais casser l'inscription puisque l'utilisateur est déjà connecté.
+            _ = SendWelcomeEmailAsync(tenant, req, redirectUrl, rootDomain, ct);
+
             // SEC-20 — `dbName` retiré de la réponse : exposait la convention de nommage
             // de la base SQL (`tenant_<slug>_<8hex>`), ce qui facilite une attaque ciblée
             // si un attaquant obtient un accès réseau au serveur SQL.
@@ -504,6 +519,94 @@ public class SignupController : ControllerBase
             expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: creds);
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    /// <summary>
+    /// Email de bienvenue branded envoyé à l'admin du nouveau tenant juste après
+    /// un signup réussi. Best-effort : tout échec (SMTP non configuré, timeout, etc.)
+    /// est loggé mais NE re-throw PAS — l'inscription reste valide même sans email.
+    /// </summary>
+    private async Task SendWelcomeEmailAsync(
+        Tenant tenant,
+        SignupRequest req,
+        string redirectUrl,
+        string rootDomain,
+        CancellationToken ct)
+    {
+        if (_email is null) return; // SMTP non configuré (dev local sans .env)
+        if (string.IsNullOrWhiteSpace(tenant.AdminEmail)) return;
+
+        try
+        {
+            var firstName = string.IsNullOrWhiteSpace(req.AdminFirstName) ? "" : req.AdminFirstName.Trim();
+            var safeFirstName = System.Net.WebUtility.HtmlEncode(firstName);
+            var safeCompany = System.Net.WebUtility.HtmlEncode(req.CompanyName?.Trim() ?? "");
+            var safeSlug = System.Net.WebUtility.HtmlEncode(tenant.Slug);
+            var safeUrl = System.Net.WebUtility.HtmlEncode(redirectUrl);
+            var trialEndStr = tenant.TrialEndsAt?.ToLocalTime().ToString("d MMMM yyyy",
+                new System.Globalization.CultureInfo("fr-FR")) ?? "";
+            var safeTrialEnd = System.Net.WebUtility.HtmlEncode(trialEndStr);
+            var downloadUrl = $"https://{rootDomain}/download";
+
+            var planLabel = string.IsNullOrWhiteSpace(req.PlanCode) ? "Essai 30 jours"
+                : (req.PlanCode.Trim() == "Premium" ? "Business"
+                   : char.ToUpper(req.PlanCode.Trim()[0]) + req.PlanCode.Trim()[1..].ToLower());
+            var cycleLabel = (req.BillingCycle ?? "").Trim().ToLowerInvariant() switch
+            {
+                "annual" => "Engagement annuel",
+                "monthly" => "Mensuel sans engagement",
+                _ => "Essai gratuit",
+            };
+
+            var infoCard = Services.EmailTemplates.InfoCard(new Dictionary<string, string>
+            {
+                ["Entreprise"] = safeCompany,
+                ["URL de votre espace"] = $"<a href=\"{safeUrl}\" style=\"color:#0040a1;text-decoration:none;font-weight:600;\">{safeUrl}</a>",
+                ["Identifiant administrateur"] = "AD",
+                ["Pack souscrit"] = System.Net.WebUtility.HtmlEncode(planLabel) + " · " + System.Net.WebUtility.HtmlEncode(cycleLabel),
+                ["Fin de l'essai gratuit"] = safeTrialEnd,
+            });
+
+            var greeting = string.IsNullOrEmpty(safeFirstName)
+                ? "<p>Bonjour,</p>"
+                : $"<p>Bonjour <strong>{safeFirstName}</strong>,</p>";
+
+            var inner =
+                greeting +
+                $"<p>Votre compte <strong>{Services.EmailTemplates.BrandName}</strong> vient d'être créé avec succès pour <strong>{safeCompany}</strong>. 🎉</p>" +
+                "<p>Vous bénéficiez de <strong>30 jours d'essai gratuit</strong>, sans carte bancaire, avec accès complet à votre pack — pointage web &amp; mobile, gestion RH, congés &amp; absences, et reporting.</p>" +
+                infoCard +
+                Services.EmailTemplates.Button("Accéder à mon espace", redirectUrl) +
+                Services.EmailTemplates.StatusBanner(
+                    $"Votre essai gratuit prend fin le {trialEndStr}. Nous vous enverrons un rappel 10 jours avant pour activer votre abonnement Stripe — vous gardez la main jusqu'au dernier moment.",
+                    Services.EmailTemplates.StatusKind.Info) +
+                "<p style=\"margin-top:18px;\"><strong>Prochaines étapes recommandées :</strong></p>" +
+                "<ol style=\"padding-left:20px;color:#334155;line-height:1.8;\">" +
+                "<li>Connectez-vous à votre espace et complétez la fiche de votre société.</li>" +
+                "<li>Invitez vos premiers collaborateurs depuis <em>Gestion des employés</em> — chacun recevra un lien pour définir son mot de passe.</li>" +
+                "<li>Téléchargez l'application mobile pour pointer en déplacement et recevoir les notifications.</li>" +
+                "</ol>" +
+                Services.EmailTemplates.MobileAppCard(downloadUrl) +
+                "<p style=\"margin-top:24px;\">Une question ? Répondez simplement à cet email — notre équipe support vous accompagne pendant toute la durée de votre essai et au-delà.</p>" +
+                "<p style=\"margin-top:18px;\">Bienvenue à bord,<br/><strong>L'équipe Concorde Workforce</strong></p>";
+
+            var subject = $"Bienvenue chez {Services.EmailTemplates.BrandName} — votre espace {safeSlug} est prêt";
+            var body = Services.EmailTemplates.Wrap(
+                title: string.IsNullOrEmpty(firstName) ? "Bienvenue !" : $"Bienvenue, {firstName}",
+                preview: $"Votre espace {Services.EmailTemplates.BrandName} est prêt — accédez à votre dashboard et démarrez votre essai gratuit de 30 jours.",
+                innerHtml: inner);
+
+            await _email.SendEmailAsync(tenant.AdminEmail, subject, body);
+            _log.LogInformation("Welcome email envoyé à {Email} (tenant {Slug})", tenant.AdminEmail, tenant.Slug);
+        }
+        catch (Exception ex)
+        {
+            // Best-effort : on log mais on ne fait pas échouer le signup. L'admin
+            // est déjà sur son dashboard, l'email peut être renvoyé manuellement
+            // depuis le back-office en cas de besoin.
+            _log.LogWarning(ex, "Welcome email échoué pour {Email} (tenant {Slug}) — signup non impacté.",
+                tenant.AdminEmail, tenant.Slug);
+        }
     }
 
     /// <summary>

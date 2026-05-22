@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, Image, Switch, Dimensions, TextInput, Modal, KeyboardAvoidingView, Platform,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, Image, Switch, Dimensions, TextInput, Modal, KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -674,6 +674,18 @@ export default function ProfileScreen({ navigation, route }: any) {
           <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.outline} />
         </TouchableOpacity>
 
+        {/* Liens légaux — requis par Apple Guideline 5.1.1(i) et Google Play
+            Data Safety (accessibles depuis l'app, pas seulement depuis la fiche store). */}
+        <View style={styles.legalLinks}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/confidentialite')}>
+            <Text style={styles.legalLink}>Politique de confidentialité</Text>
+          </TouchableOpacity>
+          <Text style={styles.legalSep}>·</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/cgu')}>
+            <Text style={styles.legalLink}>CGU</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <LinearGradient
@@ -1099,6 +1111,9 @@ const styles = StyleSheet.create({
   securityLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   securityText: { fontSize: 14, fontWeight: '700', color: COLORS.onSurface },
   securitySubText: { fontSize: 9, fontWeight: '800', color: COLORS.outlineVariant, letterSpacing: 0.5 },
+  legalLinks: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16, marginBottom: 4 },
+  legalLink: { fontSize: 12, color: COLORS.outline, textDecorationLine: 'underline' },
+  legalSep: { fontSize: 12, color: COLORS.outline },
   logoutButton: { marginTop: 8 },
   logoutGradient: { height: 56, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 4 },
   prefRow: {

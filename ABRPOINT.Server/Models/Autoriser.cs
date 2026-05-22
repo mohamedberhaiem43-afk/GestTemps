@@ -63,4 +63,27 @@ public partial class Autoriser : BaseEntity
     [Column("conaffecte")]
     [StringLength(12)]
     public string? Conaffecte { get; set; }
+
+    /// <summary>État de validation pour les demandes d'heures supplémentaires
+    /// soumises depuis le mobile : "Pending" (par défaut à la création), "Approved",
+    /// "Rejected". NULL = legacy (avant le fix de validation) → traité comme Pending
+    /// côté lecture pour compat ascendante.</summary>
+    [Column("conetat")]
+    [StringLength(20)]
+    public string? Conetat { get; set; }
+
+    /// <summary>Empcod de l'admin/manager ayant traité la demande (validation/refus).</summary>
+    [Column("contraitepar")]
+    [StringLength(12)]
+    public string? Contraitepar { get; set; }
+
+    /// <summary>Horodatage du traitement (validation/refus).</summary>
+    [Column("contraitedat", TypeName = "timestamp without time zone")]
+    public DateTime? Contraitedat { get; set; }
+
+    /// <summary>Commentaire libre saisi par le validateur (motif de refus, contexte
+    /// d'approbation conditionnelle). Affiché à l'employé dans la notif/email.</summary>
+    [Column("concommentaire")]
+    [StringLength(500)]
+    public string? Concommentaire { get; set; }
 }

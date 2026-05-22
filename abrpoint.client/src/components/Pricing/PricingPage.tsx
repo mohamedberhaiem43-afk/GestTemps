@@ -33,20 +33,41 @@ const PricingPage: React.FC = () => {
       name: 'Starter',
       target: 'TPE & startups',
       price: flat(99, 69),
+      // Tarif mensuel standard affiché barré en mode annuel pour matérialiser
+      // l'économie réalisée (les deux prix sont indépendants — pas de % de remise
+      // dérivé : annuel = 69 €/mois × 12 = 828 €/an, mensuel = 99 €/mois × 12).
+      crossedMonthly: monthly ? null : 99,
       period: flatPeriod,
       included: 10,
       extraRate: 4.9,
       maxPack: 25,
       description: "Pour démarrer la digitalisation RH d'une petite équipe sans engagement.",
-      features: [
-        'Jusqu’à 10 salariés inclus · 1 administrateur',
-        '10 Go de stockage inclus (max 50 Go)',
-        'Pointage web simple · gestion RH basique',
-        'Absences · dashboard basique',
-        '1 mois gratuit sans carte bancaire',
-        '+ 4,90 € / salarié supplémentaire (jusqu’à 25 max)',
-        'Sans app mobile ni export paie · support standard',
+      // Sections rendues séparément (Inclus / Tarification supplémentaire / Limites / Idéal pour)
+      // — la carte Starter utilise un rendu enrichi piloté par ces champs structurés.
+      includedFeatures: [
+        'Jusqu’à 10 salariés inclus',
+        '1 administrateur',
+        'Pointage web & mobile',
+        'Gestion RH essentielle',
+        'Gestion congés & absences',
+        'Fiches salariés',
+        'Dashboard simplifié',
+        'Exports PDF / Excel',
+        'Notifications essentielles',
+        '10 Go stockage sécurisé inclus',
+        'Hébergement France OVH',
+        'Support standard',
       ],
+      extras: [
+        { label: 'Utilisateur supplémentaire', value: '+4,90 € HT / salarié / mois' },
+        { label: 'Stockage supplémentaire', value: '+29 € HT / 100 Go' },
+      ],
+      limits: [
+        'Jusqu’à 25 salariés maximum',
+        'Jusqu’à 50 Go stockage maximum',
+      ],
+      idealFor: ['TPE', 'petites structures', 'première digitalisation RH'],
+      features: [], // non utilisé pour Starter (rendu enrichi)
       cta: '30 jours gratuits',
       accent: false,
     },
@@ -54,22 +75,39 @@ const PricingPage: React.FC = () => {
       name: 'Standard',
       target: 'PME en croissance',
       price: flat(219, 119),
+      // Idem Starter : tarifs annuel/mensuel indépendants. Annuel = 119 × 12 = 1428 €/an ;
+      // mensuel = 219 × 12 = 2628 €/an si poursuivi. Aucun % de remise n'est affiché.
+      crossedMonthly: monthly ? null : 219,
       period: flatPeriod,
       included: 25,
       extraRate: 6.9,
       maxPack: 100,
       description: 'Suite complète mobile + paie pour les équipes structurées.',
-      features: [
-        'Jusqu’à 25 salariés inclus · 3 administrateurs',
-        '50 Go de stockage inclus (max 300 Go)',
-        '+ 6,90 € / salarié supplémentaire (jusqu’à 100 max)',
-        '1 mois gratuit sans carte bancaire',
+      includedFeatures: [
+        'Jusqu’à 25 salariés inclus',
+        '3 administrateurs',
+        'Tout le pack Starter',
         'Application mobile + pointage géolocalisé',
-        'Export paie · préparation paie',
         'Coffre numérique & signature électronique',
-        'Congés, RTT, CET, sanctions · reporting avancé',
+        'Préparation paie · export paie',
+        'Multi-sites simple',
+        'Congés, RTT, CET, sanctions',
+        'Reporting avancé',
+        'Notifications push / email',
+        '50 Go stockage sécurisé inclus',
+        'Hébergement France OVH',
         'Support prioritaire',
       ],
+      extras: [
+        { label: 'Utilisateur supplémentaire', value: '+6,90 € HT / salarié / mois' },
+        { label: 'Stockage supplémentaire', value: '+29 € HT / 100 Go' },
+      ],
+      limits: [
+        'Jusqu’à 100 salariés maximum',
+        'Jusqu’à 300 Go stockage maximum',
+      ],
+      idealFor: ['PME en croissance', 'équipes mobiles', 'paie + RH structurés'],
+      features: [], // non utilisé pour Standard (rendu enrichi)
       cta: '30 jours gratuits',
       accent: true,
       popular: true,
@@ -79,22 +117,38 @@ const PricingPage: React.FC = () => {
       name: 'Premium',
       target: 'Entreprises structurées',
       price: flat(449, 249),
+      // Idem Starter/Standard. Annuel = 249 × 12 = 2988 €/an ; mensuel = 449 × 12 = 5388 €/an.
+      crossedMonthly: monthly ? null : 449,
       period: flatPeriod,
       included: 50,
       extraRate: 9.9,
       maxPack: 250,
       description: 'Multi-filiales, dashboards avancés et sécurité renforcée pour grandes structures.',
-      features: [
-        'Jusqu’à 50 salariés inclus · administrateurs illimités',
-        '200 Go de stockage inclus (max 2 To)',
-        '+ 9,90 € / salarié supplémentaire (jusqu’à 250 max)',
-        '1 mois gratuit sans carte bancaire',
-        'Multi-filiales illimité · dashboards avancés',
-        'Audit logs avancés · branding personnalisé',
+      includedFeatures: [
+        'Jusqu’à 50 salariés inclus',
+        'Administrateurs illimités',
+        'Tout le pack Standard',
+        'Multi-filiales illimité',
+        'Dashboards avancés',
+        'Audit logs avancés',
+        'Branding personnalisé',
         'Sécurité mobile renforcée (device trust, cert pinning, screenshot blocking)',
-        'SLA premium · onboarding accompagné · support prioritaire',
+        'Assistant IA (RAG)',
         'Conformité RGPD avancée · futures intégrations SSO / API',
+        '200 Go stockage sécurisé inclus',
+        'Hébergement France OVH',
+        'Onboarding accompagné · SLA premium',
       ],
+      extras: [
+        { label: 'Utilisateur supplémentaire', value: '+9,90 € HT / salarié / mois' },
+        { label: 'Stockage supplémentaire', value: '+29 € HT / 100 Go' },
+      ],
+      limits: [
+        'Jusqu’à 250 salariés maximum',
+        'Jusqu’à 2 To stockage maximum',
+      ],
+      idealFor: ['Grandes structures', 'multi-filiales / multi-sites', 'conformité & sécurité avancées'],
+      features: [], // non utilisé pour Business (rendu enrichi)
       cta: '30 jours gratuits',
       accent: false,
     },
@@ -251,6 +305,11 @@ const PricingPage: React.FC = () => {
                       libellé commercial 2026-05 = « Business » (cf. tarifs.txt). */}
                   {plan.name === 'Premium' ? 'Business' : plan.name}
                 </h3>
+                {/* Préfixe « À partir de » pour souligner que le tarif affiché est
+                    le plus bas — l'utilisateur paiera plus à partir du 11e salarié. */}
+                <div className="text-sm font-semibold text-on-surface-variant mb-1">
+                  À partir de
+                </div>
                 <div className="flex items-baseline gap-1">
                   <span
                     className="text-5xl font-black font-headline tracking-tighter text-on-surface"
@@ -263,12 +322,32 @@ const PricingPage: React.FC = () => {
                     style={isPremium ? { color: '#92670a' } : undefined}
                   >€</span>
                   <span className="text-on-surface-variant font-medium text-sm">
-                    {plan.period}
+                    HT {plan.period}
                   </span>
                 </div>
-                <div className="mt-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                  {plan.included} salariés inclus · +{formatPrice(plan.extraRate)} € / sup. · cap pack {plan.maxPack}
+                <div className="mt-1 text-sm font-semibold text-on-surface-variant italic">
+                  ({monthly ? 'Abonnement mensuel' : 'Abonnement annuel'})
                 </div>
+                {/* Prix mensuel standard barré (mode annuel uniquement, plans qui le déclarent).
+                    Sert d'ancrage visuel pour comparer le tarif annuel au tarif mensuel pur. */}
+                {!monthly && (plan as any).crossedMonthly != null && (
+                  <div className="mt-3 flex flex-col">
+                    <span className="text-xl font-bold text-on-surface-variant line-through">
+                      {formatPrice((plan as any).crossedMonthly)} € HT / mois
+                    </span>
+                    <span className="text-xs text-on-surface-variant mt-0.5">
+                      Tarif mensuel standard
+                    </span>
+                  </div>
+                )}
+                {/* L'ancien résumé « X inclus · +Y / sup. · cap Z » est désormais
+                    déplacé dans les sections détaillées plus bas pour les plans qui
+                    fournissent un rendu enrichi (Starter). Conservé ici pour les autres. */}
+                {!(plan as any).includedFeatures?.length && (
+                  <div className="mt-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                    {plan.included} salariés inclus · +{formatPrice(plan.extraRate)} € / sup. · cap pack {plan.maxPack}
+                  </div>
+                )}
                 <div className="mt-1 text-[11px] text-tertiary font-bold uppercase tracking-wider">
                   {monthly
                     ? '1 mois gratuit · sans carte bancaire · sans engagement'
@@ -278,19 +357,84 @@ const PricingPage: React.FC = () => {
               <p className="text-on-surface-variant mb-8 text-sm leading-relaxed min-h-[3rem]">
                 {plan.description}
               </p>
-              <div className="space-y-4 mb-10 flex-grow">
-                {plan.features.map((feature, fIdx) => (
-                  <div key={fIdx} className="flex items-start gap-3">
-                    <span
-                      className="material-symbols-outlined text-primary text-xl"
-                      style={{ fontVariationSettings: "'FILL' 1", ...(isPremium ? { color: '#b8860b' } : {}) }}
-                    >
-                      check_circle
-                    </span>
-                    <span className="text-sm text-on-surface font-semibold">{feature}</span>
+              {/* Rendu enrichi (sections Inclus / Tarification supplémentaire / Limites / Idéal pour)
+                  si le plan fournit `includedFeatures` (cf. Starter). Sinon fallback sur la liste plate. */}
+              {(plan as any).includedFeatures?.length ? (
+                <div className="mb-10 flex-grow">
+                  {/* Inclus */}
+                  <div className="mb-5">
+                    <h4 className="text-sm font-extrabold text-on-surface mb-3 uppercase tracking-wider">
+                      Inclus :
+                    </h4>
+                    <ul className="space-y-2 list-disc list-inside marker:text-primary">
+                      {((plan as any).includedFeatures as string[]).map((feature, fIdx) => (
+                        <li key={fIdx} className="text-sm text-on-surface font-semibold">
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                ))}
-              </div>
+                  {/* Tarification supplémentaire */}
+                  {((plan as any).extras as { label: string; value: string }[] | undefined)?.map((ex, exIdx) => (
+                    <div key={exIdx} className="mb-3">
+                      <div className="text-sm font-extrabold text-on-surface uppercase tracking-wider">
+                        {ex.label} :
+                      </div>
+                      <div className="text-base font-bold text-primary mt-1">{ex.value}</div>
+                    </div>
+                  ))}
+                  {/* Limites du pack */}
+                  {((plan as any).limits as string[] | undefined)?.length ? (
+                    <div className="mt-5 mb-5">
+                      <h4 className="text-sm font-extrabold text-on-surface mb-3 uppercase tracking-wider">
+                        Limites du pack :
+                      </h4>
+                      <ul className="space-y-2 list-disc list-inside marker:text-on-surface-variant">
+                        {((plan as any).limits as string[]).map((lim, lIdx) => (
+                          <li key={lIdx} className="text-sm text-on-surface font-semibold">
+                            {lim}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {/* Idéal pour */}
+                  {((plan as any).idealFor as string[] | undefined)?.length ? (
+                    <div className="mt-5">
+                      <h4 className="text-sm font-extrabold text-on-surface mb-3 uppercase tracking-wider">
+                        Idéal pour :
+                      </h4>
+                      <ul className="space-y-2">
+                        {((plan as any).idealFor as string[]).map((id, iIdx) => (
+                          <li key={iIdx} className="flex items-start gap-2">
+                            <span
+                              className="material-symbols-outlined text-tertiary text-base"
+                              style={{ fontVariationSettings: "'FILL' 1" }}
+                            >
+                              check
+                            </span>
+                            <span className="text-sm text-on-surface font-semibold">{id}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="space-y-4 mb-10 flex-grow">
+                  {plan.features.map((feature, fIdx) => (
+                    <div key={fIdx} className="flex items-start gap-3">
+                      <span
+                        className="material-symbols-outlined text-primary text-xl"
+                        style={{ fontVariationSettings: "'FILL' 1", ...(isPremium ? { color: '#b8860b' } : {}) }}
+                      >
+                        check_circle
+                      </span>
+                      <span className="text-sm text-on-surface font-semibold">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               <button
                 onClick={() => {
                   // Tous les packs (Starter/Standard/Premium) passent par /plan-configuration.

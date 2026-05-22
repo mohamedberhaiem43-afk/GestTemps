@@ -62,6 +62,7 @@ const EtatRetard = React.lazy(() => import('../Etats/EtatRetard/EtatRetard'));
 const EtatAbsence = React.lazy(() => import('../Etats/EtatAbsence/EtatAbsence'));
 const EmployeModern = React.lazy(() => import('../gestionEmploye/EmployeModern'));
 const EmployeProfileView = React.lazy(() => import('../gestionEmploye/EmployeProfileView'));
+const HeuresSupValidation = React.lazy(() => import('../gestionEmploye/HeuresSupValidation/HeuresSupValidation'));
 const EffectifsGlobaux = React.lazy(() => import('../gestionEmploye/EffectifsGlobaux'));
 const CahierConge = React.lazy(() => import('../Etats/CahierConge/CahierConge'));
 const TeamCalendarPage = React.lazy(() => import('../Etats/TeamCalendar/TeamCalendarPage'));
@@ -94,6 +95,8 @@ const FormationsPage = React.lazy(() => import('../Support/FormationsPage'));
 const CoachingPage = React.lazy(() => import('../Support/CoachingPage'));
 const PackMiseEnPlacePage = React.lazy(() => import('../Support/PackMiseEnPlacePage'));
 const ContactPage = React.lazy(() => import('../Support/ContactPage'));
+const PrivacyPolicyPage = React.lazy(() => import('../Legal/PrivacyPolicyPage'));
+const TermsOfServicePage = React.lazy(() => import('../Legal/TermsOfServicePage'));
 
 /* ── Lucide icons ── */
 import {
@@ -206,6 +209,7 @@ const useNavigationItems = (): NavGroup[] => {
     'autorisation-de-sortie': 'Absences et Sanctions',
     'autorisation-de-sortie-generale': 'Absences et Sanctions',
     'demande-autorisation': 'Absences et Sanctions',
+    'validation-heures-sup': 'Absences et Sanctions',
     'absence-et-sanction': 'Absences et Sanctions',
     'saisie-classe-horaire': 'Paramètres de Temps',
     'saisie-poste-de-travail': 'Paramètres de Temps',
@@ -353,6 +357,14 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('autorisation-de-sortie') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorization'), href: '/dashboard/autorisation-de-sortie', icon: Timer }] : []),
         ...(canSee('autorisation-de-sortie-generale') && planAllows('generalExit') ? [{ label: t('navigation.generalExit'), href: '/dashboard/autorisation-de-sortie-generale', icon: Timer }] : []),
         ...(canSee('demande-autorisation') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
+        // Validation heures sup. — admin/manager uniquement (les employés n'ont
+        // pas accès à ce groupe car la nav "Demandes et validations" est filtrée
+        // plus haut sur isEmp). Stocké dans la table autoriser avec marker
+        // [HEURES SUP] dans Conmotif. Affiché à côté de "Autorisation de sortie"
+        // car les deux flux partagent l'infra back.
+        ...((isAdminEffective || isManager) && planAllows('authorizationManagement')
+          ? [{ label: t('navigation.overtimeValidation'), href: '/dashboard/validation-heures-sup', icon: Clock3 }]
+          : []),
         ...(canSee('absence-et-sanction') ? [{ label: t('navigation.absenceAndSanction'), href: '/dashboard/absence-et-sanction', icon: Gavel }] : []),
       ],
     }] : []),
@@ -521,6 +533,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/autorisation-de-sortie': content = <AutSortieModern />; break;
     case '/dashboard/autorisation-de-sortie-generale': content = <AutSortieGenerale />; break;
     case '/dashboard/demande-autorisation': content = <DemandeAutorisationModern />; break;
+    case '/dashboard/validation-heures-sup': content = <HeuresSupValidation />; break;
     case '/dashboard/gestion-de-solde': content = <SoldeCongeModern />; break;
     case '/dashboard/affectation-solde': content = <SoldeCongeAdmin />; break;
     case '/dashboard/cet': content = <CetPage />; break;
@@ -543,6 +556,10 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/support/coaching': content = <CoachingPage />; break;
     case '/dashboard/support/pack-mise-en-place': content = <PackMiseEnPlacePage />; break;
     case '/dashboard/support/contact': content = <ContactPage />; break;
+    // Mentions légales — pages publiques (cf. PUBLIC_PATHS) requises par les stores
+    // (Apple Privacy Policy URL, Google Play Privacy + ToS) et le RGPD.
+    case '/confidentialite': content = <PrivacyPolicyPage />; break;
+    case '/cgu': content = <TermsOfServicePage />; break;
     default: content = <DashboardModernSync />;
   }
 
@@ -1065,8 +1082,13 @@ function DashboardLayoutAccount(_props: DemoProps) {
         {/* Assistant IA : réservé aux utilisateurs connectés ET au plan Premium
             (feature `RagAi` côté backend). Avant, on l'exposait sur la landing
             publique mais le backend renvoyait 401 ; depuis 2026-05-12 on ajoute
-            aussi le gating de plan pour éviter les 402 sur Starter/Standard. */}
-        {isAuthenticated && chatbotAllowed && (
+            aussi le gating de plan pour éviter les 402 sur Starter/Standard.
+            2026-05-22 : on exclut aussi les pages publiques de découverte (home,
+            login, signup) — un visiteur potentiel ne doit pas voir un chatbot
+            interne sur la landing, et un admin connecté qui revient sur la home
+            n'a aucun usage du bot à cet endroit (il y est seulement de passage). */}
+        {isAuthenticated && chatbotAllowed
+          && pathname !== '/' && pathname !== '/login' && pathname !== '/signup' && (
           <Box sx={{ display: { xs: 'none', md: 'block' } }}>
             <UnifiedAssistantHub />
           </Box>

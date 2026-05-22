@@ -61,6 +61,12 @@ interface EmployeFull {
   /** Libellé ville (résolu server-side via la table `ville`) — préféré à `vilcod`
    *  pour l'affichage humain ("Casablanca" plutôt que "CAS"). */
   villib?: string | null;
+  /** Libellé fonction résolu server-side via la table `fonction` à partir de `foncod`.
+   *  Séparé de `empfonc` (varchar(40)) car `fonlib` peut atteindre 100 caractères. */
+  fonlib?: string | null;
+  /** Nom du manager résolu server-side (`emplib` de l'employé pointé par `empresp`).
+   *  Séparé de `empresp` (varchar(12), Empcod brut) car `emplib` peut atteindre 100 caractères. */
+  resplib?: string | null;
   catcod?: string | null;
   sercod?: string | null;
   dircod?: string | null;
@@ -297,12 +303,12 @@ export default function EmployeProfileView() {
 
           {/* Poste & affectation */}
           <SectionCard title="Poste & affectation" icon={<BusinessCenterIcon fontSize="small" />}>
-            <InfoRow icon={<BusinessCenterIcon fontSize="small" />} label="Fonction" value={emp.empfonc || '—'} />
+            <InfoRow icon={<BusinessCenterIcon fontSize="small" />} label="Fonction" value={emp.fonlib || emp.empfonc || '—'} />
             <Divider sx={{ borderColor: '#f1f5f9' }} />
             <InfoRow icon={<ApartmentIcon fontSize="small" />} label="Direction / Service"
               value={[emp.dircod, emp.sercod].filter(Boolean).join(' · ') || '—'} />
             <Divider sx={{ borderColor: '#f1f5f9' }} />
-            <InfoRow icon={<GroupsIcon fontSize="small" />} label="Manager" value={emp.empresp || '—'} />
+            <InfoRow icon={<GroupsIcon fontSize="small" />} label="Manager" value={emp.resplib || emp.empresp || '—'} />
             <Divider sx={{ borderColor: '#f1f5f9' }} />
             <InfoRow icon={<SchoolIcon fontSize="small" />} label="Catégorie / Niveau"
               value={[emp.catcod, emp.empniv].filter(Boolean).join(' · ') || '—'} />
@@ -399,7 +405,7 @@ export default function EmployeProfileView() {
               {emp.emplib || '—'}
             </Typography>
             <Typography sx={{ fontSize: 12.5, opacity: 0.92, mt: 0.75 }}>
-              {emp.empfonc || 'Poste non défini'}
+              {emp.fonlib || emp.empfonc || 'Poste non défini'}
             </Typography>
             {emp.dircod && (
               <Typography sx={{ fontSize: 11, opacity: 0.78, mt: 0.25 }}>

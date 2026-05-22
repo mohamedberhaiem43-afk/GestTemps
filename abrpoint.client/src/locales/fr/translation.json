@@ -1,7 +1,7 @@
 {
   "cookieConsent": {
     "title": "Vos préférences cookies",
-    "intro": "ABRPOINT et ses sous-traitants utilisent des traceurs (cookies et technologies similaires) pour assurer le fonctionnement du Service, mesurer son audience et, le cas échéant, personnaliser votre expérience. Conformément au RGPD et aux lignes directrices de la CNIL, vous pouvez accepter, refuser ou paramétrer ces traceurs avec la même simplicité.",
+    "intro": "Concorde Workforce utilise des traceurs (cookies et technologies similaires) pour assurer le fonctionnement du Service, mesurer son audience et, le cas échéant, personnaliser votre expérience. Conformément au RGPD et aux lignes directrices de la CNIL, vous pouvez accepter, refuser ou paramétrer ces traceurs avec la même simplicité.",
     "aiProcessor": "Assistant IA : vos questions et les extraits récupérés sont envoyés à un fournisseur LLM (par défaut OpenRouter routant vers un modèle Llama / DeepSeek / Gemini ; en option directement Anthropic en région UE) pour générer des réponses. Les sous-traitants sont conformes RGPD. Aucune donnée n'est utilisée pour entraîner le modèle. Les CIN sont automatiquement masqués avant transmission.",
     "changeLater": "Vous pouvez modifier vos préférences à tout moment depuis le lien « Gérer mes cookies » dans les paramètres de votre profil ou le pied de page.",
     "customize": "Personnaliser mes choix",
@@ -90,6 +90,7 @@
     "myMissions": "Mes Missions",
     "expenseNotes": "Notes de Frais",
     "exitAuthorizationRequest": "Demande d'Autorisation",
+    "overtimeValidation": "Validation heures sup.",
     "myVault": "Mon Coffre-fort",
     "orgStructure": "Structure Org.",
     "employeeProfile": "Profil Employé",

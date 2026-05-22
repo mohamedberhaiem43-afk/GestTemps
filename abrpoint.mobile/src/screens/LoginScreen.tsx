@@ -12,6 +12,8 @@ import {
   StatusBar,
   ScrollView,
   Linking,
+  Image,
+  ImageBackground,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,6 +32,12 @@ import {
 // (et non concordeworkly.com, qui redirige vers /download) parce que c'est le portail
 // applicatif où la facturation se gère.
 const UPGRADE_URL = 'https://www.concorde-work-force.com/dashboard/pricing';
+
+// Image hero — même asset que la maquette web (Login.tsx) pour conserver la
+// cohérence visuelle entre les deux clients. Diffusée par Google CDN, mise en
+// cache par React Native ImageBackground.
+const HERO_IMAGE_URL =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuCWqJf3IUUEowPCqYCPt4vLryLnDfZvOC0tonFBF2KVL6-ma6MKEs_0Sh1ax79f_me6Wv8W7-TinaUluS3ZPD7rNZCtrYwOnTg-xYIoDQtgIseYaV8yPhn6o3BsDtiHpGzfwtBPk874gN3wRLU-Kh40AhyHADwh-b8HIelIhd6KPJqSpClx5heiL1LQHCz3B9Mb9nPzmbX9ou-NYhjnQqXtGiFp1f94eXFaW_vC8a2PIhU6Y-fSmnEP8oU0LsfCTnlPHQfFG074zJw';
 
 /**
  * Affiche un dialog dédié quand le backend renvoie 402 plan_feature_locked sur
@@ -68,6 +76,7 @@ function handlePlanLockedIfApplicable(error: any): boolean {
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login, hydrateAfterBiometric } = useAuth();
 
@@ -112,8 +121,6 @@ export default function LoginScreen() {
           { text: 'Plus tard', style: 'cancel' },
           {
             text: 'Activer',
-            // SEC-G2 : on ne stocke plus email+password — on demande au backend
-            // un bio-token dédié (durée 90j, rotaté à chaque usage).
             onPress: async () => {
               try { await enableBiometricLogin(slug); } catch { /* noop */ }
             },
@@ -126,20 +133,13 @@ export default function LoginScreen() {
   const handleBiometricLogin = async () => {
     setLoading(true);
     try {
-      // SEC-G2 : le flow biométrique demande un prompt FaceID, envoie le bio-token
-      // au backend, met à jour les tokens d'auth localement et hydrate le user.
       const result = await biometricLoginFlow();
       if (!result) {
         Alert.alert('Information', 'Aucun identifiant biométrique stocké. Connectez-vous une première fois.');
         return;
       }
-      // Hydrate AuthContext avec le user fraîchement fetché → RootNavigator bascule
-      // sur AppStack automatiquement (isAuthenticated devient true).
       hydrateAfterBiometric(result.user);
     } catch (error: any) {
-      // Cas spécial : tenant Starter qui essaie de se connecter en biométrie après
-      // avoir downgradé son plan — on lui montre le pop-up dédié plutôt qu'un
-      // message générique. Cf. RequirePlanFeature(MobileApp) côté serveur.
       if (handlePlanLockedIfApplicable(error)) return;
       const msg = error?.response?.data?.message || 'Connexion biométrique échouée.';
       Alert.alert('Erreur', msg);
@@ -157,24 +157,9 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(normalizedEmail, password);
-      // Après un login classique réussi, on propose d'activer la biométrie pour la prochaine fois.
       await offerBiometricEnrollment();
     } catch (error: any) {
-      console.log('Login error catch:', error);
-      if (error.response) {
-        console.log('Error Response Data:', error.response.data);
-        console.log('Error Response Status:', error.response.status);
-      } else if (error.request) {
-        console.log('Error Request:', error.request);
-      } else {
-        console.log('Error Message:', error.message);
-      }
-
-      // Cas spécial : pack Starter qui n'inclut pas la feature MobileApp. Le
-      // backend renvoie 402 + { code: 'plan_feature_locked' }. On affiche le
-      // dialog dédié avec CTA d'upgrade plutôt qu'un "Erreur" générique.
       if (handlePlanLockedIfApplicable(error)) return;
-
       const msg = error?.response?.data?.message || 'Erreur de connexion. Vérifiez vos identifiants.';
       Alert.alert('Erreur', msg);
     } finally {
@@ -186,13 +171,7 @@ export default function LoginScreen() {
     if (!forgotEmail) { Alert.alert('Erreur', 'Veuillez entrer votre email.'); return; }
     setForgotLoading(true);
     try {
-      // Endpoint public (api/auth/forgot-password) qui résout le tenant à partir
-      // de l'email puis envoie le code à 6 chiffres par email. L'ancien
-      // /Utilisateurs/forgot-password persistait le code mais n'envoyait plus
-      // l'email — c'est pourquoi l'utilisateur ne recevait jamais rien.
       const res = await axios.post(`${API_BASE_URL}/auth/forgot-password`, { Email: forgotEmail });
-      // Le nouveau endpoint renvoie { message } (lowercase) ; l'ancien renvoyait { Message }.
-      // On accepte les deux pour la rétrocompatibilité avec d'anciens déploiements.
       const successMsg = res.data?.message || res.data?.Message || 'Code envoyé. Consultez votre boîte mail.';
       Alert.alert('Succès', successMsg);
       setForgotStep('code');
@@ -210,7 +189,6 @@ export default function LoginScreen() {
     if (newPassword.length < 6) { Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 6 caractères.'); return; }
     setForgotLoading(true);
     try {
-      // Nouveau endpoint public — payload: { Email, Code, NewPassword }.
       const res = await axios.post(`${API_BASE_URL}/auth/reset-password`, {
         Email: forgotEmail,
         Code: resetCode,
@@ -233,293 +211,423 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#001a41" />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
       >
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>🕐</Text>
-            <Text style={styles.appTitle}>GestTemps</Text>
-            <Text style={styles.appSubtitle}>Pointage & Gestion du Temps</Text>
-          </View>
-        </View>
-
-        <ScrollView style={styles.form} contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
-          {!showForgot ? (
-            <>
-              <Text style={styles.formTitle}>Connexion</Text>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Email *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="votre@email.com"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  placeholderTextColor={COLORS.textSecondary}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Mot de passe *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Mot de passe"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  placeholderTextColor={COLORS.textSecondary}
-                />
-              </View>
-
-              <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
-                onPress={handleLogin}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>Se Connecter</Text>
-                )}
-              </TouchableOpacity>
-
-              {bioAvailable && (
-                <TouchableOpacity
-                  style={styles.bioButton}
-                  onPress={handleBiometricLogin}
-                  disabled={loading}
-                  activeOpacity={0.7}
-                >
-                  <MaterialCommunityIcons
-                    name={bioLabel.toLowerCase().includes('faciale') ? 'face-recognition' : 'fingerprint'}
-                    size={22}
-                    color={COLORS.primary}
-                  />
-                  <Text style={styles.bioButtonText}>{`Continuer avec ${bioLabel}`}</Text>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity onPress={() => { setShowForgot(true); setForgotEmail(email); setForgotStep('email'); }} style={styles.forgotLink}>
-                <Text style={styles.forgotLinkText}>Mot de passe oublié ?</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <Text style={styles.formTitle}>Réinitialiser</Text>
-
-              {forgotStep === 'email' && (
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Email</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="votre@email.com"
-                    value={forgotEmail}
-                    onChangeText={setForgotEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    placeholderTextColor={COLORS.textSecondary}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Hero — alignée avec la moitié gauche de la maquette web Login.tsx :
+              image architecturale + overlay sombre + gradient bas pour
+              lisibilité du logo blanc. Sur mobile elle occupe la moitié haute
+              de l'écran avant de céder la place au formulaire blanc. */}
+          <ImageBackground
+            source={{ uri: HERO_IMAGE_URL }}
+            style={styles.hero}
+            imageStyle={styles.heroImage}
+          >
+            <View style={styles.heroOverlay} />
+            <View style={styles.heroGradient} />
+            <SafeAreaView edges={['top']} style={styles.heroSafe}>
+              <View style={styles.brandRow}>
+                <View style={styles.logoBadge}>
+                  <Image
+                    source={require('../../assets/concorde-workly-logo.png')}
+                    style={styles.logoImg}
+                    resizeMode="contain"
                   />
                 </View>
-              )}
-
-              {forgotStep === 'code' && (
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Code de réinitialisation</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="000000"
-                    value={resetCode}
-                    onChangeText={(t) => setResetCode(t.replace(/\D/g, '').slice(0, 6))}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    placeholderTextColor={COLORS.textSecondary}
-                  />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.brandName}>Concorde Workforce</Text>
+                  <Text style={styles.brandTag}>Pointage · Congés · Gestion du temps</Text>
                 </View>
-              )}
+              </View>
+              <View style={styles.heroBottom}>
+                <Text style={styles.heroTitle}>Bienvenue.</Text>
+                <Text style={styles.heroSubtitle}>
+                  Pilotez le temps de travail de vos équipes depuis votre poche.
+                </Text>
+              </View>
+            </SafeAreaView>
+          </ImageBackground>
 
-              {forgotStep === 'reset' && (
-                <>
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Nouveau mot de passe</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="••••••••"
-                      value={newPassword}
-                      onChangeText={setNewPassword}
-                      secureTextEntry
-                      placeholderTextColor={COLORS.textSecondary}
-                    />
-                  </View>
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Confirmer le mot de passe</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      secureTextEntry
-                      placeholderTextColor={COLORS.textSecondary}
-                    />
-                  </View>
-                </>
-              )}
-
-              <TouchableOpacity
-                style={[styles.button, forgotLoading && styles.buttonDisabled]}
-                onPress={() => {
-                  if (forgotStep === 'email') handleSendResetCode();
-                  else if (forgotStep === 'code') setForgotStep('reset');
-                  else handleResetPassword();
-                }}
-                disabled={forgotLoading}
-              >
-                {forgotLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>
-                    {forgotStep === 'email' ? 'Envoyer le code' : forgotStep === 'code' ? 'Vérifier le code' : 'Réinitialiser'}
+          {/* Carte formulaire — fond blanc qui chevauche le hero pour
+              reproduire l'effet « carte flottante » de la maquette web. */}
+          <View style={styles.card}>
+            {!showForgot ? (
+              <>
+                <View style={styles.formHead}>
+                  <Text style={styles.formTitle}>Connexion à votre espace</Text>
+                  <Text style={styles.formSubtitle}>
+                    Saisissez vos identifiants pour accéder à vos pointages, congés et planning.
                   </Text>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>Email</Text>
+                  <View style={styles.inputWrap}>
+                    <MaterialCommunityIcons name="email-outline" size={18} color="#737785" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="vous@entreprise.com"
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      placeholderTextColor="#9ca3af"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>Mot de passe</Text>
+                  <View style={styles.inputWrap}>
+                    <MaterialCommunityIcons name="lock-outline" size={18} color="#737785" style={styles.inputIcon} />
+                    <TextInput
+                      style={[styles.input, { paddingRight: 38 }]}
+                      placeholder="••••••••"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                      placeholderTextColor="#9ca3af"
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword((s) => !s)}
+                      style={styles.inputAction}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <MaterialCommunityIcons
+                        name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={18}
+                        color="#737785"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => { setShowForgot(true); setForgotEmail(email); setForgotStep('email'); }}
+                  style={styles.forgotLink}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.forgotLinkText}>Mot de passe oublié ?</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.primaryBtn, loading && styles.primaryBtnDisabled]}
+                  onPress={handleLogin}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Text style={styles.primaryBtnText}>Se connecter</Text>
+                      <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                {bioAvailable && (
+                  <>
+                    <View style={styles.divider}>
+                      <View style={styles.dividerLine} />
+                      <Text style={styles.dividerText}>OU</Text>
+                      <View style={styles.dividerLine} />
+                    </View>
+                    <TouchableOpacity
+                      style={styles.bioBtn}
+                      onPress={handleBiometricLogin}
+                      disabled={loading}
+                      activeOpacity={0.85}
+                    >
+                      <MaterialCommunityIcons
+                        name={bioLabel.toLowerCase().includes('faciale') ? 'face-recognition' : 'fingerprint'}
+                        size={22}
+                        color={COLORS.primary}
+                      />
+                      <Text style={styles.bioBtnText}>{`Continuer avec ${bioLabel}`}</Text>
+                    </TouchableOpacity>
+                  </>
                 )}
-              </TouchableOpacity>
+                {/* Mentions légales — visibles dès le login (exigence Apple
+                    Guideline 5.1.1(i) et Google Play Data Safety). */}
+                <View style={styles.legalLinks}>
+                  <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/confidentialite')}>
+                    <Text style={styles.legalLink}>Confidentialité</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.legalSep}>·</Text>
+                  <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/cgu')}>
+                    <Text style={styles.legalLink}>CGU</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.formHead}>
+                  <Text style={styles.formTitle}>Réinitialiser le mot de passe</Text>
+                  <Text style={styles.formSubtitle}>
+                    {forgotStep === 'email'
+                      ? 'Saisissez votre email pour recevoir un code de vérification.'
+                      : forgotStep === 'code'
+                        ? 'Entrez le code à 6 chiffres reçu par email.'
+                        : 'Choisissez un nouveau mot de passe.'}
+                  </Text>
+                </View>
 
-              <TouchableOpacity onPress={() => { setShowForgot(false); setForgotStep('email'); }} style={styles.forgotLink}>
-                <Text style={styles.forgotLinkText}>Retour à la connexion</Text>
-              </TouchableOpacity>
-            </>
-          )}
+                {forgotStep === 'email' && (
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.fieldLabel}>Email</Text>
+                    <View style={styles.inputWrap}>
+                      <MaterialCommunityIcons name="email-outline" size={18} color="#737785" style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="vous@entreprise.com"
+                        value={forgotEmail}
+                        onChangeText={setForgotEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        placeholderTextColor="#9ca3af"
+                      />
+                    </View>
+                  </View>
+                )}
 
-          <Text style={styles.footer}>ABRPOINT - Gestion du Temps</Text>
+                {forgotStep === 'code' && (
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.fieldLabel}>Code de vérification</Text>
+                    <View style={styles.inputWrap}>
+                      <MaterialCommunityIcons name="numeric" size={18} color="#737785" style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.input, { letterSpacing: 6, textAlign: 'center', fontSize: 18 }]}
+                        placeholder="000000"
+                        value={resetCode}
+                        onChangeText={(t) => setResetCode(t.replace(/\D/g, '').slice(0, 6))}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        placeholderTextColor="#9ca3af"
+                      />
+                    </View>
+                  </View>
+                )}
+
+                {forgotStep === 'reset' && (
+                  <>
+                    <View style={styles.fieldGroup}>
+                      <Text style={styles.fieldLabel}>Nouveau mot de passe</Text>
+                      <View style={styles.inputWrap}>
+                        <MaterialCommunityIcons name="lock-outline" size={18} color="#737785" style={styles.inputIcon} />
+                        <TextInput
+                          style={styles.input}
+                          placeholder="••••••••"
+                          value={newPassword}
+                          onChangeText={setNewPassword}
+                          secureTextEntry
+                          placeholderTextColor="#9ca3af"
+                        />
+                      </View>
+                    </View>
+                    <View style={styles.fieldGroup}>
+                      <Text style={styles.fieldLabel}>Confirmer</Text>
+                      <View style={styles.inputWrap}>
+                        <MaterialCommunityIcons name="lock-check-outline" size={18} color="#737785" style={styles.inputIcon} />
+                        <TextInput
+                          style={styles.input}
+                          placeholder="••••••••"
+                          value={confirmPassword}
+                          onChangeText={setConfirmPassword}
+                          secureTextEntry
+                          placeholderTextColor="#9ca3af"
+                        />
+                      </View>
+                    </View>
+                  </>
+                )}
+
+                <TouchableOpacity
+                  style={[styles.primaryBtn, forgotLoading && styles.primaryBtnDisabled]}
+                  onPress={() => {
+                    if (forgotStep === 'email') handleSendResetCode();
+                    else if (forgotStep === 'code') setForgotStep('reset');
+                    else handleResetPassword();
+                  }}
+                  disabled={forgotLoading}
+                  activeOpacity={0.85}
+                >
+                  {forgotLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Text style={styles.primaryBtnText}>
+                        {forgotStep === 'email' ? 'Envoyer le code' : forgotStep === 'code' ? 'Vérifier le code' : 'Réinitialiser'}
+                      </Text>
+                      <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => { setShowForgot(false); setForgotStep('email'); }}
+                  style={styles.backLink}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <MaterialCommunityIcons name="arrow-left" size={16} color="#64748b" />
+                  <Text style={styles.backLinkText}>Retour à la connexion</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>
+                Besoin d'aide ?{' '}
+                <Text
+                  style={styles.footerLink}
+                  onPress={() =>
+                    Linking.openURL(
+                      'mailto:contact@concorde-tech.fr?subject=Demande%20d%27assistance%20%E2%80%94%20Concorde%20Workforce'
+                    ).catch(() => { /* noop */ })
+                  }
+                >
+                  Contacter le support
+                </Text>
+              </Text>
+            </View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.primary,
+  container: { flex: 1, backgroundColor: '#ffffff' },
+  keyboardView: { flex: 1 },
+  scrollContent: { flexGrow: 1, paddingBottom: 24 },
+
+  // ── Hero (moitié haute) ────────────────────────────────────────────────
+  hero: { height: 320, justifyContent: 'flex-end', backgroundColor: '#001a41' },
+  heroImage: { opacity: 0.85 },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 26, 65, 0.55)',
   },
-  keyboardView: {
-    flex: 1,
+  heroGradient: {
+    position: 'absolute', left: 0, right: 0, bottom: 0, height: 140,
+    backgroundColor: 'rgba(0, 26, 65, 0.7)',
   },
-  header: {
-    flex: 0.35,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 20,
+  heroSafe: { flex: 1, paddingHorizontal: 24, paddingTop: 12, justifyContent: 'space-between' },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  logoBadge: {
+    width: 48, height: 48, borderRadius: 14, backgroundColor: '#ffffff',
+    justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 8, elevation: 4,
   },
-  logoContainer: {
-    alignItems: 'center',
+  logoImg: { width: 44, height: 44 },
+  brandName: { color: '#ffffff', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
+  brandTag: { color: 'rgba(255,255,255,0.78)', fontSize: 11, marginTop: 2, fontWeight: '600' },
+  heroBottom: { paddingBottom: 36 },
+  heroTitle: { color: '#ffffff', fontSize: 30, fontWeight: '900', letterSpacing: -0.5 },
+  heroSubtitle: { color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 6, lineHeight: 18, maxWidth: 280 },
+
+  // ── Carte formulaire (chevauche le hero) ───────────────────────────────
+  card: {
+    backgroundColor: '#ffffff',
+    marginTop: -28,
+    marginHorizontal: 16,
+    borderRadius: 24,
+    paddingHorizontal: 22,
+    paddingTop: 26,
+    paddingBottom: 22,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 6,
   },
-  logoText: {
-    fontSize: 60,
-    marginBottom: 8,
+  formHead: { marginBottom: 18 },
+  formTitle: { fontSize: 20, fontWeight: '800', color: '#0f172a', letterSpacing: -0.2 },
+  formSubtitle: { fontSize: 12.5, color: '#64748b', marginTop: 6, lineHeight: 18 },
+
+  fieldGroup: { marginBottom: 14 },
+  fieldLabel: { fontSize: 11, fontWeight: '700', color: '#475569', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 },
+  inputWrap: {
+    position: 'relative',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
   },
-  appTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-    letterSpacing: 2,
-  },
-  appSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 4,
-  },
-  form: {
-    flex: 0.65,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 24,
-    paddingTop: 32,
-  },
-  formTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 6,
+  inputIcon: {
+    position: 'absolute', left: 12, top: 0, bottom: 0,
+    textAlignVertical: 'center',
+    height: 44,
+    lineHeight: 44,
   },
   input: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 15,
-    backgroundColor: '#fafafa',
-    color: COLORS.text,
-  },
-  button: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 16,
-    elevation: 3,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  formContent: {
-    paddingBottom: 40,
-  },
-  footer: {
-    textAlign: 'center',
-    color: COLORS.textSecondary,
-    fontSize: 12,
-    marginTop: 24,
-  },
-  forgotLink: {
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  forgotLinkText: {
-    color: COLORS.primary,
+    height: 44,
+    paddingLeft: 38,
+    paddingRight: 12,
     fontSize: 14,
-    fontWeight: '600',
+    color: '#0f172a',
+    fontWeight: '500',
   },
-  bioButton: {
+  inputAction: {
+    position: 'absolute', right: 10, top: 0, bottom: 0,
+    height: 44, width: 28, alignItems: 'center', justifyContent: 'center',
+  },
+
+  forgotLink: { alignSelf: 'flex-end', marginTop: -4, marginBottom: 14 },
+  forgotLinkText: { color: COLORS.primary, fontSize: 12, fontWeight: '700' },
+
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  primaryBtnDisabled: { opacity: 0.6 },
+  primaryBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '800', letterSpacing: 0.2 },
+
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 16 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#e2e8f0' },
+  dividerText: { fontSize: 10, fontWeight: '800', color: '#94a3b8', letterSpacing: 1 },
+
+  bioBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    marginTop: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: COLORS.primary,
     backgroundColor: COLORS.primaryFixed,
   },
-  bioButtonText: {
-    color: COLORS.primary,
-    fontWeight: '700',
-    fontSize: 15,
-  },
+  bioBtnText: { color: COLORS.primary, fontWeight: '800', fontSize: 14 },
+
+  legalLinks: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 },
+  legalLink: { fontSize: 11, color: '#64748b', textDecorationLine: 'underline' },
+  legalSep: { fontSize: 11, color: '#94a3b8' },
+
+  backLink: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', marginTop: 14 },
+  backLinkText: { color: '#64748b', fontSize: 13, fontWeight: '600' },
+
+  footer: { marginTop: 18, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  footerText: { fontSize: 11.5, color: '#94a3b8', textAlign: 'center' },
+  footerLink: { color: COLORS.primary, fontWeight: '700' },
 });

@@ -107,6 +107,17 @@ public static class BaseDataSchemaMigrator
         await AddColumnIfMissingAsync(db, "utilisateur", "uti_failed_logins", "INTEGER NULL", ct);
         await AddColumnIfMissingAsync(db, "utilisateur", "uti_lockout_until", "TIMESTAMP NULL", ct);
 
+        // Validation des heures supplémentaires (2026-05) : les demandes d'heures sup
+        // créées depuis le mobile passent par /Autorisers/my-auth (table autoriser).
+        // Pour permettre à l'admin/manager de valider ou refuser depuis le web, on
+        // ajoute un état + métadonnées de traitement. NULL = legacy (avant fix) → traité
+        // comme "Pending" côté lecture. Sans ces colonnes, l'écran de validation web
+        // retournerait 42703 sur les tenants existants.
+        await AddColumnIfMissingAsync(db, "autoriser", "conetat", "VARCHAR(20) NULL", ct);
+        await AddColumnIfMissingAsync(db, "autoriser", "contraitepar", "VARCHAR(12) NULL", ct);
+        await AddColumnIfMissingAsync(db, "autoriser", "contraitedat", "TIMESTAMP NULL", ct);
+        await AddColumnIfMissingAsync(db, "autoriser", "concommentaire", "VARCHAR(500) NULL", ct);
+
         // Tables mobiles + notifications + known_devices : on délègue à MobileTablesInstaller
         // qui sait déjà créer push_tokens, notifications, notification_preferences,
         // notification_user_settings, known_devices.

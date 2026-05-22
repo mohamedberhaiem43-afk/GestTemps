@@ -78,6 +78,12 @@ export const PUBLIC_PATHS = new Set<string>([
   // côté front ne soit ré-établie.
   '/download',
   '/payment',
+  // Mentions légales : OBLIGATOIREMENT publiques. Apple/Google reviewers les
+  // vérifient anonymement, et les visiteurs candidats à l'inscription doivent
+  // pouvoir les consulter avant de soumettre leurs données. URLs déclarées aussi
+  // dans App Store Connect (Privacy Policy URL) et Play Console (Privacy/ToS).
+  '/confidentialite',
+  '/cgu',
 ]);
 
 /**

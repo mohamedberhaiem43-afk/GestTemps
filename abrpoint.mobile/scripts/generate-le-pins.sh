@@ -51,10 +51,10 @@ trap "rm -rf $TMPDIR" EXIT
 declare -A CA_URLS=(
   ["isrgrootx1"]="https://letsencrypt.org/certs/isrgrootx1.pem"
   ["isrg-root-x2"]="https://letsencrypt.org/certs/isrg-root-x2.pem"
-  ["lets-encrypt-r10"]="https://letsencrypt.org/certs/lets-encrypt-r10.pem"
-  ["lets-encrypt-r11"]="https://letsencrypt.org/certs/lets-encrypt-r11.pem"
-  ["lets-encrypt-e5"]="https://letsencrypt.org/certs/lets-encrypt-e5.pem"
-  ["lets-encrypt-e6"]="https://letsencrypt.org/certs/lets-encrypt-e6.pem"
+  ["lets-encrypt-r10"]="https://letsencrypt.org/certs/2024/r10.pem"
+  ["lets-encrypt-r11"]="https://letsencrypt.org/certs/2024/r11.pem"
+  ["lets-encrypt-e5"]="https://letsencrypt.org/certs/2024/e5.pem"
+  ["lets-encrypt-e6"]="https://letsencrypt.org/certs/2024/e6.pem"
 )
 
 compute_pin() {

@@ -4,6 +4,7 @@ using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,14 +19,55 @@ namespace ABRPOINT.Server.Controllers
     [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.AuthorizationManagement))]
     public class AutorisersController : ControllerBase
     {
+        // Marker injecté côté mobile dans `conmotif` pour distinguer les demandes
+        // d'heures sup. des autorisations de sortie classiques (cf.
+        // abrpoint.mobile/src/screens/AddRequestScreen.tsx). Les deux flux partagent
+        // la table `autoriser` ; seul le préfixe permet de les router vers l'écran
+        // de validation dédié côté web.
+        private const string OvertimeMotifMarker = "[HEURES SUP]";
+
         private readonly IautoriserRepository _autoriserRepository;
         private readonly IReportsGenerationService _reportsGenerationService;
         private readonly ApplicationDbContext _db;
-        public AutorisersController(IautoriserRepository autoriserRepository, IReportsGenerationService reportsGenerationService, ApplicationDbContext db)
+        private readonly IUserNotificationService? _notify;
+        private readonly IEmailService? _email;
+        private readonly ILogger<AutorisersController> _log;
+
+        public AutorisersController(
+            IautoriserRepository autoriserRepository,
+            IReportsGenerationService reportsGenerationService,
+            ApplicationDbContext db,
+            ILogger<AutorisersController> log,
+            IUserNotificationService? notify = null,
+            IEmailService? email = null)
         {
             _autoriserRepository = autoriserRepository;
             _reportsGenerationService = reportsGenerationService;
             _db = db;
+            _log = log;
+            _notify = notify;
+            _email = email;
+        }
+
+        // A5 — Validation/refus réservé aux admins et managers. Aligné sur le pattern
+        // de DemandeAutorisationsController.CallerCanApproveAsync : Utiadm=1 OU rôle
+        // admin OU rôle manager OU permission explicite Autorisations.modify.
+        private async Task<bool> CallerCanApproveAsync()
+        {
+            var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return false;
+            var isPrivileged = await _db.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == caller)
+                .Select(u => u.Utiadm == "1"
+                          || PermissionCatalog.IsAdminRole(u.Utirole)
+                          || u.Utirole == PermissionCatalog.Roles.Manager)
+                .FirstOrDefaultAsync();
+            if (isPrivileged) return true;
+            return await _db.RolePermissions.AsNoTracking()
+                .AnyAsync(rp => rp.Role!.RoleName == _db.Utilisateurs
+                                    .Where(u => u.Uticod == caller).Select(u => u.Utirole).FirstOrDefault()
+                                && (rp.RpModule == "Autorisations" || rp.RpModule == "Demandes")
+                                && rp.RpModify == "1");
         }
 
         // A4 / A13 — l'utilisateur doit consulter / créer SES propres autorisations.
@@ -143,7 +185,32 @@ namespace ABRPOINT.Server.Controllers
                     return Forbid();
                 }
 
+                // Heures sup. : marquer en attente de validation. Détection via le préfixe
+                // `[HEURES SUP]` que le mobile injecte dans Conmotif (AddRequestScreen.tsx).
+                // Les autorisations de sortie classiques restent sans état (NULL) pour ne
+                // pas changer leur flux historique.
+                if (!string.IsNullOrEmpty(autoriser.Conmotif)
+                    && autoriser.Conmotif.Contains(OvertimeMotifMarker, StringComparison.OrdinalIgnoreCase))
+                {
+                    autoriser.Conetat = "Pending";
+                }
+
                 await _autoriserRepository.AddAsync(autoriser);
+
+                // Notifie admins/managers qu'une nouvelle demande d'heures sup. est à traiter
+                // (fire-and-forget — l'employé n'attend pas la livraison du push).
+                if (autoriser.Conetat == "Pending" && _notify != null)
+                {
+                    var employeName = await _db.Employes.AsNoTracking()
+                        .Where(e => e.Soccod == autoriser.Soccod && e.Empcod == autoriser.Empcod)
+                        .Select(e => e.Emplib)
+                        .FirstOrDefaultAsync() ?? autoriser.Empcod;
+                    _ = _notify.NotifyManagersAsync(
+                        "⏱️ Nouvelle demande d'heures supplémentaires",
+                        $"{employeName} attend votre validation.",
+                        new { type = "overtime_request_pending", concod = autoriser.Concod, soccod = autoriser.Soccod });
+                }
+
                 return Ok(new { message = "Autorisation de sortie envoyée avec succès", concod = autoriser.Concod });
             }
             catch (Exception)
@@ -213,6 +280,239 @@ namespace ABRPOINT.Server.Controllers
             }
             await _autoriserRepository.DeleteAsync(autoriser);
             return NoContent();
+        }
+
+        // ───────────────────────────────────────────────────────────────────────
+        // Validation des demandes d'heures supplémentaires (web admin/manager)
+        // ───────────────────────────────────────────────────────────────────────
+        // Le mobile crée les heures sup. via POST /Autorisers/my-auth avec un
+        // préfixe `[HEURES SUP]` dans Conmotif. Le web a besoin d'une vue dédiée
+        // pour lister/valider/refuser, distincte du flux Autorisations de sortie
+        // classique. Les 3 endpoints suivants n'agissent QUE sur les demandes
+        // marquées avec ce préfixe pour éviter d'altérer accidentellement une
+        // autorisation de sortie ordinaire.
+
+        public sealed class OvertimeApprovalRequest
+        {
+            /// <summary>Commentaire libre. Obligatoire en cas de refus pour que l'employé
+            /// comprenne le motif ; optionnel à l'approbation (peut servir à indiquer
+            /// une majoration spéciale, un plafond, etc.).</summary>
+            public string? Commentaire { get; set; }
+        }
+
+        /// <summary>
+        /// Liste les demandes d'heures supplémentaires d'une société, optionnellement
+        /// filtrées par état. Réservé aux admins/managers — un employé doit utiliser
+        /// `/my-auths/...` pour ses propres demandes.
+        /// </summary>
+        [HttpGet("heures-sup/{soccod}")]
+        public async Task<IActionResult> GetOvertimeRequests(string soccod, [FromQuery] string? etat = null)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                return BadRequest(new { message = "Société requise." });
+            if (!await CallerCanApproveAsync()) return Forbid();
+
+            try
+            {
+                var query = _db.Autorisers.AsNoTracking()
+                    .Where(a => a.Soccod == soccod
+                                && a.Conmotif != null
+                                && EF.Functions.ILike(a.Conmotif, "%" + OvertimeMotifMarker + "%"));
+
+                if (!string.IsNullOrWhiteSpace(etat))
+                {
+                    // "Pending" inclut les lignes NULL (legacy avant l'ajout de Conetat).
+                    if (string.Equals(etat, "Pending", StringComparison.OrdinalIgnoreCase))
+                        query = query.Where(a => a.Conetat == null || a.Conetat == "Pending");
+                    else
+                        query = query.Where(a => a.Conetat == etat);
+                }
+
+                // Jointure manuelle vers `employe` pour récupérer Emplib (affichage RH-friendly).
+                // Pas d'Include() : pas de relation EF Core formelle sur la clé composite.
+                var rows = await (from a in query
+                                  join e in _db.Employes.AsNoTracking()
+                                       on new { a.Soccod, a.Empcod } equals new { e.Soccod, e.Empcod } into je
+                                  from emp in je.DefaultIfEmpty()
+                                  orderby a.Condat descending
+                                  select new
+                                  {
+                                      concod = a.Concod,
+                                      soccod = a.Soccod,
+                                      empcod = a.Empcod,
+                                      emplib = emp != null ? emp.Emplib : null,
+                                      empemail = emp != null ? emp.Empemail : null,
+                                      condat = a.Condat,
+                                      condep = a.Condep,
+                                      conret = a.Conret,
+                                      conmotif = a.Conmotif,
+                                      conetat = a.Conetat ?? "Pending",
+                                      contraitepar = a.Contraitepar,
+                                      contraitedat = a.Contraitedat,
+                                      concommentaire = a.Concommentaire,
+                                  })
+                                  .ToListAsync();
+
+                return Ok(rows);
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "GetOvertimeRequests échec — soccod={Soccod}", soccod);
+                return StatusCode(500, new { message = "Erreur lors de la récupération des heures supplémentaires." });
+            }
+        }
+
+        /// <summary>
+        /// Valide une demande d'heures supplémentaires. Notifie l'employé par push/in-app
+        /// + email. Idempotent : un appel sur une demande déjà traitée renvoie 409.
+        /// </summary>
+        [HttpPost("heures-sup/{soccod}/{concod}/approve")]
+        public Task<IActionResult> ApproveOvertime(string soccod, string concod, [FromBody] OvertimeApprovalRequest? body)
+            => HandleOvertimeDecisionAsync(soccod, concod, approve: true, body?.Commentaire);
+
+        /// <summary>
+        /// Refuse une demande d'heures supplémentaires. Le commentaire est obligatoire
+        /// pour que l'employé comprenne le motif.
+        /// </summary>
+        [HttpPost("heures-sup/{soccod}/{concod}/refuse")]
+        public Task<IActionResult> RefuseOvertime(string soccod, string concod, [FromBody] OvertimeApprovalRequest? body)
+            => HandleOvertimeDecisionAsync(soccod, concod, approve: false, body?.Commentaire);
+
+        private async Task<IActionResult> HandleOvertimeDecisionAsync(string soccod, string concod, bool approve, string? commentaire)
+        {
+            if (string.IsNullOrWhiteSpace(soccod) || string.IsNullOrWhiteSpace(concod))
+                return BadRequest(new { message = "Société et code de demande requis." });
+            if (!approve && string.IsNullOrWhiteSpace(commentaire))
+                return BadRequest(new { message = "Un commentaire est obligatoire pour refuser une demande." });
+            if (!await CallerCanApproveAsync()) return Forbid();
+
+            var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+
+            try
+            {
+                // On charge la ligne en tracking pour pouvoir la modifier.
+                var autoriser = await _db.Autorisers
+                    .FirstOrDefaultAsync(a => a.Soccod == soccod && a.Concod == concod);
+                if (autoriser == null) return NotFound(new { message = "Demande introuvable." });
+
+                // Guard : on n'agit que sur les heures sup. (préfixe Conmotif). Sans ce
+                // garde-fou, un appelant pourrait détourner cet endpoint pour modifier
+                // une autorisation de sortie classique en contournant les permissions
+                // dédiées (CanUpdateAutSortie).
+                if (string.IsNullOrEmpty(autoriser.Conmotif)
+                    || !autoriser.Conmotif.Contains(OvertimeMotifMarker, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new { message = "Cette demande n'est pas une demande d'heures supplémentaires." });
+                }
+
+                var current = autoriser.Conetat ?? "Pending";
+                if (!string.Equals(current, "Pending", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Conflict(new
+                    {
+                        message = $"Cette demande a déjà été traitée ({current}).",
+                        conetat = current,
+                    });
+                }
+
+                autoriser.Conetat = approve ? "Approved" : "Rejected";
+                autoriser.Contraitepar = caller;
+                autoriser.Contraitedat = DateTime.UtcNow;
+                autoriser.Concommentaire = commentaire;
+                await _db.SaveChangesAsync();
+
+                // Récupère l'email + nom pour la notif (best-effort, ne bloque pas la réponse
+                // si l'employé n'a pas de compte ou pas d'email).
+                var employee = await _db.Employes.AsNoTracking()
+                    .Where(e => e.Soccod == autoriser.Soccod && e.Empcod == autoriser.Empcod)
+                    .Select(e => new { e.Emplib, e.Empemail })
+                    .FirstOrDefaultAsync();
+
+                var displayDate = autoriser.Condat?.ToString("dd/MM/yyyy") ?? "—";
+
+                // 1. In-app + push
+                if (_notify != null && !string.IsNullOrEmpty(autoriser.Empcod))
+                {
+                    var title = approve
+                        ? "✅ Heures supplémentaires validées"
+                        : "❌ Heures supplémentaires refusées";
+                    var bodyText = approve
+                        ? $"Votre demande du {displayDate} a été validée."
+                            + (string.IsNullOrWhiteSpace(commentaire) ? "" : $" Note : {commentaire}")
+                        : $"Votre demande du {displayDate} a été refusée. Motif : {commentaire}";
+                    _ = _notify.NotifyUserAsync(autoriser.Empcod, title, bodyText,
+                        new { type = approve ? "overtime_request_approved" : "overtime_request_rejected", concod, soccod });
+                }
+
+                // 2. Email — best-effort, on log mais on ne fait pas échouer la réponse
+                // (l'action métier est déjà persistée). Le destinataire doit avoir un
+                // Empemail valide ; sinon on saute silencieusement.
+                if (_email != null && !string.IsNullOrWhiteSpace(employee?.Empemail))
+                {
+                    try
+                    {
+                        var subject = approve
+                            ? "Vos heures supplémentaires ont été validées"
+                            : "Vos heures supplémentaires ont été refusées";
+                        var html = BuildOvertimeDecisionEmail(
+                            employeeName: employee.Emplib ?? autoriser.Empcod ?? "",
+                            approved: approve,
+                            date: displayDate,
+                            depart: autoriser.Condep,
+                            retour: autoriser.Conret,
+                            motif: autoriser.Conmotif,
+                            commentaire: commentaire);
+                        await _email.SendEmailAsync(employee.Empemail!, subject, html);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.LogWarning(ex, "Email de notification heures sup. non envoyé — concod={Concod} empcod={Empcod}", concod, autoriser.Empcod);
+                    }
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    conetat = autoriser.Conetat,
+                    message = approve ? "Demande d'heures supplémentaires validée." : "Demande d'heures supplémentaires refusée.",
+                });
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Traitement heures sup. échec — soccod={Soccod} concod={Concod} approve={Approve}", soccod, concod, approve);
+                return StatusCode(500, new { message = "Erreur interne lors du traitement de la demande." });
+            }
+        }
+
+        /// <summary>Email HTML simple, aligné stylistiquement sur les autres mails RH
+        /// (cf. EmailTemplates.cs). On évite d'introduire un nouveau template pour
+        /// rester localisé ; à factoriser dans EmailTemplates si d'autres flux
+        /// d'autorisation gagnent le même mail (refus de mission, etc.).</summary>
+        private static string BuildOvertimeDecisionEmail(string employeeName, bool approved, string date, DateTime? depart, DateTime? retour, string? motif, string? commentaire)
+        {
+            var statusLabel = approved ? "validée" : "refusée";
+            var statusColor = approved ? "#16a34a" : "#dc2626";
+            var statusIcon = approved ? "✅" : "❌";
+            var horaire = (depart.HasValue && retour.HasValue)
+                ? $"{depart.Value:HH:mm} – {retour.Value:HH:mm}"
+                : "—";
+            var commentaireBlock = string.IsNullOrWhiteSpace(commentaire)
+                ? ""
+                : $"<p style='margin:12px 0;padding:12px;background:#f8fafc;border-left:3px solid {statusColor};border-radius:4px;'><strong>Note du validateur :</strong><br>{System.Net.WebUtility.HtmlEncode(commentaire)}</p>";
+
+            return $@"<!DOCTYPE html>
+<html><body style='font-family:Arial,Helvetica,sans-serif;color:#1e293b;max-width:560px;margin:0 auto;padding:24px;'>
+  <h2 style='color:{statusColor};margin:0 0 16px;'>{statusIcon} Heures supplémentaires {statusLabel}</h2>
+  <p>Bonjour {System.Net.WebUtility.HtmlEncode(employeeName)},</p>
+  <p>Votre demande d'heures supplémentaires a été <strong style='color:{statusColor};'>{statusLabel}</strong>.</p>
+  <table style='width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;'>
+    <tr><td style='padding:8px;border-bottom:1px solid #e2e8f0;color:#64748b;'>Date</td><td style='padding:8px;border-bottom:1px solid #e2e8f0;'><strong>{date}</strong></td></tr>
+    <tr><td style='padding:8px;border-bottom:1px solid #e2e8f0;color:#64748b;'>Horaire</td><td style='padding:8px;border-bottom:1px solid #e2e8f0;'>{horaire}</td></tr>
+    <tr><td style='padding:8px;color:#64748b;'>Motif</td><td style='padding:8px;'>{System.Net.WebUtility.HtmlEncode(motif ?? "—")}</td></tr>
+  </table>
+  {commentaireBlock}
+  <p style='margin-top:24px;font-size:12px;color:#94a3b8;'>Concorde Workly — Notification automatique</p>
+</body></html>";
         }
     }
 }

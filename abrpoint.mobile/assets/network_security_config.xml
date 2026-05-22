@@ -28,17 +28,17 @@
         <domain includeSubdomains="true">concorde-work-force.com</domain>
         <pin-set expiration="2035-09-15">
             <!-- ISRG Root X1 (RSA) — racine primaire LE, valide jusqu'en 2035 -->
-            <pin digest="SHA-256">placeholder-isrg-root-x1-run-generate-le-pins-sh</pin>
+            <pin digest="SHA-256">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=</pin>
             <!-- ISRG Root X2 (ECDSA) — racine backup LE, valide jusqu'en 2035 -->
-            <pin digest="SHA-256">placeholder-isrg-root-x2-run-generate-le-pins-sh</pin>
+            <pin digest="SHA-256">diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=</pin>
             <!-- Let's Encrypt R10 — intermédiaire RSA actuel, rotation 5 ans -->
-            <pin digest="SHA-256">placeholder-le-r10-run-generate-le-pins-sh</pin>
+            <pin digest="SHA-256">K7rZOrXHknnsEhUH8nLL4MZkejquUuIvOIr6tCa0rbo=</pin>
             <!-- Let's Encrypt R11 — backup RSA -->
-            <pin digest="SHA-256">placeholder-le-r11-run-generate-le-pins-sh</pin>
+            <pin digest="SHA-256">bdrBhpj38ffhxpubzkINl0rG+UyossdhcBYj+Zx2fcc=</pin>
             <!-- Let's Encrypt E5 — intermédiaire ECDSA actuel -->
-            <pin digest="SHA-256">placeholder-le-e5-run-generate-le-pins-sh</pin>
+            <pin digest="SHA-256">NYbU7PBwV4y9J67c4guWTki8FJ+uudrXL0a4V4aRcrg=</pin>
             <!-- Let's Encrypt E6 — backup ECDSA -->
-            <pin digest="SHA-256">placeholder-le-e6-run-generate-le-pins-sh</pin>
+            <pin digest="SHA-256">0Bbh/jEZSKymTy3kTOhsmlHKBB32EDu1KojrP3YfV9c=</pin>
         </pin-set>
         <trust-anchors>
             <certificates src="system" />

@@ -274,5 +274,19 @@ public partial class Employe : BaseEntity
     [NotMapped]
     public string? Villib { get; set; }
 
+    /// <summary>Libellé fonction résolu via la table `fonction` à partir de `Foncod`.
+    /// Séparé de `Empfonc` (varchar(40)) car `Fonlib` peut atteindre 100 caractères :
+    /// si on écrasait `Empfonc` avec `Fonlib`, un PUT renvoyé par le front depuis le
+    /// formulaire d'édition échouait avec un 400 StringLength sur la chaîne trop longue.</summary>
+    [NotMapped]
+    public string? Fonlib { get; set; }
+
+    /// <summary>Nom du manager (`Emplib` de l'employé pointé par `Empresp`).
+    /// Séparé de `Empresp` (varchar(12), stocke un Empcod) pour la même raison
+    /// que `Fonlib` : `Emplib` peut atteindre 100 caractères, écraser `Empresp`
+    /// avec ce nom cassait le PUT (validation StringLength).</summary>
+    [NotMapped]
+    public string? Resplib { get; set; }
+
 }
 

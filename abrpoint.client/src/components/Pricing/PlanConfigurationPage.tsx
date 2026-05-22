@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, Rocket, CheckCircle2, FileText, Headset } from 'lucide-react';
+import { Users, Rocket, CheckCircle2, FileText, Headset, Sparkles, HardDrive, Plus, Minus, Check } from 'lucide-react';
 import { useAuth } from '../helper/AuthProvider';
 import { startStripeCheckout } from './stripeCheckout';
 import './PricingPage.css';
@@ -40,6 +40,43 @@ const PLAN_CATALOG: Record<PlanKey, {
   Starter:  { displayName: 'Starter',  flatPriceMonthlyEur: 99,  flatPriceAnnualMonthlyEur: 69,  includedEmployees: 10, overageRatePerEmployeeEur: 4.90, maxEmployees: 25,  moduleCount: 7  },
   Standard: { displayName: 'Standard', flatPriceMonthlyEur: 219, flatPriceAnnualMonthlyEur: 119, includedEmployees: 25, overageRatePerEmployeeEur: 6.90, maxEmployees: 100, moduleCount: 14 },
   Premium:  { displayName: 'Business', flatPriceMonthlyEur: 449, flatPriceAnnualMonthlyEur: 249, includedEmployees: 50, overageRatePerEmployeeEur: 9.90, maxEmployees: 250, moduleCount: 19 },
+};
+
+/**
+ * Modules optionnels — cumulables avec n'importe quel pack. Présentés ici
+ * (et non plus sur la landing) parce qu'ils n'ont de sens qu'une fois le pack
+ * choisi : le client coche ce qu'il veut, le panier se recalcule, puis Stripe
+ * Checkout est déclenché. Aujourd'hui le simulateur est INDICATIF — ces tarifs
+ * ne sont pas encore branchés sur des price_id Stripe distincts ; quand ce sera
+ * le cas, on passera `addons` dans le `state` envoyé à `/signup`/`startStripeCheckout`
+ * pour que le backend les ajoute à la session.
+ *
+ *   • IA Assistant RH (49 €/mois) — toggle on/off (1 abonnement par tenant).
+ *   • Stockage supplémentaire (29 € / 100 Go / mois) — quantité (0..N tranches).
+ *   • IA / RAG Avancé — « Sur devis », non sélectionnable, redirige vers contact.
+ */
+type AddonKey = 'aiAssistant' | 'extraStorage100Go';
+const ADDON_CATALOG: Record<AddonKey, {
+  displayName: string;
+  description: string;
+  unitPriceMonthlyEur: number;
+  unit: string;          // suffixe affiché à côté du prix (« / mois », « / 100 Go / mois »)
+  hasQuantity: boolean;  // false = toggle (0 ou 1) ; true = stepper (0..N)
+}> = {
+  aiAssistant: {
+    displayName: 'IA Assistant RH',
+    description: 'Aide à la rédaction, recherche rapide multi-sources, automatisations simples.',
+    unitPriceMonthlyEur: 49,
+    unit: '/ mois',
+    hasQuantity: false,
+  },
+  extraStorage100Go: {
+    displayName: 'Stockage supplémentaire',
+    description: 'Tranche de 100 Go pour coffre numérique, documents salariés, archives — au-delà du quota inclus.',
+    unitPriceMonthlyEur: 29,
+    unit: '/ 100 Go / mois',
+    hasQuantity: true,
+  },
 };
 
 const PlanConfigurationPage: React.FC = () => {
@@ -81,40 +118,69 @@ const PlanConfigurationPage: React.FC = () => {
     return Math.min(requested, plan.includedEmployees);
   });
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialState.cycle ?? cycleFromUrl ?? 'annual');
+  // Quantité par module : 0 = non sélectionné. Pour aiAssistant on borne à {0,1}
+  // (toggle) ; pour extraStorage100Go la quantité est un entier ≥ 0 (chaque unité
+  // ajoute une tranche de 100 Go). Le panier est plein si tout est à 0.
+  const [addonQuantities, setAddonQuantities] = useState<Record<AddonKey, number>>({
+    aiAssistant: 0,
+    extraStorage100Go: 0,
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Tarification : forfait mensuel fixe au quota inclus. Pas d'overage à ce stade —
-  // l'admin l'active à la création d'un collab via la fiche (cf. AjoutEmploye). Le
-  // simulateur reste indicatif ; Stripe applique le prix réel des price_id
-  // `Stripe:Prices:{Plan}:base:{cycle}` côté backend.
+  // Tarification : forfait mensuel fixe au quota inclus + modules optionnels du panier.
+  // Le simulateur reste indicatif (cf. PLAN_CATALOG / ADDON_CATALOG) ; le backend
+  // applique les price_id Stripe réels. Les overages collaborateur sont déclenchés
+  // après signup depuis la fiche (cf. EmployesController.Post param confirmOverage).
   //
   // Grille tarifs.txt 2026-05 : les prix mensuel et annuel sont stockés explicitement
   // dans PLAN_CATALOG. Le ratio n'est plus uniforme (~30 % Starter, ~46 % Standard,
   // ~45 % Business), donc on ne dérive plus l'annuel via un coefficient global.
   // En cycle annuel, on affiche aussi le total annuel (mensuel × 12) et la remise
   // annuelle totale (vs tarif mensuel sans engagement × 12).
-  const { baseMonthly, monthlyTotal, annualTotal, annualDiscountTotal } = useMemo(() => {
+  const { baseMonthly, baseMonthlyTotal, addonsMonthlyTotal, monthlyTotal, annualTotal, annualDiscountTotal } = useMemo(() => {
     const baseM = plan.flatPriceMonthlyEur;
-    const monthly = billingCycle === 'annual' ? plan.flatPriceAnnualMonthlyEur : baseM;
+    const baseMonthlyForCycle = billingCycle === 'annual' ? plan.flatPriceAnnualMonthlyEur : baseM;
     const discountPerMonth = billingCycle === 'annual' ? Math.max(0, baseM - plan.flatPriceAnnualMonthlyEur) : 0;
+    // Modules optionnels : facturés au tarif unitaire mensuel × quantité, sans
+    // remise annuelle (les add-ons ne bénéficient pas du tarif réduit du pack).
+    const addons = (Object.keys(ADDON_CATALOG) as AddonKey[])
+      .reduce((sum, k) => sum + ADDON_CATALOG[k].unitPriceMonthlyEur * (addonQuantities[k] ?? 0), 0);
+    const monthly = baseMonthlyForCycle + addons;
     return {
       baseMonthly: baseM,
+      baseMonthlyTotal: baseMonthlyForCycle,
+      addonsMonthlyTotal: addons,
       monthlyTotal: monthly,
       annualTotal: monthly * 12,
       annualDiscountTotal: discountPerMonth * 12,
     };
-  }, [plan, billingCycle]);
+  }, [plan, billingCycle, addonQuantities]);
+
+  const toggleAddon = (key: AddonKey) => {
+    setAddonQuantities(prev => ({ ...prev, [key]: prev[key] > 0 ? 0 : 1 }));
+  };
+  const incrementAddon = (key: AddonKey, delta: 1 | -1) => {
+    setAddonQuantities(prev => ({ ...prev, [key]: Math.max(0, (prev[key] ?? 0) + delta) }));
+  };
+  const selectedAddonEntries = (Object.keys(ADDON_CATALOG) as AddonKey[])
+    .map(k => ({ key: k, qty: addonQuantities[k] ?? 0, def: ADDON_CATALOG[k] }))
+    .filter(a => a.qty > 0);
 
   const handleConfirmCheckout = async () => {
     // Utilisateur connecté → on lance directement la session Stripe Checkout.
     // Visiteur → on bascule sur /signup ; SignupPage déclenchera Stripe après création du tenant.
+    // `addons` est transmis tel quel : c'est aujourd'hui une donnée indicative côté
+    // UI (cf. note ADDON_CATALOG). Quand les price_id Stripe des add-ons seront
+    // câblés côté backend, on ajoutera la lecture de ce champ dans /signup et
+    // startStripeCheckout sans changer le contrat front.
     const state = {
       plan: planCode,
       price: monthlyTotal,
       cycle: billingCycle,
       userCount,
+      addons: addonQuantities,
     };
     if (!isAuthenticated) {
       navigate('/signup', { state });
@@ -245,6 +311,139 @@ const PlanConfigurationPage: React.FC = () => {
                 </div>
               </section>
 
+              {/* Section: Modules optionnels.
+                  Présentés ICI (et plus sur la landing) parce que le client vient
+                  de choisir un pack : c'est le moment opportun pour proposer les
+                  add-ons. Toute case cochée recalcule instantanément le total HT
+                  affiché dans le résumé sticky à droite. */}
+              <section>
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                    <Sparkles size={20} />
+                  </div>
+                  <h2 className="text-xl font-black tracking-tight font-headline uppercase">Modules optionnels</h2>
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-outline ml-2">— Ajoutez à votre panier</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* IA Assistant RH — toggle on/off */}
+                  {(() => {
+                    const key: AddonKey = 'aiAssistant';
+                    const a = ADDON_CATALOG[key];
+                    const qty = addonQuantities[key] ?? 0;
+                    const selected = qty > 0;
+                    return (
+                      <div
+                        className={`relative bg-white p-6 rounded-3xl border-2 transition-all cursor-pointer ${
+                          selected ? 'border-primary shadow-lg shadow-primary/10' : 'border-surface-container-high hover:border-primary/40'
+                        }`}
+                        onClick={() => toggleAddon(key)}
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-4">
+                          <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-primary/10 text-primary">
+                            <Sparkles size={22} />
+                          </div>
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all ${
+                              selected ? 'bg-primary border-primary text-white' : 'bg-white border-outline/30'
+                            }`}
+                            aria-label={selected ? 'Sélectionné' : 'Non sélectionné'}
+                          >
+                            {selected && <Check size={16} />}
+                          </div>
+                        </div>
+                        <h3 className="font-black text-lg mb-1 font-headline">{a.displayName}</h3>
+                        <p className="text-sm text-on-surface-variant leading-relaxed mb-4">{a.description}</p>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-black text-primary font-headline">+{formatPrice(a.unitPriceMonthlyEur)} €</span>
+                          <span className="text-xs text-outline font-bold">HT {a.unit}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Stockage supplémentaire — stepper 0..N (tranches de 100 Go) */}
+                  {(() => {
+                    const key: AddonKey = 'extraStorage100Go';
+                    const a = ADDON_CATALOG[key];
+                    const qty = addonQuantities[key] ?? 0;
+                    const selected = qty > 0;
+                    return (
+                      <div
+                        className={`relative bg-white p-6 rounded-3xl border-2 transition-all ${
+                          selected ? 'border-primary shadow-lg shadow-primary/10' : 'border-surface-container-high'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-4">
+                          <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-tertiary/10 text-tertiary">
+                            <HardDrive size={22} />
+                          </div>
+                          {selected && (
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center bg-primary text-white">
+                              <Check size={16} />
+                            </div>
+                          )}
+                        </div>
+                        <h3 className="font-black text-lg mb-1 font-headline">{a.displayName}</h3>
+                        <p className="text-sm text-on-surface-variant leading-relaxed mb-4">{a.description}</p>
+                        <div className="flex items-baseline gap-1 mb-4">
+                          <span className="text-2xl font-black text-primary font-headline">+{formatPrice(a.unitPriceMonthlyEur)} €</span>
+                          <span className="text-xs text-outline font-bold">HT {a.unit}</span>
+                        </div>
+                        {/* Stepper de quantité. Min 0 = retire la ligne du panier ;
+                            pas de cap dur (le client peut acheter autant de tranches qu'il
+                            veut, dans la limite des plafonds Stripe configurés serveur). */}
+                        <div className="flex items-center gap-3 bg-surface-container-low rounded-2xl p-1.5 w-fit">
+                          <button
+                            type="button"
+                            onClick={() => incrementAddon(key, -1)}
+                            disabled={qty <= 0}
+                            className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-primary disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary hover:text-white transition-colors"
+                            aria-label="Retirer une tranche"
+                          >
+                            <Minus size={16} />
+                          </button>
+                          <div className="w-12 text-center font-black text-lg tabular-nums">{qty}</div>
+                          <button
+                            type="button"
+                            onClick={() => incrementAddon(key, +1)}
+                            className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors"
+                            aria-label="Ajouter une tranche"
+                          >
+                            <Plus size={16} />
+                          </button>
+                          <span className="text-xs text-outline font-bold pl-2 pr-3">tranches × 100 Go</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Carte « Sur devis » pour le RAG avancé — non sélectionnable ici
+                    parce que la tarification varie selon le volume documentaire.
+                    Sépare visuellement les modules self-service (au-dessus) du
+                    module qui passe par un contact commercial. */}
+                <div className="mt-6 bg-gradient-to-br from-primary/5 to-tertiary/5 border-2 border-dashed border-primary/20 rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-primary/10 text-primary">
+                      <Sparkles size={22} />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-lg mb-1 font-headline">IA / RAG Avancé</h3>
+                      <p className="text-sm text-on-surface-variant leading-relaxed max-w-xl">
+                        Recherche documentaire intelligente, embeddings vectoriels et analyses avancées sur vos archives. Tarifé selon volume documentaire.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/contact-sales')}
+                    className="whitespace-nowrap px-6 py-3 bg-white border-2 border-primary text-primary rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-primary hover:text-white transition-colors"
+                  >
+                    Demander un devis
+                  </button>
+                </div>
+              </section>
+
               {/* Feature Preview Bento */}
               <section>
                 <div className="bg-primary text-white rounded-3xl p-8 flex flex-col justify-between aspect-[2.4/1] relative overflow-hidden group">
@@ -286,11 +485,11 @@ const PlanConfigurationPage: React.FC = () => {
                 </div>
 
                 {/* Breakdown — formule miroir backend :
-                    flat + max(0, userCount − inclus) × overage. */}
+                    flat + max(0, userCount − inclus) × overage + modules optionnels. */}
                 <div className="space-y-5 mb-10">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-outline font-bold">Forfait {plan.displayName}</span>
-                    <span className="font-black text-on-surface">{formatPrice(plan.flatPriceMonthlyEur)} € / mois</span>
+                    <span className="font-black text-on-surface">{formatPrice(baseMonthlyTotal)} € / mois</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-outline font-bold">Salariés inclus</span>
@@ -311,6 +510,29 @@ const PlanConfigurationPage: React.FC = () => {
                     <span className="text-outline font-bold">Modules inclus</span>
                     <span className="font-black text-on-surface">{plan.moduleCount}</span>
                   </div>
+                  {/* Modules optionnels du panier : une ligne par add-on sélectionné,
+                      avec quantité × tarif unitaire. Si rien n'est coché, rien ne
+                      s'affiche — la section reste discrète tant qu'elle est vide. */}
+                  {selectedAddonEntries.length > 0 && (
+                    <div className="pt-3 border-t border-surface-container-high space-y-3">
+                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Modules optionnels</div>
+                      {selectedAddonEntries.map(({ key, qty, def }) => (
+                        <div key={key} className="flex justify-between items-center text-sm">
+                          <span className="text-on-surface font-bold">
+                            {def.displayName}
+                            {def.hasQuantity && <span className="text-outline font-medium"> · {qty} × 100 Go</span>}
+                          </span>
+                          <span className="font-black text-on-surface">
+                            + {formatPrice(def.unitPriceMonthlyEur * qty)} € / mois
+                          </span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between items-center text-sm pt-1">
+                        <span className="text-outline font-bold">Sous-total modules</span>
+                        <span className="font-black text-primary">+ {formatPrice(addonsMonthlyTotal)} € / mois</span>
+                      </div>
+                    </div>
+                  )}
                   {billingCycle === 'annual' && (
                     <div className="flex justify-between items-center text-sm text-tertiary p-3 bg-tertiary/5 rounded-xl border border-tertiary/10">
                       <span className="font-bold">Remise annuelle</span>

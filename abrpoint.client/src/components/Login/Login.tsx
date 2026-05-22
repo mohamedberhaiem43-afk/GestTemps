@@ -291,11 +291,18 @@ export default function CredentialsSignInPage() {
             <img src="/concorde-wrokly-logo.jpg" alt="Concorde Logo" style={{ width: 140, height: 140, marginBottom: 8, objectFit: 'contain' }} />
           </Box>
 
-          {/* Header */}
+          {/* Header — adapté au contexte : en mode setup (lien d'invitation salarié)
+              on remplace le titre générique « Bon retour » par un wording d'activation
+              centré sur la création du mot de passe initial. Évite de présenter une
+              page Login standard à quelqu'un qui n'a jamais eu de compte actif. */}
           <Box className="login-form-header">
-            <Typography className="login-form-title">{t('login.welcome')}</Typography>
+            <Typography className="login-form-title">
+              {setupMode ? 'Activez votre compte' : t('login.welcome')}
+            </Typography>
             <Typography className="login-form-subtitle">
-              {t('login.subtitle')}
+              {setupMode
+                ? 'Définissez votre mot de passe pour finaliser votre accès Concorde Workforce.'
+                : t('login.subtitle')}
             </Typography>
           </Box>
 
@@ -312,7 +319,14 @@ export default function CredentialsSignInPage() {
 
           {/* Form */}
           <Box className="login-form-fields" onKeyDown={handleKeyDown}>
-            {!requires2FA ? (
+            {/* En mode setup (?setup=1 dans l'URL = lien d'invitation reçu par mail),
+                on N'affiche PAS le formulaire de login standard. L'utilisateur n'a pas
+                encore de mot de passe : lui montrer un champ « mot de passe » vide en
+                haut de la page, puis le forcer à scroller jusqu'au formulaire d'init
+                en bas, est une UX cassée — il croit qu'il doit se connecter alors qu'il
+                doit d'abord créer son mot de passe. On rend donc uniquement la section
+                « définir mon mot de passe » (rendue plus bas dans showForgotPassword). */}
+            {!setupMode && (!requires2FA ? (
               <>
                 {/* Email */}
                 <Box className="login-field-group">
@@ -397,23 +411,26 @@ export default function CredentialsSignInPage() {
                   }}
                 />
               </Box>
+            ))}
+
+            {/* Submit principal — masqué en mode setup : le bouton d'activation se
+                trouve dans la section forgot-password ci-dessous (« Activer mon compte »). */}
+            {!setupMode && (
+              <Button
+                fullWidth
+                onClick={requires2FA ? handleVerify2FA : handleSignIn}
+                disabled={loading || (requires2FA && twoFACode.length !== 6)}
+                className="login-submit-btn"
+                sx={{ color: '#ffffff !important' }}
+                endIcon={loading ? <CircularProgress size={18} sx={{ color: '#ffffff' }} /> : <ArrowForwardIcon sx={{ color: '#ffffff' }} />}
+              >
+                <span style={{ color: '#ffffff' }}>
+                  {loading ? t('login.connecting') : (requires2FA ? t('login.verifyCode') : t('login.signIn'))}
+                </span>
+              </Button>
             )}
 
-            {/* Submit */}
-            <Button
-              fullWidth
-              onClick={requires2FA ? handleVerify2FA : handleSignIn}
-              disabled={loading || (requires2FA && twoFACode.length !== 6)}
-              className="login-submit-btn"
-              sx={{ color: '#ffffff !important' }}
-              endIcon={loading ? <CircularProgress size={18} sx={{ color: '#ffffff' }} /> : <ArrowForwardIcon sx={{ color: '#ffffff' }} />}
-            >
-              <span style={{ color: '#ffffff' }}>
-                {loading ? t('login.connecting') : (requires2FA ? t('login.verifyCode') : t('login.signIn'))}
-              </span>
-            </Button>
-
-            {requires2FA && (
+            {requires2FA && !setupMode && (
               <Button
                 fullWidth
                 onClick={() => {

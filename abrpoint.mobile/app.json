@@ -5,15 +5,15 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "icon": "./assets/icon-padded.png",
+    "icon": "./assets/icon-store.png",
     "splash": {
-      "image": "./assets/concorde-workly-logo.jpg",
+      "image": "./assets/concorde-workly-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#0040a1"
     },
     "android": {
       "package": "com.concorde.workly",
-      "usesCleartextTraffic": true,
+      "usesCleartextTraffic": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-foreground.png",
         "backgroundColor": "#0040a1"
@@ -31,18 +31,24 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.concorde.workly",
       "infoPlist": {
+        "NSFaceIDUsageDescription": "Concorde Workly utilise Face ID pour sécuriser l'accès à vos données RH et déverrouiller l'application rapidement et en toute confidentialité.",
+        "NSCameraUsageDescription": "Concorde Workly accède à l'appareil photo pour vous permettre de photographier vos justificatifs de notes de frais et votre signature.",
+        "NSPhotoLibraryUsageDescription": "Concorde Workly accède à vos photos pour vous permettre d'attacher des justificatifs à vos demandes (frais, autorisations, missions).",
+        "NSPhotoLibraryAddUsageDescription": "Concorde Workly peut enregistrer une copie locale de vos signatures et bulletins téléchargés.",
+        "NSMicrophoneUsageDescription": "Concorde Workly demande l'accès au microphone uniquement si vous enregistrez une note audio dans un justificatif.",
+        "ITSAppUsesNonExemptEncryption": false,
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
           "NSPinnedDomains": {
             "concorde-work-force.com": {
               "NSIncludesSubdomains": true,
               "NSPinnedCAIdentities": [
-                { "SPKI-SHA256-BASE64": "placeholder-isrg-root-x1-run-generate-le-pins-sh" },
-                { "SPKI-SHA256-BASE64": "placeholder-isrg-root-x2-run-generate-le-pins-sh" },
-                { "SPKI-SHA256-BASE64": "placeholder-le-r10-run-generate-le-pins-sh" },
-                { "SPKI-SHA256-BASE64": "placeholder-le-r11-run-generate-le-pins-sh" },
-                { "SPKI-SHA256-BASE64": "placeholder-le-e5-run-generate-le-pins-sh" },
-                { "SPKI-SHA256-BASE64": "placeholder-le-e6-run-generate-le-pins-sh" }
+                { "SPKI-SHA256-BASE64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=" },
+                { "SPKI-SHA256-BASE64": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=" },
+                { "SPKI-SHA256-BASE64": "K7rZOrXHknnsEhUH8nLL4MZkejquUuIvOIr6tCa0rbo=" },
+                { "SPKI-SHA256-BASE64": "bdrBhpj38ffhxpubzkINl0rG+UyossdhcBYj+Zx2fcc=" },
+                { "SPKI-SHA256-BASE64": "NYbU7PBwV4y9J67c4guWTki8FJ+uudrXL0a4V4aRcrg=" },
+                { "SPKI-SHA256-BASE64": "0Bbh/jEZSKymTy3kTOhsmlHKBB32EDu1KojrP3YfV9c=" }
               ]
             }
           }
@@ -66,7 +72,7 @@
         {
           "android": {
             "kotlinVersion": "2.1.0",
-            "usesCleartextTraffic": true
+            "usesCleartextTraffic": false
           }
         }
       ]

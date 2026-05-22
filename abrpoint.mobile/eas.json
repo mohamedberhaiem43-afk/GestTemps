@@ -1,13 +1,31 @@
 {
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
   "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "preview": {
-      "prebuildCommand": "npx expo prebuild --clean --platform android",
+      "distribution": "internal",
+      "channel": "preview",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
-      "prebuildCommand": "npx expo prebuild --clean --platform android"
+      "channel": "production",
+      "autoIncrement": true,
+      "prebuildCommand": "bash scripts/check-pins-filled.sh",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {}
     }
   }
 }
