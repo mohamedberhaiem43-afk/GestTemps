@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, Rocket, CheckCircle2, FileText, Headset, Sparkles, HardDrive, Plus, Minus, Check } from 'lucide-react';
+import { Users, Rocket, CheckCircle2, FileText, Headset, Sparkles, HardDrive, Plus, Minus, Check, Brain, PenTool, Code, GraduationCap } from 'lucide-react';
 import { useAuth } from '../helper/AuthProvider';
 import { startStripeCheckout } from './stripeCheckout';
 import './PricingPage.css';
@@ -51,32 +51,126 @@ const PLAN_CATALOG: Record<PlanKey, {
  * le cas, on passera `addons` dans le `state` envoyé à `/signup`/`startStripeCheckout`
  * pour que le backend les ajoute à la session.
  *
- *   • IA Assistant RH (49 €/mois) — toggle on/off (1 abonnement par tenant).
- *   • Stockage supplémentaire (29 € / 100 Go / mois) — quantité (0..N tranches).
- *   • IA / RAG Avancé — « Sur devis », non sélectionnable, redirige vers contact.
+ * Grille tarifs add-ons 2026-05 (validée commerce) :
+ *   • Assistant RH IA                          — 49 €/mois     (toggle)
+ *   • IA documentaire avancée                  — 149 €/mois    (toggle)
+ *   • Signature électronique avancée           — 19 €/mois     (toggle)
+ *   • API avancée                              — 79 €/mois     (toggle)
+ *   • Support prioritaire étendu               — 49 €/mois     (toggle)
+ *   • Stockage supplémentaire 100 Go           — 29 €/100 Go/mois (stepper, 29→49 € selon volumétrie)
+ *   • Accompagnement onboarding & déploiement  — 89 €/heure HT (stepper, FRAIS PONCTUELS non récurrents)
+ *   • Formation RH & équipes                   — sur devis     (carte info, non sélectionnable)
+ *
+ * `billing` sépare les modules récurrents (qui s'ajoutent au total mensuel/annuel)
+ * des frais ponctuels (qui apparaissent dans une ligne « Frais ponctuels » du
+ * résumé sans gonfler l'abonnement récurrent).
  */
-type AddonKey = 'aiAssistant' | 'extraStorage100Go';
-const ADDON_CATALOG: Record<AddonKey, {
+type AddonKey =
+  | 'aiAssistantRh'
+  | 'iaDocumentaireAvancee'
+  | 'signatureElectronique'
+  | 'apiAvancee'
+  | 'supportPrioritaire'
+  | 'stockage100Go'
+  | 'accompagnementOnboarding';
+type AddonIconName = 'sparkles' | 'brain' | 'pen' | 'code' | 'headset' | 'harddrive' | 'rocket';
+type AddonDef = {
   displayName: string;
   description: string;
-  unitPriceMonthlyEur: number;
-  unit: string;          // suffixe affiché à côté du prix (« / mois », « / 100 Go / mois »)
-  hasQuantity: boolean;  // false = toggle (0 ou 1) ; true = stepper (0..N)
-}> = {
-  aiAssistant: {
-    displayName: 'IA Assistant RH',
-    description: 'Aide à la rédaction, recherche rapide multi-sources, automatisations simples.',
-    unitPriceMonthlyEur: 49,
+  unitPriceEur: number;
+  unit: string;                  // suffixe à côté du prix (« / mois », « / 100 Go / mois », « / heure HT »)
+  billing: 'monthly' | 'oneTime';
+  hasQuantity: boolean;          // false = toggle (0 ou 1) ; true = stepper (0..N)
+  stepperUnitLabel?: string;     // libellé à côté du stepper (« tranches × 100 Go », « heures »)
+  iconName: AddonIconName;
+  accent: 'primary' | 'tertiary';
+};
+const ADDON_CATALOG: Record<AddonKey, AddonDef> = {
+  aiAssistantRh: {
+    displayName: 'Assistant RH IA',
+    description: 'Aide à la rédaction, recherche rapide multi-sources, automatisations simples pour vos équipes RH.',
+    unitPriceEur: 49,
     unit: '/ mois',
+    billing: 'monthly',
     hasQuantity: false,
+    iconName: 'sparkles',
+    accent: 'primary',
   },
-  extraStorage100Go: {
+  iaDocumentaireAvancee: {
+    displayName: 'IA documentaire avancée',
+    description: 'Recherche documentaire intelligente (RAG), embeddings vectoriels, analyse avancée sur vos archives RH.',
+    unitPriceEur: 149,
+    unit: '/ mois',
+    billing: 'monthly',
+    hasQuantity: false,
+    iconName: 'brain',
+    accent: 'primary',
+  },
+  signatureElectronique: {
+    displayName: 'Signature électronique avancée',
+    description: 'Signature qualifiée, parapheur multi-signataires, archivage légal des documents signés (eIDAS).',
+    unitPriceEur: 19,
+    unit: '/ mois',
+    billing: 'monthly',
+    hasQuantity: false,
+    iconName: 'pen',
+    accent: 'tertiary',
+  },
+  apiAvancee: {
+    displayName: 'API avancée',
+    description: 'Accès programmatique étendu pour intégrer Concorde Workforce à votre SIRH, paie ou ERP existant.',
+    unitPriceEur: 79,
+    unit: '/ mois',
+    billing: 'monthly',
+    hasQuantity: false,
+    iconName: 'code',
+    accent: 'primary',
+  },
+  supportPrioritaire: {
+    displayName: 'Support prioritaire étendu',
+    description: 'Réponse garantie sous 2 h ouvrées, hotline téléphonique dédiée, account manager attribué.',
+    unitPriceEur: 49,
+    unit: '/ mois',
+    billing: 'monthly',
+    hasQuantity: false,
+    iconName: 'headset',
+    accent: 'tertiary',
+  },
+  stockage100Go: {
     displayName: 'Stockage supplémentaire',
-    description: 'Tranche de 100 Go pour coffre numérique, documents salariés, archives — au-delà du quota inclus.',
-    unitPriceMonthlyEur: 29,
+    description: 'Tranche de 100 Go pour coffre numérique, documents salariés, archives — au-delà du quota inclus. À partir de 29 € (jusqu\'à 49 € selon volumétrie totale).',
+    unitPriceEur: 29,
     unit: '/ 100 Go / mois',
+    billing: 'monthly',
     hasQuantity: true,
+    stepperUnitLabel: 'tranches × 100 Go',
+    iconName: 'harddrive',
+    accent: 'tertiary',
   },
+  accompagnementOnboarding: {
+    displayName: 'Accompagnement onboarding & déploiement',
+    description: 'Sessions avec un expert produit : paramétrage, import des données, formation des admins. Frais ponctuels — facturés à l\'heure, non récurrents.',
+    unitPriceEur: 89,
+    unit: '/ heure HT',
+    billing: 'oneTime',
+    hasQuantity: true,
+    stepperUnitLabel: 'heures',
+    iconName: 'rocket',
+    accent: 'primary',
+  },
+};
+
+/** Mapping clé→composant lucide pour rendre l'icône d'une carte add-on. */
+const AddonIcon: React.FC<{ name: AddonIconName; size?: number }> = ({ name, size = 22 }) => {
+  switch (name) {
+    case 'sparkles':  return <Sparkles size={size} />;
+    case 'brain':     return <Brain size={size} />;
+    case 'pen':       return <PenTool size={size} />;
+    case 'code':      return <Code size={size} />;
+    case 'headset':   return <Headset size={size} />;
+    case 'harddrive': return <HardDrive size={size} />;
+    case 'rocket':    return <Rocket size={size} />;
+  }
 };
 
 const PlanConfigurationPage: React.FC = () => {
@@ -118,12 +212,17 @@ const PlanConfigurationPage: React.FC = () => {
     return Math.min(requested, plan.includedEmployees);
   });
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialState.cycle ?? cycleFromUrl ?? 'annual');
-  // Quantité par module : 0 = non sélectionné. Pour aiAssistant on borne à {0,1}
-  // (toggle) ; pour extraStorage100Go la quantité est un entier ≥ 0 (chaque unité
-  // ajoute une tranche de 100 Go). Le panier est plein si tout est à 0.
+  // Quantité par module : 0 = non sélectionné. Pour les modules « toggle » on borne
+  // à {0,1} ; pour les modules « stepper » (stockage, accompagnement) la quantité
+  // est un entier ≥ 0. Panier vide = tout à 0.
   const [addonQuantities, setAddonQuantities] = useState<Record<AddonKey, number>>({
-    aiAssistant: 0,
-    extraStorage100Go: 0,
+    aiAssistantRh: 0,
+    iaDocumentaireAvancee: 0,
+    signatureElectronique: 0,
+    apiAvancee: 0,
+    supportPrioritaire: 0,
+    stockage100Go: 0,
+    accompagnementOnboarding: 0,
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,19 +238,35 @@ const PlanConfigurationPage: React.FC = () => {
   // ~45 % Business), donc on ne dérive plus l'annuel via un coefficient global.
   // En cycle annuel, on affiche aussi le total annuel (mensuel × 12) et la remise
   // annuelle totale (vs tarif mensuel sans engagement × 12).
-  const { baseMonthly, baseMonthlyTotal, addonsMonthlyTotal, monthlyTotal, annualTotal, annualDiscountTotal } = useMemo(() => {
+  const {
+    baseMonthly, baseMonthlyTotal,
+    addonsMonthlyTotal, addonsOneTimeTotal,
+    monthlyTotal, annualTotal, annualDiscountTotal,
+  } = useMemo(() => {
     const baseM = plan.flatPriceMonthlyEur;
     const baseMonthlyForCycle = billingCycle === 'annual' ? plan.flatPriceAnnualMonthlyEur : baseM;
     const discountPerMonth = billingCycle === 'annual' ? Math.max(0, baseM - plan.flatPriceAnnualMonthlyEur) : 0;
-    // Modules optionnels : facturés au tarif unitaire mensuel × quantité, sans
-    // remise annuelle (les add-ons ne bénéficient pas du tarif réduit du pack).
-    const addons = (Object.keys(ADDON_CATALOG) as AddonKey[])
-      .reduce((sum, k) => sum + ADDON_CATALOG[k].unitPriceMonthlyEur * (addonQuantities[k] ?? 0), 0);
-    const monthly = baseMonthlyForCycle + addons;
+    // Modules récurrents (billing='monthly') : tarif unitaire × quantité, ajoutés
+    // au total mensuel/annuel. Sans remise annuelle (les add-ons ne bénéficient
+    // pas du tarif réduit du pack).
+    // Modules ponctuels (billing='oneTime', ex: accompagnement à l'heure) :
+    // facturés une seule fois à la souscription ; affichés séparément dans le
+    // résumé et N'ENTRENT PAS dans le total récurrent.
+    let monthlyAddons = 0;
+    let oneTimeAddons = 0;
+    (Object.keys(ADDON_CATALOG) as AddonKey[]).forEach((k) => {
+      const def = ADDON_CATALOG[k];
+      const qty = addonQuantities[k] ?? 0;
+      if (qty <= 0) return;
+      if (def.billing === 'monthly') monthlyAddons += def.unitPriceEur * qty;
+      else                            oneTimeAddons += def.unitPriceEur * qty;
+    });
+    const monthly = baseMonthlyForCycle + monthlyAddons;
     return {
       baseMonthly: baseM,
       baseMonthlyTotal: baseMonthlyForCycle,
-      addonsMonthlyTotal: addons,
+      addonsMonthlyTotal: monthlyAddons,
+      addonsOneTimeTotal: oneTimeAddons,
       monthlyTotal: monthly,
       annualTotal: monthly * 12,
       annualDiscountTotal: discountPerMonth * 12,
@@ -324,113 +439,111 @@ const PlanConfigurationPage: React.FC = () => {
                   <h2 className="text-xl font-black tracking-tight font-headline uppercase">Modules optionnels</h2>
                   <span className="text-[11px] font-bold uppercase tracking-widest text-outline ml-2">— Ajoutez à votre panier</span>
                 </div>
+                {/* Grille uniforme des modules sélectionnables. Le rendu choisit
+                    entre toggle (clic sur la carte) et stepper (Plus/Minus) en
+                    fonction du flag `hasQuantity` du module. Ordre = ordre de
+                    déclaration dans ADDON_CATALOG (le commerce a choisi cet ordre
+                    pour optimiser l'attention : IA d'abord, infrastructure ensuite,
+                    services humains en dernier). */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* IA Assistant RH — toggle on/off */}
-                  {(() => {
-                    const key: AddonKey = 'aiAssistant';
+                  {(Object.keys(ADDON_CATALOG) as AddonKey[]).map((key) => {
                     const a = ADDON_CATALOG[key];
                     const qty = addonQuantities[key] ?? 0;
                     const selected = qty > 0;
+                    const accentBg = a.accent === 'primary' ? 'bg-primary/10 text-primary' : 'bg-tertiary/10 text-tertiary';
+                    const oneTimeBadge = a.billing === 'oneTime' ? (
+                      <span className="inline-block ml-2 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 align-middle">
+                        Frais ponctuels
+                      </span>
+                    ) : null;
                     return (
                       <div
-                        className={`relative bg-white p-6 rounded-3xl border-2 transition-all cursor-pointer ${
+                        key={key}
+                        className={`relative bg-white p-6 rounded-3xl border-2 transition-all ${
+                          a.hasQuantity ? '' : 'cursor-pointer'
+                        } ${
                           selected ? 'border-primary shadow-lg shadow-primary/10' : 'border-surface-container-high hover:border-primary/40'
                         }`}
-                        onClick={() => toggleAddon(key)}
+                        onClick={a.hasQuantity ? undefined : () => toggleAddon(key)}
                       >
                         <div className="flex items-start justify-between gap-4 mb-4">
-                          <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-primary/10 text-primary">
-                            <Sparkles size={22} />
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${accentBg}`}>
+                            <AddonIcon name={a.iconName} />
                           </div>
-                          <div
-                            className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all ${
-                              selected ? 'bg-primary border-primary text-white' : 'bg-white border-outline/30'
-                            }`}
-                            aria-label={selected ? 'Sélectionné' : 'Non sélectionné'}
-                          >
-                            {selected && <Check size={16} />}
-                          </div>
-                        </div>
-                        <h3 className="font-black text-lg mb-1 font-headline">{a.displayName}</h3>
-                        <p className="text-sm text-on-surface-variant leading-relaxed mb-4">{a.description}</p>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-black text-primary font-headline">+{formatPrice(a.unitPriceMonthlyEur)} €</span>
-                          <span className="text-xs text-outline font-bold">HT {a.unit}</span>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Stockage supplémentaire — stepper 0..N (tranches de 100 Go) */}
-                  {(() => {
-                    const key: AddonKey = 'extraStorage100Go';
-                    const a = ADDON_CATALOG[key];
-                    const qty = addonQuantities[key] ?? 0;
-                    const selected = qty > 0;
-                    return (
-                      <div
-                        className={`relative bg-white p-6 rounded-3xl border-2 transition-all ${
-                          selected ? 'border-primary shadow-lg shadow-primary/10' : 'border-surface-container-high'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-4 mb-4">
-                          <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-tertiary/10 text-tertiary">
-                            <HardDrive size={22} />
-                          </div>
-                          {selected && (
-                            <div className="w-7 h-7 rounded-full flex items-center justify-center bg-primary text-white">
-                              <Check size={16} />
+                          {/* Indicateur de sélection : pastille check pour toggle,
+                              juste un check si stepper > 0. */}
+                          {a.hasQuantity ? (
+                            selected && (
+                              <div className="w-7 h-7 rounded-full flex items-center justify-center bg-primary text-white">
+                                <Check size={16} />
+                              </div>
+                            )
+                          ) : (
+                            <div
+                              className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all ${
+                                selected ? 'bg-primary border-primary text-white' : 'bg-white border-outline/30'
+                              }`}
+                              aria-label={selected ? 'Sélectionné' : 'Non sélectionné'}
+                            >
+                              {selected && <Check size={16} />}
                             </div>
                           )}
                         </div>
-                        <h3 className="font-black text-lg mb-1 font-headline">{a.displayName}</h3>
+                        <h3 className="font-black text-lg mb-1 font-headline">
+                          {a.displayName}{oneTimeBadge}
+                        </h3>
                         <p className="text-sm text-on-surface-variant leading-relaxed mb-4">{a.description}</p>
                         <div className="flex items-baseline gap-1 mb-4">
-                          <span className="text-2xl font-black text-primary font-headline">+{formatPrice(a.unitPriceMonthlyEur)} €</span>
+                          <span className="text-2xl font-black text-primary font-headline">+{formatPrice(a.unitPriceEur)} €</span>
                           <span className="text-xs text-outline font-bold">HT {a.unit}</span>
                         </div>
-                        {/* Stepper de quantité. Min 0 = retire la ligne du panier ;
-                            pas de cap dur (le client peut acheter autant de tranches qu'il
-                            veut, dans la limite des plafonds Stripe configurés serveur). */}
-                        <div className="flex items-center gap-3 bg-surface-container-low rounded-2xl p-1.5 w-fit">
-                          <button
-                            type="button"
-                            onClick={() => incrementAddon(key, -1)}
-                            disabled={qty <= 0}
-                            className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-primary disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary hover:text-white transition-colors"
-                            aria-label="Retirer une tranche"
+                        {/* Stepper de quantité (modules `hasQuantity`). On STOPPE
+                            la propagation pour ne pas re-toggler la carte au clic. */}
+                        {a.hasQuantity && (
+                          <div
+                            className="flex items-center gap-3 bg-surface-container-low rounded-2xl p-1.5 w-fit"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <Minus size={16} />
-                          </button>
-                          <div className="w-12 text-center font-black text-lg tabular-nums">{qty}</div>
-                          <button
-                            type="button"
-                            onClick={() => incrementAddon(key, +1)}
-                            className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors"
-                            aria-label="Ajouter une tranche"
-                          >
-                            <Plus size={16} />
-                          </button>
-                          <span className="text-xs text-outline font-bold pl-2 pr-3">tranches × 100 Go</span>
-                        </div>
+                            <button
+                              type="button"
+                              onClick={() => incrementAddon(key, -1)}
+                              disabled={qty <= 0}
+                              className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-primary disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary hover:text-white transition-colors"
+                              aria-label="Retirer une unité"
+                            >
+                              <Minus size={16} />
+                            </button>
+                            <div className="w-12 text-center font-black text-lg tabular-nums">{qty}</div>
+                            <button
+                              type="button"
+                              onClick={() => incrementAddon(key, +1)}
+                              className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors"
+                              aria-label="Ajouter une unité"
+                            >
+                              <Plus size={16} />
+                            </button>
+                            {a.stepperUnitLabel && (
+                              <span className="text-xs text-outline font-bold pl-2 pr-3">{a.stepperUnitLabel}</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
-                  })()}
+                  })}
                 </div>
 
-                {/* Carte « Sur devis » pour le RAG avancé — non sélectionnable ici
-                    parce que la tarification varie selon le volume documentaire.
-                    Sépare visuellement les modules self-service (au-dessus) du
-                    module qui passe par un contact commercial. */}
+                {/* Carte « Sur devis » pour la Formation RH & équipes — non
+                    sélectionnable parce que le périmètre (durée, formats,
+                    nombre de participants) est défini avec le commerce. */}
                 <div className="mt-6 bg-gradient-to-br from-primary/5 to-tertiary/5 border-2 border-dashed border-primary/20 rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-primary/10 text-primary">
-                      <Sparkles size={22} />
+                      <GraduationCap size={22} />
                     </div>
                     <div>
-                      <h3 className="font-black text-lg mb-1 font-headline">IA / RAG Avancé</h3>
+                      <h3 className="font-black text-lg mb-1 font-headline">Formation RH &amp; équipes</h3>
                       <p className="text-sm text-on-surface-variant leading-relaxed max-w-xl">
-                        Recherche documentaire intelligente, embeddings vectoriels et analyses avancées sur vos archives. Tarifé selon volume documentaire.
+                        Programmes sur mesure pour vos administrateurs et managers : prise en main, processus avancés, formation des nouveaux arrivants. Périmètre et tarif définis avec notre équipe.
                       </p>
                     </div>
                   </div>
@@ -510,26 +623,54 @@ const PlanConfigurationPage: React.FC = () => {
                     <span className="text-outline font-bold">Modules inclus</span>
                     <span className="font-black text-on-surface">{plan.moduleCount}</span>
                   </div>
-                  {/* Modules optionnels du panier : une ligne par add-on sélectionné,
-                      avec quantité × tarif unitaire. Si rien n'est coché, rien ne
-                      s'affiche — la section reste discrète tant qu'elle est vide. */}
-                  {selectedAddonEntries.length > 0 && (
+                  {/* Modules récurrents du panier (billing='monthly'). Une ligne
+                      par add-on sélectionné, avec qté × tarif unitaire. Si vide,
+                      la section ne s'affiche pas — elle reste discrète. */}
+                  {selectedAddonEntries.filter(a => a.def.billing === 'monthly').length > 0 && (
                     <div className="pt-3 border-t border-surface-container-high space-y-3">
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Modules optionnels</div>
-                      {selectedAddonEntries.map(({ key, qty, def }) => (
+                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Modules optionnels (récurrents)</div>
+                      {selectedAddonEntries.filter(a => a.def.billing === 'monthly').map(({ key, qty, def }) => (
                         <div key={key} className="flex justify-between items-center text-sm">
                           <span className="text-on-surface font-bold">
                             {def.displayName}
-                            {def.hasQuantity && <span className="text-outline font-medium"> · {qty} × 100 Go</span>}
+                            {def.hasQuantity && (
+                              <span className="text-outline font-medium"> · {qty} {def.stepperUnitLabel ?? ''}</span>
+                            )}
                           </span>
                           <span className="font-black text-on-surface">
-                            + {formatPrice(def.unitPriceMonthlyEur * qty)} € / mois
+                            + {formatPrice(def.unitPriceEur * qty)} € / mois
                           </span>
                         </div>
                       ))}
                       <div className="flex justify-between items-center text-sm pt-1">
                         <span className="text-outline font-bold">Sous-total modules</span>
                         <span className="font-black text-primary">+ {formatPrice(addonsMonthlyTotal)} € / mois</span>
+                      </div>
+                    </div>
+                  )}
+                  {/* Frais ponctuels (billing='oneTime', ex: accompagnement à
+                      l'heure). N'entrent pas dans le total récurrent — facturés
+                      en une fois à la souscription, affichés séparément pour
+                      transparence. */}
+                  {selectedAddonEntries.filter(a => a.def.billing === 'oneTime').length > 0 && (
+                    <div className="pt-3 border-t border-surface-container-high space-y-3">
+                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Frais ponctuels (facturés une seule fois)</div>
+                      {selectedAddonEntries.filter(a => a.def.billing === 'oneTime').map(({ key, qty, def }) => (
+                        <div key={key} className="flex justify-between items-center text-sm">
+                          <span className="text-on-surface font-bold">
+                            {def.displayName}
+                            {def.hasQuantity && (
+                              <span className="text-outline font-medium"> · {qty} {def.stepperUnitLabel ?? ''}</span>
+                            )}
+                          </span>
+                          <span className="font-black text-on-surface">
+                            + {formatPrice(def.unitPriceEur * qty)} € HT
+                          </span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between items-center text-sm pt-1">
+                        <span className="text-outline font-bold">Sous-total ponctuel</span>
+                        <span className="font-black text-amber-700">+ {formatPrice(addonsOneTimeTotal)} € HT</span>
                       </div>
                     </div>
                   )}
@@ -558,6 +699,19 @@ const PlanConfigurationPage: React.FC = () => {
                       )}
                     </div>
                   </div>
+                  {/* Rappel des frais ponctuels juste sous le total récurrent —
+                      le client comprend ainsi que le « Total / an » N'INCLUT PAS
+                      ces frais (facturés en une seule fois à la souscription). */}
+                  {addonsOneTimeTotal > 0 && (
+                    <div className="mt-2 flex justify-between items-baseline px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
+                      <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider">
+                        + Frais ponctuels (1×)
+                      </span>
+                      <span className="text-base font-black text-amber-800">
+                        {formatPrice(addonsOneTimeTotal)} € HT
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}

@@ -338,6 +338,17 @@ const PricingPage: React.FC = () => {
                     <span className="text-xs text-on-surface-variant mt-0.5">
                       Tarif mensuel standard
                     </span>
+                    {/* Total annuel explicite = tarif annuel par mois × 12.
+                        Évite l'ambiguïté du « 119 €/mois en abonnement annuel » qui peut
+                        laisser penser à une facturation mensuelle. Aucun % de remise dérivé :
+                        les deux nombres (mensuel/an et mensuel pur) sont indépendants. */}
+                    <span className="mt-2 text-sm font-extrabold text-primary"
+                          style={isPremium ? { color: '#92670a' } : undefined}>
+                      Total annuel : {formatPrice(plan.price * 12)} € HT
+                      <span className="ml-1.5 text-[11px] font-medium text-on-surface-variant">
+                        (soit {formatPrice(plan.price)} € × 12 mois)
+                      </span>
+                    </span>
                   </div>
                 )}
                 {/* L'ancien résumé « X inclus · +Y / sup. · cap Z » est désormais
@@ -383,13 +394,23 @@ const PricingPage: React.FC = () => {
                       <div className="text-base font-bold text-primary mt-1">{ex.value}</div>
                     </div>
                   ))}
-                  {/* Limites du pack */}
+                  {/* Limites du pack — formulation commerciale : phrase d'intro qui
+                      présente les plafonds comme une marge de croissance plutôt que
+                      comme un seuil bloquant. Au-delà du plafond, le client passe
+                      au pack supérieur sans rupture de service. */}
                   {((plan as any).limits as string[] | undefined)?.length ? (
                     <div className="mt-5 mb-5">
-                      <h4 className="text-sm font-extrabold text-on-surface mb-3 uppercase tracking-wider">
-                        Limites du pack :
+                      <h4 className="text-sm font-extrabold text-on-surface mb-2 uppercase tracking-wider">
+                        🎯 Limites du pack :
                       </h4>
-                      <ul className="space-y-2 list-disc list-inside marker:text-on-surface-variant">
+                      <p className="text-xs text-on-surface-variant italic mb-3">
+                        {plan.name === 'Starter'
+                          ? 'Une marge confortable pour accompagner vos premiers pas :'
+                          : plan.name === 'Standard'
+                            ? 'Dimensionné pour accompagner votre montée en charge :'
+                            : 'Une capacité haut volume pour les grandes structures :'}
+                      </p>
+                      <ul className="space-y-2 list-disc list-inside marker:text-primary">
                         {((plan as any).limits as string[]).map((lim, lIdx) => (
                           <li key={lIdx} className="text-sm text-on-surface font-semibold">
                             {lim}
@@ -464,6 +485,39 @@ const PricingPage: React.FC = () => {
             </div>
             );
           })}
+        </div>
+
+        {/* Informations commerciales — bloc légal/marketing en petite typographie
+            sous les packs. Précise les paramètres qui peuvent faire évoluer le
+            tarif final (volume, modules, IA, accompagnement). Réduit le risque
+            de litige post-souscription et formalise la nature de l'écart entre
+            tarif mensuel et tarif annuel. */}
+        <div className="mt-12 max-w-3xl mx-auto bg-surface-container-low border border-surface-container-high rounded-2xl px-6 py-5 text-xs leading-relaxed text-on-surface-variant">
+          <div className="text-[10px] font-black uppercase tracking-[0.12em] text-primary mb-3">
+            Informations commerciales
+          </div>
+          <div className="font-semibold text-on-surface mb-2">
+            Conditions tarifaires susceptibles d'évoluer selon :
+          </div>
+          <ul className="list-disc list-inside space-y-0.5 mb-3 marker:text-on-surface-variant">
+            <li>les fonctionnalités activées ;</li>
+            <li>le volume d'utilisation ;</li>
+            <li>le nombre d'utilisateurs ;</li>
+            <li>les modules complémentaires ;</li>
+            <li>les besoins de stockage ;</li>
+            <li>et les futures évolutions de la plateforme.</li>
+          </ul>
+          <p className="mb-1.5">
+            Les abonnements <strong>annuels</strong> bénéficient de conditions tarifaires préférentielles.
+            Les abonnements <strong>mensuels</strong> restent disponibles aux tarifs standards affichés.
+          </p>
+          <p className="mb-1.5">
+            Les fonctionnalités <strong>IA avancées</strong> peuvent nécessiter l'activation de modules
+            ou options complémentaires selon les usages et la volumétrie.
+          </p>
+          <p className="mb-0">
+            <strong>Déploiement et accompagnement</strong> possibles selon les besoins du client.
+          </p>
         </div>
       </main>
 

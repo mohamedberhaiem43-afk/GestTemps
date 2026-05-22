@@ -123,7 +123,7 @@ export default function HomePage() {
   // Sous-libellé indiquant l'engagement (« sans engagement » vs « facturé annuellement »).
   // En cycle annuel on n'affiche AUCUN pourcentage de remise : les tarifs annuel et
   // mensuel sont fixés indépendamment, le tarif annuel n'est pas un % du tarif mensuel.
-  const priceCommitmentLabel = monthly ? 'Sans engagement · tarif mensuel' : 'Engagement annuel · facturation unique';
+  const priceCommitmentLabel = monthly ? 'Sans engagement · tarif mensuel' : 'tarif annuel · facturation unique';
 
   // Smooth-scroll vers la section "Rejoindre Concorde Workforce" : nav header
   // + CTAs hero/promo cliquent ici plutôt que de partir vers /signup ou /login.
@@ -627,11 +627,47 @@ export default function HomePage() {
                 <span style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                   Tarif mensuel standard
                 </span>
+                {/* Total annuel = tarif annuel par mois × 12 (aucune remise % dérivée).
+                    Affiché explicitement pour que le visiteur voie le montant exact
+                    qui sera prélevé en une fois sur sa carte au paiement annuel. */}
+                <span style={{ fontSize: 14, fontWeight: 800, color: '#0040a1', marginTop: 8 }}>
+                  Total annuel : {formatPrice(annualMonthly.starter * 12)} € HT
+                  <span style={{ fontSize: 11, fontWeight: 500, color: '#64748b', marginLeft: 6 }}>
+                    (soit {formatPrice(annualMonthly.starter)} € × 12 mois)
+                  </span>
+                </span>
               </div>
             )}
             <div className="price-included" style={{ marginTop: 14 }}>10 collaborateurs inclus · 10 Go de stockage</div>
-            <div className="price-per">+ 4,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · jusqu'à 25 max · {priceCommitmentLabel}</div>
+            <div className="price-per">+ 4,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · {priceCommitmentLabel}</div>
             <div className="price-desc">Pour les TPE et startups qui démarrent la digitalisation RH d'une petite équipe.</div>
+            {/* Limites du pack — formulation commerciale : on présente les plafonds
+                comme une « marge confortable pour votre croissance » plutôt que comme
+                un seuil bloquant. Au-delà, le client passe au pack supérieur sans
+                rupture de service ni perte de données. */}
+            <div style={{
+              marginTop: 14, padding: '12px 14px',
+              background: '#f8fafc', borderRadius: 12,
+              border: '1px solid #e2e8f0',
+            }}>
+              <div style={{
+                fontSize: 11, fontWeight: 800, color: '#0040a1',
+                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
+              }}>
+                🎯 Limites du pack
+              </div>
+              <div style={{ fontSize: 12, color: '#475569', fontStyle: 'italic', marginBottom: 6 }}>
+                Une marge confortable pour accompagner vos premiers pas :
+              </div>
+              <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600, marginBottom: 3 }}>
+                <span style={{ color: '#0040a1', fontWeight: 800, marginRight: 4 }}>↗</span>
+                Évoluez jusqu'à <strong>25 salariés maximum</strong>
+              </div>
+              <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600 }}>
+                <span style={{ color: '#0040a1', fontWeight: 800, marginRight: 4 }}>🗄</span>
+                Stockage sécurisé jusqu'à <strong>50 Go maximum</strong>
+              </div>
+            </div>
             <div className="price-features">
               {(() => {
                 const features = [
@@ -692,11 +728,41 @@ export default function HomePage() {
                 <span style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                   Tarif mensuel standard
                 </span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: '#0040a1', marginTop: 8 }}>
+                  Total annuel : {formatPrice(annualMonthly.standard * 12)} € HT
+                  <span style={{ fontSize: 11, fontWeight: 500, color: '#64748b', marginLeft: 6 }}>
+                    (soit {formatPrice(annualMonthly.standard)} € × 12 mois)
+                  </span>
+                </span>
               </div>
             )}
             <div className="price-included" style={{ marginTop: 14 }}>25 collaborateurs inclus · 50 Go de stockage</div>
-            <div className="price-per">+ 6,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · jusqu'à 100 max · {priceCommitmentLabel}</div>
-            <div className="price-desc">Suite complète mobile + paie pour les PME en croissance et équipes structurées.</div>
+            <div className="price-per">+ 6,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · {priceCommitmentLabel}</div>
+            <div className="price-desc">Suite complète mobile pour les PME en croissance et équipes structurées.</div>
+            {/* Limites du pack — voir note Starter. */}
+            <div style={{
+              marginTop: 14, padding: '12px 14px',
+              background: '#f8fafc', borderRadius: 12,
+              border: '1px solid #e2e8f0',
+            }}>
+              <div style={{
+                fontSize: 11, fontWeight: 800, color: '#0040a1',
+                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
+              }}>
+                🎯 Limites du pack
+              </div>
+              <div style={{ fontSize: 12, color: '#475569', fontStyle: 'italic', marginBottom: 6 }}>
+                Dimensionné pour accompagner votre montée en charge :
+              </div>
+              <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600, marginBottom: 3 }}>
+                <span style={{ color: '#0040a1', fontWeight: 800, marginRight: 4 }}>↗</span>
+                Évoluez jusqu'à <strong>100 salariés maximum</strong>
+              </div>
+              <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600 }}>
+                <span style={{ color: '#0040a1', fontWeight: 800, marginRight: 4 }}>🗄</span>
+                Stockage sécurisé jusqu'à <strong>300 Go maximum</strong>
+              </div>
+            </div>
             <div className="price-features">
               {(() => {
                 const features = [
@@ -710,7 +776,7 @@ export default function HomePage() {
                   'Notifications push / email · Reporting avancé',
                   '50 Go stockage sécurisé · Hébergement France OVH',
                   '3 administrateurs · Support prioritaire',
-                  'Idéal : PME en croissance · équipes mobiles · paie + RH structurés',
+                  'Idéal : PME en croissance. Equipes terrain · structures multi-sites . Gestion RH centralisée',
                 ];
                 const expanded = expandedPacks.standard;
                 const visible = expanded ? features : features.slice(0, KEY_FEATURE_LIMIT);
@@ -775,11 +841,41 @@ export default function HomePage() {
                 <span style={{ fontSize: 12, color: '#a08a52', marginTop: 2 }}>
                   Tarif mensuel standard
                 </span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: '#92670a', marginTop: 8 }}>
+                  Total annuel : {formatPrice(annualMonthly.premium * 12)} € HT
+                  <span style={{ fontSize: 11, fontWeight: 500, color: '#a08a52', marginLeft: 6 }}>
+                    (soit {formatPrice(annualMonthly.premium)} € × 12 mois)
+                  </span>
+                </span>
               </div>
             )}
             <div className="price-included" style={{ marginTop: 14 }}>50 collaborateurs inclus · 200 Go de stockage</div>
-            <div className="price-per">+ 9,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · jusqu'à 250 max · {priceCommitmentLabel}</div>
+            <div className="price-per">+ 9,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · {priceCommitmentLabel}</div>
             <div className="price-desc">Multi-filiales, IA contextuelle et sécurité renforcée pour les grandes structures.</div>
+            {/* Limites du pack — accent or pour rester cohérent avec l'identité Business. */}
+            <div style={{
+              marginTop: 14, padding: '12px 14px',
+              background: 'rgba(212,175,55,0.06)', borderRadius: 12,
+              border: '1px solid rgba(212,175,55,0.35)',
+            }}>
+              <div style={{
+                fontSize: 11, fontWeight: 800, color: '#b8860b',
+                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
+              }}>
+                🎯 Limites du pack
+              </div>
+              <div style={{ fontSize: 12, color: '#5a4a1f', fontStyle: 'italic', marginBottom: 6 }}>
+                Une capacité haut volume pour les grandes structures :
+              </div>
+              <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600, marginBottom: 3 }}>
+                <span style={{ color: '#b8860b', fontWeight: 800, marginRight: 4 }}>↗</span>
+                Évoluez jusqu'à <strong>250 salariés maximum</strong>
+              </div>
+              <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600 }}>
+                <span style={{ color: '#b8860b', fontWeight: 800, marginRight: 4 }}>🗄</span>
+                Stockage sécurisé jusqu'à <strong>2 To maximum</strong>
+              </div>
+            </div>
             <div className="price-features">
               {(() => {
                 const features = [
@@ -787,14 +883,14 @@ export default function HomePage() {
                   'Tout le pack Standard',
                   'Multi-filiales illimité · dashboards avancés',
                   'Assistant IA contextuel (RAG)',
-                  'Sécurité mobile renforcée · device trust',
-                  'Audit logs avancés · branding personnalisé',
-                  'Screenshot blocking · cert pinning',
+                  'Sécurité renforcée',
+                  'Audit logs avancés',
+                  'Supervision avancée',
                   '200 Go stockage sécurisé · Hébergement France OVH',
                   'Administrateurs illimités · Onboarding accompagné',
-                  'Conformité RGPD avancée · SLA premium',
-                  'Futures intégrations SSO / API',
-                  'Idéal : grandes structures · multi-filiales · conformité & sécurité avancées',
+                  'SLA prioritaire',
+                  'API & futures intégrations',
+                  'Idéal : PME structurées · groupes multi-sites · conformité & sécurité avancées . organisations en croissance',
                 ];
                 const expanded = expandedPacks.premium;
                 const visible = expanded ? features : features.slice(0, KEY_FEATURE_LIMIT);
@@ -832,6 +928,54 @@ export default function HomePage() {
         </div>
         <div className="pricing-footnote">
           Sans engagement de durée · TVA en sus · Facturation Stripe sécurisée
+        </div>
+
+        {/* Informations commerciales — bloc légal/marketing en petite typographie
+            sous les packs. Précise les paramètres qui peuvent faire évoluer le
+            tarif final (volume, modules, IA, accompagnement). Réduit le risque
+            de litige post-souscription et formalise les conditions de remise
+            annuelle (différence avec le tarif mensuel standard). */}
+        <div style={{
+          marginTop: 24,
+          maxWidth: 900,
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          padding: '18px 22px',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: 14,
+          fontSize: 12,
+          lineHeight: 1.6,
+          color: '#475569',
+        }}>
+          <div style={{
+            fontSize: 10, fontWeight: 800, color: '#0040a1',
+            textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10,
+          }}>
+            Informations commerciales
+          </div>
+          <div style={{ marginBottom: 8, fontWeight: 600, color: '#334155' }}>
+            Conditions tarifaires susceptibles d'évoluer selon :
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 18, marginBottom: 12 }}>
+            <li>les fonctionnalités activées ;</li>
+            <li>le volume d'utilisation ;</li>
+            <li>le nombre d'utilisateurs ;</li>
+            <li>les modules complémentaires ;</li>
+            <li>les besoins de stockage ;</li>
+            <li>et les futures évolutions de la plateforme.</li>
+          </ul>
+          <p style={{ margin: '0 0 6px 0' }}>
+            Les abonnements <strong>annuels</strong> bénéficient de conditions tarifaires préférentielles.
+            Les abonnements <strong>mensuels</strong> restent disponibles aux tarifs standards affichés.
+          </p>
+          <p style={{ margin: '0 0 6px 0' }}>
+            Les fonctionnalités <strong>IA avancées</strong> peuvent nécessiter l'activation de modules
+            ou options complémentaires selon les usages et la volumétrie.
+          </p>
+          <p style={{ margin: 0 }}>
+            <strong>Déploiement et accompagnement</strong> possibles selon les besoins du client.
+          </p>
         </div>
 
         {/* Modules optionnels : retirés de la landing 2026-05-22.
