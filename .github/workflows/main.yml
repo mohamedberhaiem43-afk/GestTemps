@@ -19,20 +19,49 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # Pre-pull MCR base images with retry to absorb transient 403s from
+      # mcr.microsoft.com on GitHub-hosted runners (shared egress IPs are
+      # occasionally throttled). Once cached locally, the subsequent docker
+      # build resolves them without re-fetching the manifest.
+      - name: Warm MCR base images
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 5
+          retry_wait_seconds: 30
+          command: |
+            docker pull mcr.microsoft.com/dotnet/sdk:8.0
+            docker pull mcr.microsoft.com/dotnet/aspnet:8.0
+
       - name: Build and Push Server Image
-        run: |
-          docker build --no-cache -t ${{ secrets.DOCKER_USERNAME }}/abrpoint-server:latest -f Dockerfile.server .
-          docker push ${{ secrets.DOCKER_USERNAME }}/abrpoint-server:latest
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            docker build -t ${{ secrets.DOCKER_USERNAME }}/abrpoint-server:latest -f Dockerfile.server .
+            docker push ${{ secrets.DOCKER_USERNAME }}/abrpoint-server:latest
 
       - name: Build and Push Client Image
-        run: |
-          docker build --no-cache -t ${{ secrets.DOCKER_USERNAME }}/abrpoint-client:latest -f Dockerfile.client .
-          docker push ${{ secrets.DOCKER_USERNAME }}/abrpoint-client:latest
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            docker build -t ${{ secrets.DOCKER_USERNAME }}/abrpoint-client:latest -f Dockerfile.client .
+            docker push ${{ secrets.DOCKER_USERNAME }}/abrpoint-client:latest
 
       - name: Build and Push RAG Image
-        run: |
-          docker build --no-cache -t ${{ secrets.DOCKER_USERNAME }}/abrpoint-rag-svc:latest ./services/rag
-          docker push ${{ secrets.DOCKER_USERNAME }}/abrpoint-rag-svc:latest
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            docker build -t ${{ secrets.DOCKER_USERNAME }}/abrpoint-rag-svc:latest ./services/rag
+            docker push ${{ secrets.DOCKER_USERNAME }}/abrpoint-rag-svc:latest
 
   deploy:
     needs: build-and-push
