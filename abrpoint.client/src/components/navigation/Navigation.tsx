@@ -78,6 +78,7 @@ const AdminVaultModern = React.lazy(() => import('../gestionEmploye/Vault/AdminV
 const ContractBuilderModern = React.lazy(() => import('../gestionEmploye/Vault/ContractBuilderModern'));
 const DocumentsModern = React.lazy(() => import('../Rag/Documents/DocumentsModern'));
 const RagAuditTable = React.lazy(() => import('../Rag/Audit/RagAuditTable'));
+const AuditLogsPage = React.lazy(() => import('../Admin/AuditLogs/AuditLogsPage'));
 const LetterTemplatesModern = React.lazy(() => import('../Rag/Letters/LetterTemplatesModern'));
 const SignaturePage = React.lazy(() => import('../gestionEmploye/Vault/SignaturePage'));
 const PricingPage = React.lazy(() => import('../Pricing/PricingPage'));
@@ -236,6 +237,7 @@ const useNavigationItems = (): NavGroup[] => {
     'documents': 'Administration',
     'courriers': 'Administration',
     'rag-audit': 'Administration',
+    'audit-logs': 'Administration',
   };
 
   const canSee = (segment: string) => {
@@ -432,6 +434,9 @@ const useNavigationItems = (): NavGroup[] => {
         { label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText },
         { label: t('navigation.letterTemplates'), href: '/dashboard/courriers', icon: FileText },
         ...(planAllows('ragAi') ? [{ label: t('navigation.ragAudit'), href: '/dashboard/rag-audit', icon: History }] : []),
+        // Journaux d'audit : visible aux admins. Pour les managers, on l'ajoute via
+        // un groupe séparé plus bas (cf. block `isManager && !isAdmin`).
+        { label: t('navigation.auditLogs', "Journaux d'audit"), href: '/dashboard/audit-logs', icon: History },
         { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
         { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
         // Lien Chatbot retiré du sidebar : l'assistant reste accessible via le bouton flottant
@@ -451,6 +456,17 @@ const useNavigationItems = (): NavGroup[] => {
       items: [
         { label: t('navigation.subscription', 'Abonnement'), href: '/dashboard/mon-abonnement', icon: Wallet },
         { label: t('navigation.concordeInvoices', 'Factures Concorde'), href: '/dashboard/factures-concorde', icon: Receipt },
+      ],
+    }] : []),
+    // Journaux d'audit : pour les managers (sans utiadm), on les expose dans un
+    // mini-groupe dédié vu qu'ils n'ont pas la section "Administration" complète.
+    // Les admins voient l'entrée dans Administration (cf. block plus haut).
+    ...(isManager && !isAdminEffective ? [{
+      label: t('navigation.auditLogs', "Journaux d'audit"),
+      href: '/dashboard/audit-logs',
+      icon: History,
+      items: [
+        { label: t('navigation.auditLogs', "Journaux d'audit"), href: '/dashboard/audit-logs', icon: History },
       ],
     }] : []),
   ];
@@ -543,6 +559,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/documents': content = <DocumentsModern />; break;
     case '/dashboard/courriers': content = <LetterTemplatesModern />; break;
     case '/dashboard/rag-audit': content = <RagAuditTable />; break;
+    case '/dashboard/audit-logs': content = <AuditLogsPage />; break;
     case '/dashboard/sign-document': content = <SignaturePage />; break;
     case '/dashboard/pricing': content = <PricingPage />; break;
     case '/dashboard/plan-configuration': content = <PlanConfigurationPage />; break;

@@ -647,12 +647,19 @@ namespace ABRPOINT.Server.Controllers
             // Cap à 100 chars (contrainte StringLength de la colonne Action).
             if (actionLabel.Length > 100) actionLabel = actionLabel.Substring(0, 100);
 
+            var xff = HttpContext.Request.Headers["X-Forwarded-For"].ToString();
+            var clientIp = !string.IsNullOrWhiteSpace(xff)
+                ? xff.Split(',')[0].Trim()
+                : HttpContext.Connection.RemoteIpAddress?.ToString();
+            if (clientIp != null && clientIp.Length > 45) clientIp = clientIp.Substring(0, 45);
+
             _dbContext.AuditLogs.Add(new Models.AuditLog
             {
                 Uticod = uticod,
                 Action = actionLabel,
                 TableName = "device_trust",
                 DateAction = DateTime.UtcNow,
+                IpAddress = clientIp,
             });
             try { await _dbContext.SaveChangesAsync(ct); }
             catch { /* journalisation best-effort, jamais bloquante */ }

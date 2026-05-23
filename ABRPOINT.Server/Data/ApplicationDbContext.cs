@@ -1,5 +1,6 @@
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -17,6 +18,11 @@ public partial class ApplicationDbContext : DbContext
     // v2: tient déjà dans la même colonne VARCHAR.
     private readonly EncryptionService? _encryption;
 
+    // Optionnel : permet de capturer l'IP cliente dans AuditLog quand le DbContext
+    // est utilisé dans le cadre d'une requête HTTP. Null pour les hosted services
+    // et migrations design-time — l'IP sera alors absente, ce qui est correct.
+    private readonly IHttpContextAccessor? _httpContextAccessor;
+
     public ApplicationDbContext()
     {
     }
@@ -30,6 +36,13 @@ public partial class ApplicationDbContext : DbContext
         : base(options)
     {
         _encryption = encryption;
+    }
+
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, EncryptionService encryption, IHttpContextAccessor httpContextAccessor)
+        : base(options)
+    {
+        _encryption = encryption;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     // EF Core met en cache le modèle (IModel) par (type contexte, clé de cache).
@@ -329,6 +342,8 @@ public partial class ApplicationDbContext : DbContext
     private List<AuditLog> CollectAuditEntries()
     {
         var auditEntries = new List<AuditLog>();
+        var clientIp = ResolveCurrentClientIp();
+        var fallbackUticod = ResolveCurrentUticod();
         foreach (var entry in ChangeTracker.Entries().Where(e => e.Entity is not AuditLog && e.Entity is BaseEntity && e.State != EntityState.Detached && e.State != EntityState.Unchanged))
         {
             var audit = new AuditLog
@@ -336,6 +351,7 @@ public partial class ApplicationDbContext : DbContext
                 Action = entry.State.ToString(),
                 TableName = entry.Metadata.GetTableName(),
                 DateAction = DateTime.UtcNow,
+                IpAddress = clientIp,
             };
 
             // Try to extract Uticod from the entity if it has a Uticod property
@@ -352,10 +368,41 @@ public partial class ApplicationDbContext : DbContext
                 }
             }
 
+            // Si l'entité n'expose pas son propriétaire, on retombe sur l'utilisateur
+            // de la session HTTP — c'est mieux que de stocker null pour des actions
+            // initiées par un admin sur une table sans colonne Uticod.
+            if (string.IsNullOrEmpty(audit.Uticod))
+            {
+                audit.Uticod = fallbackUticod;
+            }
+
             auditEntries.Add(audit);
         }
         return auditEntries;
     }
+
+    private string? ResolveCurrentClientIp()
+    {
+        var ctx = _httpContextAccessor?.HttpContext;
+        if (ctx is null) return null;
+        var xff = ctx.Request.Headers["X-Forwarded-For"].ToString();
+        if (!string.IsNullOrWhiteSpace(xff))
+        {
+            var first = xff.Split(',')[0].Trim();
+            if (!string.IsNullOrEmpty(first)) return Truncate(first, 45);
+        }
+        return Truncate(ctx.Connection.RemoteIpAddress?.ToString(), 45);
+    }
+
+    private string? ResolveCurrentUticod()
+    {
+        var ctx = _httpContextAccessor?.HttpContext;
+        var uid = ctx?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        return string.IsNullOrEmpty(uid) ? null : (uid.Length > 20 ? uid.Substring(0, 20) : uid);
+    }
+
+    private static string? Truncate(string? s, int max)
+        => string.IsNullOrEmpty(s) ? s : (s.Length > max ? s.Substring(0, max) : s);
 
     private void SaveAuditEntriesSafe(List<AuditLog> auditEntries)
     {

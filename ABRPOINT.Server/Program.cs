@@ -87,8 +87,16 @@ builder.Services.AddScoped<ApplicationDbContext>(sp =>
     // transparentement les PII via EncryptedStringConverter. Voir
     // ApplicationDbContext.OnModelCreating pour la liste des colonnes couvertes.
     var encryption = sp.GetRequiredService<ABRPOINT.Server.Services.EncryptionService>();
-    return new ApplicationDbContext(options, encryption);
+    // IHttpContextAccessor permet à AuditLog de capturer l'IP cliente et le
+    // Uticod de la session courante quand le DbContext sert une requête HTTP.
+    var http = sp.GetService<IHttpContextAccessor>();
+    return http is null
+        ? new ApplicationDbContext(options, encryption)
+        : new ApplicationDbContext(options, encryption, http);
 });
+
+// Requis pour qu'ApplicationDbContext puisse résoudre l'IP cliente dans AuditLog.
+builder.Services.AddHttpContextAccessor();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SaaS multi-tenant : master DB + tenant resolver + factory.

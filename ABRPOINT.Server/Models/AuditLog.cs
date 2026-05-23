@@ -20,4 +20,10 @@ public class AuditLog
     public string? TableName { get; set; }
 
     public DateTime DateAction { get; set; } = DateTime.UtcNow;
+
+    // IP du client à l'origine de l'action — capturée via X-Forwarded-For ou
+    // HttpContext.Connection.RemoteIpAddress. Limité à 45 chars pour couvrir un IPv6
+    // complet (39) + suffixe scope éventuel.
+    [StringLength(45)]
+    public string? IpAddress { get; set; }
 }

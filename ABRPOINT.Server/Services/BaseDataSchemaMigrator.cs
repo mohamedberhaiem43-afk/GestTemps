@@ -107,6 +107,12 @@ public static class BaseDataSchemaMigrator
         await AddColumnIfMissingAsync(db, "utilisateur", "uti_failed_logins", "INTEGER NULL", ct);
         await AddColumnIfMissingAsync(db, "utilisateur", "uti_lockout_until", "TIMESTAMP NULL", ct);
 
+        // AuditLog : capture de l'IP cliente à l'origine de l'action. 45 chars suffisent
+        // pour un IPv6 complet (39) + suffixe scope éventuel. NULL pour les actions issues
+        // d'un hosted service ou d'une migration design-time sans HttpContext.
+        // ⚠ Table mappée "AuditLog" (PascalCase) par EF Core — passer la casse correcte.
+        await AddColumnIfMissingAsync(db, "AuditLog", "IpAddress", "VARCHAR(45) NULL", ct);
+
         // Validation des heures supplémentaires (2026-05) : les demandes d'heures sup
         // créées depuis le mobile passent par /Autorisers/my-auth (table autoriser).
         // Pour permettre à l'admin/manager de valider ou refuser depuis le web, on
