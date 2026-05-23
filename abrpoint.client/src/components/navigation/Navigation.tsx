@@ -47,6 +47,10 @@ const EtatPeriodiqueModern = React.lazy(() => import('../Pointeuse/EtatPeriodiqu
 const Utilisateur = React.lazy(() => import('../DonneeDeBase/Utilisteur/Utilisateur'));
 const DemCongeModern = React.lazy(() => import('../gestionEmploye/gestionConge/DemConge/DemCongeModern'));
 const DemandeAutorisationModern = React.lazy(() => import('../gestionEmploye/DemandeAutorisation/DemandeAutorisationModern'));
+const TeletravailModern = React.lazy(() => import('../gestionEmploye/Teletravail/TeletravailModern'));
+const TeletravailValidation = React.lazy(() => import('../gestionEmploye/Teletravail/TeletravailValidation'));
+const DemandeAbsenceModern = React.lazy(() => import('../gestionEmploye/DemandeAbsence/DemandeAbsenceModern'));
+const DemandeAbsenceValidation = React.lazy(() => import('../gestionEmploye/DemandeAbsence/DemandeAbsenceValidation'));
 const SoldeCongeModern = React.lazy(() => import('../gestionEmploye/gestionConge/SoldeConge/SoldeCongeModern'));
 const SoldeCongeAdmin = React.lazy(() => import('../gestionEmploye/gestionConge/SoldeConge/SoldeCongeAdmin'));
 const TitreConge = React.lazy(() => import('../gestionEmploye/gestionConge/TitreConge/TitreConge'));
@@ -148,6 +152,8 @@ import {
   ShieldCheck,
   Smartphone,
   Cookie,
+  Laptop,
+  CheckSquare,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
@@ -208,6 +214,10 @@ const useNavigationItems = (): NavGroup[] => {
     'autorisation-de-sortie': 'Absences et Sanctions',
     'autorisation-de-sortie-generale': 'Absences et Sanctions',
     'demande-autorisation': 'Absences et Sanctions',
+    'demande-teletravail': 'Demande de Congé',
+    'validation-teletravail': 'Demande de Congé',
+    'demande-absence': 'Demande de Congé',
+    'validation-absence': 'Demande de Congé',
     'validation-heures-sup': 'Absences et Sanctions',
     'absence-et-sanction': 'Absences et Sanctions',
     'saisie-classe-horaire': 'Paramètres de Temps',
@@ -260,6 +270,8 @@ const useNavigationItems = (): NavGroup[] => {
         items: [
           ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
           ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
+          ...(planAllows('leaveManagement') ? [{ label: t('navigation.absenceRequest'), href: '/dashboard/demande-absence', icon: ClipboardList }] : []),
+          ...(planAllows('leaveManagement') ? [{ label: t('navigation.remoteWorkRequest'), href: '/dashboard/demande-teletravail', icon: Laptop }] : []),
           ...(planAllows('missions') ? [{ label: t('navigation.myMissions'), href: '/dashboard/missions', icon: Briefcase }] : []),
           { label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt },
           ...(planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
@@ -339,6 +351,10 @@ const useNavigationItems = (): NavGroup[] => {
       icon: CalendarDays,
       items: [
         ...(canSee('gestion-de-conge') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
+        ...(canSee('demande-absence') ? [{ label: t('navigation.absenceRequest'), href: '/dashboard/demande-absence', icon: ClipboardList }] : []),
+        ...(canSee('demande-teletravail') ? [{ label: t('navigation.remoteWorkRequest'), href: '/dashboard/demande-teletravail', icon: Laptop }] : []),
+        ...((isAdminEffective || isManager) && canSee('validation-absence') ? [{ label: t('navigation.absenceValidation'), href: '/dashboard/validation-absence', icon: CheckSquare }] : []),
+        ...((isAdminEffective || isManager) && canSee('validation-teletravail') ? [{ label: t('navigation.remoteWorkValidation'), href: '/dashboard/validation-teletravail', icon: CheckSquare }] : []),
         ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
         ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
         ...(canSee('titre-de-conge-general') && planAllows('generalLeave') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
@@ -532,6 +548,10 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/autorisation-de-sortie': content = <AutSortieModern />; break;
     case '/dashboard/autorisation-de-sortie-generale': content = <AutSortieGenerale />; break;
     case '/dashboard/demande-autorisation': content = <DemandeAutorisationModern />; break;
+    case '/dashboard/demande-teletravail': content = <TeletravailModern />; break;
+    case '/dashboard/validation-teletravail': content = <TeletravailValidation />; break;
+    case '/dashboard/demande-absence': content = <DemandeAbsenceModern />; break;
+    case '/dashboard/validation-absence': content = <DemandeAbsenceValidation />; break;
     case '/dashboard/validation-heures-sup': content = <HeuresSupValidation />; break;
     case '/dashboard/gestion-de-solde': content = <SoldeCongeModern />; break;
     case '/dashboard/affectation-solde': content = <SoldeCongeAdmin />; break;
