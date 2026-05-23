@@ -52,7 +52,6 @@ const COMPARISON_ROWS: CompRow[] = [
   { type: 'feature', label: 'Autorisations de sortie',                               starter: true,  standard: true,           premium: true },
   { type: 'feature', label: 'Titre de congé général',                                starter: false, standard: true,           premium: true },
   { type: 'feature', label: 'Autorisation de sortie générale',                       starter: false, standard: true,           premium: true },
-  { type: 'feature', label: 'Jours de compensation',                                 starter: false, standard: true,           premium: true },
   { type: 'feature', label: 'Missions',                                              starter: false, standard: true,           premium: true },
   { type: 'feature', label: 'Gestion de l\'allaitement',                             starter: false, standard: true,           premium: true },
 
@@ -72,9 +71,7 @@ const COMPARISON_ROWS: CompRow[] = [
   { type: 'section', label: 'Sécurité & conformité' },
   { type: 'feature', label: 'Hébergement France OVH',                                starter: true,  standard: true,           premium: true },
   { type: 'feature', label: 'Chiffrement AES-256 + TLS 1.3',                         starter: true,  standard: true,           premium: true },
-  { type: 'feature', label: 'Conformité RGPD',                                       starter: true,  standard: true,           premium: true },
   { type: 'feature', label: 'Branding personnalisé',                                 starter: false, standard: false,          premium: true },
-  { type: 'feature', label: 'Device trust mobile',                                   starter: false, standard: false,          premium: true },
   { type: 'feature', label: 'Protection capture d\'écran',                           starter: false, standard: false,          premium: true },
   { type: 'feature', label: 'Certificate pinning',                                   starter: false, standard: false,          premium: true },
 
