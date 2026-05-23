@@ -1,10 +1,13 @@
 import { useRef, useState } from 'react';
-import { Box, Button, CircularProgress } from '@mui/material';
+import { Box, Button, CircularProgress, Tooltip } from '@mui/material';
 import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DownloadIcon from '@mui/icons-material/Download';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import * as XLSX from 'xlsx';
+import { useNavigate } from 'react-router-dom';
 import apiInstance from '../../API/apiInstance';
+import { useAuth } from '../../helper/AuthProvider';
 
 interface ExcelImportButtonProps {
   /** Endpoint relatif (ex: '/BulkImport/services'). */
@@ -41,8 +44,27 @@ export default function ExcelImportButton({
   const inputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const feedback = useFeedbackSnackbar();
+  const navigate = useNavigate();
+  // Gate plan : l'import en masse Excel est réservé Standard/Premium. On garde le
+  // composant monté sur Starter (téléchargement du modèle reste utile en avant-vente),
+  // mais le bouton « Importer » devient un CTA d'upgrade vers /upgrade?feature=BulkImport.
+  const { planAllows, planFeatures } = useAuth();
+  // Pendant que /me est en vol, planFeatures est null → on neutralise l'import
+  // pour éviter d'envoyer une requête qui sera rejetée par un 402. Une fois /me
+  // résolu, planAllows() renvoie true/false selon le plan réel.
+  const importAllowed = planFeatures === null ? false : planAllows('bulkImport');
 
-  const handlePick = () => inputRef.current?.click();
+  const handlePick = () => {
+    if (!importAllowed) {
+      // Redirige vers la page d'upgrade avec la feature pré-remplie. PlanUpgradePage
+      // lit `feature` depuis location.state ou ?feature=… pour proposer Standard.
+      navigate('/upgrade', {
+        state: { feature: 'BulkImport', currentPlan: undefined, from: window.location.pathname },
+      });
+      return;
+    }
+    inputRef.current?.click();
+  };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -151,25 +173,43 @@ export default function ExcelImportButton({
         >
           Modèle
         </Button>
-        <Button
-          variant="outlined"
-          startIcon={importing ? <CircularProgress size={16} /> : <UploadFileIcon />}
-          onClick={handlePick}
-          disabled={importing}
-          // Mobile : pleine largeur (le label long "Importer Directions (Excel)"
-          // débordait sur petits écrans). Desktop : largeur auto.
-          sx={{
-            borderRadius: '10px',
-            textTransform: 'none',
-            fontWeight: 600,
-            flex: { xs: 1, sm: 'unset' },
-            fontSize: { xs: '12px', sm: '13px' },
-            whiteSpace: 'nowrap',
-            minHeight: 36,
-          }}
+        <Tooltip
+          title={importAllowed ? '' : "L'import en masse Excel est inclus dès le pack Standard. Cliquez pour découvrir les options de mise à niveau."}
+          arrow
         >
-          {importing ? 'Import…' : label}
-        </Button>
+          <Button
+            variant="outlined"
+            startIcon={
+              importing
+                ? <CircularProgress size={16} />
+                : importAllowed
+                  ? <UploadFileIcon />
+                  : <LockOutlinedIcon />
+            }
+            onClick={handlePick}
+            disabled={importing}
+            // Mobile : pleine largeur (le label long "Importer Directions (Excel)"
+            // débordait sur petits écrans). Desktop : largeur auto.
+            sx={{
+              borderRadius: '10px',
+              textTransform: 'none',
+              fontWeight: 600,
+              flex: { xs: 1, sm: 'unset' },
+              fontSize: { xs: '12px', sm: '13px' },
+              whiteSpace: 'nowrap',
+              minHeight: 36,
+              ...(importAllowed ? {} : {
+                // Style "verrouillé" : on garde le bouton cliquable (CTA vers /upgrade)
+                // mais visuellement neutralisé pour signaler que la feature est payante.
+                color: '#94a3b8',
+                borderColor: '#e2e8f0',
+                background: '#f8fafc',
+              }),
+            }}
+          >
+            {importing ? 'Import…' : label}
+          </Button>
+        </Tooltip>
       </Box>
       {feedback.element}
     </>

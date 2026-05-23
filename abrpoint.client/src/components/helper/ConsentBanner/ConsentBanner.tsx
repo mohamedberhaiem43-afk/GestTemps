@@ -20,25 +20,31 @@ import { ProcessingNoticeApi, CurrentNoticeResponse } from '../../Admin/Processi
  * dénaturer la base légale (intérêt légitime/obligation légale, pas consentement).
  */
 export default function ConsentBanner() {
-  const { authReady, uticod } = useAuth();
+  const { authReady, uticod, isAdmin, isManager } = useAuth();
   const [data, setData] = useState<CurrentNoticeResponse | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [readOpen, setReadOpen] = useState(false);
 
+  // RGPD art. 13 : la notice s'adresse aux salariés concernés par le traitement
+  // (« Votre employeur a actualisé… »). On la masque pour les admins et managers,
+  // qui sont du côté Responsable de traitement et qui ÉDITENT la notice depuis
+  // la page admin — leur afficher la bannière n'a pas de sens et est confus.
+  const isStaffSide = isAdmin || isManager;
+
   useEffect(() => {
-    if (!authReady || !uticod) { setData(null); return; }
+    if (!authReady || !uticod || isStaffSide) { setData(null); return; }
     let alive = true;
     ProcessingNoticeApi.getCurrent()
       .then((res) => { if (alive) setData(res); })
       .catch(() => { /* silencieux : un tenant sans notice ne doit pas pollir l'UI */ });
     return () => { alive = false; };
-  }, [authReady, uticod]);
+  }, [authReady, uticod, isStaffSide]);
 
   // Reset le "dismissed" local à chaque ouverture de session.
   useEffect(() => { setDismissed(false); }, [uticod]);
 
-  const visible = !!data?.requiresAcknowledgment && !dismissed;
+  const visible = !isStaffSide && !!data?.requiresAcknowledgment && !dismissed;
 
   const handleAcknowledge = async () => {
     setBusy(true);

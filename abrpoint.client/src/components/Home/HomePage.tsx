@@ -684,6 +684,7 @@ export default function HomePage() {
                   { type: 'check', text: 'Notifications essentielles' },
                   { type: 'check', text: '10 Go stockage sécurisé · Hébergement France OVH' },
                   { type: 'check', text: '1 administrateur · support standard' },
+                  { type: 'x', text: 'Saisie manuelle uniquement (sans import Excel en masse)' },
                   { type: 'check', text: 'Idéal : TPE · petites structures · première digitalisation RH' },
                 ];
                 const expanded = expandedPacks.starter;
@@ -766,6 +767,7 @@ export default function HomePage() {
                   'Tout le pack Starter',
                   'Application mobile + géolocalisation',
                   'Coffre numérique & signature électronique',
+                  'Import Excel en masse (employés, services, fonctions, rubriques…)',
                   'Préparation paie · export paie',
                   'Multi-sites simple',
                   'Congés, RTT, CET, sanctions',

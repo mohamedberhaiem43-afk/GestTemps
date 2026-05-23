@@ -3,6 +3,7 @@ using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,6 +15,7 @@ namespace ABRPOINT.Server.Controllers
     // SEC AI : ValidateSoccod manquait — rapport allaitement (donnée médicale) accessible
     // cross-soccod via énumération empcod.
     [ValidateSoccod]
+    [RequirePlanFeature(nameof(PlanFeatures.BreastfeedingManagement))]
     public class AllaitementsController : ControllerBase
     {
         private readonly IAllaitementRepository _allaitementRepository;

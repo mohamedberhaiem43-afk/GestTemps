@@ -26,6 +26,10 @@ namespace ABRPOINT.Server.Controllers;
 [Authorize]
 [Admin]
 [EnableRateLimiting("bulk-import")] // SEC-29 — 10 imports/heure/user max.
+// L'import en masse Excel est réservé Standard/Premium (cf. PlanCatalog.BulkImport).
+// Starter doit saisir manuellement ses données de base — c'est ce qui motive
+// l'upgrade pour les TPE/PME qui veulent industrialiser leur onboarding RH.
+[RequirePlanFeature(nameof(PlanFeatures.BulkImport))]
 public class BulkImportController : ControllerBase
 {
     private readonly ApplicationDbContext _db;

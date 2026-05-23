@@ -1,3 +1,4 @@
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
@@ -9,6 +10,7 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [RequirePlanFeature(nameof(PlanFeatures.DocumentScanOcr))]
     public class DocumentScanController : ControllerBase
     {
         private readonly IHttpClientFactory _httpClientFactory;

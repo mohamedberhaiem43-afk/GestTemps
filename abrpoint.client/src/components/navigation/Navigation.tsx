@@ -270,7 +270,7 @@ const useNavigationItems = (): NavGroup[] => {
           ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
           ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
           ...(planAllows('missions') ? [{ label: t('navigation.myMissions'), href: '/dashboard/missions', icon: Briefcase }] : []),
-          { label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt },
+          ...(planAllows('expenseReports') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
           ...(planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
           { label: t('navigation.profile'), href: '/dashboard/profile', icon: CircleUser },
           ...(planAllows('digitalVault') ? [{ label: t('navigation.myVault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
@@ -324,11 +324,11 @@ const useNavigationItems = (): NavGroup[] => {
       items: [
         ...(canSee('gestion-employe') ? [{ label: t('navigation.employeeManagement'), href: '/dashboard/gestion-employe', icon: Users }] : []),
         ...(canSee('profil-employe') ? [{ label: t('navigation.employeeProfile'), href: '/dashboard/profil-employe', icon: User }] : []),
-        ...(canSee('contrat') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat', icon: FileText }] : []),
+        ...(canSee('contrat') && planAllows('contractManagement') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat', icon: FileText }] : []),
         ...(planAllows('missions') ? [{ label: t('navigation.missions'), href: '/dashboard/missions', icon: Briefcase }] : []),
         // Renouvellement de contrat : intégré directement dans la liste des contrats (bouton
         // "Renouveler" par ligne) et dans le dashboard (KPI échéance contrat → dialog).
-        ...(canSee('allaitement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
+        ...(canSee('allaitement') && planAllows('breastfeedingManagement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
         ...(canSee('coffre-fort') && planAllows('digitalVault') ? [{ label: t('navigation.vault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
         ...(canSee('admin-vault') && planAllows('digitalVault') ? [{ label: t('navigation.vaultGlobalView'), href: '/dashboard/admin-vault', icon: Eye }] : []),
       ],
@@ -351,7 +351,7 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
         ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
         ...(canSee('titre-de-conge-general') && planAllows('generalLeave') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
-        ...(canSee('remboursement') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
+        ...(canSee('remboursement') && planAllows('expenseReports') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
         ...(isAdminEffective ? [{ label: t('navigation.balanceAllocation'), href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
         ...(isAdminEffective ? [{ label: t('navigation.timeSavingAccount'), href: '/dashboard/cet', icon: CalendarCheck }] : []),
       ],
@@ -440,9 +440,9 @@ const useNavigationItems = (): NavGroup[] => {
         { label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText },
         { label: t('navigation.letterTemplates'), href: '/dashboard/courriers', icon: FileText },
         ...(planAllows('ragAi') ? [{ label: t('navigation.ragAudit'), href: '/dashboard/rag-audit', icon: History }] : []),
-        // Journaux d'audit : visible aux admins. Pour les managers, on l'ajoute via
-        // un groupe séparé plus bas (cf. block `isManager && !isAdmin`).
-        { label: t('navigation.auditLogs', "Journaux d'audit"), href: '/dashboard/audit-logs', icon: History },
+        // Journaux d'audit : visible aux admins ET gaté par le plan (Standard+).
+        // Pour les managers, on l'ajoute via un groupe séparé plus bas (même gating).
+        ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.auditLogs', "Journaux d'audit"), href: '/dashboard/audit-logs', icon: History }] : []),
         // Politique de rétention RGPD : strictement admin (responsable de traitement).
         { label: t('navigation.retentionPolicy', "Rétention RGPD"), href: '/dashboard/retention-rgpd', icon: Shield },
         // Notice d'information RGPD (art. 13) — texte affiché aux salariés.
@@ -472,8 +472,9 @@ const useNavigationItems = (): NavGroup[] => {
     }] : []),
     // Journaux d'audit : pour les managers (sans utiadm), on les expose dans un
     // mini-groupe dédié vu qu'ils n'ont pas la section "Administration" complète.
-    // Les admins voient l'entrée dans Administration (cf. block plus haut).
-    ...(isManager && !isAdminEffective ? [{
+    // Les admins voient l'entrée dans Administration (cf. block plus haut). Même
+    // gating plan que les admins — masqué sur Starter.
+    ...(isManager && !isAdminEffective && planAllows('advancedAuditLogs') ? [{
       label: t('navigation.auditLogs', "Journaux d'audit"),
       href: '/dashboard/audit-logs',
       icon: History,

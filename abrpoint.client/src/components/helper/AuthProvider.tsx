@@ -67,6 +67,12 @@ export interface PlanFeatures {
   // (positionnement "pointage simple" — seul l'état périodique reste accessible).
   leaveManagement: boolean;
   authorizationManagement: boolean;
+  // 2026-05-23 : modules métier facturables — exclus du Starter par défaut.
+  expenseReports: boolean;            // Notes de frais (NoteDeFraisController)
+  breastfeedingManagement: boolean;   // Allaitement (AllaitementsController)
+  contractManagement: boolean;        // Gestion des contrats (ContratsController)
+  documentScanOcr: boolean;           // Scan OCR de pièces d'identité (DocumentScanController)
+  bulkImport: boolean;                // Import Excel en masse de toutes les données de base (BulkImportController)
 }
 
 const AuthContext = createContext<AuthContextType>({

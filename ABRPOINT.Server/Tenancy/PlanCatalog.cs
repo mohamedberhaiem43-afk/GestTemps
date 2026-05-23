@@ -82,7 +82,22 @@ public sealed record PlanFeatures(
     // c'est le seul rapport conservé sur Starter (cf. positionnement "pointage
     // simple, sans workflow RH").
     bool LeaveManagement,
-    bool AuthorizationManagement);
+    bool AuthorizationManagement,
+    // 2026-05-23 : modules métier facturables — exclus du Starter par défaut.
+    // ExpenseReports         = saisie/validation des notes de frais (NoteDeFraisController).
+    // BreastfeedingManagement = gestion des heures d'allaitement (AllaitementsController).
+    // ContractManagement      = saisie/édition des contrats employés (ContratsController).
+    // DocumentScanOcr         = scan OCR de pièces d'identité pour ajout d'un collaborateur
+    //                           (DocumentScanController).
+    // BulkImport             = imports en masse Excel pour toutes les données de base
+    //                           (Services, Fonctions, Employés, Directions, Sections,
+    //                           Villes, Pays, Qualifications, Rubriques — cf.
+    //                           BulkImportController + ExcelImportButton côté front).
+    bool ExpenseReports,
+    bool BreastfeedingManagement,
+    bool ContractManagement,
+    bool DocumentScanOcr,
+    bool BulkImport);
 
 /// <summary>
 /// Catalogue des plans commerciaux (Starter / Standard / Premium) et des
@@ -150,7 +165,14 @@ public static class PlanCatalog
             GeneralLeave: false,
             GeneralExit: false,
             LeaveManagement: true,
-            AuthorizationManagement: true));
+            AuthorizationManagement: true,
+            // Starter exclut explicitement les 5 modules métier avancés (l'import en
+            // masse fait partie du package Standard pour cohérence avec la grille).
+            ExpenseReports: false,
+            BreastfeedingManagement: false,
+            ContractManagement: false,
+            DocumentScanOcr: false,
+            BulkImport: false));
 
     public static readonly PlanDefinition Standard = new(
         Code: StandardCode,
@@ -164,11 +186,13 @@ public static class PlanCatalog
         IncludedAdmins: 3,
         OverageRatePerEmployeeEur: 6.90m,
         MaxEmployees: 100,            // cap dur : 25 inclus + jusqu'à 75 supplémentaires
-        // 2026-05 : Standard capé à 1 société / 1 filiale (avant : 3 sites). Le multi-filiales
-        // devient un différenciateur exclusif Business pour clarifier le positionnement
-        // commercial (Standard = PME mono-entité, Business = groupes multi-entités).
+        // Positionnement commercial 2026-05 :
+        //   • Standard = 1 société (= 1 entité juridique), MULTI-SITES jusqu'à 5
+        //     (= « multi-sites simple » promis sur la grille tarifaire — typique
+        //     d'une PME avec siège + agences/dépôts). Au-delà → Business.
+        //   • Business = multi-sociétés ET multi-sites illimités (groupes).
         MaxSocietes: 1,
-        MaxSites: 1,
+        MaxSites: 5,
         StorageQuotaMb: 50L * 1024,   // 50 Go inclus
         StorageSupplementBlockEur: 29m, // +29 € / 100 Go supplémentaires
         MaxStorageMb: 300L * 1024,    // 300 Go max
@@ -181,7 +205,10 @@ public static class PlanCatalog
             MultiSociete: false,
             AdvancedDashboards: true,
             RagAi: false,
-            AdvancedAuditLogs: false,
+            // 2026-05-23 : journaux d'audit ouverts au Standard (PME : besoin de
+            // traçabilité RGPD). Premium garde le monopole des features audit AVANCÉES
+            // (alerting, export massif, retention étendue) qu'on ajoutera si demandées.
+            AdvancedAuditLogs: true,
             CustomBranding: false,
             DeviceTrustEnforced: false,
             ScreenshotProtection: false,
@@ -191,7 +218,13 @@ public static class PlanCatalog
             GeneralLeave: true,
             GeneralExit: true,
             LeaveManagement: true,
-            AuthorizationManagement: true));
+            AuthorizationManagement: true,
+            // Modules métier inclus dès Standard.
+            ExpenseReports: true,
+            BreastfeedingManagement: true,
+            ContractManagement: true,
+            DocumentScanOcr: true,
+            BulkImport: true));
 
     public static readonly PlanDefinition Premium = new(
         Code: PremiumCode,
@@ -234,7 +267,14 @@ public static class PlanCatalog
             GeneralLeave: true,
             GeneralExit: true,
             LeaveManagement: true,
-            AuthorizationManagement: true));
+            AuthorizationManagement: true,
+            // Tout ce qui est métier est inclus dès Standard ; Premium ne fait que
+            // l'hériter (différenciation Premium = multi-filiales / IA / sécurité).
+            ExpenseReports: true,
+            BreastfeedingManagement: true,
+            ContractManagement: true,
+            DocumentScanOcr: true,
+            BulkImport: true));
 
     /// <summary>Retourne la définition pour un code donné, ou null si inconnu.</summary>
     public static PlanDefinition? GetPlan(string? rawCode)

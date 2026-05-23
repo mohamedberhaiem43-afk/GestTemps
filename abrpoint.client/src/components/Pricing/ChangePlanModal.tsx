@@ -88,6 +88,7 @@ const PLAN_META: Record<PlanKey, {
       '10 Go stockage sécurisé · Hébergement France OVH',
       '1 administrateur · support standard',
       'Jusqu\'à 10 salariés inclus',
+      'Saisie manuelle uniquement (sans import Excel en masse)',
     ],
   },
   Standard: {
@@ -99,6 +100,7 @@ const PLAN_META: Record<PlanKey, {
     features: [
       'App mobile + géolocalisation',
       'Coffre numérique + signature électronique',
+      'Import Excel en masse (employés, services, fonctions…)',
       'Export paie + préparation paie',
       'Gestion congés, missions, autorisations',
       'Tableaux de bord avancés · 25 salariés inclus · 50 Go stockage',
@@ -128,8 +130,8 @@ const PLAN_META: Record<PlanKey, {
 // Standard+ : géolocalisation, coffre, signature, multi-sites, dashboards avancés, missions.
 const PLAN_FEATURES: Record<PlanKey, string[]> = {
   Starter:  ['App mobile', 'Congés', 'Autorisations'],
-  Standard: ['App mobile', 'Géolocalisation', 'Coffre numérique', 'Signature électronique', 'Multi-sites', 'Tableaux de bord avancés', 'Missions', 'Congés', 'Autorisations'],
-  Premium:  ['App mobile', 'Géolocalisation', 'Coffre numérique', 'Signature électronique', 'Multi-sites', 'Multi-filiales', 'Tableaux de bord avancés', 'Assistant IA (RAG)', 'Audit avancé', 'Branding personnalisé', 'Sécurité mobile renforcée', 'Missions', 'Congés', 'Autorisations'],
+  Standard: ['App mobile', 'Géolocalisation', 'Coffre numérique', 'Signature électronique', 'Multi-sites', 'Tableaux de bord avancés', 'Missions', 'Congés', 'Autorisations', 'Import Excel en masse'],
+  Premium:  ['App mobile', 'Géolocalisation', 'Coffre numérique', 'Signature électronique', 'Multi-sites', 'Multi-filiales', 'Tableaux de bord avancés', 'Assistant IA (RAG)', 'Audit avancé', 'Branding personnalisé', 'Sécurité mobile renforcée', 'Missions', 'Congés', 'Autorisations', 'Import Excel en masse'],
 };
 
 function computeLostFeatures(current: PlanKey | null, target: PlanKey): string[] {

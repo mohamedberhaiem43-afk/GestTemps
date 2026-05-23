@@ -71,6 +71,7 @@ const PricingPage: React.FC = () => {
       limits: [
         'Jusqu’à 25 salariés maximum',
         'Jusqu’à 50 Go stockage maximum',
+        'Saisie manuelle uniquement (sans import Excel en masse)',
       ],
       idealFor: ['TPE', 'petites structures', 'première digitalisation RH'],
       features: [], // non utilisé pour Starter (rendu enrichi)
@@ -95,6 +96,7 @@ const PricingPage: React.FC = () => {
         'Tout le pack Starter',
         'Application mobile + pointage géolocalisé',
         'Coffre numérique & signature électronique',
+        'Import Excel en masse (employés, services, fonctions, rubriques…)',
         'Préparation paie · export paie',
         'Multi-sites simple',
         'Congés, RTT, CET, sanctions',

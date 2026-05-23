@@ -1,5 +1,6 @@
 using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,7 @@ namespace ABRPOINT.Server.Controllers;
 [ApiController]
 [Route("api/admin/audit-logs")]
 [Authorize]
+[RequirePlanFeature(nameof(PlanFeatures.AdvancedAuditLogs))]
 public class AuditLogsController : ControllerBase
 {
     private readonly ApplicationDbContext _db;

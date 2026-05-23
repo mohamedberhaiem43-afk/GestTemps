@@ -27,7 +27,8 @@ const MINIMUM_PLAN_FOR_FEATURE: Record<keyof PlanFeatures, PlanKey> = {
   multiSociete: 'Premium',
   advancedDashboards: 'Standard',
   ragAi: 'Premium',
-  advancedAuditLogs: 'Premium',
+  // Audit logs : ouverts dès Standard depuis 2026-05-23 (cf. PlanCatalog).
+  advancedAuditLogs: 'Standard',
   customBranding: 'Premium',
   deviceTrustEnforced: 'Premium',
   screenshotProtection: 'Premium',
@@ -38,6 +39,12 @@ const MINIMUM_PLAN_FOR_FEATURE: Record<keyof PlanFeatures, PlanKey> = {
   generalExit: 'Standard',
   leaveManagement: 'Standard',
   authorizationManagement: 'Standard',
+  // Modules métier facturables (2026-05-23) : exclus du Starter.
+  expenseReports: 'Standard',
+  breastfeedingManagement: 'Standard',
+  contractManagement: 'Standard',
+  documentScanOcr: 'Standard',
+  bulkImport: 'Standard',
 };
 
 // Le backend renvoie la feature en PascalCase (cf. RequirePlanFeatureAttribute) ; on
@@ -82,6 +89,11 @@ export default function PlanUpgradePage() {
     GeneralExit: 'Autorisation de sortie générale',
     LeaveManagement: 'Gestion des congés',
     AuthorizationManagement: 'Gestion des autorisations de sortie',
+    ExpenseReports: 'Notes de frais',
+    BreastfeedingManagement: 'Gestion de l\'allaitement',
+    ContractManagement: 'Gestion des contrats',
+    DocumentScanOcr: 'Scan de pièces d\'identité',
+    BulkImport: 'Importation Excel des données',
   };
   const featureLabel = state.feature ? (featureLabels[state.feature] ?? state.feature) : 'Cette fonctionnalité';
   const currentPlan = state.currentPlan ?? planCode ?? 'Inconnu';

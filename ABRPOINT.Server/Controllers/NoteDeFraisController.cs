@@ -3,6 +3,7 @@ using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,7 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [RequirePlanFeature(nameof(PlanFeatures.ExpenseReports))]
     public class NoteDeFraisController : ControllerBase
     {
         private readonly INoteDeFraisRepository _repository;

@@ -376,7 +376,11 @@ function CountrySelect({ value, onChange }: { value: string; onChange: (cca3: st
 // ── Inner component ───────────────────────────────────────────────────────────
 const EmployeModernInner = () => {
     const { t } = useTranslation();
-    const { soccod, sitcod, uticod, hasPermission } = useAuth();
+    const { soccod, sitcod, uticod, hasPermission, planAllows } = useAuth();
+    // Plan gating : le scan IA de pièces d'identité est réservé Standard+. Sur Starter
+    // le bouton est masqué et le modal n'est pas monté (cf. controllers backend
+    // RequirePlanFeature(DocumentScanOcr) qui bloque aussi l'API).
+    const canScanDocuments = planAllows('documentScanOcr');
 
     const canAdd = hasPermission('Gestion Employés', 'add');
     const canModify = hasPermission('Gestion Employés', 'modify');
@@ -1156,8 +1160,8 @@ const EmployeModernInner = () => {
                                 </Menu>
                             </>
                         )}
-                        {/* AI Scan Button */}
-                        {(canAdd || canModify) && (
+                        {/* AI Scan Button — gated par planAllows('documentScanOcr') */}
+                        {(canAdd || canModify) && canScanDocuments && (
                             <Button
                                 variant="outlined"
                                 startIcon={<AutoAwesomeIcon sx={{ fontSize: '16px !important' }} />}
@@ -1788,8 +1792,8 @@ const EmployeModernInner = () => {
             </Box>
             </Box>{/* fin du wrapper flex annuaire+content ajouté pour le bandeau d'onboarding */}
 
-            {/* AI Document Scan Modal */}
-            {(canAdd || canModify) && (
+            {/* AI Document Scan Modal — masqué pour Starter (plan gating). */}
+            {(canAdd || canModify) && canScanDocuments && (
                 <DocumentScanEmploye
                     open={scanOpen}
                     onClose={() => setScanOpen(false)}

@@ -17,6 +17,7 @@ namespace ABRPOINT.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
+    [RequirePlanFeature(nameof(PlanFeatures.ContractManagement))]
     public class ContratsController : ControllerBase
     {
         private readonly IContratRepository _contratRepository;
