@@ -80,7 +80,12 @@ export default function DemandeAbsenceValidation() {
     } finally {
       setLoading(false);
     }
-  }, [filter, feedback]);
+    // `feedback` exclu volontairement — cf. note dans DemandeAbsenceModern.tsx
+    // (useFeedbackSnackbar recrée son objet à chaque render → si on l'inclut,
+    // `reload` change d'identité à chaque render → useEffect re-fire → boucle
+    // infinie de GET /DemandeAbsence/pending qui finit en 503 côté backend).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   useEffect(() => { reload(); }, [reload]);
 

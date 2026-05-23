@@ -106,10 +106,20 @@ export default function DemandeAbsenceModern() {
   const loadAbsenceTypes = useCallback(async () => {
     try {
       const { data } = await apiInstance.get<any>('/Absences');
-      // L'endpoint peut renvoyer un Array ou un dict {abscod: abslib}. On normalise.
-      const arr: AbsenceTypeOption[] = Array.isArray(data)
-        ? data.map((a: any) => ({ abscod: a.abscod ?? a.Abscod ?? '', abslib: a.abslib ?? a.Abslib ?? '' })).filter(a => a.abscod)
-        : Object.entries<string>(data ?? {}).map(([abscod, abslib]) => ({ abscod, abslib }));
+      // L'endpoint peut renvoyer un Array ou un dict {abscod: abslib}. On
+      // normalise — mais on REJETTE explicitement les chaînes : quand le
+      // backend renvoie une page d'erreur HTML (proxy Vite en 503, IIS
+      // service unavailable…), `data` arrive comme string "<!doctype html>…".
+      // Sans ce garde, Object.entries(string) produit [["0","<"],["1","!"]…]
+      // et l'UI affiche un MenuItem par caractère (cf. incident 2026-05-24).
+      let arr: AbsenceTypeOption[] = [];
+      if (Array.isArray(data)) {
+        arr = data
+          .map((a: any) => ({ abscod: a.abscod ?? a.Abscod ?? '', abslib: a.abslib ?? a.Abslib ?? '' }))
+          .filter(a => a.abscod);
+      } else if (data && typeof data === 'object') {
+        arr = Object.entries<string>(data).map(([abscod, abslib]) => ({ abscod, abslib }));
+      }
       setAbsenceTypes(arr);
     } catch { /* silent — l'utilisateur peut quand même saisir sans type */ }
   }, []);
@@ -138,7 +148,7 @@ export default function DemandeAbsenceModern() {
             </Typography>
           </Stack>
           <Typography sx={{ color: '#64748b', mt: 0.5 }}>
-            Soumettez une demande avec justificatif (certificat médical, convocation…). Notre IA peut pré-remplir le formulaire à partir du document scanné.
+            Soumettez une demande avec justificatif (certificat médical, convocation…).
           </Typography>
         </Box>
         <Button

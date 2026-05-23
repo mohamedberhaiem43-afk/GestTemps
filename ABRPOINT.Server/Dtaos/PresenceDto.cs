@@ -58,5 +58,17 @@
         public string? AutDebut { get; set; }
         public string? AutFin { get; set; }
 
+        // ─── État de validation des heures supplémentaires (table autoriser / [HEURES SUP]) ───
+        // Renseigné par PresenceRepository.GetEmpEtatPeriodiqueAsync via
+        // IautoriserRepository.GetOvertimeApprovalBatchAsync. Permet à l'UI État
+        // périodique d'afficher une mention "h.supp refusées" quand l'employé
+        // a pointé des h.supp mais que le manager a refusé sa demande.
+        /// <summary>"Approved", "Pending", "Rejected", "Mixed" ou null si aucune demande pour ce jour.</summary>
+        public string? OvertimeRequestStatus { get; set; }
+        public float? OvertimeApprovedHours { get; set; }
+        public float? OvertimePendingHours { get; set; }
+        public float? OvertimeRejectedHours { get; set; }
+        /// <summary>Commentaire du manager — affiché en tooltip côté UI sur les jours refusés.</summary>
+        public string? OvertimeDecisionComment { get; set; }
     }
 }

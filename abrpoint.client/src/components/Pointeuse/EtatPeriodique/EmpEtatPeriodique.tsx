@@ -5,6 +5,8 @@ import {
 } from 'material-react-table';
 import { Box, Button, Checkbox, CircularProgress, Dialog, DialogContent, DialogTitle, FormControl, Grid, IconButton, InputLabel, MenuItem, Select, Tooltip, Typography } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
+import CancelIcon from '@mui/icons-material/Cancel';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import { EmployeeContext } from './EmployeeContext';
 import { useDateRange } from './FilterContext';
 import useUpdatePresence from '../../../hooks/presenceHooks/useUpdatePresence';
@@ -302,6 +304,55 @@ const { data: fetchedSanction } = useGetSanctionDate(
       size: 30,
       muiEditTextFieldProps: {
         type: 'text',
+      },
+      // Mention « h.supp refusées » (exigence produit 2026-05 sur l'état
+      // périodique) : on garde la valeur calculée à l'affichage mais on
+      // signale d'un coup d'œil les jours où le manager a refusé la demande
+      // — sinon l'employé voit son tothsup et croit qu'il sera payé alors
+      // que la paie ne reprendra que les heures approuvées.
+      Cell: ({ cell, row }: { cell: import('material-react-table').MRT_Cell<EmpEtat>; row: MRT_Row<EmpEtat> }) => {
+        const value = cell.getValue<string>();
+        const status = row.original.overtimeRequestStatus ?? null;
+        const rejected = row.original.overtimeRejectedHours ?? 0;
+        const pending = row.original.overtimePendingHours ?? 0;
+        const comment = row.original.overtimeDecisionComment;
+
+        // Pas de demande → affichage standard, pas de mention.
+        if (!status) {
+          return <span>{value}</span>;
+        }
+
+        // Refusée (totale ou partielle Mixed avec un Rejected) → croix rouge + tooltip.
+        if (status === 'Rejected' || (status === 'Mixed' && rejected > 0)) {
+          const tooltipText = [
+            `Heures supp. refusées : ${rejected.toFixed(2)}h`,
+            'Non comptées dans la paie.',
+            comment ? `Motif : ${comment}` : null,
+          ].filter(Boolean).join('\n');
+          return (
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+              <span style={{ textDecoration: 'line-through', color: '#94a3b8' }}>{value}</span>
+              <Tooltip title={<span style={{ whiteSpace: 'pre-line' }}>{tooltipText}</span>} arrow>
+                <CancelIcon sx={{ fontSize: 14, color: '#dc2626' }} />
+              </Tooltip>
+            </Box>
+          );
+        }
+
+        // En attente → sablier orange + tooltip.
+        if (status === 'Pending' || (status === 'Mixed' && pending > 0)) {
+          return (
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+              <span>{value}</span>
+              <Tooltip title={`Heures supp. en attente de validation (${pending.toFixed(2)}h).`} arrow>
+                <HourglassEmptyIcon sx={{ fontSize: 14, color: '#d97706' }} />
+              </Tooltip>
+            </Box>
+          );
+        }
+
+        // Approuvée → on garde l'affichage standard (la valeur est déjà comptée).
+        return <span>{value}</span>;
       },
     },
     {

@@ -1144,15 +1144,46 @@ function PointageDuMoisContent() {
                     <TableRow key={idx} hover sx={{ cursor: 'pointer' }}
                       onDoubleClick={() => { setNumSem(idx + 1); setSelectedWeekDetails(r.weekDetails as any); setOpenDialog(true); }}>
                       <TableCell sx={{ fontWeight: 700 }}>{idx + 1}</TableCell>
-                      {WEEK_COLS.map(c => (
-                        <TableCell key={c.key} sx={{ fontSize: 12 }}>
-                          {c.key === 'retard'
-                            ? fmtMin(r.retard ?? 0)
-                            : c.fmt
-                            ? c.fmt(Number(r[c.key as keyof typeof r]) || 0)
-                            : fmtHours2(Number(r[c.key as keyof typeof r]))}
-                        </TableCell>
-                      ))}
+                      {WEEK_COLS.map(c => {
+                        // Cellule hreSupSemaine : si des h.supp ont été refusées
+                        // par le manager pour cette semaine, on ajoute un badge
+                        // ⚠ avec le détail (refusées / en attente / calcul brut)
+                        // en tooltip — l'utilisateur comprend pourquoi le total
+                        // affiché est inférieur à ce qui a été pointé.
+                        if (c.key === 'hreSupSemaine' && r.hreSupHasRequests) {
+                          const refusees = r.hreSupRefusees ?? 0;
+                          const pending = r.hreSupEnAttente ?? 0;
+                          const brut = r.hreSupCalcule ?? 0;
+                          const showBadge = refusees > 0 || pending > 0;
+                          const tooltipText = [
+                            `Calcul brut: ${brut.toFixed(2)}h`,
+                            `Approuvées: ${(r.hreSupApprouvees ?? 0).toFixed(2)}h`,
+                            pending > 0 ? `En attente: ${pending.toFixed(2)}h` : null,
+                            refusees > 0 ? `Refusées: ${refusees.toFixed(2)}h (non comptées)` : null,
+                          ].filter(Boolean).join('\n');
+                          return (
+                            <TableCell key={c.key} sx={{ fontSize: 12 }}>
+                              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                                <span>{fmtHours2(Number(r.hreSupSemaine))}</span>
+                                {showBadge && (
+                                  <Tooltip title={<span style={{ whiteSpace: 'pre-line' }}>{tooltipText}</span>} arrow>
+                                    <WarningIcon sx={{ fontSize: 14, color: refusees > 0 ? '#dc2626' : '#d97706' }} />
+                                  </Tooltip>
+                                )}
+                              </Box>
+                            </TableCell>
+                          );
+                        }
+                        return (
+                          <TableCell key={c.key} sx={{ fontSize: 12 }}>
+                            {c.key === 'retard'
+                              ? fmtMin(r.retard ?? 0)
+                              : c.fmt
+                              ? c.fmt(Number(r[c.key as keyof typeof r]) || 0)
+                              : fmtHours2(Number(r[c.key as keyof typeof r]))}
+                          </TableCell>
+                        );
+                      })}
                     </TableRow>
                   ))}
                   {totals && (

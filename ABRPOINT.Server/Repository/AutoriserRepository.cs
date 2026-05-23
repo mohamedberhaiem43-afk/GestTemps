@@ -418,5 +418,103 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+
+        // Marker repris d'AutorisersController.cs — toute logique de filtrage
+        // h.supp doit l'utiliser pour rester alignée sur ce que le mobile pose
+        // dans conmotif lors de la création d'une demande de type "Heures sup.".
+        private const string OvertimeMotifMarker = "[HEURES SUP]";
+
+        public async Task<Dictionary<DateTime, OvertimeApprovalSummary>> GetOvertimeApprovalBatchAsync(
+            string soccod, string empcod, DateTime startDate, DateTime endDate)
+        {
+            var startDay = startDate.Date;
+            var endDayExclusive = endDate.Date.AddDays(1);
+
+            // On indexe par condep.Date : c'est le jour réellement travaillé en
+            // h.supp. condat (date de création de la demande) peut différer de
+            // plusieurs jours (l'employé déclare a posteriori), donc il n'est
+            // pas utilisable comme clé d'agrégation par jour.
+            var rows = await _dbContext.Autorisers
+                .AsNoTracking()
+                .Where(a => a.Soccod == soccod
+                            && a.Empcod == empcod
+                            && a.Conmotif != null
+                            && EF.Functions.ILike(a.Conmotif, "%" + OvertimeMotifMarker + "%")
+                            && a.Condep.HasValue
+                            && a.Condep.Value >= startDay
+                            && a.Condep.Value < endDayExclusive)
+                .Select(a => new
+                {
+                    a.Condep,
+                    a.Conret,
+                    a.Connbjour,
+                    a.Conetat,
+                    a.Concommentaire,
+                    a.Contraitedat,
+                })
+                .ToListAsync();
+
+            var result = new Dictionary<DateTime, OvertimeApprovalSummary>();
+            if (rows.Count == 0) return result;
+
+            // Groupe par jour (condep.Date) puis agrège les durées par état.
+            // Préférence pour Connbjour (déjà calculé/persisté à la création)
+            // avec fallback (conret - condep) si null — garde le bon
+            // comportement même sur des lignes anciennes/migrées sans Connbjour.
+            foreach (var dayGroup in rows.GroupBy(r => r.Condep!.Value.Date))
+            {
+                float approved = 0f, pending = 0f, rejected = 0f;
+                string? latestComment = null;
+                DateTime? latestCommentAt = null;
+                var statuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var r in dayGroup)
+                {
+                    var hours = r.Connbjour
+                        ?? (r.Conret.HasValue
+                            ? (float)Math.Round((r.Conret.Value - r.Condep!.Value).TotalHours, 2)
+                            : 0f);
+                    if (hours < 0) hours = 0;
+
+                    var state = string.IsNullOrWhiteSpace(r.Conetat) ? "Pending" : r.Conetat!;
+                    statuses.Add(state);
+
+                    if (string.Equals(state, "Approved", StringComparison.OrdinalIgnoreCase))
+                        approved += hours;
+                    else if (string.Equals(state, "Rejected", StringComparison.OrdinalIgnoreCase))
+                        rejected += hours;
+                    else
+                        pending += hours;
+
+                    // Le commentaire affiché côté UI est celui de la décision la
+                    // plus récente (utile quand l'admin refuse plusieurs lignes
+                    // sur la même journée : on garde le motif courant).
+                    if (!string.IsNullOrWhiteSpace(r.Concommentaire)
+                        && (latestCommentAt == null
+                            || (r.Contraitedat.HasValue && r.Contraitedat.Value > latestCommentAt)))
+                    {
+                        latestComment = r.Concommentaire;
+                        latestCommentAt = r.Contraitedat;
+                    }
+                }
+
+                string consolidated;
+                if (statuses.Count == 1)
+                    consolidated = statuses.First();
+                else if (statuses.Contains("Rejected"))
+                    consolidated = "Mixed"; // au moins une refusée + d'autres états — l'UI affiche Rejected en priorité
+                else
+                    consolidated = "Mixed";
+
+                result[dayGroup.Key] = new OvertimeApprovalSummary(
+                    Status: consolidated,
+                    ApprovedHours: approved,
+                    PendingHours: pending,
+                    RejectedHours: rejected,
+                    LatestComment: latestComment);
+            }
+
+            return result;
+        }
     }
 }

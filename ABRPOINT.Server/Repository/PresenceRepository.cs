@@ -737,6 +737,13 @@ namespace ABRPOINT.Server.Repository
                 // 3️⃣ Batch des sanctions, autorisations, congés, feriés, poicod
                 var sanctions = await _sanctionRepository.GetAbsenceLibBatchAsync(soccod, empcod, dateDeb, dateFin);
                 var autorisations = await _autorisationRepository.GetAutLibBatch(soccod, empcod, dateDeb, dateFin);
+                // ─── Demandes d'h.supp (table autoriser / marker [HEURES SUP]) ───
+                // Batch utilisé pour signaler dans l'état périodique les journées
+                // où l'employé a pointé des h.supp mais où le manager a refusé sa
+                // demande. Sans ce batch, l'UI ne peut pas distinguer une journée
+                // de h.supp validées d'une journée refusée (ce qui peut mettre
+                // l'employé / le RH en désaccord sur le pointage).
+                var overtimeApprovals = await _autorisationRepository.GetOvertimeApprovalBatchAsync(soccod, empcod, dateDeb, dateFin);
                 var conges = await _congeRepository.GetCongeEmployeLibBatchAsync(soccod, empcod, dateDeb, dateFin);
                 var feriers = await _jourFerierRepository.GetByFerdateBatch(soccod, dateDeb, dateFin);
                 var poicods = await _dmpointRepository.GetPoicodBatchAsync(soccod, empcod, dateDeb, dateFin);
@@ -883,6 +890,17 @@ namespace ABRPOINT.Server.Repository
                     {
                         presence.AutDebut = autorisation.Condep?.ToString("HH:mm");
                         presence.AutFin = autorisation.Conret?.ToString("HH:mm");
+                    }
+
+                    // État de la demande d'h.supp pour CE jour (clé condep.Date).
+                    // Pas de demande → null partout (l'UI traite cela comme "auto").
+                    if (overtimeApprovals.TryGetValue(date.Date, out var otSummary))
+                    {
+                        presence.OvertimeRequestStatus = otSummary.Status;
+                        presence.OvertimeApprovedHours = otSummary.ApprovedHours;
+                        presence.OvertimePendingHours = otSummary.PendingHours;
+                        presence.OvertimeRejectedHours = otSummary.RejectedHours;
+                        presence.OvertimeDecisionComment = otSummary.LatestComment;
                     }
 
                     presence.Poicod = poicods.GetValueOrDefault((empcod, date));

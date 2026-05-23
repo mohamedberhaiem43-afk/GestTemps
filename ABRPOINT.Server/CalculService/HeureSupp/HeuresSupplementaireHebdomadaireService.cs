@@ -17,6 +17,24 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         public float? HeuresSupTranche1 { get; set; }
         public float? HeuresSupTranche2 { get; set; }
         public float? HreSupSemaine { get; set; }
+        // ─── Validation des heures supplémentaires (table autoriser / [HEURES SUP]) ───
+        // Exigence produit 2026-05 : « les h.supp ne sont calculées que si elles
+        // sont approuvées ». On garde le total calculé brut (HreSupCalcule) pour
+        // l'audit/transparence, et on bascule HreSupSemaine sur HreSupApprouvees
+        // dès qu'au moins une demande existe pour la semaine. Si aucune demande
+        // n'existe (cas legacy / tenant n'utilisant pas le workflow de validation),
+        // on garde le total calculé pour éviter de zéroter rétroactivement
+        // l'historique.
+        /// <summary>Heures sup. calculées depuis les pointages (montant brut, avant filtrage par approbation).</summary>
+        public float? HreSupCalcule { get; set; }
+        /// <summary>Heures sup. couvertes par des demandes Approved sur la semaine (clé condep.Date ∈ [WeekStartDate, WeekEndDate]).</summary>
+        public float? HreSupApprouvees { get; set; }
+        /// <summary>Heures sup. correspondant à des demandes Pending (non encore traitées).</summary>
+        public float? HreSupEnAttente { get; set; }
+        /// <summary>Heures sup. dont la demande a été Rejected — affichées en mention dans l'UI sans être comptées dans HreSupSemaine.</summary>
+        public float? HreSupRefusees { get; set; }
+        /// <summary>true s'il existe au moins une demande d'h.supp dans la semaine — sert au front pour savoir si l'on est en mode validation (badge Approuvées/Refusées affiché) ou en mode legacy auto-calcul.</summary>
+        public bool HreSupHasRequests { get; set; }
         public int? JourFerier { get; set; }
         public float? HeureFerier { get; set; }
         public int? NbJourFerier { get; set; }
@@ -73,6 +91,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         private readonly IParametreRepository _parametreRepository;
         private readonly IOptimizedPresenceService _optimizedPresenceService;
         private readonly IPresenceRepository _presenceRepository;
+        private readonly IautoriserRepository _autoriserRepository;
 
         public HeuresSupplementairesHebdomadairesService(
             IparTrancheRepository parTrancheRepository,
@@ -80,7 +99,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             IParametreRepository parametreRepository,
             IPresenceRepository presenceRepository,
             IEmployeRepository employeRepository,
-            IOptimizedPresenceService optimizedPresenceService)
+            IOptimizedPresenceService optimizedPresenceService,
+            IautoriserRepository autoriserRepository)
         {
             _parTrancheRepository = parTrancheRepository;
             _calendrierRepository = calendrierRepository;
@@ -88,6 +108,70 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             _presenceRepository = presenceRepository;
             _employeRepository = employeRepository;
             _optimizedPresenceService = optimizedPresenceService;
+            _autoriserRepository = autoriserRepository;
+        }
+
+        /// <summary>
+        /// Applique le filtre d'approbation à un <see cref="HeuresSupplementairesResultat"/>
+        /// déjà calculé : remplit HreSupCalcule/Approuvees/EnAttente/Refusees/HasRequests,
+        /// et bascule HreSupSemaine (+ tranches) sur les seules heures approuvées si au
+        /// moins une demande existe sur la semaine. Si aucune demande n'existe, on garde
+        /// les valeurs calculées (compat ascendante — un tenant qui n'utilise pas le
+        /// workflow de validation ne perd pas son historique d'h.supp).
+        /// </summary>
+        private async Task ApplyApprovalFilterAsync(
+            HeuresSupplementairesResultat result,
+            string soccod,
+            string empcod,
+            float? tranche1,
+            float? tranche2)
+        {
+            // Conserve la valeur calculée pour l'audit/transparence.
+            result.HreSupCalcule = result.HreSupSemaine;
+
+            if (!result.WeekStartDate.HasValue || !result.WeekEndDate.HasValue)
+            {
+                // Pas de plage → rien à filtrer, on laisse HreSupSemaine tel quel.
+                result.HreSupApprouvees = result.HreSupSemaine;
+                result.HreSupEnAttente = 0f;
+                result.HreSupRefusees = 0f;
+                result.HreSupHasRequests = false;
+                return;
+            }
+
+            var approvals = await _autoriserRepository.GetOvertimeApprovalBatchAsync(
+                soccod, empcod, result.WeekStartDate.Value, result.WeekEndDate.Value);
+
+            float approved = 0f, pending = 0f, rejected = 0f;
+            foreach (var s in approvals.Values)
+            {
+                approved += s.ApprovedHours;
+                pending += s.PendingHours;
+                rejected += s.RejectedHours;
+            }
+
+            result.HreSupApprouvees = approved;
+            result.HreSupEnAttente = pending;
+            result.HreSupRefusees = rejected;
+            result.HreSupHasRequests = approvals.Count > 0;
+
+            if (!result.HreSupHasRequests)
+                return; // Mode legacy : HreSupSemaine = calculé. Pas de modification.
+
+            // Mode strict : seules les h.supp approuvées comptent. On replafonne
+            // également les deux tranches sur ce total approuvé en respectant la
+            // même règle de répartition (tranche1 jusqu'à son seuil, le reste en
+            // tranche2). Le total Tothre est ajusté du delta calculé → approuvé
+            // pour rester cohérent avec ce qu'affichait la ligne "Total".
+            var newHreSup = approved;
+            var delta = newHreSup - (result.HreSupCalcule ?? 0f);
+            if (result.Tothre.HasValue)
+                result.Tothre += delta;
+
+            result.HreSupSemaine = newHreSup;
+            result.HeuresSupTranche1 = (float?)Math.Min(newHreSup, tranche1 ?? 0f);
+            var remaining = newHreSup - (result.HeuresSupTranche1 ?? 0f);
+            result.HeuresSupTranche2 = (float?)Math.Min(remaining, tranche2 ?? 0f);
         }
 
         public async Task<HeuresSupplementairesResultat> CalculerHeuresSupplementairesHebdomadaires(string soccod, string empcod, string mois, string annee, string semaine, string empreg, string empniveau)
@@ -216,6 +300,10 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 result.HeuresSupTranche1 = Math.Min(heuresSupp ?? 0, tranche1 ?? 0);
                 heuresSupp -= result.HeuresSupTranche1;
                 result.HeuresSupTranche2 = Math.Min(heuresSupp ?? 0, tranche2 ?? 0);
+
+                // Filtrage par approbation — n'a aucun effet si aucune demande
+                // n'existe pour la semaine (cf. compat ascendante dans le helper).
+                await ApplyApprovalFilterAsync(result, soccod, empcod, tranche1, tranche2);
                 return result;
             }
             catch (Exception)
@@ -412,6 +500,12 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         heuresSupp -= result.HeuresSupTranche1;
                         result.HeuresSupTranche2 = Math.Min(heuresSupp ?? 0, tranche2 ?? 0);
                     }
+
+                    // Filtrage approbation — applique le mode strict dès qu'au
+                    // moins une demande [HEURES SUP] existe pour cette semaine.
+                    // Idempotent côté legacy : sans demande, HreSupSemaine reste
+                    // égal au calcul (HreSupCalcule).
+                    await ApplyApprovalFilterAsync(result, soccod, empcod, tranche1, tranche2);
 
                     results.Add(result);
                 }

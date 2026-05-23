@@ -18,6 +18,19 @@ export type HeuresSupplementairesResultat =
     heuresSupTranche1 :number;
     heuresSupTranche2 :number;
     hreSupSemaine :number;
+    // Validation des heures supplémentaires (table autoriser, marker [HEURES SUP]).
+    // - hreSupCalcule : montant brut calculé depuis les pointages (avant filtrage).
+    // - hreSupApprouvees / hreSupEnAttente / hreSupRefusees : agrégats par état
+    //   pour la semaine.
+    // - hreSupHasRequests : true s'il existe au moins une demande pour la semaine.
+    //   Quand false, hreSupSemaine = calcul brut (mode legacy). Quand true,
+    //   hreSupSemaine = hreSupApprouvees uniquement (mode strict) — l'UI affiche
+    //   alors un badge si des heures ont été refusées.
+    hreSupCalcule?: number;
+    hreSupApprouvees?: number;
+    hreSupEnAttente?: number;
+    hreSupRefusees?: number;
+    hreSupHasRequests?: boolean;
     hreFerier :number;
     hreFerieTrv :number;
     hreFerieTrv2 :number;
