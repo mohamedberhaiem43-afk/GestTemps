@@ -4,6 +4,7 @@ using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace ABRPOINT.Server.Controllers
@@ -134,9 +135,36 @@ namespace ABRPOINT.Server.Controllers
             if (societe == null)
                 return BadRequest("Données invalides.");
 
+            // Plan gating « Custom Branding » : seul Business permet de personnaliser
+            // le logo (champ Socimg) — cf. PlanFeatures.CustomBranding. On ne bloque
+            // PAS l'ensemble du Put pour les autres packs (l'admin doit pouvoir éditer
+            // l'adresse, le nom, etc.) : on compare l'image soumise à celle en base et
+            // on refuse uniquement si elle CHANGE sur un pack non éligible. NULL → NULL
+            // (suppression de logo) reste autorisé pour permettre un rollback propre.
+            var planAllowsBranding = PlanCatalog.GetPlan(_currentTenant.Current?.PlanCode)
+                ?.Features.CustomBranding ?? false;
+            // En essai gratuit, le frontend déverrouille toutes les features pour test —
+            // on aligne le comportement back en utilisant TrialPolicy.IsTrialing.
+            var inTrial = TrialPolicy.IsTrialing(_currentTenant.Current);
+            if (!planAllowsBranding && !inTrial && !string.IsNullOrWhiteSpace(societe.Socimg))
+            {
+                var existing = await _societeRepository.GetBySoccodAsync(societe.Soccod ?? string.Empty);
+                var currentImg = existing?.Socimg;
+                var changed = !string.Equals(currentImg ?? string.Empty, societe.Socimg ?? string.Empty, System.StringComparison.Ordinal);
+                if (changed)
+                {
+                    return StatusCode(402, new
+                    {
+                        code = "plan_feature_locked",
+                        feature = "CustomBranding",
+                        message = "La personnalisation du logo est réservée au pack Business. Passez au pack supérieur pour utiliser cette fonctionnalité."
+                    });
+                }
+            }
+
             await _societeRepository.UpdateAsync(societe);
 
-            
+
             return Ok($"Société avec le code '{societe.Soccod}' mise à jour avec succée.");
         }
 

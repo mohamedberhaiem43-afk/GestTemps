@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import apiService from '../services/api';
 import { disableBiometricLogin } from '../services/biometric';
 import { clearRegisteredToken, registerForPushAsync } from '../services/push';
+import { setupCertificatePinning } from '../services/certificatePinning';
 
 /**
  * Drapeaux fonctionnels actifs pour le tenant courant (mirroir du record
@@ -72,6 +73,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     checkAuth();
   }, []);
+
+  // Plan gating « CertificatePinning » : on (ré)active la config TLS pinning à
+  // chaque changement du flag (login, refresh /me, switch tenant). Pendant
+  // l'essai, le backend renvoie tous les flags à `true` donc le pinning
+  // s'active immédiatement — voir certificatePinning.ts pour les notes
+  // d'installation de la lib native côté EAS.
+  useEffect(() => {
+    setupCertificatePinning(user?.planFeatures?.certificatePinning ?? false);
+  }, [user?.planFeatures?.certificatePinning]);
 
   const checkAuth = async () => {
     try {

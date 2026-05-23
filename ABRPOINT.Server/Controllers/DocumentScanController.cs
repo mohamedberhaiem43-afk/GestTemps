@@ -294,6 +294,185 @@ Règles importantes:
         }
 
         /// <summary>
+        /// Scan d'un justificatif d'absence (certificat médical, convocation, attestation
+        /// d'un évènement familial…) et extraction des champs pour pré-remplir le
+        /// formulaire de demande d'absence côté web/mobile. Réutilise le même pipeline
+        /// vision OpenRouter / Gemini que <see cref="ScanEmployeDocument"/> ; seul le
+        /// prompt change pour cibler les données pertinentes (dates, type d'absence,
+        /// motif synthétique).
+        ///
+        /// Le résultat est CONSULTATIF — le collaborateur peut éditer chaque champ
+        /// avant de soumettre. Pas de persistance côté serveur ; cet endpoint ne fait
+        /// qu'extraire.
+        /// </summary>
+        [HttpPost("scan-absence-justification")]
+        [RequestSizeLimit(15_000_000)] // 15 Mo : un certificat scanné = ~5 Mo max
+        [RequestFormLimits(MultipartBodyLengthLimit = 15_000_000)]
+        public async Task<IActionResult> ScanAbsenceJustification()
+        {
+            try
+            {
+                var form = await Request.ReadFormAsync();
+                var file = form.Files.FirstOrDefault();
+                if (file == null || file.Length == 0)
+                    return BadRequest(new { message = "Aucun fichier fourni." });
+
+                var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf" };
+                if (!allowedTypes.Contains(file.ContentType.ToLower()))
+                    return BadRequest(new { message = "Type de fichier non supporté (JPG, PNG, WebP, GIF, PDF acceptés)." });
+
+                string base64Data;
+                using (var ms = new MemoryStream())
+                {
+                    await file.CopyToAsync(ms);
+                    base64Data = Convert.ToBase64String(ms.ToArray());
+                }
+
+                var apiKey = _config["OpenRouter:ApiKey"];
+                var model = _config["OpenRouter:VisionModel"] ?? "google/gemini-2.0-flash-001";
+                if (string.IsNullOrWhiteSpace(apiKey) || apiKey.StartsWith("REPLACE_WITH_", StringComparison.OrdinalIgnoreCase))
+                    return StatusCode(500, new { message = "Clé API OpenRouter non configurée." });
+
+                // Prompt spécialisé absence — orienté certificat médical mais générique
+                // pour couvrir aussi convocations / attestations. Le champ documentType
+                // permet au front d'afficher un libellé contextuel (« Certificat médical »).
+                var prompt = @"Tu es un assistant expert en extraction de données à partir de justificatifs d'absence
+au travail (certificat médical, convocation officielle, attestation d'évènement familial, etc.).
+
+Analyse ce document et extrais les informations pertinentes pour pré-remplir une demande d'absence.
+
+Réponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de commentaires) avec cette structure exacte :
+{
+  ""documentType"": ""certificat_medical"" | ""convocation"" | ""attestation_familiale"" | ""attestation_administrative"" | ""autre"",
+  ""confidence"": 0.95,
+  ""extractedData"": {
+    ""startDate"": ""DD/MM/YYYY"",
+    ""endDate"": ""DD/MM/YYYY"",
+    ""daysCount"": 0,
+    ""absenceCategory"": ""maladie"" | ""evenement_familial"" | ""rdv_medical"" | ""convocation_officielle"" | ""formation"" | ""autre"",
+    ""reason"": ""Motif synthétique en 1-2 phrases destiné au manager"",
+    ""issuer"": ""Nom de la personne / structure qui a émis le justificatif (ex: Dr. Untel, Mairie de X)""
+  },
+  ""suggestions"": [
+    ""Conseil 1 (ex: vérifier la date de fin avant soumission)""
+  ]
+}
+
+Règles importantes :
+- Les dates sont obligatoirement au format DD/MM/YYYY
+- Si une seule date est mentionnée, mets la même valeur dans startDate et endDate
+- daysCount = nombre de jours ouvrés (lun-ven) couverts par la période ; 0 si indéterminable
+- absenceCategory : choisis la catégorie la plus précise
+- reason : phrase courte et factuelle (PAS de données médicales sensibles si elles sont superflues — un manager n'a pas besoin du diagnostic, juste de la durée d'incapacité)
+- Si le document n'est PAS un justificatif d'absence (ex: photo random, facture), retourne documentType=""autre"" et confidence < 0.3
+- Ne laisse aucune valeur null : chaîne vide """" si l'info n'est pas présente";
+
+                var client = _httpClientFactory.CreateClient();
+                object requestBody;
+                var isPdf = file.ContentType.ToLower() == "application/pdf";
+
+                if (isPdf)
+                {
+                    string pdfText;
+                    using (var pdfStream = new MemoryStream())
+                    {
+                        await file.CopyToAsync(pdfStream);
+                        pdfStream.Position = 0;
+                        using var pdfDoc = PdfDocument.Open(pdfStream);
+                        var textParts = new System.Text.StringBuilder();
+                        foreach (var page in pdfDoc.GetPages()) textParts.AppendLine(page.Text);
+                        pdfText = textParts.ToString();
+                    }
+                    if (string.IsNullOrWhiteSpace(pdfText))
+                        return Ok(new { success = false, message = "Le PDF ne contient pas de texte extractible. Essayez de le scanner en image." });
+
+                    requestBody = new
+                    {
+                        model,
+                        messages = new[]
+                        {
+                            new { role = "system", content = "Tu es un assistant expert en extraction de données à partir de justificatifs d'absence. Réponds UNIQUEMENT en JSON valide." },
+                            new { role = "user", content = $"Voici le contenu textuel extrait d'un PDF :\n\n---\n{pdfText}\n---\n\n{prompt}" }
+                        },
+                        temperature = 0.1,
+                        max_tokens = 2000
+                    };
+                }
+                else
+                {
+                    requestBody = new
+                    {
+                        model,
+                        messages = new[]
+                        {
+                            new
+                            {
+                                role = "user",
+                                content = new object[]
+                                {
+                                    new { type = "image_url", image_url = new { url = $"data:{file.ContentType};base64,{base64Data}" } },
+                                    new { type = "text", text = prompt }
+                                }
+                            }
+                        },
+                        temperature = 0.1,
+                        max_tokens = 2000
+                    };
+                }
+
+                var request = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions")
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(requestBody), System.Text.Encoding.UTF8, "application/json")
+                };
+                request.Headers.Add("Authorization", $"Bearer {apiKey}");
+                request.Headers.Add("HTTP-Referer", "https://localhost:5173");
+                request.Headers.Add("X-Title", "ABRPOINT GestTemps");
+
+                var response = await client.SendAsync(request);
+                var respContent = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                    return StatusCode(502, new { message = "Erreur du service AI.", statusCode = (int)response.StatusCode });
+
+                var apiResp = JsonSerializer.Deserialize<OpenRouterResponse>(respContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var responseText = apiResp?.Choices?.FirstOrDefault()?.Message?.Content;
+                if (string.IsNullOrEmpty(responseText))
+                    return Ok(new { success = false, message = "Impossible d'extraire les données." });
+
+                var cleanedJson = CleanJsonResponse(responseText);
+                AbsenceExtractionResult? result;
+                try
+                {
+                    result = JsonSerializer.Deserialize<AbsenceExtractionResult>(cleanedJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+                catch
+                {
+                    return Ok(new { success = false, message = "Les données extraites n'ont pas pu être analysées." });
+                }
+                if (result?.ExtractedData == null)
+                    return Ok(new { success = false, message = "Aucune information d'absence détectée." });
+
+                // Normalisation des dates en YYYY-MM-DD pour input[type=date] côté web.
+                result.ExtractedData.StartDate = ConvertDateFormat(result.ExtractedData.StartDate);
+                result.ExtractedData.EndDate = ConvertDateFormat(result.ExtractedData.EndDate);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Justificatif analysé (type : {result.DocumentType}, confiance : {result.Confidence:P0})",
+                    documentType = result.DocumentType,
+                    confidence = result.Confidence,
+                    extractedData = result.ExtractedData,
+                    suggestions = result.Suggestions ?? new List<string>()
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ScanAbsence] Error: {ex}");
+                return StatusCode(500, new { message = "Erreur lors de l'analyse du justificatif." });
+            }
+        }
+
+        /// <summary>
         /// Quick text extraction using AI Vision via OpenRouter.
         /// </summary>
         [HttpPost("quick-scan")]
@@ -468,6 +647,25 @@ Réponds UNIQUEMENT en JSON sans markdown:
         public double Confidence { get; set; }
         public EmployeExtractedData ExtractedData { get; set; } = new();
         public List<string> Suggestions { get; set; } = new();
+    }
+
+    // Extraction result models — justificatif d'absence (cf. ScanAbsenceJustification)
+    public class AbsenceExtractionResult
+    {
+        public string DocumentType { get; set; } = "autre";
+        public double Confidence { get; set; }
+        public AbsenceExtractedData ExtractedData { get; set; } = new();
+        public List<string> Suggestions { get; set; } = new();
+    }
+
+    public class AbsenceExtractedData
+    {
+        public string StartDate { get; set; } = "";
+        public string EndDate { get; set; } = "";
+        public int DaysCount { get; set; }
+        public string AbsenceCategory { get; set; } = "";
+        public string Reason { get; set; } = "";
+        public string Issuer { get; set; } = "";
     }
 
     public class EmployeExtractedData

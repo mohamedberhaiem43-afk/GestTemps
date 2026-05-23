@@ -62,6 +62,8 @@
     "leaveRequest": "Demande De Conge",
     "remoteWorkRequest": "Demande de Télétravail",
     "remoteWorkValidation": "Validation Télétravail",
+    "absenceRequest": "Demande d'absence",
+    "absenceValidation": "Validation des absences",
     "leaveBalance": "Solde De Conge",
     "leaveTitle": "Titre De Conge",
     "generalLeave": "Conge Géneral",

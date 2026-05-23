@@ -441,6 +441,17 @@ export default function HomeScreen({ navigation }: any) {
           <TouchableOpacity
             style={styles.quickAction}
             activeOpacity={0.8}
+            onPress={() => navigation.navigate('DemandeAbsence')}
+          >
+            <View style={[styles.quickIconBox, { backgroundColor: '#ffe4e6' }]}>
+              <MaterialCommunityIcons name="hospital-box" size={22} color="#be123c" />
+            </View>
+            <Text style={styles.quickLabel}>Absence</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickAction}
+            activeOpacity={0.8}
             onPress={() => navigation.navigate('Expense')}
           >
             <View style={[styles.quickIconBox, { backgroundColor: '#fff1c2' }]}>

@@ -110,6 +110,8 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<Teletravail> Teletravails { get; set; }
 
+    public virtual DbSet<DemandeAbsence> DemandesAbsence { get; set; }
+
     public virtual DbSet<Direction> Directions { get; set; }
 
     public virtual DbSet<Dmpoint> Dmpoints { get; set; }

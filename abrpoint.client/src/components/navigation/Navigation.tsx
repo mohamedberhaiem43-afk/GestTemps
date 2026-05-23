@@ -49,6 +49,8 @@ const DemCongeModern = React.lazy(() => import('../gestionEmploye/gestionConge/D
 const DemandeAutorisationModern = React.lazy(() => import('../gestionEmploye/DemandeAutorisation/DemandeAutorisationModern'));
 const TeletravailModern = React.lazy(() => import('../gestionEmploye/Teletravail/TeletravailModern'));
 const TeletravailValidation = React.lazy(() => import('../gestionEmploye/Teletravail/TeletravailValidation'));
+const DemandeAbsenceModern = React.lazy(() => import('../gestionEmploye/DemandeAbsence/DemandeAbsenceModern'));
+const DemandeAbsenceValidation = React.lazy(() => import('../gestionEmploye/DemandeAbsence/DemandeAbsenceValidation'));
 const SoldeCongeModern = React.lazy(() => import('../gestionEmploye/gestionConge/SoldeConge/SoldeCongeModern'));
 const SoldeCongeAdmin = React.lazy(() => import('../gestionEmploye/gestionConge/SoldeConge/SoldeCongeAdmin'));
 const TitreConge = React.lazy(() => import('../gestionEmploye/gestionConge/TitreConge/TitreConge'));
@@ -209,6 +211,8 @@ const useNavigationItems = (): NavGroup[] => {
     'gestion-de-conge': 'Demande de Congé',
     'teletravail': 'Demande de Télétravail',
     'validation-teletravail': 'Absences et Sanctions',
+    'demande-absence': 'Demande d\'absence',
+    'validation-absence': 'Absences et Sanctions',
     'gestion-de-solde': 'Gestion des Congés',
     'affectation-solde': 'Gestion des Congés',
     'titre-de-conge': 'Gestion des Congés',
@@ -276,6 +280,9 @@ const useNavigationItems = (): NavGroup[] => {
           // Télétravail : gating cohérent avec leaveManagement (workflow demande/validation
           // ouvert dans tous les packs depuis 2026-05-12). Cf. TeletravailController.
           ...(planAllows('leaveManagement') ? [{ label: t('navigation.remoteWorkRequest', 'Demande de Télétravail'), href: '/dashboard/teletravail', icon: Home }] : []),
+          // Demande d'absence avec justificatif : même gating que Teletravail.
+          // Workflow distinct de leaveRequest car ponctuel + nécessite document.
+          ...(planAllows('leaveManagement') ? [{ label: t('navigation.absenceRequest', "Demande d'absence"), href: '/dashboard/demande-absence', icon: CalendarX }] : []),
           ...(planAllows('missions') ? [{ label: t('navigation.myMissions'), href: '/dashboard/missions', icon: Briefcase }] : []),
           ...(planAllows('expenseReports') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
           ...(planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
@@ -377,6 +384,10 @@ const useNavigationItems = (): NavGroup[] => {
         // dans le même groupe que les autres validations RH pour cohérence UX.
         ...((isAdminEffective || isManager) && planAllows('leaveManagement')
           ? [{ label: t('navigation.remoteWorkValidation', 'Validation Télétravail'), href: '/dashboard/validation-teletravail', icon: Home }]
+          : []),
+        // Validation des demandes d'absence — admin/manager uniquement.
+        ...((isAdminEffective || isManager) && planAllows('leaveManagement')
+          ? [{ label: t('navigation.absenceValidation', "Validation des absences"), href: '/dashboard/validation-absence', icon: CalendarX }]
           : []),
         // Validation heures sup. — admin/manager uniquement (les employés n'ont
         // pas accès à ce groupe car la nav "Demandes et validations" est filtrée
@@ -576,6 +587,8 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/gestion-de-conge': content = <DemCongeModern />; break;
     case '/dashboard/teletravail': content = <TeletravailModern />; break;
     case '/dashboard/validation-teletravail': content = <TeletravailValidation />; break;
+    case '/dashboard/demande-absence': content = <DemandeAbsenceModern />; break;
+    case '/dashboard/validation-absence': content = <DemandeAbsenceValidation />; break;
     case '/dashboard/coffre-fort': content = <CoffreFortModern />; break;
     case '/dashboard/admin-vault': content = <AdminVaultModern />; break;
     case '/dashboard/titre-de-conge': content = <TitreConge />; break;

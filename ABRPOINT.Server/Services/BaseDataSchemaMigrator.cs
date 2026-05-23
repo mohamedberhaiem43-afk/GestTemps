@@ -148,6 +148,12 @@ public static class BaseDataSchemaMigrator
         // d'absence type, plage en jours pleins simples).
         await EnsureTeletravailTableAsync(db, ct);
 
+        // Demande d'absence avec justificatif (2026-05-23) : workflow ponctuel,
+        // distinct de Demconge (qui planifie + décrémente un solde). Le collaborateur
+        // upload un certificat médical / convocation et le manager valide. Cf.
+        // Models/DemandeAbsence.cs + DemandeAbsenceController.cs.
+        await EnsureDemandeAbsenceTableAsync(db, ct);
+
         // Tables mobiles + notifications + known_devices : on délègue à MobileTablesInstaller
         // qui sait déjà créer push_tokens, notifications, notification_preferences,
         // notification_user_settings, known_devices.
@@ -402,6 +408,49 @@ CREATE INDEX IF NOT EXISTS ix_teletravail_soccod_status
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE INDEX IF NOT EXISTS ix_teletravail_empcod_start
     ON teletravail (empcod, start_date DESC);", ct);
+        return created;
+    }
+
+    /// <summary>
+    /// Crée la table `demande_absence` (demandes d'absence avec justificatif).
+    /// Idempotent. Inclut les colonnes du justificatif (URL/filename/mime/size)
+    /// et un index pour la liste des demandes Pending par tenant (hot-path UI
+    /// manager / badge notification dans la sidebar).
+    /// </summary>
+    private static async Task<bool> EnsureDemandeAbsenceTableAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        var created = !await TableExistsAsync(db, "demande_absence", ct);
+        if (created)
+        {
+            await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE demande_absence (
+    id                       SERIAL        PRIMARY KEY,
+    soccod                   VARCHAR(2)    NULL,
+    empcod                   VARCHAR(12)   NULL,
+    requested_at             TIMESTAMP     NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    start_date               TIMESTAMP     NOT NULL,
+    end_date                 TIMESTAMP     NOT NULL,
+    days_count               REAL          NULL,
+    abscod                   VARCHAR(6)    NULL,
+    reason                   VARCHAR(1000) NULL,
+    justification_url        VARCHAR(500)  NULL,
+    justification_filename   VARCHAR(200)  NULL,
+    justification_mime       VARCHAR(100)  NULL,
+    justification_size       BIGINT        NULL,
+    status                   VARCHAR(20)   NOT NULL DEFAULT 'Pending',
+    decided_by               VARCHAR(20)   NULL,
+    decided_at               TIMESTAMP     NULL,
+    decision_comment         VARCHAR(500)  NULL,
+    created_at               TIMESTAMP     NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
+);", ct);
+        }
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE INDEX IF NOT EXISTS ix_demande_absence_soccod_status
+    ON demande_absence (soccod, status)
+    INCLUDE (empcod, start_date, end_date);", ct);
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE INDEX IF NOT EXISTS ix_demande_absence_empcod_start
+    ON demande_absence (empcod, start_date DESC);", ct);
         return created;
     }
 

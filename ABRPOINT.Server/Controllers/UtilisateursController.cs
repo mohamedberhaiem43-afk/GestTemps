@@ -231,6 +231,37 @@ namespace GestionDesTickets.Server.Controllers
             if (dto is null || string.IsNullOrWhiteSpace(dto.Uticod) || string.IsNullOrWhiteSpace(dto.Utimps))
                 return BadRequest(new { message = "Uticod et mot de passe requis." });
 
+            // Plan gating « Administrateurs inclus » — hard cap à `IncludedAdmins`
+            //   Starter   → 1 administrateur
+            //   Standard  → 3 administrateurs
+            //   Business  → illimité (IncludedAdmins == null)
+            // On compte comme « admin » tout compte avec Utiadm=="1" OU role Administrator.
+            // Cohérent avec /me line 796 et la matrice marketing (PricingPage, HomePage).
+            // L'essai gratuit débloque la matrice complète comme pour les autres features.
+            var isNewAdmin = dto.Utiadm == "1" || ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(dto.Utirole);
+            if (isNewAdmin && !TrialPolicy.IsTrialing(_currentTenant.Current))
+            {
+                var plan = PlanCatalog.GetPlan(_currentTenant.Current?.PlanCode);
+                if (plan?.IncludedAdmins is int adminQuota)
+                {
+                    var currentAdmins = await _dbContext.Utilisateurs.AsNoTracking()
+                        .CountAsync(u => u.Utiadm == "1"
+                                      || ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(u.Utirole));
+                    if (currentAdmins >= adminQuota)
+                    {
+                        return StatusCode(402, new
+                        {
+                            code = "plan_max_admins_reached",
+                            message = $"Limite de votre plan {plan.Code} atteinte ({adminQuota} administrateur{(adminQuota > 1 ? "s" : "")} maximum). Passez au pack supérieur pour ajouter d'autres administrateurs.",
+                            currentCount = currentAdmins,
+                            includedMax = adminQuota,
+                            planCode = plan.Code,
+                            planName = plan.DisplayName,
+                        });
+                    }
+                }
+            }
+
             try
             {
                 // Mapping explicite — tout champ absent du DTO reste null/default sur l'entité.

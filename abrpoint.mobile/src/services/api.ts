@@ -383,6 +383,57 @@ class ApiService {
     return response.data;
   }
 
+  // ─── Demande d'absence avec justificatif ──────────────────────────────
+  // Multipart pour la création (le justificatif est joint dans la même
+  // requête). Les autres endpoints sont du JSON pur — comme Teletravail.
+  async listMyAbsenceRequests() {
+    const response = await this.client.get('/DemandeAbsence/me');
+    return response.data;
+  }
+
+  async createAbsenceRequest(payload: {
+    startDate: string;     // yyyy-mm-dd
+    endDate: string;       // yyyy-mm-dd
+    abscod?: string | null;
+    reason?: string | null;
+    file?: { uri: string; name: string; type: string } | null;
+  }) {
+    const fd = new FormData();
+    fd.append('StartDate', payload.startDate);
+    fd.append('EndDate', payload.endDate);
+    if (payload.abscod) fd.append('Abscod', payload.abscod);
+    if (payload.reason) fd.append('Reason', payload.reason);
+    if (payload.file) {
+      // React Native FormData : on attache un objet { uri, name, type } — pas
+      // un Blob. La signature `any` est requise par TS car les types web ne
+      // matchent pas la convention native.
+      fd.append('file', payload.file as any);
+    }
+    const response = await this.client.post('/DemandeAbsence', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+
+  async cancelAbsenceRequest(id: number) {
+    const response = await this.client.post(`/DemandeAbsence/${id}/cancel`);
+    return response.data;
+  }
+
+  /**
+   * Appelle l'IA pour pré-remplir le formulaire de demande d'absence depuis
+   * une photo / PDF du justificatif. Retourne { success, extractedData: {
+   * startDate, endDate, daysCount, absenceCategory, reason, issuer }, ... }.
+   */
+  async scanAbsenceJustification(file: { uri: string; name: string; type: string }) {
+    const fd = new FormData();
+    fd.append('file', file as any);
+    const response = await this.client.post('/DocumentScan/scan-absence-justification', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+
   // Absence types
   async getAbsences() {
     const response = await this.client.get('/Absences');
