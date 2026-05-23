@@ -34,20 +34,9 @@ export const AllaitementModern: React.FC = () => {
             {/* RIGHT */}
             <Box className="allaitement-right">
               <ListAllaitementModern />
-
-              {/* INFO CARD */}
-              <Box className="allaitement-info-card">
-                <Typography className="info-title">
-                  {t('allaitement.infoTitle')}
-                </Typography>
-                <Typography className="info-text">
-                  {t('allaitement.infoText')}
-                </Typography>
-
-                <button className="info-button">
-                  {t('allaitement.infoButton')}
-                </button>
-              </Box>
+              {/* 2026-05-22 — Bande bleue « info-card » retirée : les clés i18n
+                  (allaitement.infoTitle / infoText / infoButton) n'étaient pas
+                  traduites et affichaient les clés brutes à l'écran. */}
             </Box>
 
           </Box>

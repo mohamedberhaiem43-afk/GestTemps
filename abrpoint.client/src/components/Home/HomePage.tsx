@@ -31,14 +31,18 @@ const STEPS: { num: string; title: string; desc: string }[] = [
   {
     num: '04',
     title: 'Pilotez en temps réel',
-    desc: 'Dashboard temps réel dès J+1. Notifications push aux managers. Préparation paie automatisée à la fin du mois. ROI mesuré et partagé à J+30.',
+    desc: 'Tableau de bord temps réel dès J+1. Notifications push aux managers. Préparation paie automatisée à la fin du mois. ROI mesuré et partagé à J+30.',
   },
 ];
 
 export default function HomePage() {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState<StepIndex>(0);
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
+  // Par défaut on présente le cycle ANNUEL : 2026-05 — décision commerce,
+  // l'engagement annuel est plus avantageux et c'est l'offre à mettre en avant
+  // dès l'arrivée sur la landing. Le visiteur peut basculer en mensuel via le
+  // toggle s'il préfère sans engagement.
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('annual');
   const [scrolled, setScrolled] = useState(false);
   // Menu mobile : sous 900px on masque .nav-links et on remplace par un
   // hamburger qui déplie cette liste verticalement. Avant : aucun moyen
@@ -105,21 +109,28 @@ export default function HomePage() {
   // Grille tarifs.txt 2026-05 — alignée avec ABRPOINT.Server.Tenancy.PlanCatalog
   // et PlanConfigurationPage. On affiche le prix « à partir de » selon le cycle :
   //   • Mensuel : tarif d'engagement mensuel sans engagement annuel (99/219/449).
-  //   • Annuel  : équivalent mensuel quand l'engagement est annuel (69/119/249).
-  // En cycle annuel on continue d'afficher « / mois HT » (et non « / an ») pour
-  // que le visiteur compare facilement les deux cycles côte à côte — c'est la
-  // convention adoptée par Stripe, Doctolib et la plupart des SaaS RH.
+  //   • Annuel  : TOTAL ANNUEL = tarif annuel par mois × 12 (828 / 1428 / 2988).
+  // 2026-05-22 — Décision commerce : en cycle annuel on affiche directement le
+  // TOTAL annuel en euros avec la période « / an » (et non plus l'équivalent
+  // mensuel « 69 €/mois »), afin que le client voie immédiatement le montant
+  // exact qui sera prélevé à la souscription annuelle.
   const monthly = billingCycle === 'monthly';
   const formatPrice = (v: number) =>
     new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(v);
   const monthlyBase  = { starter: 99,  standard: 219, premium: 449 };
   const annualMonthly = { starter: 69,  standard: 119, premium: 249 };
-  const prices = {
-    starter:  monthly ? formatPrice(monthlyBase.starter)  : formatPrice(annualMonthly.starter),
-    standard: monthly ? formatPrice(monthlyBase.standard) : formatPrice(annualMonthly.standard),
-    premium:  monthly ? formatPrice(monthlyBase.premium)  : formatPrice(annualMonthly.premium),
+  // Totaux annuels = tarif annuel par mois × 12 (aucune remise % dérivée).
+  const annualTotal = {
+    starter: annualMonthly.starter,   //  828
+    standard: annualMonthly.standard , // 1428
+    premium: annualMonthly.premium ,   // 2988
   };
-  const pricePeriod = monthly ? ' / mois HT' : ' / mois HT';
+  const prices = {
+    starter:  monthly ? formatPrice(monthlyBase.starter)  : formatPrice(annualTotal.starter),
+    standard: monthly ? formatPrice(monthlyBase.standard) : formatPrice(annualTotal.standard),
+    premium:  monthly ? formatPrice(monthlyBase.premium)  : formatPrice(annualTotal.premium),
+  };
+  const pricePeriod = monthly ? ' / mois HT' : ' / an HT';
   // Sous-libellé indiquant l'engagement (« sans engagement » vs « facturé annuellement »).
   // En cycle annuel on n'affiche AUCUN pourcentage de remise : les tarifs annuel et
   // mensuel sont fixés indépendamment, le tarif annuel n'est pas un % du tarif mensuel.
@@ -621,42 +632,36 @@ export default function HomePage() {
             </div>
             {!monthly && (
               <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column' }}>
+                {/* Référence per-mois (sous le total annuel) pour situer le tarif
+                    par rapport au mensuel ; le « gros chiffre » reste l'annuel. */}
+                <span style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
+                  soit {formatPrice(annualMonthly.starter)} € HT / mois ({formatPrice(annualMonthly.starter)} € × 12)
+                </span>
+                {/* Tarif mensuel standard annualisé barré : comparaison apples-to-apples
+                    en cycle annuel (99 €/mois × 12 = 1188 €/an). */}
                 <span style={{ fontSize: 18, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
-                  {formatPrice(monthlyBase.starter)} € HT / mois
+                  {formatPrice(monthlyBase.starter * 12)} € HT / an
                 </span>
                 <span style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                  Tarif mensuel standard
-                </span>
-                {/* Total annuel = tarif annuel par mois × 12 (aucune remise % dérivée).
-                    Affiché explicitement pour que le visiteur voie le montant exact
-                    qui sera prélevé en une fois sur sa carte au paiement annuel. */}
-                <span style={{ fontSize: 14, fontWeight: 800, color: '#0040a1', marginTop: 8 }}>
-                  Total annuel : {formatPrice(annualMonthly.starter * 12)} € HT
-                  <span style={{ fontSize: 11, fontWeight: 500, color: '#64748b', marginLeft: 6 }}>
-                    (soit {formatPrice(annualMonthly.starter)} € × 12 mois)
-                  </span>
+                  Tarif mensuel standard sur 12 mois
                 </span>
               </div>
             )}
             <div className="price-included" style={{ marginTop: 14 }}>10 collaborateurs inclus · 10 Go de stockage</div>
             <div className="price-per">+ 4,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · {priceCommitmentLabel}</div>
             <div className="price-desc">Pour les TPE et startups qui démarrent la digitalisation RH d'une petite équipe.</div>
-            {/* Limites du pack — formulation commerciale : on présente les plafonds
+            {/* Marges de croissance — formulation commerciale : on présente les plafonds
                 comme une « marge confortable pour votre croissance » plutôt que comme
                 un seuil bloquant. Au-delà, le client passe au pack supérieur sans
-                rupture de service ni perte de données. */}
+                rupture de service ni perte de données. NB : on N'INTITULE PAS la
+                section « Limites du pack » (formulation jugée trop restrictive
+                par le commerce) — seule la phrase d'intro joue le rôle de titre. */}
             <div style={{
               marginTop: 14, padding: '12px 14px',
               background: '#f8fafc', borderRadius: 12,
               border: '1px solid #e2e8f0',
             }}>
-              <div style={{
-                fontSize: 11, fontWeight: 800, color: '#0040a1',
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
-              }}>
-                🎯 Limites du pack
-              </div>
-              <div style={{ fontSize: 12, color: '#475569', fontStyle: 'italic', marginBottom: 6 }}>
+              <div style={{ fontSize: 12, color: '#0040a1', fontWeight: 700, marginBottom: 8 }}>
                 Une marge confortable pour accompagner vos premiers pas :
               </div>
               <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600, marginBottom: 3 }}>
@@ -675,7 +680,7 @@ export default function HomePage() {
                   { type: 'check', text: 'Pointage web & mobile' },
                   { type: 'check', text: 'Gestion RH essentielle (fiches, contrats)' },
                   { type: 'check', text: 'Gestion congés & absences' },
-                  { type: 'check', text: 'Dashboard simplifié · Exports PDF / Excel' },
+                  { type: 'check', text: 'Tableau de bord simplifié · Exports PDF / Excel' },
                   { type: 'check', text: 'Notifications essentielles' },
                   { type: 'check', text: '10 Go stockage sécurisé · Hébergement France OVH' },
                   { type: 'check', text: '1 administrateur · support standard' },
@@ -703,7 +708,7 @@ export default function HomePage() {
                 );
               })()}
             </div>
-            <button type="button" className="btn-plan btn-plan-ghost" onClick={() => goToPlanConfig('Starter')}>Choisir Starter</button>
+            <button type="button" className="btn-plan btn-plan-ghost" onClick={() => goToPlanConfig('Starter')}>Essayer 30 jours gratuit</button>
           </div>
           {/* Standard */}
           <div className="price-card featured">
@@ -722,36 +727,27 @@ export default function HomePage() {
             </div>
             {!monthly && (
               <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
+                  soit {formatPrice(annualMonthly.standard)} € HT / mois ({formatPrice(annualMonthly.standard)} € × 12)
+                </span>
                 <span style={{ fontSize: 18, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
-                  {formatPrice(monthlyBase.standard)} € HT / mois
+                  {formatPrice(monthlyBase.standard * 12)} € HT / an
                 </span>
                 <span style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                  Tarif mensuel standard
-                </span>
-                <span style={{ fontSize: 14, fontWeight: 800, color: '#0040a1', marginTop: 8 }}>
-                  Total annuel : {formatPrice(annualMonthly.standard * 12)} € HT
-                  <span style={{ fontSize: 11, fontWeight: 500, color: '#64748b', marginLeft: 6 }}>
-                    (soit {formatPrice(annualMonthly.standard)} € × 12 mois)
-                  </span>
+                  Tarif mensuel standard sur 12 mois
                 </span>
               </div>
             )}
             <div className="price-included" style={{ marginTop: 14 }}>25 collaborateurs inclus · 50 Go de stockage</div>
             <div className="price-per">+ 6,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · {priceCommitmentLabel}</div>
             <div className="price-desc">Suite complète mobile pour les PME en croissance et équipes structurées.</div>
-            {/* Limites du pack — voir note Starter. */}
+            {/* Marges de croissance — voir note Starter. */}
             <div style={{
               marginTop: 14, padding: '12px 14px',
               background: '#f8fafc', borderRadius: 12,
               border: '1px solid #e2e8f0',
             }}>
-              <div style={{
-                fontSize: 11, fontWeight: 800, color: '#0040a1',
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
-              }}>
-                🎯 Limites du pack
-              </div>
-              <div style={{ fontSize: 12, color: '#475569', fontStyle: 'italic', marginBottom: 6 }}>
+              <div style={{ fontSize: 12, color: '#0040a1', fontWeight: 700, marginBottom: 8 }}>
                 Dimensionné pour accompagner votre montée en charge :
               </div>
               <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600, marginBottom: 3 }}>
@@ -796,7 +792,7 @@ export default function HomePage() {
                 );
               })()}
             </div>
-            <button type="button" className="btn-plan btn-plan-primary" onClick={() => goToPlanConfig('Standard')}>Choisir Standard</button>
+            <button type="button" className="btn-plan btn-plan-primary" onClick={() => goToPlanConfig('Standard')}>Essayer 30 jours gratuit</button>
           </div>
           {/* Premium — cadre + accents or (#d4af37) pour signaler le positionnement
               haut de gamme. Le titre et les chips de prix sont colorés en or foncé,
@@ -835,36 +831,27 @@ export default function HomePage() {
             </div>
             {!monthly && (
               <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 12, color: '#a08a52', marginBottom: 8 }}>
+                  soit {formatPrice(annualMonthly.premium)} € HT / mois ({formatPrice(annualMonthly.premium)} € × 12)
+                </span>
                 <span style={{ fontSize: 18, fontWeight: 700, color: '#cbb778', textDecoration: 'line-through' }}>
-                  {formatPrice(monthlyBase.premium)} € HT / mois
+                  {formatPrice(monthlyBase.premium * 12)} € HT / an
                 </span>
                 <span style={{ fontSize: 12, color: '#a08a52', marginTop: 2 }}>
-                  Tarif mensuel standard
-                </span>
-                <span style={{ fontSize: 14, fontWeight: 800, color: '#92670a', marginTop: 8 }}>
-                  Total annuel : {formatPrice(annualMonthly.premium * 12)} € HT
-                  <span style={{ fontSize: 11, fontWeight: 500, color: '#a08a52', marginLeft: 6 }}>
-                    (soit {formatPrice(annualMonthly.premium)} € × 12 mois)
-                  </span>
+                  Tarif mensuel standard sur 12 mois
                 </span>
               </div>
             )}
             <div className="price-included" style={{ marginTop: 14 }}>50 collaborateurs inclus · 200 Go de stockage</div>
             <div className="price-per">+ 9,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · {priceCommitmentLabel}</div>
             <div className="price-desc">Multi-filiales, IA contextuelle et sécurité renforcée pour les grandes structures.</div>
-            {/* Limites du pack — accent or pour rester cohérent avec l'identité Business. */}
+            {/* Marges de croissance — accent or pour rester cohérent avec l'identité Business. */}
             <div style={{
               marginTop: 14, padding: '12px 14px',
               background: 'rgba(212,175,55,0.06)', borderRadius: 12,
               border: '1px solid rgba(212,175,55,0.35)',
             }}>
-              <div style={{
-                fontSize: 11, fontWeight: 800, color: '#b8860b',
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
-              }}>
-                🎯 Limites du pack
-              </div>
-              <div style={{ fontSize: 12, color: '#5a4a1f', fontStyle: 'italic', marginBottom: 6 }}>
+              <div style={{ fontSize: 12, color: '#b8860b', fontWeight: 700, marginBottom: 8 }}>
                 Une capacité haut volume pour les grandes structures :
               </div>
               <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600, marginBottom: 3 }}>
@@ -881,7 +868,7 @@ export default function HomePage() {
                 const features = [
                   '1 mois gratuit sans carte bancaire',
                   'Tout le pack Standard',
-                  'Multi-filiales illimité · dashboards avancés',
+                  'Multi-filiales illimité · tableaux de bord avancés',
                   'Assistant IA contextuel (RAG)',
                   'Sécurité renforcée',
                   'Audit logs avancés',
@@ -922,7 +909,7 @@ export default function HomePage() {
                 boxShadow: '0 6px 18px rgba(184,134,11,0.32)',
               }}
             >
-              Choisir Business
+              Essayer 30 jours gratuit
             </button>
           </div>
         </div>

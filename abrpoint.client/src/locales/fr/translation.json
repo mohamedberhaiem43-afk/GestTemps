@@ -4588,7 +4588,7 @@
     "nav": {
       "pricing": "Tarifs",
       "current": "À propos",
-      "myDashboard": "Mon Dashboard",
+      "myDashboard": "Mon Tableau de bord",
       "login": "Connexion",
       "freeTrial": "Essai gratuit"
     },
@@ -4638,7 +4638,7 @@
     "cta": {
       "title": "Envie d'essayer Concorde ?",
       "subtitle": "14 jours d'essai gratuits, sans carte bancaire. Vous gardez la main sur vos données à tout moment.",
-      "goDashboard": "Aller au dashboard",
+      "goDashboard": "Aller au tableau de bord",
       "startTrial": "Démarrer l'essai gratuit",
       "viewPricing": "Voir les tarifs"
     },

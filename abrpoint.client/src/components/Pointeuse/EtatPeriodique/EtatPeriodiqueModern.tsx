@@ -21,6 +21,8 @@ import useGetEmployeesLibs from '../../../hooks/employeHooks/useGetEmployeesLibs
 import EmployeeMultiSelectDropdown from '../../helper/EmployeeMultiSelectDropdown';
 import PointageAdjustDialog from '../Adjustment/PointageAdjustDialog';
 import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import dayjs from 'dayjs';
 import EmpEtat from '../../../models/EmpEtat';
 import './EtatPeriodiqueModern.css';
@@ -610,16 +612,58 @@ function EtatPeriodiqueModernInner() {
       .finally(() => setLoadingEmps(false));
   };
 
+  // Impression PDF — comportement à 2 modes :
+  //   • Un employé est sélectionné (ligne cliquée → empEtatData chargé)
+  //     → on imprime le détail journalier de cet employé via /Presences/etat-detaille.
+  //   • Sinon, on imprime le RÉCAPITULATIF de toute la liste affichée (rows) en PDF
+  //     local (jsPDF + autotable), sans forcer l'utilisateur à sélectionner un salarié.
+  // Avant : `if (!empEtatData.length) alert("Sélectionnez un employé")` — bloquait
+  // toute impression tant qu'aucune ligne n'était cliquée, alors que l'utilisateur
+  // voulait souvent juste imprimer le tableau visible (équivalent PDF de l'export Excel).
   const handlePrint = async () => {
-    if (!empEtatData.length) { alert(t('pointeuse.etatPeriodique.alertSelectEmp')); return; }
+    // Mode détail : un employé est sélectionné et ses données journalières sont chargées
+    if (empEtatData.length > 0 && selectedEmpMat) {
+      try {
+        const blob = await generatePdf({ soccod: soccod || '', empcod: selectedEmpMat, emplib: selectedEmpLib, dateDebut, dateFin, rows: empEtatData });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url;
+        a.download = `EtatDetaille_${selectedEmpMat}_${dateDebut}_${dateFin}.pdf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch { alert(t('pointeuse.etatPeriodique.alertReportError')); }
+      return;
+    }
+
+    // Mode récapitulatif : impression de la table résumée (tous les employés du filtre).
+    if (!Array.isArray(rows) || rows.length === 0) {
+      alert(t('pointeuse.etatPeriodique.alertNoData'));
+      return;
+    }
     try {
-      const blob = await generatePdf({ soccod: soccod || '', empcod: selectedEmpMat, emplib: selectedEmpLib, dateDebut, dateFin, rows: empEtatData });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url;
-      a.download = `EtatDetaille_${selectedEmpMat}_${dateDebut}_${dateFin}.pdf`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch { alert(t('pointeuse.etatPeriodique.alertReportError')); }
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+      doc.text(`État périodique — ${dateDebut} → ${dateFin}`, 14, 14);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+      doc.text(`Filiale: ${selectedFiliale || '—'}   Service: ${selectedService || '—'}   Régime: ${selectedRegime || '—'}`, 14, 21);
+      autoTable(doc, {
+        startY: 26,
+        head: [['Matricule', 'Nom', 'Nb Jours', 'Total Heures', 'Total Retards']],
+        body: rows.map(r => [
+          r.empcod,
+          r.emplib ?? '',
+          String(r.nbJours ?? 0),
+          fmtMin(r.totalMinutes ?? 0),
+          fmtMin(r.totalRetards ?? 0),
+        ]),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [0, 64, 161], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 249, 251] },
+      });
+      doc.save(`EtatPeriodique_${dateDebut}_${dateFin}.pdf`);
+    } catch (e) {
+      console.error(e);
+      alert(t('pointeuse.etatPeriodique.alertReportError'));
+    }
   };
 
   const handleExportExcel = () => {

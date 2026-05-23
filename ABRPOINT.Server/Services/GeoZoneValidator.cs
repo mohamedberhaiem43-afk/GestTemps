@@ -23,8 +23,29 @@ namespace ABRPOINT.Server.Services;
 /// </summary>
 public interface IGeoZoneValidator
 {
+    /// <summary>
+    /// Validation « tenant-wide » : accepte si le pointage est dans N'IMPORTE QUELLE
+    /// zone de n'importe quel site du tenant. Conservé pour les flux pré-existants
+    /// (badgeuse partagée, admin polyvalent, etc.).
+    /// </summary>
     Task<GeoValidationResult> ValidateAsync(string? soccod, double lat, double lon);
+
+    /// <summary>
+    /// Validation STRICTE par site : exige que la position GPS soit dans la zone
+    /// définie pour <paramref name="sitcod"/> spécifiquement. Si le site n'a pas
+    /// de geofence configuré, renvoie « pas de zone à vérifier » (HadAnyZone=false)
+    /// — l'admin a explicitement choisi de ne pas restreindre ce site.
+    ///
+    /// Utilisé par le pointage employé : un salarié rattaché au site A ne doit pas
+    /// pouvoir pointer depuis le site B même si B a son propre geofence configuré.
+    /// </summary>
+    Task<GeoValidationResult> ValidateForSiteAsync(string? soccod, string? sitcod, double lat, double lon);
+
     Task<bool> HasGeofencesAsync(string? soccod);
+
+    /// <summary>Vrai si le site précis a un geofence configuré (sitlat+sitlon+sitrad).</summary>
+    Task<bool> HasGeofenceForSiteAsync(string? soccod, string? sitcod);
+
     string ConfiguredMode { get; }
 }
 
@@ -57,6 +78,45 @@ public sealed class GeoZoneValidator : IGeoZoneValidator
                         && s.Sitrad.HasValue
                         && s.Sitrad > 0)
             .AnyAsync();
+    }
+
+    public async Task<bool> HasGeofenceForSiteAsync(string? soccod, string? sitcod)
+    {
+        if (string.IsNullOrEmpty(soccod) || string.IsNullOrEmpty(sitcod)) return false;
+        return await _db.Sites.AsNoTracking()
+            .Where(s => s.Soccod == soccod
+                        && s.Sitcod == sitcod
+                        && s.Sitlat.HasValue
+                        && s.Sitlon.HasValue
+                        && s.Sitrad.HasValue
+                        && s.Sitrad > 0)
+            .AnyAsync();
+    }
+
+    public async Task<GeoValidationResult> ValidateForSiteAsync(string? soccod, string? sitcod, double lat, double lon)
+    {
+        if (string.IsNullOrEmpty(soccod) || string.IsNullOrEmpty(sitcod))
+            return new GeoValidationResult(true, null, null, false);
+
+        // On ne lit QUE la zone du site rattaché — la règle métier veut qu'un salarié
+        // pointe depuis SON site, pas depuis n'importe quel site de la société. Si le
+        // site n'a pas de geofence (champs null), HadAnyZone=false → le contrôleur
+        // n'applique pas de refus.
+        var row = await _db.Sites.AsNoTracking()
+            .Where(s => s.Soccod == soccod
+                        && s.Sitcod == sitcod
+                        && s.Sitlat.HasValue
+                        && s.Sitlon.HasValue
+                        && s.Sitrad.HasValue
+                        && s.Sitrad > 0)
+            .Select(s => new { s.Sitcod, Lat = s.Sitlat!.Value, Lon = s.Sitlon!.Value, Rad = s.Sitrad!.Value })
+            .FirstOrDefaultAsync();
+
+        if (row == null)
+            return new GeoValidationResult(true, null, null, false);
+
+        var d = HaversineMeters(lat, lon, (double)row.Lat, (double)row.Lon);
+        return new GeoValidationResult(d <= row.Rad, d, row.Sitcod, true);
     }
 
     public async Task<GeoValidationResult> ValidateAsync(string? soccod, double lat, double lon)

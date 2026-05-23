@@ -21,7 +21,7 @@ const TrialBanner = () => {
   // 2026-05-18 — Le bandeau d'essai (qui invite à passer au plan payant + affiche
   // les limites du pack) n'a aucun sens pour un salarié : ce n'est pas son rôle
   // de gérer l'abonnement, et le message « Passer au plan payant » est trompeur
-  // car le bouton mène vers /dashboard/plan-configuration qui nécessite des
+  // car le bouton mène vers /dashboard/mon-abonnement qui nécessite des
   // permissions admin/manager. On masque donc le bandeau à toute personne qui
   // n'est ni admin ni manager.
   if (!isAdmin && !isManager) return null;
@@ -80,10 +80,16 @@ const TrialBanner = () => {
           — Pack <strong style={{ fontWeight: 700 }}>{packName}</strong> (essai) : jusqu'à {maxEmp} collaborateur{maxEmp > 1 ? 's' : ''}, {societeLabel}, {packTagline[packName]}.
         </Box>
       </Typography>
+      {/* 2026-05-22 — Le CTA pointe désormais vers la page d'abonnement
+          (/dashboard/mon-abonnement) plutôt que vers /plan-configuration.
+          Raison : l'admin déjà inscrit a son tenant et son trial — il doit
+          gérer son abonnement (statut, paiement, pack, période), pas
+          re-configurer un plan « à neuf ». Cohérent avec la même redirection
+          déjà appliquée dans AjoutEmploye (dialogue plafond essai). */}
       <Button
         size="small"
         variant="contained"
-        onClick={() => navigate('/dashboard/plan-configuration')}
+        onClick={() => navigate('/dashboard/mon-abonnement')}
         sx={{
           bgcolor: '#0040a1',
           fontSize: 12,

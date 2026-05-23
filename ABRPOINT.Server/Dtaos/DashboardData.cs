@@ -43,6 +43,15 @@
         public float EvolutionAbsences { get; set; }
         public float EvolutionRetards { get; set; }
 
+        // Répartition de l'effectif par sexe — clés attendues "M" / "F" / "Autre"
+        // (les autres valeurs Empsexe seront regroupées sous "Autre"). Utilisé par le
+        // KPI « Effectif par sexe » et exporté dans le rapport dashboard.
+        public Dictionary<string, int> EffectifParSexe { get; set; } = new();
+
+        // Masse salariale brute = somme des salaires bruts (Empsbrut décrypté) de
+        // l'effectif actif retenu par le filtre. Exposé en décimal côté API et utilisé
+        // dans le KPI « Masse salariale ». Calculé côté serveur après déchiffrement.
+        public decimal MasseSalariale { get; set; }
     }
 }
 

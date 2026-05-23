@@ -310,36 +310,54 @@ namespace ABRPOINT.Server.Controllers
                     }
                 }
 
-                // Validation de zone GPS — admin-définie via les colonnes sitlat/sitlon/sitrad
-                // de la table site, ou via la config legacy GeoZones:Zones.
+                // Validation de zone GPS — règle STRICTE par site (2026-05-22) :
+                // l'employé ne peut pointer QUE depuis le geofence de SON site rattaché
+                // (Empsite / Sitcod), pas depuis n'importe quel site de la société.
+                // Cela évite qu'un salarié du site A puisse pointer depuis le site B
+                // simplement parce que B a son propre geofence configuré.
                 //
-                // Règle :
-                //   - "off"  : aucune validation (pour debug/migration).
-                //   - "warn" : log si hors zone, accepte le pointage.
-                //   - "reject" / défaut quand au moins un site a un geofence : refuse 422.
+                // Sources de configuration :
+                //   - Colonnes site.sitlat / sitlon / sitrad (admin via FilialeModern).
+                //   - Mode global appsettings "GeoZones:Mode" : "off" / "warn" / "reject".
+                //     Sinon, dès qu'au moins un site du tenant a un geofence configuré,
+                //     on bascule en "reject" auto (l'admin a explicitement défini des zones).
                 //
-                // Si l'admin a configuré des zones mais que le client n'a pas envoyé de GPS,
-                // on refuse aussi (sinon n'importe qui contourne en désactivant la localisation).
+                // Si le SITE RATTACHÉ de l'employé n'a pas de geofence configuré, aucune
+                // restriction n'est appliquée (l'admin a opté pour un site « libre »).
+                // Si l'admin a configuré le geofence du site mais que le client n'a pas
+                // envoyé de GPS, on refuse (sinon contournement trivial en désactivant
+                // la localisation).
                 if (_geoValidator != null)
                 {
+                    // On a besoin du sitcod rattaché de l'employé pour cibler le bon
+                    // geofence. La PK composite (soccod, empcod, sitcod) autorise plusieurs
+                    // sites pour le même empcod : on prend le premier — la pratique métier
+                    // veut qu'un salarié appartienne à un seul site actif à la fois.
+                    var empSitcod = await _db.Employes.AsNoTracking()
+                        .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                        .Select(e => e.Sitcod)
+                        .FirstOrDefaultAsync();
+
                     var configMode = _geoValidator.ConfiguredMode;
-                    var hasGeofences = await _geoValidator.HasGeofencesAsync(soccod);
+                    var siteHasGeofence = !string.IsNullOrEmpty(empSitcod)
+                        && await _geoValidator.HasGeofenceForSiteAsync(soccod, empSitcod);
+                    var tenantHasAnyGeofence = await _geoValidator.HasGeofencesAsync(soccod);
                     var effectiveMode = !string.IsNullOrEmpty(configMode)
                         ? configMode
-                        : (hasGeofences ? "reject" : "off");
+                        : (tenantHasAnyGeofence ? "reject" : "off");
 
-                    if (effectiveMode != "off" && hasGeofences)
+                    if (effectiveMode != "off" && siteHasGeofence)
                     {
                         if (!lat.HasValue || !lon.HasValue)
                         {
                             _logger?.LogWarning(
-                                "Pointage refusé (GPS manquant alors que des zones sont configurées). soccod={Soccod} empcod={Empcod}",
-                                soccod, empcod);
+                                "Pointage refusé (GPS manquant alors que le site {Sitcod} a un geofence). soccod={Soccod} empcod={Empcod}",
+                                empSitcod, soccod, empcod);
                             if (effectiveMode == "reject")
                             {
                                 return UnprocessableEntity(new
                                 {
-                                    message = "Pointage refusé : la localisation est obligatoire. Veuillez autoriser l'accès à votre position et réessayer.",
+                                    message = "Pointage refusé : la localisation est obligatoire pour pointer depuis votre site. Veuillez autoriser l'accès à votre position et réessayer.",
                                     code = "gps_required",
                                 });
                             }
@@ -347,26 +365,26 @@ namespace ABRPOINT.Server.Controllers
                         else
                         {
                             _logger?.LogInformation(
-                                "Clock-in GPS soccod={Soccod} empcod={Empcod} lat={Lat} lon={Lon} acc={Acc}m",
-                                soccod, empcod, lat, lon, acc);
+                                "Clock-in GPS site={Sitcod} soccod={Soccod} empcod={Empcod} lat={Lat} lon={Lon} acc={Acc}m",
+                                empSitcod, soccod, empcod, lat, lon, acc);
 
-                            var validation = await _geoValidator.ValidateAsync(soccod, lat.Value, lon.Value);
+                            var validation = await _geoValidator.ValidateForSiteAsync(soccod, empSitcod, lat.Value, lon.Value);
                             if (!validation.InsideAnyZone)
                             {
                                 var distance = validation.NearestDistanceMeters.HasValue
                                     ? $"{validation.NearestDistanceMeters.Value:F0}m"
                                     : "?";
                                 _logger?.LogWarning(
-                                    "Pointage hors zone autorisée. soccod={Soccod} empcod={Empcod} nearest={Sitcod} distance={Distance}",
-                                    soccod, empcod, validation.NearestSitcod, distance);
+                                    "Pointage hors zone du site rattaché. soccod={Soccod} empcod={Empcod} site={Sitcod} distance={Distance}",
+                                    soccod, empcod, empSitcod, distance);
                                 if (effectiveMode == "reject")
                                 {
                                     return UnprocessableEntity(new
                                     {
-                                        message = $"Pointage refusé : vous êtes à {distance} de la zone autorisée la plus proche.",
-                                        code = "outside_geofence",
+                                        message = $"Pointage refusé : vous êtes à {distance} de votre site ({empSitcod}). Le pointage n'est autorisé que depuis le périmètre défini pour votre filiale.",
+                                        code = "outside_site_geofence",
                                         distance = validation.NearestDistanceMeters,
-                                        nearestSitcod = validation.NearestSitcod,
+                                        sitcod = empSitcod,
                                     });
                                 }
                             }
@@ -374,10 +392,12 @@ namespace ABRPOINT.Server.Controllers
                     }
                     else if (lat.HasValue && lon.HasValue)
                     {
-                        // Pas de geofence configuré : on journalise quand même pour audit anti-fraude.
+                        // Pas de geofence sur le site rattaché : on journalise quand même
+                        // les coordonnées pour audit anti-fraude (et pour aider à dimensionner
+                        // le rayon ultérieurement si l'admin active la zone plus tard).
                         _logger?.LogInformation(
-                            "Clock-in GPS (no geofence) soccod={Soccod} empcod={Empcod} lat={Lat} lon={Lon} acc={Acc}m",
-                            soccod, empcod, lat, lon, acc);
+                            "Clock-in GPS (no geofence on site {Sitcod}) soccod={Soccod} empcod={Empcod} lat={Lat} lon={Lon} acc={Acc}m",
+                            empSitcod, soccod, empcod, lat, lon, acc);
                     }
                 }
 

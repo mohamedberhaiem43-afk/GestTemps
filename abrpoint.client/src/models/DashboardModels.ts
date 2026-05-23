@@ -37,7 +37,10 @@ export interface DashboardData {
   pointagesIncomplets: number;
   donneesDepartements?: DepartementData[];
   alertes?: AlerteDashboard[];
-
+  /** Répartition de l'effectif actif par sexe (clés serveur : "M" / "F" / "Autre"). */
+  effectifParSexe?: { [sexe: string]: number };
+  /** Masse salariale brute (somme des Empsbrut déchiffrés côté serveur). */
+  masseSalariale?: number;
 }
 
 export interface PointageInvalideDto {

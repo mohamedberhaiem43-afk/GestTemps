@@ -96,7 +96,7 @@ const BreadcrumbNavigation: React.FC<BreadcrumbNavigationProps> = ({ customTitle
           sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
         >
           <HomeIcon sx={{ mr: 0.5 }} fontSize="small" />
-          Dashboard
+          {t('navigation.dashboard')}
         </Link>
         {generateBreadcrumbs()}
       </Breadcrumbs>

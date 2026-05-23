@@ -6,6 +6,7 @@ using ABRPOINT.Server.CalculService.HeureSupp;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
@@ -21,10 +22,16 @@ namespace ABRPOINT.Server.CalculService.DashboardService
         private readonly IPosteRepository _posteRepository;
         private readonly ICongeRepository _congeRepository;
         private readonly IautoriserRepository _autorisationRepository;
+        // EncryptionService nécessaire pour déchiffrer Empsbrut côté serveur lors du
+        // calcul de la masse salariale (sommée par tenant + filtre département/employés).
+        // On n'expose JAMAIS la valeur déchiffrée par employé dans le DTO du dashboard :
+        // seul l'agrégat (somme) sort, pour limiter la fuite d'information.
+        private readonly EncryptionService _encryption;
 
         public DashboardService(ApplicationDbContext context,IHeureRetardService heureRetardService,ICalcTotHeuresService calcHeuresService,
             IHeureAbsencesService heureAbsencesService,IHeuresSupplementaireHebdomadairesService heureSuppService,IPosteRepository posteRepository,
-            ICongeRepository congeRepository,IautoriserRepository autorisationRepository)
+            ICongeRepository congeRepository,IautoriserRepository autorisationRepository,
+            EncryptionService encryption)
         {
             _context = context;
             _heureRetardService = heureRetardService;
@@ -34,6 +41,7 @@ namespace ABRPOINT.Server.CalculService.DashboardService
             _posteRepository = posteRepository;
             _congeRepository = congeRepository;
             _autorisationRepository = autorisationRepository;
+            _encryption = encryption;
         }
         public async Task<DashboardData> GetDashboardData(string soccod,DateTime dateDebut,DateTime dateFin,string? dep,List<string>? empcods)
         {
@@ -63,6 +71,50 @@ namespace ABRPOINT.Server.CalculService.DashboardService
                     .ToListAsync();
 
                 dashboardData.EffectifTotal = empcodesFiltres.Count;
+
+                // =========================
+                // 1.b Effectif par sexe + masse salariale
+                // =========================
+                // On projette uniquement les deux colonnes nécessaires (Empsexe + Empsbrut chiffré)
+                // pour minimiser la quantité de données lues et déchiffrer en mémoire seulement
+                // ce qu'on agrège. Empsbrut est stocké en base AES-256 base64 (cf. EncryptionService) ;
+                // une chaîne mal formée ou vide est ignorée (try/catch + parse safe). Le résultat
+                // final exposé est l'AGRÉGAT, jamais le salaire individuel.
+                var employesSensibles = await employesQuery
+                    .Select(e => new { e.Empsexe, e.Empsbrut })
+                    .ToListAsync();
+
+                var sexeCounts = new Dictionary<string, int> { { "M", 0 }, { "F", 0 }, { "Autre", 0 } };
+                decimal masseSalariale = 0m;
+                foreach (var emp in employesSensibles)
+                {
+                    var sexe = (emp.Empsexe ?? "").Trim().ToUpperInvariant();
+                    if (sexe == "M") sexeCounts["M"]++;
+                    else if (sexe == "F") sexeCounts["F"]++;
+                    else sexeCounts["Autre"]++;
+
+                    if (!string.IsNullOrWhiteSpace(emp.Empsbrut))
+                    {
+                        try
+                        {
+                            var brutDecrypted = _encryption.Decrypt(emp.Empsbrut);
+                            // Tolère « 1234.56 » et « 1234,56 » (saisie utilisateur FR / EN).
+                            var normalized = (brutDecrypted ?? "").Replace(',', '.').Trim();
+                            if (decimal.TryParse(normalized, System.Globalization.NumberStyles.Any,
+                                System.Globalization.CultureInfo.InvariantCulture, out var brut))
+                            {
+                                masseSalariale += brut;
+                            }
+                        }
+                        catch
+                        {
+                            // Empsbrut illisible (ancien chiffrement, clé tournée…) — on ignore
+                            // cette ligne plutôt que de faire échouer tout le dashboard.
+                        }
+                    }
+                }
+                dashboardData.EffectifParSexe = sexeCounts;
+                dashboardData.MasseSalariale = masseSalariale;
 
                 // =========================
                 // 2. Presences période

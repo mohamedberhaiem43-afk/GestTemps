@@ -13,6 +13,8 @@ import HowToRegIcon from '@mui/icons-material/HowToReg';
 import PersonOffIcon from '@mui/icons-material/PersonOff';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import MoreTimeIcon from '@mui/icons-material/MoreTime';
+import WcIcon from '@mui/icons-material/Wc';
+import PaymentsIcon from '@mui/icons-material/Payments';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
 import FilterListIcon from '@mui/icons-material/FilterList';
@@ -110,7 +112,7 @@ const ALL_WIDGETS: { key: WidgetKey; label: string }[] = [
   { key: 'totalEmployees', label: 'Effectif total' },
   { key: 'ongoingLeaves', label: 'Congés en cours' },
   { key: 'contractAlerts', label: 'Alertes contrat' },
-  { key: 'evolution', label: 'Tendances de recrutement' },
+  { key: 'evolution', label: '📈 Évolution des Présences et Heures Travaillées' },
   { key: 'absences', label: 'Absences récentes' },
   { key: 'renewals', label: 'Prochains renouvellements' },
 ];
@@ -181,10 +183,18 @@ function DashboardModernAdmin() {
   const { data: dashboardData, isLoading, error } = useGetDashboardData(dashboardRequest);
   const { data: evolutionData, isLoading: loadingEvolution } = useGetEvolution(dashboardRequest);
 
-  const formattedDebut = useMemo(() => dateRange ? dayjs(dateRange.dateDebut).format('YYYY-MM-DD') : '', [dateRange]);
-  const formattedFin = useMemo(() => dateRange ? dayjs(dateRange.dateFin).format('YYYY-MM-DD') : '', [dateRange]);
-
-  const { data: demandesData, isLoading: loadingDemandes } = useGetPendingDemCongesByPeriode(formattedDebut, formattedFin, true);
+  // Demandes de congé en attente — fenêtre VOLONTAIREMENT large (1 an dans le
+  // passé + 2 ans dans le futur), indépendante du filtre période du dashboard.
+  // Pourquoi : l'endpoint /get-pending-demconge-by-periode filtre par les DATES
+  // DE CONGÉ demandées, pas par la date de soumission. Avant ce fix, un salarié
+  // qui demandait un congé pour le mois suivant n'apparaissait PAS dans le badge
+  // « X demande(s) à valider » du dashboard quand le filtre était sur « Ce mois »,
+  // alors que l'admin doit pouvoir valider ces demandes dès qu'elles sont créées.
+  // Désormais le badge reflète bien TOUTES les demandes en attente que l'admin a
+  // à traiter, quelle que soit la période de congé visée.
+  const pendingDemandesDebut = useMemo(() => dayjs().subtract(1, 'year').format('YYYY-MM-DD'), []);
+  const pendingDemandesFin   = useMemo(() => dayjs().add(2, 'year').format('YYYY-MM-DD'), []);
+  const { data: demandesData, isLoading: loadingDemandes } = useGetPendingDemCongesByPeriode(pendingDemandesDebut, pendingDemandesFin, true);
   const { data: pointagesData, isLoading: loadingPointages, error: errorPointages } = useGetPointagesInvalides(dashboardRequest, openPointageDialog);
 
   const today = dayjs().format('DD MMMM YYYY');
@@ -214,6 +224,14 @@ function DashboardModernAdmin() {
     lines.push(`Employés en Retard;${dashboardData?.nombreEmployesEnRetard ?? 0}`);
     lines.push(`Minutes Retard Cumulées;${dashboardData?.nombreRetards ?? 0}`);
     lines.push(`Demandes en Attente;${dashboardData?.totalDemandesEnAttente ?? 0}`);
+    // Effectif par sexe + masse salariale — exposés à plat dans le CSV pour
+    // permettre des reportings RH cumulés (ex : pyramide H/F par site).
+    lines.push(`Effectif Hommes;${dashboardData?.effectifParSexe?.['M'] ?? 0}`);
+    lines.push(`Effectif Femmes;${dashboardData?.effectifParSexe?.['F'] ?? 0}`);
+    if ((dashboardData?.effectifParSexe?.['Autre'] ?? 0) > 0) {
+      lines.push(`Effectif Autre;${dashboardData?.effectifParSexe?.['Autre'] ?? 0}`);
+    }
+    lines.push(`Masse Salariale (brute, €);${dashboardData?.masseSalariale != null ? dashboardData.masseSalariale.toFixed(2) : '--'}`);
     lines.push('');
 
     // Absences récentes
@@ -364,6 +382,14 @@ function DashboardModernAdmin() {
         ['Minutes de retard cumul\u00E9es', `${dashboardData?.nombreRetards ?? 0} min`],
         ['Heures travaill\u00E9es (p\u00E9riode)', dashboardData?.heuresTravaillees != null
           ? `${Number(dashboardData.heuresTravaillees).toFixed(1)} h` : '--'],
+        ['Effectif Hommes', `${dashboardData?.effectifParSexe?.['M'] ?? 0}`],
+        ['Effectif Femmes', `${dashboardData?.effectifParSexe?.['F'] ?? 0}`],
+        ...((dashboardData?.effectifParSexe?.['Autre'] ?? 0) > 0
+          ? [['Effectif Autre', `${dashboardData?.effectifParSexe?.['Autre'] ?? 0}`]]
+          : []),
+        ['Masse salariale (brute)', dashboardData?.masseSalariale != null
+          ? `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(dashboardData.masseSalariale)} \u20AC`
+          : '--'],
       ],
       headStyles: { fillColor: C_PRIMARY, textColor: 255, fontSize: 9, fontStyle: 'bold' },
       bodyStyles: { fontSize: 9, textColor: C_TEXT, lineColor: [230, 232, 234], lineWidth: 0.1 },
@@ -653,7 +679,14 @@ function DashboardModernAdmin() {
           {(() => {
             const items: Array<{ label: string; color: string; bg: string; onClick?: () => void; emoji?: string }> = [];
 
-            const pendingLeaves = demandesData?.length ?? dashboardData?.totalDemandesEnAttente ?? 0;
+            // Compteur ALIGNÉ sur la liste réellement chargée (demandesData) — c'est
+            // ce que le modal affichera après clic. Auparavant on utilisait un
+            // fallback vers dashboardData.totalDemandesEnAttente quand demandesData
+            // était indéfini, ce qui causait l'incohérence « badge=1 mais modal vide »
+            // (count tenant-wide vs liste filtrée par période). Maintenant que la
+            // fenêtre de fetch est large (cf. pendingDemandesDebut/Fin), le compteur
+            // reste fiable et le modal montre exactement les mêmes éléments.
+            const pendingLeaves = demandesData?.length ?? 0;
             if (pendingLeaves > 0) {
               items.push({
                 label: `${pendingLeaves} demande(s) de congé à valider`,
@@ -813,6 +846,37 @@ function DashboardModernAdmin() {
           value={dashboardData?.heuresSupplementaires != null ? `${dashboardData.heuresSupplementaires.toFixed(1)} hrs` : '--'}
           trendLabel={periodLabel}
           iconBg="rgba(0,81,54,0.1)" iconColor="#005136"
+        />
+        {/* Effectif par sexe — affiche « H / F » en compact dans la valeur ;
+            le visuel détaillé (donut) est exposé plus bas dans la zone graphiques. */}
+        {(() => {
+          const repartition = dashboardData?.effectifParSexe ?? {};
+          const nbH = repartition['M'] ?? 0;
+          const nbF = repartition['F'] ?? 0;
+          const nbAutre = repartition['Autre'] ?? 0;
+          const hasData = (nbH + nbF + nbAutre) > 0;
+          return (
+            <KpiCard
+              icon={<WcIcon sx={{ fontSize: 20 }} />}
+              label="Effectif H / F"
+              value={hasData ? `${nbH}H · ${nbF}F${nbAutre > 0 ? ` · ${nbAutre}` : ''}` : '--'}
+              trendLabel={hasData ? `${nbH + nbF + nbAutre} salarié(s)` : periodLabel}
+              iconBg="rgba(124,58,237,0.1)" iconColor="#7c3aed"
+            />
+          );
+        })()}
+        {/* Masse salariale brute = somme des Empsbrut déchiffrés (cf. DashboardService).
+            Format FR avec séparateur d'espace pour les milliers, 0 décimales pour la
+            lisibilité (un total à l'euro près n'apporte rien sur un agrégat de masse
+            salariale). */}
+        <KpiCard
+          icon={<PaymentsIcon sx={{ fontSize: 20 }} />}
+          label="Masse salariale (brute)"
+          value={dashboardData?.masseSalariale != null
+            ? `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(dashboardData.masseSalariale)} €`
+            : '--'}
+          trendLabel={periodLabel}
+          iconBg="rgba(217,119,6,0.1)" iconColor="#d97706"
         />
         </Box>
         );

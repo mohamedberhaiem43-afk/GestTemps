@@ -23,6 +23,11 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.VIBRATE",
+        "android.permission.WAKE_LOCK",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.VIBRATE",
         "android.permission.WAKE_LOCK"
       ],
       "networkSecurityConfig": "./assets/network_security_config.xml"
@@ -43,19 +48,48 @@
             "concorde-work-force.com": {
               "NSIncludesSubdomains": true,
               "NSPinnedCAIdentities": [
-                { "SPKI-SHA256-BASE64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=" },
-                { "SPKI-SHA256-BASE64": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=" },
-                { "SPKI-SHA256-BASE64": "K7rZOrXHknnsEhUH8nLL4MZkejquUuIvOIr6tCa0rbo=" },
-                { "SPKI-SHA256-BASE64": "bdrBhpj38ffhxpubzkINl0rG+UyossdhcBYj+Zx2fcc=" },
-                { "SPKI-SHA256-BASE64": "NYbU7PBwV4y9J67c4guWTki8FJ+uudrXL0a4V4aRcrg=" },
-                { "SPKI-SHA256-BASE64": "0Bbh/jEZSKymTy3kTOhsmlHKBB32EDu1KojrP3YfV9c=" }
+                {
+                  "SPKI-SHA256-BASE64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M="
+                },
+                {
+                  "SPKI-SHA256-BASE64": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI="
+                },
+                {
+                  "SPKI-SHA256-BASE64": "K7rZOrXHknnsEhUH8nLL4MZkejquUuIvOIr6tCa0rbo="
+                },
+                {
+                  "SPKI-SHA256-BASE64": "bdrBhpj38ffhxpubzkINl0rG+UyossdhcBYj+Zx2fcc="
+                },
+                {
+                  "SPKI-SHA256-BASE64": "NYbU7PBwV4y9J67c4guWTki8FJ+uudrXL0a4V4aRcrg="
+                },
+                {
+                  "SPKI-SHA256-BASE64": "0Bbh/jEZSKymTy3kTOhsmlHKBB32EDu1KojrP3YfV9c="
+                },
+                {
+                  "SPKI-SHA256-BASE64": "C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M="
+                },
+                {
+                  "SPKI-SHA256-BASE64": "diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI="
+                },
+                {
+                  "SPKI-SHA256-BASE64": "K7rZOrXHknnsEhUH8nLL4MZkejquUuIvOIr6tCa0rbo="
+                },
+                {
+                  "SPKI-SHA256-BASE64": "bdrBhpj38ffhxpubzkINl0rG+UyossdhcBYj+Zx2fcc="
+                },
+                {
+                  "SPKI-SHA256-BASE64": "NYbU7PBwV4y9J67c4guWTki8FJ+uudrXL0a4V4aRcrg="
+                },
+                {
+                  "SPKI-SHA256-BASE64": "0Bbh/jEZSKymTy3kTOhsmlHKBB32EDu1KojrP3YfV9c="
+                }
               ]
             }
           }
         }
       }
     },
-
     "plugins": [
       "expo-camera",
       "expo-image-picker",
@@ -81,6 +115,12 @@
       "eas": {
         "projectId": "5a33d832-4ea8-45a8-8d03-69639df6e080"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5a33d832-4ea8-45a8-8d03-69639df6e080"
     }
   }
 }

@@ -23,10 +23,16 @@ const PricingPage: React.FC = () => {
   // Le ratio annuel/mensuel n'est PAS uniforme (~30 / ~46 / ~45 %) : impossible de
   // dériver l'annuel via un coefficient global, on stocke les deux prix explicites.
   const monthly = billingCycle === 'monthly';
-  // En affichage annuel, on continue de montrer un /mois HT pour faciliter la
-  // comparaison côte à côte avec le tarif mensuel (convention Stripe/SaaS).
-  const flat = (m: number, a: number) => monthly ? m : a;
-  const flatPeriod = '/ mois';
+  // 2026-05-22 — En affichage annuel, on affiche directement le TOTAL annuel
+  // (tarif annuel par mois × 12) avec la période « / an ». Le client voit
+  // immédiatement le montant qui sera prélevé en une seule fois à la souscription
+  // annuelle, sans devoir convertir mentalement « 69 €/mois en abonnement annuel ».
+  //
+  // `flat(m, a)` retourne :
+  //   - le tarif mensuel `m` si on est en cycle mensuel,
+  //   - le TOTAL annuel `a × 12` si on est en cycle annuel.
+  const flat = (m: number, a: number) => monthly ? m : a * 12;
+  const flatPeriod = monthly ? '/ mois' : '/ an';
 
   const plans = [
     {
@@ -51,7 +57,7 @@ const PricingPage: React.FC = () => {
         'Gestion RH essentielle',
         'Gestion congés & absences',
         'Fiches salariés',
-        'Dashboard simplifié',
+        'Tableau de bord simplifié',
         'Exports PDF / Excel',
         'Notifications essentielles',
         '10 Go stockage sécurisé inclus',
@@ -68,7 +74,7 @@ const PricingPage: React.FC = () => {
       ],
       idealFor: ['TPE', 'petites structures', 'première digitalisation RH'],
       features: [], // non utilisé pour Starter (rendu enrichi)
-      cta: '30 jours gratuits',
+      cta: 'Essayer 30 jours gratuit',
       accent: false,
     },
     {
@@ -108,7 +114,7 @@ const PricingPage: React.FC = () => {
       ],
       idealFor: ['PME en croissance', 'équipes mobiles', 'paie + RH structurés'],
       features: [], // non utilisé pour Standard (rendu enrichi)
-      cta: '30 jours gratuits',
+      cta: 'Essayer 30 jours gratuit',
       accent: true,
       popular: true,
     },
@@ -129,7 +135,7 @@ const PricingPage: React.FC = () => {
         'Administrateurs illimités',
         'Tout le pack Standard',
         'Multi-filiales illimité',
-        'Dashboards avancés',
+        'Tableaux de bord avancés',
         'Audit logs avancés',
         'Branding personnalisé',
         'Sécurité mobile renforcée (device trust, cert pinning, screenshot blocking)',
@@ -149,7 +155,7 @@ const PricingPage: React.FC = () => {
       ],
       idealFor: ['Grandes structures', 'multi-filiales / multi-sites', 'conformité & sécurité avancées'],
       features: [], // non utilisé pour Business (rendu enrichi)
-      cta: '30 jours gratuits',
+      cta: 'Essayer 30 jours gratuit',
       accent: false,
     },
   ];
@@ -205,7 +211,7 @@ const PricingPage: React.FC = () => {
                 className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
                 onClick={() => navigate('/dashboard')}
               >
-                Mon Dashboard
+                Mon Tableau de bord
               </button>
             ) : (
               <>
@@ -328,26 +334,20 @@ const PricingPage: React.FC = () => {
                 <div className="mt-1 text-sm font-semibold text-on-surface-variant italic">
                   ({monthly ? 'Abonnement mensuel' : 'Abonnement annuel'})
                 </div>
-                {/* Prix mensuel standard barré (mode annuel uniquement, plans qui le déclarent).
-                    Sert d'ancrage visuel pour comparer le tarif annuel au tarif mensuel pur. */}
+                {/* Prix barré en mode annuel : tarif mensuel standard ANNUALISÉ (× 12)
+                    pour rester homogène avec le « gros chiffre » qui est désormais
+                    aussi en € / an. Aucun % de remise dérivé : les deux totaux annuels
+                    (engagement annuel vs poursuite mensuelle 12 mois) sont indépendants. */}
                 {!monthly && (plan as any).crossedMonthly != null && (
                   <div className="mt-3 flex flex-col">
+                    <span className="text-xs text-on-surface-variant mb-1">
+                      soit {formatPrice(plan.price / 12)} € HT / mois ({formatPrice(plan.price / 12)} € × 12)
+                    </span>
                     <span className="text-xl font-bold text-on-surface-variant line-through">
-                      {formatPrice((plan as any).crossedMonthly)} € HT / mois
+                      {formatPrice((plan as any).crossedMonthly * 12)} € HT / an
                     </span>
                     <span className="text-xs text-on-surface-variant mt-0.5">
-                      Tarif mensuel standard
-                    </span>
-                    {/* Total annuel explicite = tarif annuel par mois × 12.
-                        Évite l'ambiguïté du « 119 €/mois en abonnement annuel » qui peut
-                        laisser penser à une facturation mensuelle. Aucun % de remise dérivé :
-                        les deux nombres (mensuel/an et mensuel pur) sont indépendants. */}
-                    <span className="mt-2 text-sm font-extrabold text-primary"
-                          style={isPremium ? { color: '#92670a' } : undefined}>
-                      Total annuel : {formatPrice(plan.price * 12)} € HT
-                      <span className="ml-1.5 text-[11px] font-medium text-on-surface-variant">
-                        (soit {formatPrice(plan.price)} € × 12 mois)
-                      </span>
+                      Tarif mensuel standard sur 12 mois
                     </span>
                   </div>
                 )}
@@ -394,16 +394,14 @@ const PricingPage: React.FC = () => {
                       <div className="text-base font-bold text-primary mt-1">{ex.value}</div>
                     </div>
                   ))}
-                  {/* Limites du pack — formulation commerciale : phrase d'intro qui
-                      présente les plafonds comme une marge de croissance plutôt que
-                      comme un seuil bloquant. Au-delà du plafond, le client passe
-                      au pack supérieur sans rupture de service. */}
+                  {/* Marges de croissance — formulation commerciale : la phrase d'intro
+                      joue le rôle de titre de section. On N'INTITULE PLUS la section
+                      « Limites du pack » (décision commerce 2026-05-22 : le mot
+                      « limites » renvoie une perception négative, on préfère présenter
+                      les plafonds comme une marge de croissance). */}
                   {((plan as any).limits as string[] | undefined)?.length ? (
                     <div className="mt-5 mb-5">
-                      <h4 className="text-sm font-extrabold text-on-surface mb-2 uppercase tracking-wider">
-                        🎯 Limites du pack :
-                      </h4>
-                      <p className="text-xs text-on-surface-variant italic mb-3">
+                      <p className="text-sm font-extrabold text-primary mb-3">
                         {plan.name === 'Starter'
                           ? 'Une marge confortable pour accompagner vos premiers pas :'
                           : plan.name === 'Standard'
