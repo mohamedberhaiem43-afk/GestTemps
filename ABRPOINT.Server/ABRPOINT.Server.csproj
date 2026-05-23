@@ -39,7 +39,7 @@
 	       comme alternative drop-in pour ce projet). -->
 	  <PackageReference Include="AutoMapper" Version="14.0.0" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
-    <PackageReference Include="Dapper" Version="2.1.66" />
+    <PackageReference Include="Dapper" Version="2.1.79" />
     <!-- Migré : FastReport.Data.MsSql → FastReport.Data.Postgres pour aligner
          le moteur rapport sur PostgreSQL. Si la version 2024.1.0 ne résout pas,
          essayer la dernière 2025.x. À tester en runtime : génération PDF d'un
