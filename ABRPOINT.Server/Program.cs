@@ -331,6 +331,9 @@ builder.Services.AddHostedService<ABRPOINT.Server.Services.AuditLogRetentionHost
 // (refresh tokens, known devices, push tokens, logs IA). Durées configurables
 // via Security:Retention:*, plancher applicatif 7 jours.
 builder.Services.AddHostedService<ABRPOINT.Server.Services.DataRetentionHostedService>();
+// RGPD Art. 5.1.e + clause 13.3 contrat éditeur : anonymisation puis suppression
+// des pointages bruts selon la politique configurée par le client tenant via UI.
+builder.Services.AddHostedService<ABRPOINT.Server.Services.PresenceRetentionHostedService>();
 // Scoped : le validateur lit les sites du tenant courant via ApplicationDbContext (Scoped).
 builder.Services.AddScoped<ABRPOINT.Server.Services.IGeoZoneValidator, ABRPOINT.Server.Services.GeoZoneValidator>();
 

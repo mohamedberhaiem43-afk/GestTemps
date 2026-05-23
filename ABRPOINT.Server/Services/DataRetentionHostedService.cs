@@ -56,10 +56,13 @@ public sealed class DataRetentionHostedService : BackgroundService
     // debug d'incidents (vol de session, replay d'attaque).
     private const int MinDays = 7;
 
-    private int RefreshTokenDays      => Clamp(_cfg.GetValue<int?>("Security:Retention:RefreshTokenDaysAfterExpiry") ?? 30);
-    private int KnownDeviceDays       => Clamp(_cfg.GetValue<int?>("Security:Retention:KnownDeviceInactiveDays")     ?? 365);
-    private int PushTokenInactiveDays => Clamp(_cfg.GetValue<int?>("Security:Retention:PushTokenInactiveDays")        ?? 90);
-    private int RagChatLogDays        => Clamp(_cfg.GetValue<int?>("Security:Retention:RagChatLogDays")               ?? 90);
+    // Fallback appsettings — utilisés si la table retention_policy du tenant
+    // n'existe pas encore (cas migration partielle) ou si la valeur stockée
+    // est sous le plancher applicatif.
+    private int FallbackRefreshTokenDays => Clamp(_cfg.GetValue<int?>("Security:Retention:RefreshTokenDaysAfterExpiry") ?? 30);
+    private int FallbackKnownDeviceDays  => Clamp(_cfg.GetValue<int?>("Security:Retention:KnownDeviceInactiveDays")     ?? 365);
+    private int FallbackPushTokenDays    => Clamp(_cfg.GetValue<int?>("Security:Retention:PushTokenInactiveDays")        ?? 90);
+    private int FallbackRagChatLogDays   => Clamp(_cfg.GetValue<int?>("Security:Retention:RagChatLogDays")               ?? 90);
 
     private static int Clamp(int value) => value < MinDays ? MinDays : value;
 
@@ -141,30 +144,53 @@ public sealed class DataRetentionHostedService : BackgroundService
 
         var now = DateTime.UtcNow;
 
+        // Lecture des seuils paramétrés par le tenant (cf. RetentionPolicyController).
+        // Chaque valeur stockée doit dépasser le plancher MinDays pour être prise en
+        // compte ; sinon on retombe sur le défaut appsettings.
+        int rtDays = FallbackRefreshTokenDays;
+        int devDays = FallbackKnownDeviceDays;
+        int pushDays = FallbackPushTokenDays;
+        int ragDays = FallbackRagChatLogDays;
+        try
+        {
+            var p = await db.RetentionPolicies.AsNoTracking().FirstOrDefaultAsync(ct);
+            if (p != null)
+            {
+                if (p.RefreshTokenDaysAfterExpiry >= MinDays) rtDays = p.RefreshTokenDaysAfterExpiry;
+                if (p.KnownDeviceInactiveDays >= MinDays) devDays = p.KnownDeviceInactiveDays;
+                if (p.PushTokenInactiveDays >= MinDays) pushDays = p.PushTokenInactiveDays;
+                if (p.RagChatLogDays >= MinDays) ragDays = p.RagChatLogDays;
+            }
+        }
+        catch
+        {
+            // Table retention_policy absente (migration pas encore passée) → fallbacks.
+        }
+
         // 1) Refresh tokens : expirés OU révoqués, et dont la date d'expiration
         //    remonte à plus de N jours. On garde N jours de tampon post-expiration
         //    pour permettre la corrélation forensique en cas d'incident.
-        var rtCutoff = now.AddDays(-RefreshTokenDays);
+        var rtCutoff = now.AddDays(-rtDays);
         var rt = await db.RefreshTokens
             .Where(r => (r.Revoked || r.ExpiresAt < now) && r.ExpiresAt < rtCutoff)
             .ExecuteDeleteAsync(ct);
 
         // 2) Known devices : pas d'activité depuis > N jours.
-        var devCutoff = now.AddDays(-KnownDeviceDays);
+        var devCutoff = now.AddDays(-devDays);
         var dev = await db.KnownDevices
             .Where(d => d.LastSeenAt < devCutoff)
             .ExecuteDeleteAsync(ct);
 
         // 3) Push tokens désactivés (Expo a renvoyé DeviceNotRegistered, ou
         //    désinstallation) ET inactifs depuis > N jours.
-        var pushCutoff = now.AddDays(-PushTokenInactiveDays);
+        var pushCutoff = now.AddDays(-pushDays);
         var push = await db.PushTokens
             .Where(p => !p.Active && p.LastSeenAt < pushCutoff)
             .ExecuteDeleteAsync(ct);
 
         // 4) RAG chat logs : minimisation (les interactions IA contiennent des
         //    questions utilisateur potentiellement nominatives).
-        var ragCutoff = now.AddDays(-RagChatLogDays);
+        var ragCutoff = now.AddDays(-ragDays);
         var rag = await db.RagChatLogs
             .Where(r => r.CreatedAt < ragCutoff)
             .ExecuteDeleteAsync(ct);

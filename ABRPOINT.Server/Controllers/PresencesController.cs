@@ -310,6 +310,24 @@ namespace ABRPOINT.Server.Controllers
                     }
                 }
 
+                // RGPD clause 13.3 — politique géoloc paramétrée par le tenant via UI :
+                //   • Sous-finalité « clock-in » désactivée → on ignore complètement les
+                //     coordonnées (le pointage continue sans validation GPS, l'admin a
+                //     explicitement choisi de ne pas géolocaliser le pointage).
+                //   • Hors plage horaire autorisée → idem : pointage accepté, géoloc
+                //     ignorée (décision produit 2026-05 : pas de prise d'otage opé).
+                // Sans table geolocation_policy (legacy), comportement inchangé.
+                var geoPolicy = await _db.GeolocationPolicies.AsNoTracking().FirstOrDefaultAsync();
+                var geolocActive = geoPolicy is null
+                    || (geoPolicy.EnabledForClockIn && geoPolicy.IsWithinWindow(DateTime.Now));
+                if (!geolocActive)
+                {
+                    // On efface les coordonnées reçues pour qu'elles ne soient ni
+                    // utilisées par la suite ni journalisées (clé : limitation à la
+                    // finalité déclarée — point 4 de la clause 13.3).
+                    lat = null; lon = null; acc = null;
+                }
+
                 // Validation de zone GPS — règle STRICTE par site (2026-05-22) :
                 // l'employé ne peut pointer QUE depuis le geofence de SON site rattaché
                 // (Empsite / Sitcod), pas depuis n'importe quel site de la société.
@@ -327,7 +345,7 @@ namespace ABRPOINT.Server.Controllers
                 // Si l'admin a configuré le geofence du site mais que le client n'a pas
                 // envoyé de GPS, on refuse (sinon contournement trivial en désactivant
                 // la localisation).
-                if (_geoValidator != null)
+                if (_geoValidator != null && geolocActive)
                 {
                     // On a besoin du sitcod rattaché de l'employé pour cibler le bon
                     // geofence. La PK composite (soccod, empcod, sitcod) autorise plusieurs

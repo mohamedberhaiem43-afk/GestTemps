@@ -15,14 +15,13 @@ import { DateRangeProvider, useDateRange } from './FilterContext';
 import { useAuth } from '../../helper/AuthProvider';
 import apiInstance from '../../API/apiInstance';
 import useGenerateEtatDetaille from '../../../hooks/presenceHooks/useGenerateEtatDetaille';
+import useGenerateEtatGlobal from '../../../hooks/presenceHooks/useGenerateEtatGlobal';
 import useGetEmpEtat from '../../../hooks/presenceHooks/useGetEmpEtat';
 import useGetEmployePosteByDate from '../../../hooks/employeHooks/useGetEmpPoste';
 import useGetEmployeesLibs from '../../../hooks/employeHooks/useGetEmployeesLibs';
 import EmployeeMultiSelectDropdown from '../../helper/EmployeeMultiSelectDropdown';
 import PointageAdjustDialog from '../Adjustment/PointageAdjustDialog';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import dayjs from 'dayjs';
 import EmpEtat from '../../../models/EmpEtat';
 import './EtatPeriodiqueModern.css';
@@ -469,7 +468,7 @@ function EmpSidebarRow({ row, active, onClick, index }: {
 // ── Main inner ────────────────────────────────────────────────────────────────
 function EtatPeriodiqueModernInner() {
   const { t } = useTranslation();
-  const { soccod, uticod, isManager, sercod: managerSercod, hasPermission } = useAuth();
+  const { soccod, soclib, uticod, isManager, sercod: managerSercod, hasPermission } = useAuth();
   const isManagerScoped = Boolean(isManager && managerSercod);
   // Permissions pour l'ajustement de pointage (module distinct des classes horaires).
   const canConsultPointage = hasPermission('Pointage et Temps', 'consult');
@@ -517,6 +516,7 @@ function EtatPeriodiqueModernInner() {
   );
 
   const { mutateAsync: generatePdf } = useGenerateEtatDetaille();
+  const { mutateAsync: generateGlobal } = useGenerateEtatGlobal();
 
   const { data: etatData = [], refetch: refetchEmpEtat } = useGetEmpEtat({
     soccod,
@@ -612,14 +612,13 @@ function EtatPeriodiqueModernInner() {
       .finally(() => setLoadingEmps(false));
   };
 
-  // Impression PDF — comportement à 2 modes :
+  // Impression PDF — toujours via FastReport (Reports/*.frx) côté serveur. 2 modes :
   //   • Un employé est sélectionné (ligne cliquée → empEtatData chargé)
-  //     → on imprime le détail journalier de cet employé via /Presences/etat-detaille.
-  //   • Sinon, on imprime le RÉCAPITULATIF de toute la liste affichée (rows) en PDF
-  //     local (jsPDF + autotable), sans forcer l'utilisateur à sélectionner un salarié.
-  // Avant : `if (!empEtatData.length) alert("Sélectionnez un employé")` — bloquait
-  // toute impression tant qu'aucune ligne n'était cliquée, alors que l'utilisateur
-  // voulait souvent juste imprimer le tableau visible (équivalent PDF de l'export Excel).
+  //     → /Presences/etat-detaille (template EtatDetaille.frx) : détail journalier.
+  //   • Sinon → /Presences/etat-global (template EtatGlobalPresence.frx) : récap
+  //     de toute la liste affichée (rows). On garde la signature jsPDF historique
+  //     supprimée : tous les exports passent désormais par le rapport officiel,
+  //     pas de PDF "maison" client-side incohérent avec les autres états.
   const handlePrint = async () => {
     // Mode détail : un employé est sélectionné et ses données journalières sont chargées
     if (empEtatData.length > 0 && selectedEmpMat) {
@@ -634,32 +633,45 @@ function EtatPeriodiqueModernInner() {
       return;
     }
 
-    // Mode récapitulatif : impression de la table résumée (tous les employés du filtre).
+    // Mode récapitulatif : on appelle le rapport FastReport /Presences/etat-global
+    // (template Reports/EtatGlobalPresence.frx) qui produit le PDF officiel — même
+    // mise en page que les autres exports métier. On mappe les colonnes du DTO
+    // EmployeePresenceDto vers la structure attendue par le rapport ; les colonnes
+    // de détail non disponibles côté recap (HS25/50, heures nuit, jours fériés…)
+    // sont laissées à 0/"" — le template les affichera vides, ce qui reste lisible
+    // pour l'utilisateur qui veut juste l'imprimé synthétique de l'écran courant.
     if (!Array.isArray(rows) || rows.length === 0) {
       alert(t('pointeuse.etatPeriodique.alertNoData'));
       return;
     }
     try {
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
-      doc.text(`État périodique — ${dateDebut} → ${dateFin}`, 14, 14);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-      doc.text(`Filiale: ${selectedFiliale || '—'}   Service: ${selectedService || '—'}   Régime: ${selectedRegime || '—'}`, 14, 21);
-      autoTable(doc, {
-        startY: 26,
-        head: [['Matricule', 'Nom', 'Nb Jours', 'Total Heures', 'Total Retards']],
-        body: rows.map(r => [
-          r.empcod,
-          r.emplib ?? '',
-          String(r.nbJours ?? 0),
-          fmtMin(r.totalMinutes ?? 0),
-          fmtMin(r.totalRetards ?? 0),
-        ]),
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [0, 64, 161], textColor: 255, fontStyle: 'bold' },
-        alternateRowStyles: { fillColor: [248, 249, 251] },
+      const blob = await generateGlobal({
+        soccod: soccod || '',
+        soclib: soclib || '',
+        datedebut: dateDebut,
+        datefin: dateFin,
+        data: rows.map((r) => ({
+          empmat: r.empcod,
+          emplib: r.emplib ?? '',
+          empreg: selectedRegime ?? '',
+          jourtrv: Math.round(r.nbJours ?? 0),
+          tothre: fmtMin(r.totalMinutes ?? 0),
+          jferier: 0,
+          jftrv: 0,
+          hftrv: '',
+          hnuit: '',
+          jconge: 0,
+          hs50: '',
+          hs25: '',
+          csf: '',
+        })),
       });
-      doc.save(`EtatPeriodique_${dateDebut}_${dateFin}.pdf`);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `EtatPeriodique_${dateDebut}_${dateFin}.pdf`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (e) {
       console.error(e);
       alert(t('pointeuse.etatPeriodique.alertReportError'));

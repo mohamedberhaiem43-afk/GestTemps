@@ -41,7 +41,7 @@ public sealed class AuditLogRetentionHostedService : BackgroundService
         _log = log;
     }
 
-    private int RetentionDays
+    private int FallbackRetentionDays
     {
         get
         {
@@ -62,8 +62,7 @@ public sealed class AuditLogRetentionHostedService : BackgroundService
             {
                 var deletedTotal = await PurgeAllTenantsAsync(stoppingToken);
                 if (deletedTotal > 0)
-                    _log.LogInformation("AuditLog retention purge: {Deleted} lignes supprimées (rétention={Days}j).",
-                        deletedTotal, RetentionDays);
+                    _log.LogInformation("AuditLog retention purge: {Deleted} lignes supprimées.", deletedTotal);
             }
             catch (OperationCanceledException) { break; }
             catch (Exception ex)
@@ -81,7 +80,6 @@ public sealed class AuditLogRetentionHostedService : BackgroundService
         var template = _cfg.GetConnectionString("TenantTemplate");
         var masterConnection = _cfg.GetConnectionString("MasterConnection");
         var defaultConn = _cfg.GetConnectionString("DefaultConnection");
-        var cutoff = DateTime.UtcNow.AddDays(-RetentionDays);
         var total = 0;
 
         if (!string.IsNullOrWhiteSpace(masterConnection) && !string.IsNullOrWhiteSpace(template))
@@ -100,7 +98,7 @@ public sealed class AuditLogRetentionHostedService : BackgroundService
                 try
                 {
                     var cs = template.Replace("{DbName}", t.DbName);
-                    total += await PurgeOneAsync(cs, cutoff, ct);
+                    total += await PurgeOneAsync(cs, ct);
                 }
                 catch (Exception ex)
                 {
@@ -111,18 +109,38 @@ public sealed class AuditLogRetentionHostedService : BackgroundService
         }
         else if (!string.IsNullOrWhiteSpace(defaultConn))
         {
-            total = await PurgeOneAsync(defaultConn, cutoff, ct);
+            total = await PurgeOneAsync(defaultConn, ct);
         }
 
         return total;
     }
 
-    private static async Task<int> PurgeOneAsync(string connStr, DateTime cutoff, CancellationToken ct)
+    private async Task<int> PurgeOneAsync(string connStr, CancellationToken ct)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseNpgsql(connStr, npg => npg.EnableRetryOnFailure())
             .Options;
         await using var db = new ApplicationDbContext(options);
+
+        // Lit la rétention configurée par le tenant via UI ; fallback sur appsettings
+        // si la table n'existe pas encore (tenant en cours de migration) ou si la
+        // valeur stockée est < plancher absolu.
+        int days = FallbackRetentionDays;
+        try
+        {
+            var stored = await db.RetentionPolicies
+                .AsNoTracking()
+                .Select(r => (int?)r.AuditLogDays)
+                .FirstOrDefaultAsync(ct);
+            if (stored.HasValue && stored.Value >= MinRetentionDays)
+                days = stored.Value;
+        }
+        catch
+        {
+            // Table absente → fallback silencieux sur la valeur appsettings.
+        }
+
+        var cutoff = DateTime.UtcNow.AddDays(-days);
         // ExecuteDeleteAsync = un seul DELETE serveur, pas de chargement en mémoire.
         // Index sur DateAction (à créer en migration si absent) rend cette requête O(log n).
         return await db.AuditLogs

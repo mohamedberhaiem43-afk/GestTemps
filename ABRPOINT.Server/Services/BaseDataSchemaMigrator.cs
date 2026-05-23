@@ -116,6 +116,20 @@ public static class BaseDataSchemaMigrator
         // échoue ensuite en 42703. On utilise donc EnsureQuotedColumnAsync ici.
         await EnsureQuotedColumnAsync(db, "AuditLog", "IpAddress", "VARCHAR(45) NULL", ct);
 
+        // RGPD clause 13.3 — table singleton de paramétrage des durées de rétention
+        // par tenant. L'admin DPO la modifie depuis l'UI (cf. RetentionPolicyController) ;
+        // les hosted services lisent les valeurs au lieu d'utiliser les défauts de
+        // appsettings.json. La ligne id=1 est seedée si absente.
+        await EnsureRetentionPolicyTableAsync(db, ct);
+
+        // RGPD clause 13.3 points 2 (plages horaires) + 4 (sous-finalités) :
+        // politique de géolocalisation paramétrable par le client tenant.
+        await EnsureGeolocationPolicyTableAsync(db, ct);
+
+        // RGPD Art. 13 — notice d'information aux salariés + preuve d'acquittement.
+        await EnsureDataProcessingNoticeTableAsync(db, ct);
+        await EnsureUserConsentTableAsync(db, ct);
+
         // Validation des heures supplémentaires (2026-05) : les demandes d'heures sup
         // créées depuis le mobile passent par /Autorisers/my-auth (table autoriser).
         // Pour permettre à l'admin/manager de valider ou refuser depuis le web, on
@@ -315,6 +329,101 @@ CREATE TABLE rag_chat_log (
 );
 CREATE INDEX ix_rag_chat_log_soccod_created_at ON rag_chat_log(soccod, created_at DESC);", ct);
         return true;
+    }
+
+    private static async Task<bool> EnsureRetentionPolicyTableAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        var created = !await TableExistsAsync(db, "retention_policy", ct);
+        if (created)
+        {
+            await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE retention_policy (
+    id                              INTEGER     PRIMARY KEY,
+    audit_log_days                  INTEGER     NOT NULL DEFAULT 180,
+    presence_anonymize_days         INTEGER     NOT NULL DEFAULT 365,
+    presence_delete_days            INTEGER     NOT NULL DEFAULT 1825,
+    refresh_token_days_after_expiry INTEGER     NOT NULL DEFAULT 30,
+    known_device_inactive_days      INTEGER     NOT NULL DEFAULT 365,
+    push_token_inactive_days        INTEGER     NOT NULL DEFAULT 90,
+    rag_chat_log_days               INTEGER     NOT NULL DEFAULT 90,
+    updated_at                      TIMESTAMP   NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    updated_by                      VARCHAR(20) NULL
+);", ct);
+        }
+        // Seed (ou re-seed si la ligne id=1 a été effacée par erreur).
+        await db.Database.ExecuteSqlRawAsync(@"
+INSERT INTO retention_policy (id) VALUES (1)
+ON CONFLICT (id) DO NOTHING;", ct);
+        return created;
+    }
+
+    private static async Task<bool> EnsureGeolocationPolicyTableAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        var created = !await TableExistsAsync(db, "geolocation_policy", ct);
+        if (created)
+        {
+            await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE geolocation_policy (
+    id                     INTEGER     PRIMARY KEY,
+    enabled_for_clock_in   BOOLEAN     NOT NULL DEFAULT TRUE,
+    enabled_for_missions   BOOLEAN     NOT NULL DEFAULT TRUE,
+    window_start_time      VARCHAR(5)  NOT NULL DEFAULT '06:00',
+    window_end_time        VARCHAR(5)  NOT NULL DEFAULT '22:00',
+    allowed_days           VARCHAR(7)  NOT NULL DEFAULT '1234567',
+    updated_at             TIMESTAMP   NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    updated_by             VARCHAR(20) NULL
+);", ct);
+        }
+        await db.Database.ExecuteSqlRawAsync(@"
+INSERT INTO geolocation_policy (id) VALUES (1)
+ON CONFLICT (id) DO NOTHING;", ct);
+        return created;
+    }
+
+    private static async Task<bool> EnsureDataProcessingNoticeTableAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        var created = !await TableExistsAsync(db, "data_processing_notice", ct);
+        if (created)
+        {
+            await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE data_processing_notice (
+    id          INTEGER     PRIMARY KEY,
+    title       VARCHAR(200) NOT NULL DEFAULT 'Information sur le traitement de vos données',
+    body        TEXT         NOT NULL DEFAULT '',
+    version     INTEGER      NOT NULL DEFAULT 1,
+    updated_at  TIMESTAMP    NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    updated_by  VARCHAR(20)  NULL
+);", ct);
+            // Seed avec le body par défaut du modèle — on évite de l'incruster en SQL
+            // (le texte est long et changeable) en re-utilisant la constante C#.
+            var defaultBody = Models.DataProcessingNotice.DefaultBody.Replace("'", "''");
+            await db.Database.ExecuteSqlRawAsync(
+                $"INSERT INTO data_processing_notice (id, body) VALUES (1, '{defaultBody}') ON CONFLICT (id) DO NOTHING;", ct);
+        }
+        else
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "INSERT INTO data_processing_notice (id) VALUES (1) ON CONFLICT (id) DO NOTHING;", ct);
+        }
+        return created;
+    }
+
+    private static async Task<bool> EnsureUserConsentTableAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        var created = !await TableExistsAsync(db, "user_consent", ct);
+        if (created)
+        {
+            await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE user_consent (
+    id              BIGINT       GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    uticod          VARCHAR(20)  NOT NULL,
+    notice_version  INTEGER      NOT NULL,
+    acknowledged_at TIMESTAMP    NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    ip_address      VARCHAR(45)  NULL
+);
+CREATE INDEX ix_user_consent_uticod_version ON user_consent(uticod, notice_version);", ct);
+        }
+        return created;
     }
 
     private static async Task<bool> EnsureMissionTableAsync(ApplicationDbContext db, CancellationToken ct)

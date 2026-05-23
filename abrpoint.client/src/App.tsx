@@ -5,6 +5,7 @@ import DashboardLayoutBasic from "./components/navigation/Navigation";
 import { BrowserRouter as Router } from "react-router-dom";
 import { AuthProvider } from "./components/helper/AuthProvider";
 import CookieConsent from "./components/helper/CookieConsent";
+import ConsentBanner from "./components/helper/ConsentBanner/ConsentBanner";
 import ScrollToTopFab from "./components/helper/ScrollToTopFab";
 
 // ── Color tokens ──
@@ -312,6 +313,10 @@ function AppContent() {
           <AuthProvider>
             <DashboardLayoutBasic />
             <ScrollToTopFab />
+            {/* Bannière RGPD art. 13 — informe les salariés du traitement de leurs
+                données. S'affiche en bas pour tout utilisateur authentifié n'ayant
+                pas encore acquitté la version courante. */}
+            <ConsentBanner />
           </AuthProvider>
           {/* Bannière RGPD : s'affiche au premier chargement, hors AuthProvider
               pour rester accessible avant login. */}

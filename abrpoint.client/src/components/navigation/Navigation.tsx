@@ -79,6 +79,9 @@ const ContractBuilderModern = React.lazy(() => import('../gestionEmploye/Vault/C
 const DocumentsModern = React.lazy(() => import('../Rag/Documents/DocumentsModern'));
 const RagAuditTable = React.lazy(() => import('../Rag/Audit/RagAuditTable'));
 const AuditLogsPage = React.lazy(() => import('../Admin/AuditLogs/AuditLogsPage'));
+const RetentionPolicyPage = React.lazy(() => import('../Admin/Retention/RetentionPolicyPage'));
+const ProcessingNoticePage = React.lazy(() => import('../Admin/ProcessingNotice/ProcessingNoticePage'));
+const GeolocationPolicyPage = React.lazy(() => import('../Admin/Geolocation/GeolocationPolicyPage'));
 const LetterTemplatesModern = React.lazy(() => import('../Rag/Letters/LetterTemplatesModern'));
 const SignaturePage = React.lazy(() => import('../gestionEmploye/Vault/SignaturePage'));
 const PricingPage = React.lazy(() => import('../Pricing/PricingPage'));
@@ -238,6 +241,9 @@ const useNavigationItems = (): NavGroup[] => {
     'courriers': 'Administration',
     'rag-audit': 'Administration',
     'audit-logs': 'Administration',
+    'retention-rgpd': 'Administration',
+    'notice-rgpd': 'Administration',
+    'geolocation-rgpd': 'Administration',
   };
 
   const canSee = (segment: string) => {
@@ -437,6 +443,12 @@ const useNavigationItems = (): NavGroup[] => {
         // Journaux d'audit : visible aux admins. Pour les managers, on l'ajoute via
         // un groupe séparé plus bas (cf. block `isManager && !isAdmin`).
         { label: t('navigation.auditLogs', "Journaux d'audit"), href: '/dashboard/audit-logs', icon: History },
+        // Politique de rétention RGPD : strictement admin (responsable de traitement).
+        { label: t('navigation.retentionPolicy', "Rétention RGPD"), href: '/dashboard/retention-rgpd', icon: Shield },
+        // Notice d'information RGPD (art. 13) — texte affiché aux salariés.
+        { label: t('navigation.processingNotice', "Notice RGPD"), href: '/dashboard/notice-rgpd', icon: Gavel },
+        // Politique de géolocalisation (sous-finalités + plages horaires).
+        { label: t('navigation.geolocationPolicy', "Géolocalisation RGPD"), href: '/dashboard/geolocation-rgpd', icon: Eye },
         { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
         { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
         // Lien Chatbot retiré du sidebar : l'assistant reste accessible via le bouton flottant
@@ -560,6 +572,9 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/courriers': content = <LetterTemplatesModern />; break;
     case '/dashboard/rag-audit': content = <RagAuditTable />; break;
     case '/dashboard/audit-logs': content = <AuditLogsPage />; break;
+    case '/dashboard/retention-rgpd': content = <RetentionPolicyPage />; break;
+    case '/dashboard/notice-rgpd': content = <ProcessingNoticePage />; break;
+    case '/dashboard/geolocation-rgpd': content = <GeolocationPolicyPage />; break;
     case '/dashboard/sign-document': content = <SignaturePage />; break;
     case '/dashboard/pricing': content = <PricingPage />; break;
     case '/dashboard/plan-configuration': content = <PlanConfigurationPage />; break;

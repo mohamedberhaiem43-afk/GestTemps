@@ -67,16 +67,17 @@ namespace ABRPOINT.Server.Controllers
                 if (dbUser == null || !BCrypt.Net.BCrypt.Verify(model.Password, dbUser.Utimps))
                     return Unauthorized(new { message = "Identifiants invalides" });
 
-                // Garde "compte désactivé" : Utilisateur.Utiactif="0" OU Employe.Actif="N" → connexion refusée.
-                // Mêmes règles que le login web (UtilisateursController.Connect) — sans ça un employé
-                // sortant pourrait continuer à s'authentifier depuis l'app mobile après désactivation web.
-                if (dbUser.Utiactif != "1" ||
-                    await _dbContext.Employes.AnyAsync(e => e.Empcod == dbUser.Uticod && e.Actif != null && e.Actif != "A"))
+                // Garde "compte désactivé" centralisée dans AccountAccessGuard — couvre :
+                // Utiactif != "1", Employe.Actif != "A", Empsort <= today (fin de contrat).
+                // Source unique partagée avec UtilisateursController côté web.
+                var loginDisableReason = await ABRPOINT.Server.Services.AccountAccessGuard.CheckAsync(_dbContext, dbUser.Uticod);
+                if (ABRPOINT.Server.Services.AccountAccessGuard.IsDisabled(loginDisableReason))
                 {
                     return StatusCode(StatusCodes.Status403Forbidden, new
                     {
-                        message = "Compte désactivé. Contactez votre administrateur pour réactiver l'accès.",
+                        message = ABRPOINT.Server.Services.AccountAccessGuard.MessageFor(loginDisableReason),
                         accountDisabled = true,
+                        reason = loginDisableReason.ToString(),
                     });
                 }
 
@@ -185,17 +186,19 @@ namespace ABRPOINT.Server.Controllers
             if (user == null)
                 return Unauthorized(new { message = "Utilisateur non trouvé" });
 
-            // Si le compte a été désactivé entre-temps (Utiactif="0" ou employé sortant Actif="N"),
-            // on révoque le refresh token et on refuse — l'app mobile devra repasser par un login.
-            if (user.Utiactif != "1" ||
-                await _dbContext.Employes.AnyAsync(e => e.Empcod == user.Uticod && e.Actif != null && e.Actif != "A"))
+            // Si le compte a été désactivé / le contrat expiré entre-temps, on révoque le
+            // refresh token et on refuse — l'app mobile devra repasser par un login complet
+            // (qui sera lui-même refusé). Garde centralisée AccountAccessGuard.
+            var refreshDisableReason = await ABRPOINT.Server.Services.AccountAccessGuard.CheckAsync(_dbContext, user.Uticod);
+            if (ABRPOINT.Server.Services.AccountAccessGuard.IsDisabled(refreshDisableReason))
             {
                 refreshToken.Revoked = true;
                 await _dbContext.SaveChangesAsync();
                 return StatusCode(StatusCodes.Status403Forbidden, new
                 {
-                    message = "Compte désactivé. Contactez votre administrateur pour réactiver l'accès.",
+                    message = ABRPOINT.Server.Services.AccountAccessGuard.MessageFor(refreshDisableReason),
                     accountDisabled = true,
+                    reason = refreshDisableReason.ToString(),
                 });
             }
 
@@ -469,16 +472,17 @@ namespace ABRPOINT.Server.Controllers
             if (user == null)
                 return Unauthorized();
 
-            // Garde compte désactivé (cf. login)
-            if (user.Utiactif != "1" ||
-                await _dbContext.Employes.AnyAsync(e => e.Empcod == user.Uticod && e.Actif != null && e.Actif != "A"))
+            // Garde compte désactivé centralisée (cf. login + refresh).
+            var bioDisableReason = await ABRPOINT.Server.Services.AccountAccessGuard.CheckAsync(_dbContext, user.Uticod);
+            if (ABRPOINT.Server.Services.AccountAccessGuard.IsDisabled(bioDisableReason))
             {
                 bio.Revoked = true;
                 await _dbContext.SaveChangesAsync();
                 return StatusCode(StatusCodes.Status403Forbidden, new
                 {
-                    message = "Compte désactivé. Contactez votre administrateur.",
+                    message = ABRPOINT.Server.Services.AccountAccessGuard.MessageFor(bioDisableReason),
                     accountDisabled = true,
+                    reason = bioDisableReason.ToString(),
                 });
             }
 

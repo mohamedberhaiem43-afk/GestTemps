@@ -344,16 +344,16 @@ namespace GestionDesTickets.Server.Controllers
                     await _dbContext.SaveChangesAsync();
                 }
 
-                // Garde "compte désactivé" : Utilisateur.Utiactif="0" OU Employe.Actif="N" → connexion refusée.
-                // On vérifie les deux car la désactivation peut venir soit du toggle utilisateur,
-                // soit de la fiche employé (champ `actif` mis à "N" lors d'une sortie/licenciement),
-                // et les deux flags ne sont pas synchronisés automatiquement.
-                if (await IsAccountDisabledAsync(dbUser))
+                // Garde "compte désactivé" — 3 raisons centralisées dans AccountAccessGuard :
+                // Utiactif != "1" OU Employe.Actif != "A" OU Empsort <= today (fin de contrat).
+                var disableReason = await AccountAccessGuard.CheckAsync(_dbContext, dbUser.Uticod);
+                if (AccountAccessGuard.IsDisabled(disableReason))
                 {
                     return StatusCode(StatusCodes.Status403Forbidden, new
                     {
-                        message = "Compte désactivé. Contactez votre administrateur pour réactiver l'accès.",
+                        message = AccountAccessGuard.MessageFor(disableReason),
                         accountDisabled = true,
+                        reason = disableReason.ToString(),
                     });
                 }
                 var isManager = dbUser.Utirole?.Contains("manager", StringComparison.OrdinalIgnoreCase) ?? false;
@@ -421,22 +421,14 @@ namespace GestionDesTickets.Server.Controllers
         }
 
         /// <summary>
-        /// Vrai si l'utilisateur est désactivé : `Utilisateur.Utiactif != "1"` OU, s'il est
-        /// aussi salarié, `Employe.Actif != "A"`. Les deux flags peuvent être désynchronisés
-        /// (la désactivation peut venir du toggle utilisateur ou de la fiche employé), donc on
-        /// consulte les deux pour bloquer toute tentative de connexion d'un compte inactif.
+        /// Wrapper de compatibilité — délègue à <see cref="AccountAccessGuard.CheckAsync"/>
+        /// qui est la source de vérité partagée avec MobileAuthController. Conservé pour
+        /// éviter de toucher d'éventuels appelants encore en migration.
         /// </summary>
         private async Task<bool> IsAccountDisabledAsync(Utilisateur dbUser)
         {
-            if (dbUser.Utiactif != "1") return true;
-
-            // L'employé partage son Uticod avec son matricule (Empcod). On regarde toutes les
-            // fiches portant ce code : si une seule existe et est marquée "N", on bloque.
-            // (En pratique il y en a au plus une, mais on évite SingleOrDefault pour ne pas
-            // jeter sur une donnée corrompue.)
-            var hasInactiveEmploye = await _dbContext.Employes
-                .AnyAsync(e => e.Empcod == dbUser.Uticod && e.Actif != null && e.Actif != "A");
-            return hasInactiveEmploye;
+            var reason = await AccountAccessGuard.CheckAsync(_dbContext, dbUser.Uticod);
+            return AccountAccessGuard.IsDisabled(reason);
         }
 
         /// <summary>
@@ -498,14 +490,16 @@ namespace GestionDesTickets.Server.Controllers
                     return BadRequest("Code invalide");
                 }
 
-                // Réplique la garde de Connect : impossible de contourner la désactivation
-                // en passant directement par /complete-2fa-login.
-                if (await IsAccountDisabledAsync(dbUser))
+                // Réplique la garde de Connect (centralisée dans AccountAccessGuard) :
+                // impossible de contourner la désactivation en passant directement par /complete-2fa-login.
+                var disableReason2fa = await AccountAccessGuard.CheckAsync(_dbContext, dbUser.Uticod);
+                if (AccountAccessGuard.IsDisabled(disableReason2fa))
                 {
                     return StatusCode(StatusCodes.Status403Forbidden, new
                     {
-                        message = "Compte désactivé. Contactez votre administrateur pour réactiver l'accès.",
+                        message = AccountAccessGuard.MessageFor(disableReason2fa),
                         accountDisabled = true,
+                        reason = disableReason2fa.ToString(),
                     });
                 }
 
@@ -619,6 +613,23 @@ namespace GestionDesTickets.Server.Controllers
                 if (user == null)
                 {
                     return Unauthorized(new { message = "User not found" });
+                }
+
+                // RGPD clause 13.3 / Art. 32 — révocation effective au refresh : si entre
+                // l'émission du RT et son utilisation l'admin a désactivé le compte OU si
+                // la date de sortie a été atteinte, on refuse + on grille le RT pour empêcher
+                // tout nouvel essai (l'app devra refaire un login complet, qui sera bloqué).
+                var refreshDisableReason = await AccountAccessGuard.CheckAsync(_dbContext, user.Uticod);
+                if (AccountAccessGuard.IsDisabled(refreshDisableReason))
+                {
+                    refreshToken.Revoked = true;
+                    await _dbContext.SaveChangesAsync();
+                    return StatusCode(StatusCodes.Status403Forbidden, new
+                    {
+                        message = AccountAccessGuard.MessageFor(refreshDisableReason),
+                        accountDisabled = true,
+                        reason = refreshDisableReason.ToString(),
+                    });
                 }
 
                 var newAccessToken = GenerateJwtToken(user.Uticod);
