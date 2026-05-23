@@ -110,8 +110,11 @@ public static class BaseDataSchemaMigrator
         // AuditLog : capture de l'IP cliente à l'origine de l'action. 45 chars suffisent
         // pour un IPv6 complet (39) + suffixe scope éventuel. NULL pour les actions issues
         // d'un hosted service ou d'une migration design-time sans HttpContext.
-        // ⚠ Table mappée "AuditLog" (PascalCase) par EF Core — passer la casse correcte.
-        await AddColumnIfMissingAsync(db, "AuditLog", "IpAddress", "VARCHAR(45) NULL", ct);
+        // ⚠ La table ET la colonne doivent rester en PascalCase ("IpAddress") parce que
+        // EF Core génère du SQL quoté à partir du nom de propriété. Sans guillemets
+        // dans l'ALTER, Postgres folde l'identifiant en minuscules → SELECT a."IpAddress"
+        // échoue ensuite en 42703. On utilise donc EnsureQuotedColumnAsync ici.
+        await EnsureQuotedColumnAsync(db, "AuditLog", "IpAddress", "VARCHAR(45) NULL", ct);
 
         // Validation des heures supplémentaires (2026-05) : les demandes d'heures sup
         // créées depuis le mobile passent par /Autorisers/my-auth (table autoriser).
@@ -365,6 +368,57 @@ CREATE INDEX ix_mission_soccod_empcod ON mission(soccod, empcod);", ct);
         var quotedTable = table.Any(char.IsUpper) ? $"\"{table}\"" : table;
         await db.Database.ExecuteSqlRawAsync($"ALTER TABLE {quotedTable} ADD COLUMN IF NOT EXISTS {column} {columnDef};", ct);
         return true;
+    }
+
+    /// <summary>
+    /// Variante de AddColumnIfMissingAsync qui force le PascalCase via double-quoting
+    /// du nom de colonne. Utilisée pour les colonnes mappées par EF Core qui génère
+    /// du SQL quoté (ex. AuditLog.IpAddress). Si une colonne lowercase existe déjà
+    /// (créée par erreur sans quotes), on la renomme vers le nom PascalCase au lieu
+    /// d'en créer une seconde — évite la double colonne ipaddress/IpAddress.
+    /// </summary>
+    private static async Task<bool> EnsureQuotedColumnAsync(ApplicationDbContext db, string table, string column, string columnDef, CancellationToken ct)
+    {
+        if (!await TableExistsAsync(db, table, ct)) return false;
+        var quotedTable = table.Any(char.IsUpper) ? $"\"{table}\"" : table;
+
+        // 1. La colonne PascalCase existe déjà ? On a fini.
+        if (await ColumnExistsExactAsync(db, table, column, ct)) return false;
+
+        // 2. Une colonne lowercase rescapée d'une migration antérieure sans quotes ?
+        //    Si oui, on la renomme — le data déjà capturé est préservé.
+        var lower = column.ToLowerInvariant();
+        if (!string.Equals(lower, column, StringComparison.Ordinal)
+            && await ColumnExistsExactAsync(db, table, lower, ct))
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                $"ALTER TABLE {quotedTable} RENAME COLUMN {lower} TO \"{column}\";", ct);
+            return true;
+        }
+
+        // 3. Création propre avec identifiant quoté pour préserver la casse.
+        await db.Database.ExecuteSqlRawAsync(
+            $"ALTER TABLE {quotedTable} ADD COLUMN IF NOT EXISTS \"{column}\" {columnDef};", ct);
+        return true;
+    }
+
+    /// <summary>
+    /// Variante de ColumnExistsAsync qui respecte la casse exacte du nom passé,
+    /// nécessaire pour différencier "IpAddress" de "ipaddress" dans information_schema.
+    /// </summary>
+    private static async Task<bool> ColumnExistsExactAsync(ApplicationDbContext db, string table, string column, CancellationToken ct)
+    {
+        var conn = db.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"SELECT COUNT(1) FROM information_schema.columns
+                            WHERE table_schema = current_schema()
+                              AND table_name   = @t
+                              AND column_name  = @c";
+        var pT = cmd.CreateParameter(); pT.ParameterName = "@t"; pT.Value = table; cmd.Parameters.Add(pT);
+        var pC = cmd.CreateParameter(); pC.ParameterName = "@c"; pC.Value = column; cmd.Parameters.Add(pC);
+        var result = await cmd.ExecuteScalarAsync(ct);
+        return Convert.ToInt32(result) > 0;
     }
 
     /// <summary>

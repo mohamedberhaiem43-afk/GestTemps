@@ -75,15 +75,19 @@ const PLAN_META: Record<PlanKey, {
   // tarifs.txt 2026-05 : Starter 69 €, Standard 119 €, Business 249 €.
   Starter: {
     label: 'Starter',
-    tagline: 'Pointage web essentiel pour démarrer, sans mobile ni export paie.',
+    tagline: 'Pour démarrer la digitalisation RH d\'une petite équipe — pointage web & mobile, congés et fiches employés.',
     baseEur: 69,
     rank: 1,
     intro: 'Ce pack comprend les avantages :',
     features: [
-      'Pointage web (poste fixe)',
-      'Suivi des heures et présences',
-      'Gestion RH basique (fiches, contrats)',
-      'Jusqu\'à 10 salariés inclus · 10 Go stockage',
+      'Pointage web & mobile',
+      'Gestion RH essentielle (fiches, contrats)',
+      'Gestion congés & absences',
+      'Tableau de bord simplifié',
+      'Notifications essentielles',
+      '10 Go stockage sécurisé · Hébergement France OVH',
+      '1 administrateur · support standard',
+      'Jusqu\'à 10 salariés inclus',
     ],
   },
   Standard: {
@@ -119,8 +123,11 @@ const PLAN_META: Record<PlanKey, {
 
 // Features perdues quand on passe d'un plan supérieur à un inférieur (pour le warning).
 // Aligné avec PlanCatalog côté serveur — la source de vérité reste là-bas.
+// 2026-05 : Starter inclut désormais le mobile + la gestion congés/autorisations, donc
+// passer Standard→Starter ne fait plus perdre ces fonctionnalités. Ce qui reste exclusif
+// Standard+ : géolocalisation, coffre, signature, multi-sites, dashboards avancés, missions.
 const PLAN_FEATURES: Record<PlanKey, string[]> = {
-  Starter:  [],
+  Starter:  ['App mobile', 'Congés', 'Autorisations'],
   Standard: ['App mobile', 'Géolocalisation', 'Coffre numérique', 'Signature électronique', 'Multi-sites', 'Tableaux de bord avancés', 'Missions', 'Congés', 'Autorisations'],
   Premium:  ['App mobile', 'Géolocalisation', 'Coffre numérique', 'Signature électronique', 'Multi-sites', 'Multi-filiales', 'Tableaux de bord avancés', 'Assistant IA (RAG)', 'Audit avancé', 'Branding personnalisé', 'Sécurité mobile renforcée', 'Missions', 'Congés', 'Autorisations'],
 };

@@ -130,7 +130,7 @@ export default function HomePage() {
     standard: monthly ? formatPrice(monthlyBase.standard) : formatPrice(annualTotal.standard),
     premium:  monthly ? formatPrice(monthlyBase.premium)  : formatPrice(annualTotal.premium),
   };
-  const pricePeriod = monthly ? ' / mois HT' : ' / an HT';
+  const pricePeriod = monthly ? ' / mois HT' : ' / mois HT';
   // Sous-libellé indiquant l'engagement (« sans engagement » vs « facturé annuellement »).
   // En cycle annuel on n'affiche AUCUN pourcentage de remise : les tarifs annuel et
   // mensuel sont fixés indépendamment, le tarif annuel n'est pas un % du tarif mensuel.
@@ -640,7 +640,7 @@ export default function HomePage() {
                 {/* Tarif mensuel standard annualisé barré : comparaison apples-to-apples
                     en cycle annuel (99 €/mois × 12 = 1188 €/an). */}
                 <span style={{ fontSize: 18, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
-                  {formatPrice(monthlyBase.starter * 12)} € HT / an
+                  {formatPrice(monthlyBase.starter)} € HT / mois
                 </span>
                 <span style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                   Tarif mensuel standard sur 12 mois
@@ -656,7 +656,7 @@ export default function HomePage() {
                 rupture de service ni perte de données. NB : on N'INTITULE PAS la
                 section « Limites du pack » (formulation jugée trop restrictive
                 par le commerce) — seule la phrase d'intro joue le rôle de titre. */}
-            <div style={{
+            <div className="price-margins-box" style={{
               marginTop: 14, padding: '12px 14px',
               background: '#f8fafc', borderRadius: 12,
               border: '1px solid #e2e8f0',
@@ -731,7 +731,7 @@ export default function HomePage() {
                   soit {formatPrice(annualMonthly.standard)} € HT / mois ({formatPrice(annualMonthly.standard)} € × 12)
                 </span>
                 <span style={{ fontSize: 18, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
-                  {formatPrice(monthlyBase.standard * 12)} € HT / an
+                  {formatPrice(monthlyBase.standard )} € HT / mois
                 </span>
                 <span style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                   Tarif mensuel standard sur 12 mois
@@ -742,7 +742,7 @@ export default function HomePage() {
             <div className="price-per">+ 6,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · {priceCommitmentLabel}</div>
             <div className="price-desc">Suite complète mobile pour les PME en croissance et équipes structurées.</div>
             {/* Marges de croissance — voir note Starter. */}
-            <div style={{
+            <div className="price-margins-box" style={{
               marginTop: 14, padding: '12px 14px',
               background: '#f8fafc', borderRadius: 12,
               border: '1px solid #e2e8f0',
@@ -835,7 +835,7 @@ export default function HomePage() {
                   soit {formatPrice(annualMonthly.premium)} € HT / mois ({formatPrice(annualMonthly.premium)} € × 12)
                 </span>
                 <span style={{ fontSize: 18, fontWeight: 700, color: '#cbb778', textDecoration: 'line-through' }}>
-                  {formatPrice(monthlyBase.premium * 12)} € HT / an
+                  {formatPrice(monthlyBase.premium )} € HT / mois
                 </span>
                 <span style={{ fontSize: 12, color: '#a08a52', marginTop: 2 }}>
                   Tarif mensuel standard sur 12 mois
@@ -846,7 +846,7 @@ export default function HomePage() {
             <div className="price-per">+ 9,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · {priceCommitmentLabel}</div>
             <div className="price-desc">Multi-filiales, IA contextuelle et sécurité renforcée pour les grandes structures.</div>
             {/* Marges de croissance — accent or pour rester cohérent avec l'identité Business. */}
-            <div style={{
+            <div className="price-margins-box" style={{
               marginTop: 14, padding: '12px 14px',
               background: 'rgba(212,175,55,0.06)', borderRadius: 12,
               border: '1px solid rgba(212,175,55,0.35)',

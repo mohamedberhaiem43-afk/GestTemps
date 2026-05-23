@@ -126,8 +126,13 @@ public static class PlanCatalog
         StorageQuotaMb: 10L * 1024,   // 10 Go inclus
         StorageSupplementBlockEur: 29m, // +29 € / 100 Go supplémentaires
         MaxStorageMb: 50L * 1024,     // 50 Go max
+        // 2026-05 — repositionnement commercial : le Starter intègre désormais
+        // le pointage MOBILE (web était trop restrictif vs concurrence) et la
+        // gestion congés / autorisations (essentielle même pour une TPE). Les
+        // features réservées Standard/Premium restent : géolocalisation, coffre
+        // numérique, signature, multi-sites, dashboards avancés, missions, audit.
         Features: new PlanFeatures(
-            MobileApp: false,
+            MobileApp: true,
             Geolocation: false,
             DigitalVault: false,
             ElectronicSignature: false,
@@ -144,8 +149,8 @@ public static class PlanCatalog
             CompensationDays: false,
             GeneralLeave: false,
             GeneralExit: false,
-            LeaveManagement: false,
-            AuthorizationManagement: false));
+            LeaveManagement: true,
+            AuthorizationManagement: true));
 
     public static readonly PlanDefinition Standard = new(
         Code: StandardCode,

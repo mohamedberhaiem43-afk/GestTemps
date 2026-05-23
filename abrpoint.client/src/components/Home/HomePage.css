@@ -685,9 +685,15 @@
 }
 .home-page .price-amount .currency { font-size: 24px; vertical-align: top; margin-top: 10px; display: inline-block; color: var(--hp-primary); }
 .home-page .price-amount .period { font-size: 14px; font-weight: 500; color: var(--hp-on-surface-variant); }
-.home-page .price-included { font-size: 13px; color: var(--hp-primary); margin: 10px 0 4px; font-weight: 700; }
-.home-page .price-per { font-size: 12.5px; color: var(--hp-on-surface-variant); margin-bottom: 22px; font-weight: 500; }
-.home-page .price-desc { font-size: 14px; color: var(--hp-on-surface-variant); margin-bottom: 28px; line-height: 1.6; font-weight: 400; }
+.home-page .price-included { font-size: 13px; color: var(--hp-primary); margin: 10px 0 4px; font-weight: 700; min-height: 1.4em; }
+.home-page .price-per { font-size: 12.5px; color: var(--hp-on-surface-variant); margin-bottom: 22px; font-weight: 500; min-height: 3em; }
+/* min-height : 3 lignes pour aligner la "marges-box" qui suit sur tous les
+   packs, sinon le texte des descriptions (longueurs variables) décale la
+   box d'un pack à l'autre. */
+.home-page .price-desc { font-size: 14px; color: var(--hp-on-surface-variant); margin-bottom: 28px; line-height: 1.6; font-weight: 400; min-height: 4.8em; }
+/* Box "marges de croissance" : hauteur uniforme pour éviter qu'un pack avec
+   un libellé de seuil plus long ne décale visuellement la zone des features. */
+.home-page .price-margins-box { min-height: 100px; }
 .home-page .price-features { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; flex: 1 1 auto; }
 .home-page .pf-item { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--hp-on-surface); line-height: 1.5; }
 .home-page .pf-check { color: var(--hp-tertiary); font-size: 14px; font-weight: 800; flex-shrink: 0; margin-top: 2px; }

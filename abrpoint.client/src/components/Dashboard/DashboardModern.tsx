@@ -42,6 +42,7 @@ import { DashboardRequest } from '../../models/DashboardModels';
 import { CongeProvider } from '../helper/CongeContext';
 import DashboardCongeList from './DashboardCongeList';
 import EvolutionChart from './Bars/EvolutionChart';
+import GenderDonutChart from './Bars/GenderDonutChart';
 import './DashboardModern.css';
 import EmployeeDashboard from './EmployeeDashboard';
 import useGetPendingDemCongesByPeriode from '../../hooks/congeHooks/useGetPendingDemConge';
@@ -104,6 +105,7 @@ type WidgetKey =
   | 'contractAlerts'// bento "alertes contrat"
   | 'evolution'     // graphique évolution
   | 'absences'      // panel absences récentes
+  | 'genderDonut'   // donut effectif H / F
   | 'renewals';     // panel renouvellements
 
 const ALL_WIDGETS: { key: WidgetKey; label: string }[] = [
@@ -114,12 +116,13 @@ const ALL_WIDGETS: { key: WidgetKey; label: string }[] = [
   { key: 'contractAlerts', label: 'Alertes contrat' },
   { key: 'evolution', label: '📈 Évolution des Présences et Heures Travaillées' },
   { key: 'absences', label: 'Absences récentes' },
+  { key: 'genderDonut', label: 'Répartition Hommes / Femmes' },
   { key: 'renewals', label: 'Prochains renouvellements' },
 ];
 
 const DEFAULT_VISIBILITY: Record<WidgetKey, boolean> = {
   recap: true, kpis: true, totalEmployees: true, ongoingLeaves: true,
-  contractAlerts: true, evolution: true, absences: true, renewals: true,
+  contractAlerts: true, evolution: true, absences: true, genderDonut: true, renewals: true,
 };
 
 function loadVisibility(soccod: string | undefined | null): Record<WidgetKey, boolean> {
@@ -134,7 +137,11 @@ function loadVisibility(soccod: string | undefined | null): Record<WidgetKey, bo
 
 function DashboardModernAdmin() {
   const { t } = useTranslation();
-  const { soccod } = useAuth();
+  const { soccod, planAllows } = useAuth();
+  // Pack Starter = dashboard simplifié (sans masse salariale, sans alertes contrat,
+  // sans graphiques). Le flag serveur AdvancedDashboards est la source de vérité.
+  // Les utilisateurs Standard/Business gardent la version complète.
+  const advancedDashboards = planAllows('advancedDashboards');
   const [filterDateRange, setFilterDateRange] = useState<'today' | 'week' | 'month'>('today');
   const [filterDepartment, setFilterDepartment] = useState('all');
   const [openCongeDialog, setOpenCongeDialog] = useState(false);
@@ -868,22 +875,25 @@ function DashboardModernAdmin() {
         {/* Masse salariale brute = somme des Empsbrut déchiffrés (cf. DashboardService).
             Format FR avec séparateur d'espace pour les milliers, 0 décimales pour la
             lisibilité (un total à l'euro près n'apporte rien sur un agrégat de masse
-            salariale). */}
-        <KpiCard
-          icon={<PaymentsIcon sx={{ fontSize: 20 }} />}
-          label="Masse salariale (brute)"
-          value={dashboardData?.masseSalariale != null
-            ? `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(dashboardData.masseSalariale)} €`
-            : '--'}
-          trendLabel={periodLabel}
-          iconBg="rgba(217,119,6,0.1)" iconColor="#d97706"
-        />
+            salariale). Réservée au Standard/Business — masquée sur Starter (dashboard
+            simplifié). */}
+        {advancedDashboards && (
+          <KpiCard
+            icon={<PaymentsIcon sx={{ fontSize: 20 }} />}
+            label="Masse salariale (brute)"
+            value={dashboardData?.masseSalariale != null
+              ? `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(dashboardData.masseSalariale)} €`
+              : '--'}
+            trendLabel={periodLabel}
+            iconBg="rgba(217,119,6,0.1)" iconColor="#d97706"
+          />
+        )}
         </Box>
         );
       })()}
 
       {/* Bento grid : Total employees / Congés / Alertes contrat */}
-      {(visibility.totalEmployees || visibility.ongoingLeaves || visibility.contractAlerts) && (
+      {(visibility.totalEmployees || visibility.ongoingLeaves || (visibility.contractAlerts && advancedDashboards)) && (
       <Box className="db-bento-top">
         {visibility.totalEmployees && (
         <Box className="db-bento-employees">
@@ -919,7 +929,7 @@ function DashboardModernAdmin() {
         </Box>
         )}
 
-        {visibility.contractAlerts && (
+        {visibility.contractAlerts && advancedDashboards && (
         <Box className="db-bento-alerts" onClick={() => setOpenContractDialog(true)} sx={{ cursor: 'pointer' }}>
           <Box className="db-bento-alerts-top">
             <Typography className="db-bento-label-error">{t('dashboard.contractAlerts')}</Typography>
@@ -934,10 +944,13 @@ function DashboardModernAdmin() {
       </Box>
       )}
 
-      {/* Charts + Absences : graphique d'évolution + panel absences récentes */}
-      {(visibility.evolution || visibility.absences) && (
+      {/* Charts + Absences : graphique d'évolution + panel absences récentes.
+          Evolution chart réservé au pack avancé (Starter voit un dashboard simplifié
+          sans graphiques) ; le panel "Absences récentes" reste visible partout car
+          la gestion congés/absences fait partie du Starter. */}
+      {((visibility.evolution && advancedDashboards) || visibility.absences) && (
       <Box className="db-charts-row">
-        {visibility.evolution && (
+        {visibility.evolution && advancedDashboards && (
         <Box className="db-chart-card">
           {/* L'ancien en-tête « Tendance de recrutement » + légende Entrées/Sorties
               ne correspondait pas aux séries réellement tracées par EvolutionChart
@@ -985,8 +998,18 @@ function DashboardModernAdmin() {
       </Box>
       )}
 
-      {/* Bottom row */}
-      {visibility.renewals && (
+      {/* Donut Hommes / Femmes — utilise les données déjà renvoyées par
+          DashboardService.EffectifParSexe, donc pas de hook supplémentaire.
+          Masqué sur Starter (dashboard simplifié sans graphiques). */}
+      {visibility.genderDonut && advancedDashboards && (
+        <Box className="db-chart-card" sx={{ mt: 2 }}>
+          <GenderDonutChart data={dashboardData?.effectifParSexe} />
+        </Box>
+      )}
+
+      {/* Bottom row — renouvellements de contrats : réservé aux packs avancés
+          (le pack Starter n'inclut pas la gestion contractuelle avancée). */}
+      {visibility.renewals && advancedDashboards && (
       <Box className="db-bottom-row">
 
         {/* Contract renewals */}
