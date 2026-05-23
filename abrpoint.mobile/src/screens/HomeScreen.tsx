@@ -430,6 +430,17 @@ export default function HomeScreen({ navigation }: any) {
           <TouchableOpacity
             style={styles.quickAction}
             activeOpacity={0.8}
+            onPress={() => navigation.navigate('Teletravail')}
+          >
+            <View style={[styles.quickIconBox, { backgroundColor: '#fce7f3' }]}>
+              <MaterialCommunityIcons name="home-account" size={22} color="#9d174d" />
+            </View>
+            <Text style={styles.quickLabel}>Télétravail</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickAction}
+            activeOpacity={0.8}
             onPress={() => navigation.navigate('Expense')}
           >
             <View style={[styles.quickIconBox, { backgroundColor: '#fff1c2' }]}>

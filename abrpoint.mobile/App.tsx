@@ -23,6 +23,7 @@ import BalanceScreen from './src/screens/BalanceScreen';
 import DigitalVaultScreen from './src/screens/DigitalVaultScreen';
 import AuthorizationScreen from './src/screens/AuthorizationScreen';
 import DemandeAutorisationScreen from './src/screens/DemandeAutorisationScreen';
+import TeletravailScreen from './src/screens/TeletravailScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import SignatureScreen from './src/screens/SignatureScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
@@ -71,6 +72,7 @@ function AppStack() {
       <Stack.Screen name="DigitalVault" component={DigitalVaultScreen} />
       <Stack.Screen name="Authorization" component={AuthorizationScreen} />
       <Stack.Screen name="DemandeAutorisation" component={DemandeAutorisationScreen} />
+      <Stack.Screen name="Teletravail" component={TeletravailScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Signature" component={SignatureScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />

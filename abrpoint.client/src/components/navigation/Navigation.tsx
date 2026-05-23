@@ -47,6 +47,8 @@ const EtatPeriodiqueModern = React.lazy(() => import('../Pointeuse/EtatPeriodiqu
 const Utilisateur = React.lazy(() => import('../DonneeDeBase/Utilisteur/Utilisateur'));
 const DemCongeModern = React.lazy(() => import('../gestionEmploye/gestionConge/DemConge/DemCongeModern'));
 const DemandeAutorisationModern = React.lazy(() => import('../gestionEmploye/DemandeAutorisation/DemandeAutorisationModern'));
+const TeletravailModern = React.lazy(() => import('../gestionEmploye/Teletravail/TeletravailModern'));
+const TeletravailValidation = React.lazy(() => import('../gestionEmploye/Teletravail/TeletravailValidation'));
 const SoldeCongeModern = React.lazy(() => import('../gestionEmploye/gestionConge/SoldeConge/SoldeCongeModern'));
 const SoldeCongeAdmin = React.lazy(() => import('../gestionEmploye/gestionConge/SoldeConge/SoldeCongeAdmin'));
 const TitreConge = React.lazy(() => import('../gestionEmploye/gestionConge/TitreConge/TitreConge'));
@@ -205,6 +207,8 @@ const useNavigationItems = (): NavGroup[] => {
     'contrat': 'Contrats et Avenants',
     'allaitement': 'Gestion Employés',
     'gestion-de-conge': 'Demande de Congé',
+    'teletravail': 'Demande de Télétravail',
+    'validation-teletravail': 'Absences et Sanctions',
     'gestion-de-solde': 'Gestion des Congés',
     'affectation-solde': 'Gestion des Congés',
     'titre-de-conge': 'Gestion des Congés',
@@ -269,6 +273,9 @@ const useNavigationItems = (): NavGroup[] => {
         items: [
           ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
           ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
+          // Télétravail : gating cohérent avec leaveManagement (workflow demande/validation
+          // ouvert dans tous les packs depuis 2026-05-12). Cf. TeletravailController.
+          ...(planAllows('leaveManagement') ? [{ label: t('navigation.remoteWorkRequest', 'Demande de Télétravail'), href: '/dashboard/teletravail', icon: Home }] : []),
           ...(planAllows('missions') ? [{ label: t('navigation.myMissions'), href: '/dashboard/missions', icon: Briefcase }] : []),
           ...(planAllows('expenseReports') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
           ...(planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
@@ -365,6 +372,12 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('autorisation-de-sortie') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorization'), href: '/dashboard/autorisation-de-sortie', icon: Timer }] : []),
         ...(canSee('autorisation-de-sortie-generale') && planAllows('generalExit') ? [{ label: t('navigation.generalExit'), href: '/dashboard/autorisation-de-sortie-generale', icon: Timer }] : []),
         ...(canSee('demande-autorisation') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
+        // Validation télétravail — admin/manager uniquement (côté employé,
+        // l'entrée « Demande de télétravail » vit dans Mon espace). Visible
+        // dans le même groupe que les autres validations RH pour cohérence UX.
+        ...((isAdminEffective || isManager) && planAllows('leaveManagement')
+          ? [{ label: t('navigation.remoteWorkValidation', 'Validation Télétravail'), href: '/dashboard/validation-teletravail', icon: Home }]
+          : []),
         // Validation heures sup. — admin/manager uniquement (les employés n'ont
         // pas accès à ce groupe car la nav "Demandes et validations" est filtrée
         // plus haut sur isEmp). Stocké dans la table autoriser avec marker
@@ -437,8 +450,12 @@ const useNavigationItems = (): NavGroup[] => {
         // Affectation site → utilisateur (table Socuser). Visible admin only.
         { label: t('navigation.siteAccess', "Droits d'accès par site"), href: '/dashboard/droit-acces-site', icon: ShieldCheck },
         { label: t('navigation.contractTemplates'), href: '/dashboard/template-builder', icon: FileText },
-        { label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText },
-        { label: t('navigation.letterTemplates'), href: '/dashboard/courriers', icon: FileText },
+        // Documents juridiques : stockés dans le coffre numérique (DocumentVaultService),
+        // donc gating cohérent avec la feature DigitalVault (Standard+).
+        ...(planAllows('digitalVault') ? [{ label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText }] : []),
+        // Modèles de courrier : couplés à la génération assistée RAG/IA.
+        // Sur Starter (RagAi=false) l'entrée est masquée ; le backend renvoie 402 si bypass.
+        ...(planAllows('ragAi') ? [{ label: t('navigation.letterTemplates'), href: '/dashboard/courriers', icon: FileText }] : []),
         ...(planAllows('ragAi') ? [{ label: t('navigation.ragAudit'), href: '/dashboard/rag-audit', icon: History }] : []),
         // Journaux d'audit : visible aux admins ET gaté par le plan (Standard+).
         // Pour les managers, on l'ajoute via un groupe séparé plus bas (même gating).
@@ -448,7 +465,10 @@ const useNavigationItems = (): NavGroup[] => {
         // Notice d'information RGPD (art. 13) — texte affiché aux salariés.
         { label: t('navigation.processingNotice', "Notice RGPD"), href: '/dashboard/notice-rgpd', icon: Gavel },
         // Politique de géolocalisation (sous-finalités + plages horaires).
-        { label: t('navigation.geolocationPolicy', "Géolocalisation RGPD"), href: '/dashboard/geolocation-rgpd', icon: Eye },
+        // Pas de raison de configurer une politique géoloc si le pack n'inclut pas
+        // la feature Geolocation — on masque l'entrée sur Starter pour éviter la
+        // confusion (et le backend renvoie 402 si bypass via URL directe).
+        ...(planAllows('geolocation') ? [{ label: t('navigation.geolocationPolicy', "Géolocalisation RGPD"), href: '/dashboard/geolocation-rgpd', icon: Eye }] : []),
         { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
         { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
         // Lien Chatbot retiré du sidebar : l'assistant reste accessible via le bouton flottant
@@ -554,6 +574,8 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/intitule-des-absences': content = <IntituleDesAbsencesModern />; break;
     case '/dashboard/absence-et-sanction': content = <AbsenceSanctionModern />; break;
     case '/dashboard/gestion-de-conge': content = <DemCongeModern />; break;
+    case '/dashboard/teletravail': content = <TeletravailModern />; break;
+    case '/dashboard/validation-teletravail': content = <TeletravailValidation />; break;
     case '/dashboard/coffre-fort': content = <CoffreFortModern />; break;
     case '/dashboard/admin-vault': content = <AdminVaultModern />; break;
     case '/dashboard/titre-de-conge': content = <TitreConge />; break;
@@ -1107,11 +1129,17 @@ function DashboardLayoutAccount(_props: DemoProps) {
   }
 
   if (isPublicPage || isProfilePage) {
+    // HomePage embarque sa propre nav `position: fixed`. PageFade applique
+    // `transform` + `will-change` sur son wrapper — ce qui crée un containing
+    // block et casse le fixed positioning de la nav (elle se met à scroller
+    // avec la page au lieu de rester collée au viewport). On bypass donc
+    // PageFade pour la landing ; ses propres animations `.reveal` suffisent.
+    const routedContent = <DemoPageContent pathname={canonicalPathname} />;
     return (
       <>
-        <PageFade routeKey={canonicalPathname}>
-          <DemoPageContent pathname={canonicalPathname} />
-        </PageFade>
+        {canonicalPathname === '/'
+          ? routedContent
+          : <PageFade routeKey={canonicalPathname}>{routedContent}</PageFade>}
         {/* Assistant IA : réservé aux utilisateurs connectés ET au plan Premium
             (feature `RagAi` côté backend). Avant, on l'exposait sur la landing
             publique mais le backend renvoyait 401 ; depuis 2026-05-12 on ajoute

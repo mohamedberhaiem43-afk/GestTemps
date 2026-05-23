@@ -2,6 +2,7 @@ using System.Security.Claims;
 using ABRPOINT.Server.Annotations.AdminAttributes;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Services.Rag;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,6 +16,11 @@ namespace ABRPOINT.Server.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
+// Gating plan : les modèles de courrier sont couplés à la génération assistée RAG/IA
+// (placeholders + éventuel polish via le ChatRagService). On les bloque donc sur les
+// packs qui n'ont pas RagAi (Starter / Standard). Le sidebar est masqué en miroir
+// côté front (cf. Navigation.tsx, gating planAllows('ragAi')).
+[RequirePlanFeature(nameof(PlanFeatures.RagAi))]
 public class LetterTemplatesController : ControllerBase
 {
     private readonly ILetterGenerationService _service;

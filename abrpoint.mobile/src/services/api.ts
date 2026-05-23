@@ -350,6 +350,39 @@ class ApiService {
     return response.data;
   }
 
+  // ─── Télétravail ──────────────────────────────────────────────────────
+  // Workflow demande/validation (cf. TeletravailController côté .NET). Le caller
+  // (claim NameIdentifier == Uticod == Empcod) est implicite — pas besoin de
+  // passer empcod en URL, le backend le résout depuis le token.
+  async listMyRemoteWorkRequests() {
+    const response = await this.client.get('/Teletravail/me');
+    return response.data as Array<{
+      id: number;
+      empcod: string | null;
+      employeeName: string | null;
+      requestedAt: string;
+      startDate: string;
+      endDate: string;
+      daysCount: number | null;
+      reason: string | null;
+      status: 'Pending' | 'Approved' | 'Rejected' | 'Cancelled';
+      decidedBy: string | null;
+      decidedByName: string | null;
+      decidedAt: string | null;
+      decisionComment: string | null;
+    }>;
+  }
+
+  async createRemoteWorkRequest(payload: { startDate: string; endDate: string; reason?: string | null }) {
+    const response = await this.client.post('/Teletravail', payload);
+    return response.data;
+  }
+
+  async cancelRemoteWorkRequest(id: number) {
+    const response = await this.client.post(`/Teletravail/${id}/cancel`);
+    return response.data;
+  }
+
   // Absence types
   async getAbsences() {
     const response = await this.client.get('/Absences');

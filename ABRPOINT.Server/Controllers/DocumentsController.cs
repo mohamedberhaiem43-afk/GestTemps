@@ -18,6 +18,10 @@ namespace ABRPOINT.Server.Controllers;
 [ApiController]
 [Authorize]
 [Admin]
+// Coffre-fort de documents juridiques = même feature commerciale que VaultController
+// (DigitalVault). Sur Starter (DigitalVault=false), le backend renvoie 402 ; le sidebar
+// est déjà masqué côté front (cf. Navigation.tsx, gating planAllows('digitalVault')).
+[RequirePlanFeature(nameof(PlanFeatures.DigitalVault))]
 public class DocumentsController : ControllerBase
 {
     private readonly IDocumentVaultService _vault;

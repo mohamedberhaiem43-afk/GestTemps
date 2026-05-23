@@ -1,6 +1,7 @@
 using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,10 @@ namespace ABRPOINT.Server.Controllers;
 [ApiController]
 [Route("api/admin/geolocation-policy")]
 [Authorize]
+// Gating plan : aucun intérêt à exposer la politique de géoloc si le pack n'inclut
+// pas la feature Geolocation (Starter). On évite ainsi qu'un admin Starter
+// configure une politique inopérante et croie que la géoloc fonctionne.
+[RequirePlanFeature(nameof(PlanFeatures.Geolocation))]
 public class GeolocationPolicyController : ControllerBase
 {
     private readonly ApplicationDbContext _db;

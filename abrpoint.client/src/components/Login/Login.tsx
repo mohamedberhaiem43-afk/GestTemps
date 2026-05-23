@@ -23,7 +23,7 @@ interface UserLoginModel {
 
 export default function CredentialsSignInPage() {
   const { t } = useTranslation();
-  const { setAuthData, refreshAuth } = useAuth();
+  const { setAuthData, refreshAuth, uticod, authReady } = useAuth();
   const [utimail, setUtimail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,6 +35,34 @@ export default function CredentialsSignInPage() {
   // Si l'utilisateur arrive depuis le PricingPage avec un plan choisi, on conserve l'info pour
   // l'envoyer vers la page de paiement après authentification réussie (style Odoo).
   const pendingPlan = (location.state as any)?.plan ? location.state : null;
+
+  // Pattern returnUrl style dougs.fr (`/signin?returnUrl=%2Fme`) : si l'utilisateur
+  // est redirigé ici depuis une page protégée, on garde l'URL d'origine et on y
+  // retourne après authentification (au lieu d'atterrir systématiquement sur
+  // `/dashboard`). On lit la query string une fois, on persiste pour ré-utiliser
+  // dans processLoginSuccess ET dans le shortcut "déjà connecté" ci-dessous.
+  const returnUrl = (() => {
+    try {
+      const sp = new URLSearchParams(location.search);
+      const r = sp.get('returnUrl');
+      // SEC : on autorise UNIQUEMENT les chemins relatifs internes (`/dashboard/...`).
+      // Bloque les open-redirects vers un domaine externe ou un protocole exotique.
+      if (r && r.startsWith('/') && !r.startsWith('//')) return r;
+    } catch { /* noop */ }
+    return null;
+  })();
+
+  // Shortcut : si l'utilisateur arrive sur /login alors qu'il a déjà une session
+  // valide (uticod hydraté par /me), on le ramène à son espace sans afficher
+  // l'écran de login. Couvre le cas « clique Connexion depuis la home alors que
+  // son token est encore valide ». On attend authReady pour éviter de rediriger
+  // pendant l'hydratation initiale (sinon un user logged-in voit un flash login).
+  useEffect(() => {
+    if (authReady && uticod) {
+      navigate(returnUrl ?? '/dashboard', { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authReady, uticod]);
   // Pré-remplit l'email + affiche un bandeau d'information quand on arrive depuis la
   // page Signup pour réactivation d'un compte résilié (cf. SignupPage : code
   // 'cancelled_account_reactivatable').
@@ -119,7 +147,9 @@ export default function CredentialsSignInPage() {
         return;
       }
     }
-    navigate('/dashboard');
+    // Si le visiteur a été redirigé depuis une page protégée (returnUrl=/dashboard/xxx),
+    // on retourne sur cette page après login. Sinon fallback dashboard.
+    navigate(returnUrl ?? '/dashboard');
   };
 
   const handleSignIn = async () => {
@@ -543,8 +573,28 @@ export default function CredentialsSignInPage() {
             )}
           </Box>
 
-          {/* Footer */}
+          {/* Footer : lien d'inscription + lien support. Le lien « Inscrivez-vous »
+              est placé en évidence (au-dessus du lien support) parce que c'est
+              l'action de fallback la plus probable quand l'utilisateur arrive
+              ici sans compte — pattern aligné avec app.dougs.fr/signin et la
+              majorité des SaaS modernes. En mode setup (activation par lien email)
+              on le masque : il n'a pas de sens, l'utilisateur EST déjà inscrit. */}
           <Box className="login-footer">
+            {!setupMode && (
+              <Typography className="login-footer-text" sx={{ mb: 1.5 }}>
+                {t('login.noAccountYet', "Vous n'avez pas encore de compte ?")}{' '}
+                <span
+                  role="link"
+                  tabIndex={0}
+                  className="login-footer-link"
+                  onClick={() => navigate('/signup')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/signup'); }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {t('login.signUpHere', 'Inscrivez-vous')}
+                </span>
+              </Typography>
+            )}
             <Typography className="login-footer-text">
               {t('login.needHelp')}{' '}
               <a

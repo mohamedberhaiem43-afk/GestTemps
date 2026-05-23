@@ -686,11 +686,16 @@
 .home-page .price-amount .currency { font-size: 24px; vertical-align: top; margin-top: 10px; display: inline-block; color: var(--hp-primary); }
 .home-page .price-amount .period { font-size: 14px; font-weight: 500; color: var(--hp-on-surface-variant); }
 .home-page .price-included { font-size: 13px; color: var(--hp-primary); margin: 10px 0 4px; font-weight: 700; min-height: 1.4em; }
-.home-page .price-per { font-size: 12.5px; color: var(--hp-on-surface-variant); margin-bottom: 22px; font-weight: 500; min-height: 3em; }
-/* min-height : 3 lignes pour aligner la "marges-box" qui suit sur tous les
-   packs, sinon le texte des descriptions (longueurs variables) décale la
-   box d'un pack à l'autre. */
-.home-page .price-desc { font-size: 14px; color: var(--hp-on-surface-variant); margin-bottom: 28px; line-height: 1.6; font-weight: 400; min-height: 4.8em; }
+/* min-height en pixels (pas em) — les 3 cartes n'ont PAS la même largeur de
+   contenu (Starter a une bordure de 1px, Standard/Premium 2px → 2px de plus
+   ou de moins par cellule de texte), ce qui fait que `price-per` et
+   `price-desc` peuvent wrapper sur un nombre de lignes différent d'un pack à
+   l'autre. Des min-height en em (calculées sur la font-size) ne suffisaient
+   pas à absorber cette variance ; on cale donc sur une valeur pixel calibrée
+   pour 4 lignes au pire cas, ce qui garantit que la boîte "marges de
+   croissance" qui suit démarre toujours à la même ordonnée verticale. */
+.home-page .price-per { font-size: 12.5px; color: var(--hp-on-surface-variant); margin-bottom: 22px; font-weight: 500; line-height: 1.4; min-height: 70px; }
+.home-page .price-desc { font-size: 14px; color: var(--hp-on-surface-variant); margin-bottom: 28px; line-height: 1.6; font-weight: 400; min-height: 90px; }
 /* Box "marges de croissance" : hauteur uniforme pour éviter qu'un pack avec
    un libellé de seuil plus long ne décale visuellement la zone des features. */
 .home-page .price-margins-box { min-height: 100px; }
@@ -717,6 +722,195 @@
 }
 .home-page .btn-plan-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgba(0,64,161,0.32); }
 .home-page .pricing-footnote { text-align: center; margin-top: 36px; color: var(--hp-on-surface-variant); font-size: 14px; font-weight: 500; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   COMPARATIF DÉTAILLÉ — table de comparaison des 3 packs sur la matrice
+   fonctionnelle complète. Inspirée de la grille tarifaire dougs.fr.
+   - thead.sticky : reste collé sous .hp-nav (top: 76px) quand on scrolle la
+     section, le visiteur garde les libellés de pack visibles pendant qu'il
+     parcourt les 40+ lignes de features.
+   - section-row : ligne d'en-tête de groupe (Pointage / RH / Sécurité…),
+     bg légèrement teinté pour découper visuellement les sections.
+   - feature-row : alterne le fond une ligne sur deux pour la lisibilité.
+   - cell-featured : la colonne « Standard » est légèrement teintée pour
+     matérialiser que c'est le pack recommandé (cohérent avec la carte
+     .price-card.featured juste au-dessus).
+   ───────────────────────────────────────────────────────────────────────── */
+.home-page .comparison-section {
+  padding: 96px 48px;
+  background: var(--hp-surface);
+  position: relative;
+}
+.home-page .comparison-wrapper {
+  max-width: 1100px;
+  margin: 0 auto;
+  overflow-x: auto;
+  border-radius: 18px;
+  border: 1px solid var(--hp-surface-container);
+  background: var(--hp-surface-container-lowest);
+  box-shadow: var(--hp-shadow-card);
+}
+.home-page .comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--hp-font-body);
+  font-size: 14px;
+  color: var(--hp-on-surface);
+  /* Évite que les libellés longs (« Autorisation de sortie générale ») soient
+     compressés sur l'écran étroit — on garantit 240px à la colonne 1. */
+  min-width: 720px;
+}
+.home-page .comparison-table thead th {
+  position: sticky;
+  top: 76px; /* hauteur de .hp-nav */
+  z-index: 5;
+  background: var(--hp-surface-container-lowest);
+  text-align: center;
+  padding: 22px 16px 18px;
+  vertical-align: top;
+  border-bottom: 2px solid var(--hp-surface-container);
+}
+.home-page .comparison-table .comp-corner {
+  text-align: left;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hp-on-surface-variant);
+  padding-left: 22px;
+  /* La cellule d'angle est plus étroite pour laisser place aux 3 colonnes de
+     packs ; min-width assure que les libellés de feature ne wrappent pas. */
+  min-width: 240px;
+}
+.home-page .comparison-table .comp-plan {
+  min-width: 180px;
+  position: relative;
+}
+.home-page .comparison-table .comp-plan-featured {
+  background: linear-gradient(180deg, rgba(0,64,161,0.04) 0%, var(--hp-surface-container-lowest) 100%);
+  border-top: 3px solid var(--hp-primary);
+}
+.home-page .comparison-table .comp-plan-premium-th {
+  background: linear-gradient(180deg, rgba(212,175,55,0.06) 0%, var(--hp-surface-container-lowest) 100%);
+  border-top: 3px solid #d4af37;
+}
+.home-page .comp-plan-badge {
+  position: absolute;
+  top: -13px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--hp-primary), var(--hp-primary-container));
+  color: #fff; font-size: 10.5px; font-weight: 800;
+  padding: 4px 12px; border-radius: 999px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,64,161,0.30);
+}
+.home-page .comp-plan-name {
+  font-family: var(--hp-font-headline);
+  font-size: 18px; font-weight: 800;
+  color: var(--hp-on-surface);
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+.home-page .comp-plan-price {
+  font-size: 12px; color: var(--hp-on-surface-variant);
+  font-weight: 500; margin-bottom: 12px;
+}
+.home-page .comp-plan-price strong { color: var(--hp-on-surface); font-weight: 800; }
+.home-page .comp-cta {
+  display: inline-block;
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: 1.5px solid var(--hp-outline-variant);
+  background: var(--hp-surface-container-lowest);
+  color: var(--hp-on-surface);
+  font-family: var(--hp-font-body);
+  font-size: 12.5px; font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.home-page .comp-cta:hover { border-color: var(--hp-primary); color: var(--hp-primary); transform: translateY(-1px); }
+.home-page .comp-cta-primary {
+  background: linear-gradient(135deg, var(--hp-primary), var(--hp-primary-container));
+  border: none; color: #fff;
+  box-shadow: 0 4px 12px rgba(0,64,161,0.25);
+}
+.home-page .comp-cta-primary:hover { color: #fff; box-shadow: 0 8px 20px rgba(0,64,161,0.32); }
+.home-page .comp-cta-premium {
+  background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+  border: none; color: #fff;
+  box-shadow: 0 4px 12px rgba(184,134,11,0.32);
+}
+.home-page .comp-cta-premium:hover { color: #fff; box-shadow: 0 8px 20px rgba(184,134,11,0.40); }
+.home-page .comparison-table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--hp-surface-container);
+}
+.home-page .comp-section-row td {
+  background: var(--hp-surface-container);
+  font-size: 12px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--hp-primary);
+  padding: 10px 22px !important;
+}
+.home-page .comp-feature-row:nth-child(even) td { background: var(--hp-surface-container-low); }
+.home-page .comp-feature-row:nth-child(even) td.comp-cell-featured {
+  background: linear-gradient(0deg, rgba(0,64,161,0.06), rgba(0,64,161,0.06)), var(--hp-surface-container-low);
+}
+.home-page .comp-feature-row td.comp-cell-featured {
+  background: rgba(0,64,161,0.03);
+}
+.home-page .comp-feature-row:hover td { background: rgba(0,64,161,0.05); }
+.home-page .comp-feature-label {
+  font-weight: 600;
+  color: var(--hp-on-surface);
+  padding-left: 22px !important;
+}
+.home-page .comp-feature-hint {
+  display: block;
+  font-size: 11.5px; font-weight: 500; color: var(--hp-outline);
+  margin-top: 3px; font-style: italic;
+}
+.home-page .comp-cell {
+  text-align: center;
+  vertical-align: middle;
+  font-size: 13px;
+}
+.home-page .comp-check {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: rgba(0,108,73,0.12);
+  color: var(--hp-tertiary-container);
+  font-weight: 900; font-size: 14px;
+  line-height: 1;
+}
+.home-page .comp-cross {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: rgba(115,119,133,0.10);
+  color: var(--hp-outline);
+  font-weight: 700; font-size: 14px;
+  line-height: 1;
+}
+.home-page .comp-value {
+  font-weight: 700;
+  color: var(--hp-on-surface);
+  font-size: 13px;
+}
+@media (max-width: 960px) {
+  .home-page .comparison-section { padding: 64px 16px; }
+  .home-page .comparison-table { font-size: 13px; min-width: 640px; }
+  .home-page .comparison-table thead th { padding: 18px 10px 14px; top: 68px; }
+  .home-page .comp-plan-name { font-size: 16px; }
+  .home-page .comp-plan-price { font-size: 11px; margin-bottom: 10px; }
+  .home-page .comp-cta { padding: 6px 12px; font-size: 11.5px; }
+  .home-page .comp-feature-label { padding-left: 14px !important; }
+  .home-page .comp-section-row td { padding: 8px 14px !important; font-size: 11px; }
+  .home-page .comparison-table tbody td { padding: 12px 10px; }
+  .home-page .comp-corner { padding-left: 14px; min-width: 200px; }
+}
 
 /* Add-ons (modules optionnels) — affichés après les 3 packs principaux */
 .home-page .addons-header { text-align: center; margin-top: 64px; margin-bottom: 24px; }

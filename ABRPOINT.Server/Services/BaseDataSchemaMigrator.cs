@@ -141,6 +141,13 @@ public static class BaseDataSchemaMigrator
         await AddColumnIfMissingAsync(db, "autoriser", "contraitedat", "TIMESTAMP NULL", ct);
         await AddColumnIfMissingAsync(db, "autoriser", "concommentaire", "VARCHAR(500) NULL", ct);
 
+        // Télétravail (2026-05-23) : table dédiée pour les demandes de TT employé +
+        // workflow de validation manager/admin. Cycle Pending → Approved/Rejected,
+        // cf. Models/Teletravail.cs. Tables indépendantes de demconge pour pouvoir
+        // gérer ses propres règles métier (pas de solde à décrémenter, pas
+        // d'absence type, plage en jours pleins simples).
+        await EnsureTeletravailTableAsync(db, ct);
+
         // Tables mobiles + notifications + known_devices : on délègue à MobileTablesInstaller
         // qui sait déjà créer push_tokens, notifications, notification_preferences,
         // notification_user_settings, known_devices.
@@ -354,6 +361,47 @@ CREATE TABLE retention_policy (
         await db.Database.ExecuteSqlRawAsync(@"
 INSERT INTO retention_policy (id) VALUES (1)
 ON CONFLICT (id) DO NOTHING;", ct);
+        return created;
+    }
+
+    /// <summary>
+    /// Crée la table `teletravail` (demandes de télétravail) si absente. Idempotent.
+    /// Schéma : PK auto-incrémentée, scope tenant via soccod, état machine sur
+    /// status, métadonnées de décision sur decided_by/decided_at/decision_comment.
+    /// Indexes inclus pour les hot-paths : liste pending par tenant, historique
+    /// par employé.
+    /// </summary>
+    private static async Task<bool> EnsureTeletravailTableAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        var created = !await TableExistsAsync(db, "teletravail", ct);
+        if (created)
+        {
+            await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE teletravail (
+    id                SERIAL       PRIMARY KEY,
+    soccod            VARCHAR(2)   NULL,
+    empcod            VARCHAR(12)  NULL,
+    requested_at      TIMESTAMP    NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    start_date        TIMESTAMP    NOT NULL,
+    end_date          TIMESTAMP    NOT NULL,
+    days_count        REAL         NULL,
+    reason            VARCHAR(500) NULL,
+    status            VARCHAR(20)  NOT NULL DEFAULT 'Pending',
+    decided_by        VARCHAR(20)  NULL,
+    decided_at        TIMESTAMP    NULL,
+    decision_comment  VARCHAR(500) NULL,
+    created_at        TIMESTAMP    NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
+);", ct);
+        }
+        // Index — créés en dehors du CREATE TABLE pour rester idempotents même
+        // si la table existait déjà (cas d'un tenant migré manuellement).
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE INDEX IF NOT EXISTS ix_teletravail_soccod_status
+    ON teletravail (soccod, status)
+    INCLUDE (empcod, start_date, end_date);", ct);
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE INDEX IF NOT EXISTS ix_teletravail_empcod_start
+    ON teletravail (empcod, start_date DESC);", ct);
         return created;
     }
 

@@ -458,12 +458,19 @@ const PricingPage: React.FC = () => {
               )}
               <button
                 onClick={() => {
-                  // Tous les packs (Starter/Standard/Premium) passent par /plan-configuration.
-                  // La différence se joue côté backend : Starter/Standard = trial 30j sans CB ;
-                  // Premium = pas de trial, Stripe Checkout immédiat (Status PendingPayment dès
-                  // le signup). Le label CTA reflète ce comportement (cf. plan.noTrial).
-                  const target = isAuthenticated ? '/dashboard/plan-configuration' : '/plan-configuration';
-                  navigate(target, {
+                  // Si l'utilisateur est déjà connecté, le CTA « Essayer 30 jours
+                  // gratuit » est incohérent (compte existant, trial probablement
+                  // expiré ou consommé). On le ramène à son espace de plateforme —
+                  // il pourra y déclencher un upgrade depuis MonAbonnement s'il
+                  // veut changer de pack.
+                  if (isAuthenticated) {
+                    navigate('/dashboard');
+                    return;
+                  }
+                  // Visiteur non authentifié : on entre dans le flux de
+                  // configuration de pack (Starter/Standard = trial 30j sans CB ;
+                  // Premium = Stripe Checkout immédiat — cf. plan.noTrial).
+                  navigate('/plan-configuration', {
                     state: {
                       plan: plan.name, price: plan.price, cycle: billingCycle,
                       included: plan.included, extraRate: plan.extraRate,

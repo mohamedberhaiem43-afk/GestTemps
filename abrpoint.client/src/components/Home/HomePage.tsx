@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import InlineAuthCard from './InlineAuthCard';
+import { useAuth } from '../helper/AuthProvider';
 import './HomePage.css';
 
 // Landing publique dérivée de Maquette_Concorde_Workforce.html.
@@ -11,6 +12,97 @@ import './HomePage.css';
 
 type StepIndex = 0 | 1 | 2 | 3;
 type BillingCycle = 'monthly' | 'annual';
+
+// ─── COMPARATIF DÉTAILLÉ ─────────────────────────────────────────────────────
+// Cellule de la table de comparaison : `true` = inclus (✓), `false` = exclu (✗),
+// `string` = valeur libre (ex: "Jusqu'à 5", "200 Go"). Restera figé en parallèle
+// avec ABRPOINT.Server.Tenancy.PlanCatalog côté backend — toute évolution de
+// PlanFeatures doit être répercutée ici et inversement, sinon la promesse
+// commerciale (cette table) divergerait du gating runtime.
+type CompCell = boolean | string;
+type CompRow =
+  | { type: 'section'; label: string }
+  | {
+      type: 'feature';
+      label: string;
+      hint?: string;
+      starter: CompCell;
+      standard: CompCell;
+      premium: CompCell;
+    };
+
+const COMPARISON_ROWS: CompRow[] = [
+  { type: 'section', label: 'Pointage & présence' },
+  { type: 'feature', label: 'Pointage web',                                          starter: true,  standard: true,           premium: true },
+  { type: 'feature', label: 'Application mobile (iOS / Android)',                    starter: true,  standard: true,           premium: true },
+  { type: 'feature', label: 'Pointage géolocalisé',                                  starter: false, standard: true,           premium: true },
+  { type: 'feature', label: 'Mode offline mobile',                                   starter: true,  standard: true,           premium: true },
+  { type: 'feature', label: 'État périodique & exports PDF/Excel',                   starter: true,  standard: true,           premium: true },
+
+  { type: 'section', label: 'Gestion des employés' },
+  { type: 'feature', label: 'Fiches collaborateurs',                                 starter: true,  standard: true,           premium: true },
+  { type: 'feature', label: 'Gestion des contrats',                                  starter: false, standard: true,           premium: true },
+  { type: 'feature', label: 'Coffre numérique',                                      starter: false, standard: true,           premium: true },
+  { type: 'feature', label: 'Signature électronique',                                starter: false, standard: true,           premium: true },
+  { type: 'feature', label: 'Scan OCR de pièces d\'identité',                        starter: false, standard: true,           premium: true },
+  { type: 'feature', label: 'Import Excel en masse',                                 hint: 'Employés, services, fonctions, rubriques…', starter: false, standard: true, premium: true },
+
+  { type: 'section', label: 'Congés, absences & autorisations' },
+  { type: 'feature', label: 'Demandes de congés',                                    starter: true,  standard: true,           premium: true },
+  { type: 'feature', label: 'Autorisations de sortie',                               starter: true,  standard: true,           premium: true },
+  { type: 'feature', label: 'Titre de congé général',                                starter: false, standard: true,           premium: true },
+  { type: 'feature', label: 'Autorisation de sortie générale',                       starter: false, standard: true,           premium: true },
+  { type: 'feature', label: 'Jours de compensation',                                 starter: false, standard: true,           premium: true },
+  { type: 'feature', label: 'Missions',                                              starter: false, standard: true,           premium: true },
+  { type: 'feature', label: 'Gestion de l\'allaitement',                             starter: false, standard: true,           premium: true },
+
+  { type: 'section', label: 'Paie & frais' },
+  { type: 'feature', label: 'Préparation paie · export paie',                       starter: false, standard: true,           premium: true },
+  { type: 'feature', label: 'Notes de frais',                                        starter: false, standard: true,           premium: true },
+
+  { type: 'section', label: 'Reporting & tableaux de bord' },
+  { type: 'feature', label: 'Tableau de bord simplifié',                             starter: true,  standard: true,           premium: true },
+  { type: 'feature', label: 'Tableaux de bord avancés',                              starter: false, standard: true,           premium: true },
+  { type: 'feature', label: 'Journaux d\'audit (RGPD)',                              starter: false, standard: true,           premium: true },
+
+  { type: 'section', label: 'Multi-sites & multi-sociétés' },
+  { type: 'feature', label: 'Multi-sites',                                           starter: false, standard: 'Jusqu\'à 5 sites', premium: 'Illimité' },
+  { type: 'feature', label: 'Multi-filiales / multi-sociétés',                       starter: false, standard: false,          premium: true },
+
+  { type: 'section', label: 'Sécurité & conformité' },
+  { type: 'feature', label: 'Hébergement France OVH',                                starter: true,  standard: true,           premium: true },
+  { type: 'feature', label: 'Chiffrement AES-256 + TLS 1.3',                         starter: true,  standard: true,           premium: true },
+  { type: 'feature', label: 'Conformité RGPD',                                       starter: true,  standard: true,           premium: true },
+  { type: 'feature', label: 'Branding personnalisé',                                 starter: false, standard: false,          premium: true },
+  { type: 'feature', label: 'Device trust mobile',                                   starter: false, standard: false,          premium: true },
+  { type: 'feature', label: 'Protection capture d\'écran',                           starter: false, standard: false,          premium: true },
+  { type: 'feature', label: 'Certificate pinning',                                   starter: false, standard: false,          premium: true },
+
+  { type: 'section', label: 'Assistant IA' },
+  { type: 'feature', label: 'Assistant IA contextuel (RAG)',                         hint: 'Lettres, briefs, recherches dans vos docs', starter: false, standard: false, premium: true },
+
+  { type: 'section', label: 'Limites & quotas' },
+  { type: 'feature', label: 'Collaborateurs inclus',                                 starter: '10',     standard: '25',           premium: '50' },
+  { type: 'feature', label: 'Collaborateurs maximum',                                starter: '25',     standard: '100',          premium: '250' },
+  { type: 'feature', label: 'Administrateurs inclus',                                starter: '1',      standard: '3',            premium: 'Illimité' },
+  { type: 'feature', label: 'Stockage inclus',                                       starter: '10 Go',  standard: '50 Go',        premium: '200 Go' },
+  { type: 'feature', label: 'Stockage maximum',                                      starter: '50 Go',  standard: '300 Go',       premium: '2 To' },
+  { type: 'feature', label: 'Support',                                               starter: 'Standard', standard: 'Prioritaire', premium: 'SLA prioritaire · onboarding accompagné' },
+];
+
+/**
+ * Rend une cellule de la table comparative. `true` → ✓ vert, `false` → ✗ gris,
+ * string → texte affiché tel quel (pour limites chiffrées ou variantes "Jusqu'à 5").
+ */
+function renderComparisonCell(value: CompCell): React.ReactNode {
+  if (value === true) {
+    return <span className="comp-check" aria-label="Inclus">✓</span>;
+  }
+  if (value === false) {
+    return <span className="comp-cross" aria-label="Non inclus">✗</span>;
+  }
+  return <span className="comp-value">{value}</span>;
+}
 
 const STEPS: { num: string; title: string; desc: string }[] = [
   {
@@ -37,6 +129,12 @@ const STEPS: { num: string; title: string; desc: string }[] = [
 
 export default function HomePage() {
   const navigate = useNavigate();
+  // Session : si un utilisateur est déjà connecté à son tenant, le CTA « Essayer
+  // 30 jours gratuit » et les liens d'inscription doivent court-circuiter le
+  // flux signup (qui n'a aucun sens — il a déjà un compte) et le ramener à son
+  // espace plateforme. Source : /Utilisateurs/me → uticod non null.
+  const { uticod } = useAuth();
+  const isAuthenticated = Boolean(uticod);
   const [activeStep, setActiveStep] = useState<StepIndex>(0);
   // Par défaut on présente le cycle ANNUEL : 2026-05 — décision commerce,
   // l'engagement annuel est plus avantageux et c'est l'offre à mettre en avant
@@ -138,17 +236,40 @@ export default function HomePage() {
 
   // Smooth-scroll vers la section "Rejoindre Concorde Workforce" : nav header
   // + CTAs hero/promo cliquent ici plutôt que de partir vers /signup ou /login.
+  // SI utilisateur déjà connecté : on bypass le scroll et on l'envoie direct à
+  // son dashboard (le formulaire d'auth ne lui apporte rien).
   const scrollToAuth = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+      return;
+    }
     authSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+  // « Créer un compte » → reste sur la home pour le flux d'inscription Odoo-style
+  // (InlineAuthCard piloté par presetPlan/presetNonce).
   const goToSignup = () => scrollToAuth();
-  const goToLogin = () => scrollToAuth();
+  // « Connexion » → page /login dédiée (pattern dougs.fr/signin). Si le visiteur
+  // est déjà authentifié, on shortcut directement vers son dashboard pour éviter
+  // de lui montrer un formulaire de login inutile.
+  const goToLogin = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+      return;
+    }
+    navigate('/login');
+  };
   // Avant 2026-05-19, le clic sur une carte de prix naviguait vers
   // /plan-configuration. Désormais : on reste sur la home, on pré-sélectionne le
   // pack dans InlineAuthCard (via la prop `presetPlan`) et on scrolle jusqu'au
   // formulaire d'inscription. Le `nonce` force la pré-sélection à se rejouer
   // même quand l'utilisateur re-clique sur le pack déjà sélectionné.
+  // SI utilisateur connecté : on shortcut vers son espace plateforme (le CTA
+  // « Essayer 30 jours gratuit » n'a plus de sens — il a déjà un compte actif).
   const goToPlanConfig = (plan: 'Starter' | 'Standard' | 'Premium') => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+      return;
+    }
     setPresetPlan(plan);
     setPresetNonce((n) => n + 1);
     scrollToAuth();
@@ -167,6 +288,7 @@ export default function HomePage() {
           <li><a href="#features">Fonctionnalités</a></li>
           <li><a href="#how">Comment ça marche</a></li>
           <li><a href="#pricing">Tarifs</a></li>
+          <li><a href="#comparison">Comparatif</a></li>
           <li><a href="#download">Téléchargement</a></li>
         </ul>
         <div className="nav-right">
@@ -196,6 +318,7 @@ export default function HomePage() {
           <a href="#features" role="menuitem">Fonctionnalités</a>
           <a href="#how" role="menuitem">Comment ça marche</a>
           <a href="#pricing" role="menuitem">Tarifs</a>
+          <a href="#comparison" role="menuitem">Comparatif</a>
           <a href="#download" role="menuitem">Téléchargement</a>
         </div>
       )}
@@ -975,6 +1098,83 @@ export default function HomePage() {
             son panier et voir le total HT s'ajuster instantanément avant de signer.
             Cela évite de surcharger la home et concentre la décision d'add-ons au
             moment où elle est la plus pertinente (juste avant le checkout). */}
+      </section>
+
+      {/* ────────────────────────────────────────────────────────────────────────
+          COMPARATIF DÉTAILLÉ — table de comparaison des 3 packs sur la matrice
+          fonctionnelle complète. Source de vérité : ABRPOINT.Server.Tenancy.PlanCatalog
+          (les ✓/✗ doivent rester synchronisés avec PlanFeatures côté backend).
+          La structure (titre de section + table avec th sticky en colonne, lignes
+          regroupées par catégorie) est inspirée de la grille tarifaire dougs.fr.
+          ──────────────────────────────────────────────────────────────────── */}
+      <section id="comparison" className="comparison-section">
+        <div className="section-tag" style={{ margin: '0 auto', textAlign: 'center', display: 'block' }}>Comparatif détaillé</div>
+        <h2 className="section-title" style={{ margin: '8px auto 0', textAlign: 'center' }}>
+          Tout ce qui est inclus dans <span className="accent">chaque pack</span>
+        </h2>
+        <p className="section-sub" style={{ margin: '12px auto 36px', textAlign: 'center' }}>
+          La matrice complète des modules et fonctionnalités, pack par pack. Choisissez en toute transparence.
+        </p>
+
+        <div className="comparison-wrapper">
+          <table className="comparison-table">
+            <thead>
+              <tr>
+                <th className="comp-corner">Fonctionnalités</th>
+                <th className="comp-plan">
+                  <div className="comp-plan-name">Starter</div>
+                  <div className="comp-plan-price">
+                    à partir de <strong>{prices.starter} €</strong> HT{pricePeriod}
+                  </div>
+                  <button type="button" className="comp-cta" onClick={() => goToPlanConfig('Starter')}>
+                    Essai gratuit
+                  </button>
+                </th>
+                <th className="comp-plan comp-plan-featured">
+                  <div className="comp-plan-badge">★ Le plus populaire</div>
+                  <div className="comp-plan-name">Standard</div>
+                  <div className="comp-plan-price">
+                    à partir de <strong>{prices.standard} €</strong> HT{pricePeriod}
+                  </div>
+                  <button type="button" className="comp-cta comp-cta-primary" onClick={() => goToPlanConfig('Standard')}>
+                    Essai gratuit
+                  </button>
+                </th>
+                <th className="comp-plan comp-plan-premium-th">
+                  <div className="comp-plan-name" style={{ color: '#b8860b' }}>Business</div>
+                  <div className="comp-plan-price">
+                    à partir de <strong>{prices.premium} €</strong> HT{pricePeriod}
+                  </div>
+                  <button type="button" className="comp-cta comp-cta-premium" onClick={() => goToPlanConfig('Premium')}>
+                    Essai gratuit
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARISON_ROWS.map((row, idx) => {
+                if (row.type === 'section') {
+                  return (
+                    <tr key={`section-${idx}`} className="comp-section-row">
+                      <td colSpan={4}>{row.label}</td>
+                    </tr>
+                  );
+                }
+                return (
+                  <tr key={`feat-${idx}`} className="comp-feature-row">
+                    <td className="comp-feature-label">
+                      {row.label}
+                      {row.hint && <span className="comp-feature-hint">{row.hint}</span>}
+                    </td>
+                    <td className="comp-cell">{renderComparisonCell(row.starter)}</td>
+                    <td className="comp-cell comp-cell-featured">{renderComparisonCell(row.standard)}</td>
+                    <td className="comp-cell">{renderComparisonCell(row.premium)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       {/* AUTH */}
