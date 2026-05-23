@@ -25,15 +25,25 @@ type ApiError = {
   message?: string;
 };
 
+// Messages backend techniques qui ne doivent JAMAIS être affichés tels quels
+// à l'utilisateur — on retombe sur le fallback à la place. Ce sont des chaînes
+// purement diagnostiques (jeton de session, état d'auth interne…) qui ont leur
+// place dans les logs serveur, pas dans un snackbar.
+const TECHNICAL_AUTH_MESSAGES = new Set([
+  'Refresh token is required',
+  'Invalid or expired refresh token',
+  'Unauthorized',
+]);
+
 export const extractErrorMessage = (err: unknown, fallback: string): string => {
   const e = err as ApiError;
-  return (
+  const candidate =
     e?.response?.data?.message ||
     e?.response?.data?.title ||
     e?.response?.data?.detail ||
-    e?.message ||
-    fallback
-  );
+    e?.message;
+  if (!candidate || TECHNICAL_AUTH_MESSAGES.has(candidate.trim())) return fallback;
+  return candidate;
 };
 
 interface ShowOptions {

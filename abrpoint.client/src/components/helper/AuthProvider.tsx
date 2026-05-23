@@ -160,7 +160,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Court-circuit : sur les pages d'auth, l'utilisateur est par définition
     // déconnecté. On évite l'aller-retour /me + /refresh qui retourneront 401.
-    if (typeof window !== 'undefined' && AUTH_FREE_PATHS.has(window.location.pathname)) {
+    // SAUF si `setAuthData` vient juste de poser un `uticod` (cas Login.tsx :
+    // après POST /Utilisateurs/connect, processLoginSuccess fait setAuthData()
+    // PUIS appelle refreshAuth() AVANT de naviguer). Sans cette garde, le
+    // raccourci écrasait l'uticod fraîchement posé et le user se voyait
+    // re-rediriger vers /login alors que la connexion avait réussi. setAuth()
+    // ci-dessous persiste uticod dans sessionStorage de façon synchrone — on
+    // peut donc s'en servir comme « tampon » pour distinguer « pas encore
+    // authentifié » de « tout juste authentifié ».
+    if (typeof window !== 'undefined'
+        && AUTH_FREE_PATHS.has(window.location.pathname)
+        && !sessionStorage.getItem('uticod')) {
       setAuthData((prev) => ({
         ...prev,
         uticod: null, utiadm: null, roleName: null,

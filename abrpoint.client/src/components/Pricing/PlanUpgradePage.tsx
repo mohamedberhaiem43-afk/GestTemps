@@ -178,7 +178,7 @@ export default function PlanUpgradePage() {
           )}
           <Button
             variant={canManage ? 'outlined' : 'contained'}
-            onClick={() => navigate('/pricing')}
+            onClick={() => navigate('/dashboard/mon-abonnement')}
             sx={{
               textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3, py: 1.5,
               ...(canManage ? {} : {

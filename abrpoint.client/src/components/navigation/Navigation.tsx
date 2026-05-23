@@ -88,7 +88,6 @@ const ProcessingNoticePage = React.lazy(() => import('../Admin/ProcessingNotice/
 const GeolocationPolicyPage = React.lazy(() => import('../Admin/Geolocation/GeolocationPolicyPage'));
 const LetterTemplatesModern = React.lazy(() => import('../Rag/Letters/LetterTemplatesModern'));
 const SignaturePage = React.lazy(() => import('../gestionEmploye/Vault/SignaturePage'));
-const PricingPage = React.lazy(() => import('../Pricing/PricingPage'));
 const PlanUpgradePage = React.lazy(() => import('../Pricing/PlanUpgradePage'));
 const AboutPage = React.lazy(() => import('../About/AboutPage'));
 const PlanConfigurationPage = React.lazy(() => import('../Pricing/PlanConfigurationPage'));
@@ -534,9 +533,9 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
   let content: React.ReactNode;
 
   switch (pathname) {
-    // Landing publique : nouvelle homepage marketing (HomePage). PricingPage reste
-    // accessible via /dashboard/pricing pour les utilisateurs authentifiés qui veulent
-    // changer de plan, mais la racine '/' sert désormais la maquette commerciale.
+    // Landing publique : nouvelle homepage marketing (HomePage).
+    // 2026-05-23 : PricingPage (anciennement /dashboard/pricing) supprimée.
+    // L'utilisateur connecté gère son plan via /dashboard/mon-abonnement.
     case '/': content = <HomePage />; break;
     case '/about': content = <AboutPage />; break;
     case '/login': content = <CredentialsSignInPage />; break;
@@ -612,7 +611,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/notice-rgpd': content = <ProcessingNoticePage />; break;
     case '/dashboard/geolocation-rgpd': content = <GeolocationPolicyPage />; break;
     case '/dashboard/sign-document': content = <SignaturePage />; break;
-    case '/dashboard/pricing': content = <PricingPage />; break;
+    // /dashboard/pricing retiré (2026-05-23) : géré via /dashboard/mon-abonnement.
     case '/dashboard/plan-configuration': content = <PlanConfigurationPage />; break;
     case '/dashboard/mon-abonnement': content = <MonAbonnementPage />; break;
     case '/dashboard/factures-concorde': content = <FacturesConcordePage />; break;
@@ -990,7 +989,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
     } else if (pathname === '/signup') {
       document.title = `Concorde Workforce | ${t('navigation.signupTitle')}`;
     } else if (pathname === '/') {
-      document.title = `Concorde Workforce | ${t('navigation.pricingTitle')}`;
+      document.title = `Concorde Workforce`;
     } else {
       document.title = `Concorde Workforce`;
     }

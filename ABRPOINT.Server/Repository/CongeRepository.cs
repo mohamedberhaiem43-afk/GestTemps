@@ -634,7 +634,10 @@ namespace ABRPOINT.Server.Repository
 
                         var cahier = new CahierConge()
                         {
-                            Empmat = employe.Empmat,
+                            // Fallback Empcod : sur les bases anciennes, le champ Empmat est
+                            // souvent NULL (ajouté plus tard). Sans ce fallback, la colonne
+                            // « Matricule » de l'UI Cahier de Congé apparaissait vide.
+                            Empmat = string.IsNullOrWhiteSpace(employe.Empmat) ? employe.Empcod : employe.Empmat,
                             Emplib = employe.Emplib,
                             Congedu = isMonthRegistered ? 0 : MathF.Max(0, (float)(nbjours - jouanc)),
                             Indemdu = isMonthRegistered ? 0 : MathF.Max(0, (float)(nbjours - jouanc)) * saljou,

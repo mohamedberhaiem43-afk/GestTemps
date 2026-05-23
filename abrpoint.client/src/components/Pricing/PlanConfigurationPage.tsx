@@ -26,20 +26,18 @@ const PLAN_CATALOG: Record<PlanKey, {
   flatPriceAnnualMonthlyEur: number;   // équivalent mensuel quand l'engagement est annuel
   includedEmployees: number;
   overageRatePerEmployeeEur: number;
-  maxEmployees: number;
   moduleCount: number;
 }> = {
   // Grille tarifs.txt 2026-05 — alignée avec ABRPOINT.Server.Tenancy.PlanCatalog :
-  //   Starter   :  99 €/mois (mensuel) ou  69 €/mois (annuel) — 10 inclus, max 25
-  //   Standard  : 219 €/mois (mensuel) ou 119 €/mois (annuel) — 25 inclus, max 100
-  //   Business  : 449 €/mois (mensuel) ou 249 €/mois (annuel) — 50 inclus, max 250
-  // Le ratio annuel/mensuel n'est PAS uniforme entre les packs : on stocke les deux
-  // prix explicitement (impossible à dériver via un coefficient global). Le code
-  // interne « Premium » est conservé pour la compat Stripe ; le libellé commercial
-  // affiché est « Business ».
-  Starter:  { displayName: 'Starter',  flatPriceMonthlyEur: 99,  flatPriceAnnualMonthlyEur: 69,  includedEmployees: 10, overageRatePerEmployeeEur: 4.90, maxEmployees: 25,  moduleCount: 7  },
-  Standard: { displayName: 'Standard', flatPriceMonthlyEur: 219, flatPriceAnnualMonthlyEur: 119, includedEmployees: 25, overageRatePerEmployeeEur: 6.90, maxEmployees: 100, moduleCount: 14 },
-  Premium:  { displayName: 'Business', flatPriceMonthlyEur: 449, flatPriceAnnualMonthlyEur: 249, includedEmployees: 50, overageRatePerEmployeeEur: 9.90, maxEmployees: 250, moduleCount: 19 },
+  //   Starter   :  99 €/mois (mensuel) ou  69 €/mois (annuel) — 10 inclus, overage illimité
+  //   Standard  : 219 €/mois (mensuel) ou 119 €/mois (annuel) — 25 inclus, overage illimité
+  //   Business  : 449 €/mois (mensuel) ou 249 €/mois (annuel) — 50 inclus, overage illimité
+  // 2026-05-23 : `maxEmployees` retiré — plafond commercial supprimé sur tous les packs.
+  // Le code interne « Premium » est conservé pour la compat Stripe ; le libellé
+  // commercial affiché est « Business ».
+  Starter:  { displayName: 'Starter',  flatPriceMonthlyEur: 99,  flatPriceAnnualMonthlyEur: 69,  includedEmployees: 10, overageRatePerEmployeeEur: 4.90, moduleCount: 7  },
+  Standard: { displayName: 'Standard', flatPriceMonthlyEur: 219, flatPriceAnnualMonthlyEur: 119, includedEmployees: 25, overageRatePerEmployeeEur: 6.90, moduleCount: 14 },
+  Premium:  { displayName: 'Business', flatPriceMonthlyEur: 449, flatPriceAnnualMonthlyEur: 249, includedEmployees: 50, overageRatePerEmployeeEur: 9.90, moduleCount: 19 },
 };
 
 /**
@@ -371,9 +369,7 @@ const PlanConfigurationPage: React.FC = () => {
                       {' '}<strong className="not-italic font-black">{plan.includedEmployees} collaborateurs</strong>
                       {' '}au forfait ({formatPrice(plan.flatPriceMonthlyEur)} € / mois).
                       Pour en ajouter au-delà, créez chaque collaborateur supplémentaire depuis sa fiche :
-                      vous confirmerez alors un supplément de {formatPrice(plan.overageRatePerEmployeeEur)} € / mois facturé via Stripe
-                      (plafond pack : <strong className="not-italic font-black">{plan.maxEmployees} collaborateurs maximum</strong>,
-                      au-delà passez au pack supérieur).
+                      vous confirmerez alors un supplément de {formatPrice(plan.overageRatePerEmployeeEur)} € / mois facturé via Stripe.
                     </span>
                   </p>
                 </div>
@@ -614,10 +610,6 @@ const PlanConfigurationPage: React.FC = () => {
                       {formatPrice(plan.overageRatePerEmployeeEur)} € / mois<br />
                       <span className="text-outline font-medium">à l'unité depuis la fiche</span>
                     </span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-outline font-bold">Plafond pack</span>
-                    <span className="font-black text-on-surface">{plan.maxEmployees} salariés</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-outline font-bold">Modules inclus</span>

@@ -176,20 +176,32 @@ function EtatRetard() {
   );
 
   // ── Application des options (retmin / retmat / retapres / compterAvance)
+  // On reconstitue aussi l'horaire THÉORIQUE = pointage matin − retard matin
+  // (+ avance si l'employé a pointé en avance). Sans ce calcul, la colonne
+  // « Horaire » affichait la même valeur que « Pointage » → aucune utilité.
   const rows = useMemo(() => {
     const minRetard = retmin || 0;
     return (rawData as RetardRow[]).map((row) => {
-      const retardMatin = toMinutes(row.preretmateup);
-      const retardAm = toMinutes(row.preretameup);
-      const avanceMatin = toMinutes(row.preretmatsup);
-      const avanceAm = toMinutes(row.preretamsup);
+      const retardMatinRaw = toMinutes(row.preretmateup);
+      const retardAmRaw = toMinutes(row.preretameup);
+      const avanceMatinRaw = toMinutes(row.preretmatsup);
+      const avanceAmRaw = toMinutes(row.preretamsup);
 
-      const fRM = retmat && retardMatin > minRetard ? retardMatin : 0;
-      const fRA = retapres && retardAm > minRetard ? retardAm : 0;
-      const fAM = compterAvance && avanceMatin > minRetard ? avanceMatin : 0;
-      const fAA = compterAvance && avanceAm > minRetard ? avanceAm : 0;
+      const fRM = retmat && retardMatinRaw > minRetard ? retardMatinRaw : 0;
+      const fRA = retapres && retardAmRaw > minRetard ? retardAmRaw : 0;
+      const fAM = compterAvance && avanceMatinRaw > minRetard ? avanceMatinRaw : 0;
+      const fAA = compterAvance && avanceAmRaw > minRetard ? avanceAmRaw : 0;
 
       const totalMin = fRM + fRA + fAM + fAA;
+
+      // Horaire théorique d'arrivée matin = pointage − retard (+ avance le cas
+      // échéant). Si pas de pointage, on ne reconstitue pas (le backend ne
+      // renvoie pas l'horaire planifié).
+      const pointageMatinMin = toMinutes(row.entree1);
+      const scheduledEntryMin = pointageMatinMin > 0
+        ? pointageMatinMin - retardMatinRaw + avanceMatinRaw
+        : 0;
+
       return {
         ...row,
         preretmateup: toHHMM(fRM),
@@ -197,19 +209,28 @@ function EtatRetard() {
         preretmatsup: toHHMM(fAM),
         preretamsup: toHHMM(fAA),
         totalRetard: toHHMM(totalMin),
-      } as RetardRow & { totalRetard: string };
+        scheduledEntry: pointageMatinMin > 0 ? toHHMM(scheduledEntryMin) : DASH,
+      } as RetardRow & { totalRetard: string; scheduledEntry: string };
     });
   }, [rawData, retmin, retmat, retapres, compterAvance]);
 
-  // ── Filtre recherche libre
+  // ── Filtre recherche libre + seuil retard minimum
+  // Avant le fix : le champ « Retard minimum » ne faisait que mettre la valeur
+  // à 0 dans la cellule sans retirer la ligne, donc l'utilisateur voyait toutes
+  // les lignes avec « 00:00 ». Maintenant : seuil > 0 ⇒ on filtre les lignes
+  // dont le total après application du seuil est ≤ 0.
   const filteredRows = useMemo(() => {
+    let result = rows;
+    if (retmin > 0) {
+      result = result.filter((r) => toMinutes((r as any).totalRetard) > 0);
+    }
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((row) => {
+    if (!q) return result;
+    return result.filter((row) => {
       const text = `${row.emplib ?? ''} ${row.empcod ?? ''} ${row.empmat ?? ''} ${fmtDate(row.predat)}`.toLowerCase();
       return text.includes(q);
     });
-  }, [rows, search]);
+  }, [rows, search, retmin]);
 
   // ── KPIs
   const kpis = useMemo(() => {
@@ -273,7 +294,7 @@ function EtatRetard() {
         t('etats.retard.report.status'),
       ]],
       body: filteredRows.map((row) => {
-        const planned = `${row.entree1 || DASH} - ${row.sortie2 || DASH}`;
+        const planned = (row as any).scheduledEntry || DASH;
         const pointage = row.entree1 || DASH;
         const justified = Boolean(row.motif && row.motif.trim() && row.motif !== DASH);
         const status = justified ? t('etats.retard.justified') : t('etats.retard.notJustified');
@@ -513,7 +534,10 @@ function EtatRetard() {
                   ) : (
                     paginated.map((row, idx) => {
                       const absoluteIndex = (currentPage - 1) * pageSize + idx;
-                      const planned = `${row.entree1 || DASH} - ${row.sortie2 || DASH}`;
+                      // « Horaire » = heure d'arrivée THÉORIQUE (reconstituée
+                      // depuis pointage − retard) ; « Pointage » = heure réelle.
+                      // Cf. useMemo `rows` plus haut pour le calcul.
+                      const planned = (row as any).scheduledEntry || DASH;
                       const pointage = row.entree1 || DASH;
                       const justified = Boolean(row.motif && row.motif.trim() && row.motif !== DASH);
                       const totalRet = (row as any).totalRetard || '00:00';

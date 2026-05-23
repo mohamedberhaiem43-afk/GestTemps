@@ -511,9 +511,15 @@ export default function SignupPage() {
           userCount: planFromPricing.userCount,
         });
         return;
-      } else if (planFromPricing?.plan) {
-        navigate('/dashboard/plan-configuration', { state: { ...planFromPricing, signupRedirectUrl: data.redirectUrl } });
       } else {
+        // Avant 2026-05-23 : `planFromPricing.plan` sans userCount routait sur
+        // `/dashboard/plan-configuration`, qui re-déclenchait Stripe Checkout et
+        // demandait la carte bancaire. Politique 2026-05-23 (HomePage CTA
+        // « Essayer 30 jours gratuit ») : l'essai 30j est sans CB, on doit donc
+        // shortcuter toute étape Stripe post-signup. Le `planCode` choisi est
+        // déjà persisté côté backend par /api/signup → /dashboard suffit, le
+        // user peut upgrader plus tard via /dashboard/mon-abonnement quand il
+        // est prêt à donner ses informations de paiement.
         navigate('/dashboard', { state: { signupRedirectUrl: data.redirectUrl } });
       }
     } catch (e: any) {

@@ -28,13 +28,12 @@ public sealed record PlanDefinition(
     // Nombre d'administrateurs inclus dans le pack. null = illimité (Business).
     int? IncludedAdmins,
     decimal OverageRatePerEmployeeEur,
-    // Plafond ABSOLU de salariés autorisés sur le pack — au-delà, l'admin doit
-    // upgrader (Starter→Standard→Business→Enterprise). Soft cap : retournés
-    // par EmployesController.Post avec un 402 "plan_max_employees_reached".
-    //   Starter  →  25 salariés max  (10 inclus + jusqu'à 15 supplémentaires)
-    //   Standard → 100 salariés max  (25 inclus + jusqu'à 75 supplémentaires)
-    //   Business → 250 salariés max  (50 inclus + jusqu'à 200 supplémentaires)
-    int MaxEmployees,
+    // 2026-05-23 — Plafond ABSOLU supprimé : aucun pack ne plafonne le nombre
+    // de salariés. Tous les packs facturent simplement l'overage au-delà de
+    // `IncludedEmployees` via l'item Stripe user_supp. Le champ est gardé
+    // nullable pour rétrocompat (anciens contrôleurs qui le lisent encore
+    // → traités comme « illimité »).
+    int? MaxEmployees,
     int? MaxSocietes,
     int? MaxSites,
     // Quota de stockage par tenant (Mo binaires, 1 Mo = 1 048 576 octets).
@@ -135,7 +134,7 @@ public static class PlanCatalog
         IncludedEmployees: 10,
         IncludedAdmins: 1,
         OverageRatePerEmployeeEur: 4.90m,
-        MaxEmployees: 25,             // cap dur : jusqu'à 25 salariés max (10 inclus + 15 supplémentaires)
+        MaxEmployees: null,           // 2026-05-23 : plafond supprimé — overage facturé sans plafond
         MaxSocietes: 1,
         MaxSites: 1,
         StorageQuotaMb: 10L * 1024,   // 10 Go inclus
@@ -185,7 +184,7 @@ public static class PlanCatalog
         IncludedEmployees: 25,
         IncludedAdmins: 3,
         OverageRatePerEmployeeEur: 6.90m,
-        MaxEmployees: 100,            // cap dur : 25 inclus + jusqu'à 75 supplémentaires
+        MaxEmployees: null,           // 2026-05-23 : plafond supprimé — overage facturé sans plafond
         // Positionnement commercial 2026-05 :
         //   • Standard = 1 société (= 1 entité juridique), MULTI-SITES jusqu'à 5
         //     (= « multi-sites simple » promis sur la grille tarifaire — typique
@@ -205,10 +204,12 @@ public static class PlanCatalog
             MultiSociete: false,
             AdvancedDashboards: true,
             RagAi: false,
-            // 2026-05-23 : journaux d'audit ouverts au Standard (PME : besoin de
-            // traçabilité RGPD). Premium garde le monopole des features audit AVANCÉES
-            // (alerting, export massif, retention étendue) qu'on ajoutera si demandées.
-            AdvancedAuditLogs: true,
+            // 2026-05-23 — Journaux d'audit RÉSERVÉS au pack Business uniquement
+            // (décision commerciale : différenciateur Business + Audit log = besoin
+            // d'entreprises structurées, pas critique pour une PME en pack Standard).
+            // Toute l'UI (sidebar « Journaux d'audit » + page /dashboard/audit-logs)
+            // disparait pour Standard via `planAllows('advancedAuditLogs')`.
+            AdvancedAuditLogs: false,
             CustomBranding: false,
             DeviceTrustEnforced: false,
             ScreenshotProtection: false,
@@ -242,7 +243,7 @@ public static class PlanCatalog
         IncludedEmployees: 50,
         IncludedAdmins: null,         // administrateurs illimités
         OverageRatePerEmployeeEur: 9.90m,
-        MaxEmployees: 250,            // cap dur : 50 inclus + jusqu'à 200 supplémentaires
+        MaxEmployees: null,           // 2026-05-23 : plafond supprimé — overage facturé sans plafond
         MaxSocietes: null,
         MaxSites: null,
         StorageQuotaMb: 200L * 1024,  // 200 Go inclus
@@ -336,13 +337,15 @@ public static class PlanCatalog
     }
 
     /// <summary>
-    /// Vrai si l'ajout d'un collaborateur supplémentaire ferait dépasser le
-    /// plafond ABSOLU du pack (<see cref="PlanDefinition.MaxEmployees"/>). Au-delà,
-    /// l'admin doit upgrader le pack (Starter→Standard→Premium) — pas d'option
-    /// de paiement à la carte ni de débordement toléré (limite commerciale dure).
+    /// 2026-05-23 : plafond absolu supprimé sur tous les packs payants. Retourne
+    /// toujours <c>false</c> tant que <see cref="PlanDefinition.MaxEmployees"/>
+    /// reste <c>null</c> (situation actuelle). Conservé pour rétrocompatibilité
+    /// des appelants ; si un futur produit Enterprise réintroduit un plafond,
+    /// il suffira de re-renseigner MaxEmployees sur le pack concerné.
     /// </summary>
     public static bool WouldExceedPlanMax(PlanDefinition plan, int currentActiveCount)
     {
-        return currentActiveCount >= plan.MaxEmployees;
+        if (plan.MaxEmployees is not int maxCap) return false;
+        return currentActiveCount >= maxCap;
     }
 }

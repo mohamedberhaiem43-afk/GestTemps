@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import InlineAuthCard from './InlineAuthCard';
 import { useAuth } from '../helper/AuthProvider';
 import './HomePage.css';
 
 // Landing publique dérivée de Maquette_Concorde_Workforce.html.
 // Politique actuelle (2026) : on annonce l'essai gratuit 1 mois sans CB sur
-// le hero, les packs et la promo CTA. Les CTAs scrollent désormais vers la
-// section "Rejoindre Concorde Workforce" (composant InlineAuthCard) plutôt
-// que de naviguer vers /signup ou /login.
+// le hero, les packs et la promo CTA. 2026-05-23 — décision UX : tous les
+// CTAs « Essayer 30 jours gratuit » naviguent désormais directement vers la
+// page /signup dédiée (au lieu d'utiliser le formulaire inline InlineAuthCard
+// qui restait dans la home). L'essai 30j ne demande PAS de carte bancaire ;
+// après signup l'utilisateur arrive directement sur /dashboard.
 
 type StepIndex = 0 | 1 | 2 | 3;
 type BillingCycle = 'monthly' | 'annual';
@@ -62,7 +63,7 @@ const COMPARISON_ROWS: CompRow[] = [
   { type: 'section', label: 'Reporting & tableaux de bord' },
   { type: 'feature', label: 'Tableau de bord simplifié',                             starter: true,  standard: true,           premium: true },
   { type: 'feature', label: 'Tableaux de bord avancés',                              starter: false, standard: true,           premium: true },
-  { type: 'feature', label: 'Journaux d\'audit (RGPD)',                              starter: false, standard: true,           premium: true },
+  { type: 'feature', label: 'Journaux d\'audit (RGPD)',                              starter: false, standard: false,          premium: true },
 
   { type: 'section', label: 'Multi-sites & multi-sociétés' },
   { type: 'feature', label: 'Multi-sites',                                           starter: false, standard: 'Jusqu\'à 5 sites', premium: 'Illimité' },
@@ -80,7 +81,8 @@ const COMPARISON_ROWS: CompRow[] = [
 
   { type: 'section', label: 'Limites & quotas' },
   { type: 'feature', label: 'Collaborateurs inclus',                                 starter: '10',     standard: '25',           premium: '50' },
-  { type: 'feature', label: 'Collaborateurs maximum',                                starter: '25',     standard: '100',          premium: '250' },
+  // 2026-05-23 : ligne « Collaborateurs maximum » supprimée — plus de plafond
+  // commercial, tous les packs facturent simplement l'overage au-delà.
   { type: 'feature', label: 'Administrateurs inclus',                                starter: '1',      standard: '3',            premium: 'Illimité' },
   { type: 'feature', label: 'Stockage inclus',                                       starter: '10 Go',  standard: '50 Go',        premium: '200 Go' },
   { type: 'feature', label: 'Stockage maximum',                                      starter: '50 Go',  standard: '300 Go',       premium: '2 To' },
@@ -144,12 +146,6 @@ export default function HomePage() {
   // d'accéder à #pricing depuis mobile sans scroller jusqu'au footer.
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Pack pré-sélectionné transmis à InlineAuthCard. `nonce` incrémenté à chaque
-  // clic pour forcer le ré-déclenchement de l'effet de pré-sélection côté carte
-  // (sinon, re-cliquer sur le même pack après changement local serait ignoré).
-  const [presetPlan, setPresetPlan] = useState<'Starter' | 'Standard' | 'Premium' | undefined>(undefined);
-  const [presetNonce, setPresetNonce] = useState(0);
-
   // Expansion par pack : on n'affiche que les 4 features clés par défaut, puis
   // un lien « Lire la suite » dévoile le reste. État indépendant par pack pour
   // que l'utilisateur puisse comparer librement sans repli forcé.
@@ -161,7 +157,6 @@ export default function HomePage() {
     setExpandedPacks((s) => ({ ...s, [k]: !s[k] }));
   const KEY_FEATURE_LIMIT = 4;
 
-  const authSectionRef = useRef<HTMLDivElement | null>(null);
   const howSectionRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -231,20 +226,22 @@ export default function HomePage() {
   // mensuel sont fixés indépendamment, le tarif annuel n'est pas un % du tarif mensuel.
   const priceCommitmentLabel = monthly ? 'Sans engagement · tarif mensuel' : 'tarif annuel · facturation unique';
 
-  // Smooth-scroll vers la section "Rejoindre Concorde Workforce" : nav header
-  // + CTAs hero/promo cliquent ici plutôt que de partir vers /signup ou /login.
-  // SI utilisateur déjà connecté : on bypass le scroll et on l'envoie direct à
-  // son dashboard (le formulaire d'auth ne lui apporte rien).
-  const scrollToAuth = () => {
+  // 2026-05-23 — Tous les CTAs « Essayer 30 jours gratuit » / « Créer un
+  // compte » naviguent désormais directement vers /signup (au lieu de
+  // scroller vers une carte inline dans la home). Si le visiteur est déjà
+  // connecté, on l'envoie sur son dashboard — le signup n'a aucun sens.
+  // L'essai 30j est sans carte bancaire : on ne passe PAS par Stripe Checkout
+  // tant que l'utilisateur n'upgrade pas manuellement.
+  const goToSignup = (plan?: 'Starter' | 'Standard' | 'Premium') => {
     if (isAuthenticated) {
       navigate('/dashboard');
       return;
     }
-    authSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // `state.plan` est récupéré par SignupPage (location.state) pour pré-régler
+    // le `planCode` envoyé à /api/signup ; pas de `userCount`, donc SignupPage
+    // shortcut vers /dashboard après création (pas d'étape Stripe).
+    navigate('/signup', { state: plan ? { plan } : undefined });
   };
-  // « Créer un compte » → reste sur la home pour le flux d'inscription Odoo-style
-  // (InlineAuthCard piloté par presetPlan/presetNonce).
-  const goToSignup = () => scrollToAuth();
   // « Connexion » → page /login dédiée (pattern dougs.fr/signin). Si le visiteur
   // est déjà authentifié, on shortcut directement vers son dashboard pour éviter
   // de lui montrer un formulaire de login inutile.
@@ -255,22 +252,10 @@ export default function HomePage() {
     }
     navigate('/login');
   };
-  // Avant 2026-05-19, le clic sur une carte de prix naviguait vers
-  // /plan-configuration. Désormais : on reste sur la home, on pré-sélectionne le
-  // pack dans InlineAuthCard (via la prop `presetPlan`) et on scrolle jusqu'au
-  // formulaire d'inscription. Le `nonce` force la pré-sélection à se rejouer
-  // même quand l'utilisateur re-clique sur le pack déjà sélectionné.
-  // SI utilisateur connecté : on shortcut vers son espace plateforme (le CTA
-  // « Essayer 30 jours gratuit » n'a plus de sens — il a déjà un compte actif).
-  const goToPlanConfig = (plan: 'Starter' | 'Standard' | 'Premium') => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-      return;
-    }
-    setPresetPlan(plan);
-    setPresetNonce((n) => n + 1);
-    scrollToAuth();
-  };
+  // Clic sur une carte de prix → /signup avec le pack pré-sélectionné en state.
+  // Backward-compatible : pour les autres composants qui appellent encore
+  // `goToPlanConfig`, on garde le nom.
+  const goToPlanConfig = (plan: 'Starter' | 'Standard' | 'Premium') => goToSignup(plan);
 
   return (
     <div className="home-page" ref={containerRef}>
@@ -290,7 +275,7 @@ export default function HomePage() {
         </ul>
         <div className="nav-right">
           <button type="button" className="btn-ghost" onClick={goToLogin}>Connexion</button>
-          <button type="button" className="btn-primary" onClick={goToSignup}>
+          <button type="button" className="btn-primary" onClick={() => goToSignup()}>
             Créer un compte <span>→</span>
           </button>
           {/* Hamburger : visible uniquement sur mobile (cf. CSS @media).
@@ -370,7 +355,7 @@ export default function HomePage() {
             </aside>
           </div>
 
-          <button type="button" className="promo-launch-cta" onClick={scrollToAuth}>
+          <button type="button" className="promo-launch-cta" onClick={() => goToSignup()}>
             <span className="promo-launch-cta-icon">🚀</span>
             J'en profite maintenant
             <span className="promo-launch-cta-arrow">→</span>
@@ -395,7 +380,7 @@ export default function HomePage() {
           Pointeuses biométriques, application mobile, gestion des congés, autorisations de sortie et préparation paie — tout centralisé dans une seule plateforme sécurisée.
         </p>
         <div className="hero-cta-row">
-          <button type="button" className="btn-hero-primary" onClick={goToSignup}>
+          <button type="button" className="btn-hero-primary" onClick={() => goToSignup()}>
             Démarrer mon essai gratuit
             <span>→</span>
           </button>
@@ -784,10 +769,6 @@ export default function HomePage() {
               <div style={{ fontSize: 12, color: '#0040a1', fontWeight: 700, marginBottom: 8 }}>
                 Une marge confortable pour accompagner vos premiers pas :
               </div>
-              <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600, marginBottom: 3 }}>
-                <span style={{ color: '#0040a1', fontWeight: 800, marginRight: 4 }}>↗</span>
-                Évoluez jusqu'à <strong>25 salariés maximum</strong>
-              </div>
               <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600 }}>
                 <span style={{ color: '#0040a1', fontWeight: 800, marginRight: 4 }}>🗄</span>
                 Stockage sécurisé jusqu'à <strong>50 Go maximum</strong>
@@ -796,7 +777,6 @@ export default function HomePage() {
             <div className="price-features">
               {(() => {
                 const features = [
-                  { type: 'check', text: '1 mois gratuit sans carte bancaire' },
                   { type: 'check', text: 'Pointage web & mobile' },
                   { type: 'check', text: 'Gestion RH essentielle (fiches, contrats)' },
                   { type: 'check', text: 'Gestion congés & absences' },
@@ -862,18 +842,17 @@ export default function HomePage() {
             <div className="price-included" style={{ marginTop: 14 }}>25 collaborateurs inclus · 50 Go de stockage</div>
             <div className="price-per">+ 6,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · {priceCommitmentLabel}</div>
             <div className="price-desc">Suite complète mobile pour les PME en croissance et équipes structurées.</div>
-            {/* Marges de croissance — voir note Starter. */}
+            {/* Marges de croissance — voir note Starter.
+                marginTop: -17 (demande 2026-05-23) : rapproche visuellement la
+                boîte des limites de la description du pack, par cohérence avec
+                Business plus bas. */}
             <div className="price-margins-box" style={{
-              marginTop: 14, padding: '12px 14px',
+              marginTop: -17, padding: '12px 14px',
               background: '#f8fafc', borderRadius: 12,
               border: '1px solid #e2e8f0',
             }}>
               <div style={{ fontSize: 12, color: '#0040a1', fontWeight: 700, marginBottom: 8 }}>
                 Dimensionné pour accompagner votre montée en charge :
-              </div>
-              <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600, marginBottom: 3 }}>
-                <span style={{ color: '#0040a1', fontWeight: 800, marginRight: 4 }}>↗</span>
-                Évoluez jusqu'à <strong>100 salariés maximum</strong>
               </div>
               <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600 }}>
                 <span style={{ color: '#0040a1', fontWeight: 800, marginRight: 4 }}>🗄</span>
@@ -883,7 +862,6 @@ export default function HomePage() {
             <div className="price-features">
               {(() => {
                 const features = [
-                  '1 mois gratuit sans carte bancaire',
                   'Tout le pack Starter',
                   'Application mobile + géolocalisation',
                   'Coffre numérique & signature électronique',
@@ -967,18 +945,16 @@ export default function HomePage() {
             <div className="price-included" style={{ marginTop: 14 }}>50 collaborateurs inclus · 200 Go de stockage</div>
             <div className="price-per">+ 9,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · {priceCommitmentLabel}</div>
             <div className="price-desc">Multi-filiales, IA contextuelle et sécurité renforcée pour les grandes structures.</div>
-            {/* Marges de croissance — accent or pour rester cohérent avec l'identité Business. */}
+            {/* Marges de croissance — accent or pour rester cohérent avec l'identité Business.
+                marginTop: -17 (demande 2026-05-23) : rapproche la boîte de la
+                description, alignement avec le pack Standard. */}
             <div className="price-margins-box" style={{
-              marginTop: 14, padding: '12px 14px',
+              marginTop: -17, padding: '12px 14px',
               background: 'rgba(212,175,55,0.06)', borderRadius: 12,
               border: '1px solid rgba(212,175,55,0.35)',
             }}>
               <div style={{ fontSize: 12, color: '#b8860b', fontWeight: 700, marginBottom: 8 }}>
                 Une capacité haut volume pour les grandes structures :
-              </div>
-              <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600, marginBottom: 3 }}>
-                <span style={{ color: '#b8860b', fontWeight: 800, marginRight: 4 }}>↗</span>
-                Évoluez jusqu'à <strong>250 salariés maximum</strong>
               </div>
               <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600 }}>
                 <span style={{ color: '#b8860b', fontWeight: 800, marginRight: 4 }}>🗄</span>
@@ -988,7 +964,6 @@ export default function HomePage() {
             <div className="price-features">
               {(() => {
                 const features = [
-                  '1 mois gratuit sans carte bancaire',
                   'Tout le pack Standard',
                   'Multi-filiales illimité · tableaux de bord avancés',
                   'Assistant IA contextuel (RAG)',
@@ -1174,43 +1149,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* AUTH */}
-      <section ref={authSectionRef} className="auth-section">
-        <div className="auth-layout">
-          <div className="auth-benefits">
-            <div>
-              <div className="section-tag">Rejoindre Concorde Workforce</div>
-              <h2 className="section-title">Commencez en <span className="accent">5 minutes</span></h2>
-              <p className="section-sub">Créez votre compte, importez vos équipes, et obtenez vos premiers résultats en 2 semaines.</p>
-            </div>
-            <div>
-              <div className="benefit-item">
-                <div className="benefit-icon">⚡</div>
-                <div>
-                  <div className="benefit-title">Déploiement express</div>
-                  <div className="benefit-desc">Import CSV de vos collaborateurs, paramétrage guidé, et votre équipe est opérationnelle en 2 semaines. Sans technicien.</div>
-                </div>
-              </div>
-              <div className="benefit-item">
-                <div className="benefit-icon green">🔒</div>
-                <div>
-                  <div className="benefit-title">Conformité & sécurité</div>
-                  <div className="benefit-desc">Hébergement France, chiffrement AES-256, audit logs RGPD complets. DPA disponible. Conformité droit du travail FR / BE / MA / SN.</div>
-                </div>
-              </div>
-              <div className="benefit-item">
-                <div className="benefit-icon">🌍</div>
-                <div>
-                  <div className="benefit-title">Conçu pour votre marché</div>
-                  <div className="benefit-desc">Support francophone humain, conformité locale (RGPD, droit du travail FR/BE/MA/SN), mode offline — pensé pour l'Afrique et l'Europe francophone.</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <InlineAuthCard presetPlan={presetPlan} presetNonce={presetNonce} />
-        </div>
-      </section>
-
       {/* PROMO CTA */}
       <div className="promo-cta-wrap">
         <div className="promo-cta reveal">
@@ -1225,7 +1163,7 @@ export default function HomePage() {
             <div className="promo-feat-item"><span className="promo-feat-check">✓</span> Sans engagement de durée</div>
             <div className="promo-feat-item"><span className="promo-feat-check">✓</span> Annulation en 1 clic</div>
           </div>
-          <button type="button" className="btn-cta-light" onClick={goToSignup}>
+          <button type="button" className="btn-cta-light" onClick={() => goToSignup()}>
             Démarrer mon essai gratuit →
           </button>
         </div>

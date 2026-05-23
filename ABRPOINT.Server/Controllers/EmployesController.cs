@@ -770,30 +770,17 @@ namespace ABRPOINT.Server.Controllers
             try
             {
                 // Quota collaborateurs : cap au seuil inclus du pack courant.
-                // Trial → cap dur, pas d'overage possible (admin doit d'abord passer payant).
+                // Trial → cap dur sur IncludedEmployees, pas d'overage possible.
                 // Plan payant → opt-in via confirmOverage qui débloque la facturation
                 //              automatique du supplément via l'item Stripe user_supp.
+                //
+                // 2026-05-23 — Plafond ABSOLU (Starter 25 / Standard 100 / Business 250)
+                // SUPPRIMÉ : tous les packs payants acceptent un nombre illimité de
+                // salariés, l'overage continue d'être facturé via l'item Stripe user_supp
+                // sans cap commercial. Cf. PlanCatalog.MaxEmployees = null partout.
                 var tenant = _currentTenant.Current;
                 var plan = PlanCatalog.GetPlan(tenant?.PlanCode) ?? PlanCatalog.Starter;
                 var activeCount = await _db.Employes.CountAsync(e => e.Actif == "A");
-
-                // Plafond ABSOLU du pack (Starter 30 / Standard 100 / Premium 200) :
-                // au-delà, l'admin doit upgrader. Pas d'opt-in possible : l'overage
-                // tolérable s'arrête au cap commercial du pack courant.
-                if (PlanCatalog.WouldExceedPlanMax(plan, activeCount))
-                {
-                    return StatusCode(402, new
-                    {
-                        code = "plan_max_employees_reached",
-                        message = $"Vous avez atteint le plafond du pack {plan.DisplayName} ({plan.MaxEmployees} collaborateurs maximum). " +
-                                  $"Pour ajouter d'autres collaborateurs, passez au pack supérieur ou contactez-nous pour une offre Enterprise.",
-                        currentCount = activeCount,
-                        planMax = plan.MaxEmployees,
-                        planCode = plan.Code,
-                        planName = plan.DisplayName,
-                        requiresUpgrade = true,
-                    });
-                }
 
                 if (PlanCatalog.IsOverIncludedCapacity(plan, activeCount))
                 {

@@ -79,7 +79,20 @@ apiInstance.interceptors.response.use(
         // Ne jamais tenter de refresh suite à un échec sur /refresh lui-même (sinon boucle).
         const isRefreshCall = url.includes('/Utilisateurs/refresh');
 
-        if (error.response?.status === 401 && !originalRequest._retry && !isRefreshCall) {
+        // Endpoints d'authentification publics : un 401 sur /connect ou /complete-2fa-login
+        // signifie « mauvais identifiants », PAS « token expiré ». Tenter /refresh derrière
+        // produit (a) un appel inutile, (b) une cascade 401 visible en console qui inquiète
+        // l'utilisateur, et (c) un message backend (« Refresh token is required ») qui
+        // remontait jusqu'au snackbar d'erreur via showError() au lieu du « Identifiants
+        // invalides » attendu. On laisse donc l'erreur originale se propager telle quelle.
+        const isAnonymousAuthCall = url.includes('/Utilisateurs/connect')
+            || url.includes('/Utilisateurs/complete-2fa-login')
+            || url.includes('/auth/forgot-password')
+            || url.includes('/auth/reset-password')
+            || url.includes('/signup')
+            || url.includes('/billing/resume-checkout');
+
+        if (error.response?.status === 401 && !originalRequest._retry && !isRefreshCall && !isAnonymousAuthCall) {
             originalRequest._retry = true;
 
             try {
@@ -100,11 +113,11 @@ apiInstance.interceptors.response.use(
 
         // 402 plan_feature_locked : feature non incluse dans le plan du tenant.
         // On redirige vers la page Upgrade avec le contexte (quelle feature, depuis où),
-        // sauf si l'utilisateur est déjà sur la page upgrade ou pricing (évite boucle).
+        // sauf si l'utilisateur est déjà sur la page upgrade ou mon-abonnement (évite boucle).
         if (error.response?.status === 402
             && error.response?.data?.code === 'plan_feature_locked'
             && !window.location.pathname.startsWith('/upgrade')
-            && !window.location.pathname.startsWith('/pricing')) {
+            && !window.location.pathname.startsWith('/dashboard/mon-abonnement')) {
             const data = error.response.data;
             const params = new URLSearchParams({
                 feature: data.feature ?? '',

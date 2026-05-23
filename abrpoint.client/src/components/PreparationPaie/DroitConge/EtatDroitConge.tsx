@@ -10,7 +10,6 @@ import dayjs from "dayjs";
 import DroitCongeService from "../../../services/CongeService/DroitCongeService";
 import SearchIcon from '@mui/icons-material/Search';
 import DownloadIcon from '@mui/icons-material/FileDownload';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import GroupIcon from '@mui/icons-material/Group';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
@@ -330,9 +329,6 @@ function EtatDroitConge() {
               <button className="edc-export-btn" onClick={handleExport}>
                 <DownloadIcon sx={{ fontSize: 14 }} />
                 {t('etatDroitConge.tableSynthesis.export')}
-              </button>
-              <button className="edc-filter-toggle">
-                <FilterListIcon sx={{ fontSize: 16 }} />
               </button>
             </Box>
           </Box>

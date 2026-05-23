@@ -17,7 +17,6 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import DownloadIcon from '@mui/icons-material/FileDownload';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PrintIcon from '@mui/icons-material/Print';
@@ -561,9 +560,6 @@ function CahierCongePage() {
             <button className="cc-export-btn" onClick={handlePrintReport} disabled={!hasEffectiveEmployees}>
               <PrintIcon sx={{ fontSize: 14 }} />
               {t('cahierConge.table.printPdf')}
-            </button>
-            <button className="cc-filter-toggle" title={t('cahierConge.table.filterTooltip')}>
-              <FilterListIcon sx={{ fontSize: 16 }} />
             </button>
           </div>
         </div>

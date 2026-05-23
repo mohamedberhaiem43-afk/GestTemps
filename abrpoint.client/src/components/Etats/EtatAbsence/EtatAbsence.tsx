@@ -12,7 +12,6 @@ import { saveAs } from 'file-saver';
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import DownloadIcon from '@mui/icons-material/FileDownload';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PrintIcon from '@mui/icons-material/Print';
@@ -480,9 +479,6 @@ function EtatAbsence() {
             <button className="ea-export-btn" onClick={handlePrintReport} disabled={!hasEffectiveEmployees}>
               <PrintIcon sx={{ fontSize: 13 }} />
               {t('etats.absence.table.printPdf')}
-            </button>
-            <button className="ea-filter-toggle" title={t('etats.absence.table.filterBtn')}>
-              <FilterListIcon sx={{ fontSize: 16 }} />
             </button>
           </div>
         </div>

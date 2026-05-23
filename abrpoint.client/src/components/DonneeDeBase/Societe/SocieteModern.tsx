@@ -189,7 +189,7 @@ function SocieteModernContent() {
             <Button
               size="small"
               color="inherit"
-              onClick={() => { window.location.href = '/dashboard/pricing'; }}
+              onClick={() => { window.location.href = '/dashboard/mon-abonnement'; }}
               sx={{ fontWeight: 800, textTransform: 'none' }}
             >
               {t('societe.msg.upgradeCta')}
