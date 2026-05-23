@@ -48,7 +48,13 @@ import apiInstance from '../../API/apiInstance';
 const ListEmploye = () => {
   const { selectedEmpMat, setSelectedEmpMat, setSelectedEmp } = useContext(EmployeeContext);
   const { t } = useTranslation();
-  const { soccod, uticod } = useAuth();
+  const { soccod, uticod, hasPermission } = useAuth();
+  // 2026-05-23 — Gating UI : on cache les actions Modifier/Supprimer aux
+  // utilisateurs non autorisés (les boutons étaient visibles puis renvoyaient
+  // un 403 au clic, UX confuse). Le backend reste la source de vérité (cf.
+  // [CanUpdateEmploye] / [CanDeleteEmploye] sur EmployesController).
+  const canModifyEmp = hasPermission('Gestion Employés', 'modify');
+  const canDeleteEmp = hasPermission('Gestion Employés', 'delete');
   const { data = [], isLoading, refetch } = useGetAllEmployees(uticod);
   const [empHoraires, setEmpHoraires] = useState<EmpHoraire[] | undefined>([]);
   
@@ -663,6 +669,8 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
                   actions={true}
                   pageSize={5}
                   purge={undefined}
+                  canEdit={canModifyEmp}
+                  canDelete={canDeleteEmp}
                 />
               </Grid>
             </Grid>

@@ -2,6 +2,7 @@ using Xunit;
 using Moq;
 using FluentAssertions;
 using ABRPOINT.Server.CalculService.HeureSupp;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -29,7 +30,15 @@ namespace ABRPOINT.Server.Tests.CalculService
         {
             _mockEmployeRepository = new Mock<IEmployeRepository>();
             _mockHsService = new Mock<IHeuresSupplementaireHebdomadairesService>();
-            _service = new PointageMoisService(_mockEmployeRepository.Object, _mockHsService.Object);
+            // Constructeur PointageMoisService refactoré : ajout d'un ApplicationDbContext
+            // en 1ʳᵉ position (cf. PointageMoisService.cs:15-19). Pour les tests qui
+            // n'attaquent pas la DB directement, on passe un contexte sans options
+            // (suffit pour la construction ; les méthodes qui requêtent EF seraient
+            // à wrapper dans une fixture séparée).
+            _service = new PointageMoisService(
+                new ApplicationDbContext(),
+                _mockEmployeRepository.Object,
+                _mockHsService.Object);
         }
 
         private static Employe MakeEmploye(string empcod, string? niveau = "1", string? regime = "FRA")

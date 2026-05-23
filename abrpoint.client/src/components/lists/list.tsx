@@ -36,10 +36,18 @@ type DataListProps = {
   actions?: boolean;
   setData:any
   onRowClick?: (row: any) => void;
+  // 2026-05-23 — Gating UI par permission. Si non passé, on garde le
+  // comportement legacy (édition + suppression visibles) pour ne pas casser
+  // les pages qui consomment encore DataList sans avoir migré. Les pages
+  // qui veulent appliquer la matrice CAMD passent explicitement le résultat
+  // de useAuth().hasPermission(...).
+  canEdit?: boolean;
+  canDelete?: boolean;
 };
 
 export default function DataList({ data, columns, message, deleteMethod, idKey,refetchMethod,setData,pageSize,purge,
-                                    reportGeneration1,reportGeneration2,reportGeneration3,reportGeneration4,empHoraires,actions,onRowClick }: DataListProps)
+                                    reportGeneration1,reportGeneration2,reportGeneration3,reportGeneration4,empHoraires,actions,onRowClick,
+                                    canEdit = true, canDelete = true }: DataListProps)
 {
     const [selectedRow, setSelectedRow] = useState<any>(null);
     const [openModal, setOpenModal] = useState(false);
@@ -145,15 +153,22 @@ export default function DataList({ data, columns, message, deleteMethod, idKey,r
         }),
 
         renderRowActionMenuItems: ({ row, closeMenu }) => {
+            // Edit/Delete sont insérés UNIQUEMENT si la permission est accordée.
+            // null dans le tableau est filtré par .filter(Boolean) en bas — ne
+            // produit pas de slot vide dans le menu MUI.
             const menuItems = [
-                <MenuItem key="edit" onClick={() => {handleEdit(row.original);closeMenu()}} sx={{ m: 0 }}>
-                    <ListItemIcon><Edit /></ListItemIcon>
-                    {t('list.edit') || 'Edit'}
-                </MenuItem>,
-                <MenuItem key="delete" onClick={() => { handleOpenModal(row.original); closeMenu(); }} sx={{ m: 0 }}>
-                    <ListItemIcon><Delete /></ListItemIcon>
-                    {t('list.delete') || 'Delete'}
-                </MenuItem>,
+                canEdit ? (
+                    <MenuItem key="edit" onClick={() => {handleEdit(row.original);closeMenu()}} sx={{ m: 0 }}>
+                        <ListItemIcon><Edit /></ListItemIcon>
+                        {t('list.edit') || 'Edit'}
+                    </MenuItem>
+                ) : null,
+                canDelete ? (
+                    <MenuItem key="delete" onClick={() => { handleOpenModal(row.original); closeMenu(); }} sx={{ m: 0 }}>
+                        <ListItemIcon><Delete /></ListItemIcon>
+                        {t('list.delete') || 'Delete'}
+                    </MenuItem>
+                ) : null,
                 purge && (
                     <MenuItem
                         key="contrat"

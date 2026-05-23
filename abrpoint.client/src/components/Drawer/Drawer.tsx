@@ -41,7 +41,7 @@ const [anchorEl, setAnchorEl] = useState<Record<string, HTMLElement | null>>({})
         { label: 'Sections', path: '/sections' },
         { label: 'Pays', path: '/pays' },
         { label: 'Villes', path: '/villes' },
-        { label: 'Filiales', path: '/filiales' },
+        { label: 'Sites', path: '/filiales' },
         { label: 'Fonctions', path: '/fonctions' },
         { label: 'Qualifications', path: '/qualifications' },
       ],

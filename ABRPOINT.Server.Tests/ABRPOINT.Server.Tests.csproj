@@ -22,6 +22,11 @@
     <!-- Mock et Assertions -->
     <PackageReference Include="Moq" Version="4.20.0" />
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
+
+    <!-- DbContext en mémoire pour tester les helpers qui dépendent de RolePermissions
+         (cf. Authorization/PermissionCheckerTests.cs). Version alignée sur la stack EF
+         Core 8 utilisée par le projet serveur. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.10" />
     
     <!-- Couverture de code -->
     <PackageReference Include="coverlet.collector" Version="5.0.0">

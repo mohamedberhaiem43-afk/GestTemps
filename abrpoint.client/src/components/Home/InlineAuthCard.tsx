@@ -386,7 +386,12 @@ export default function InlineAuthCard({ presetPlan, presetNonce }: InlineAuthCa
         setTimeout(() => navigate('/login', { state: { email: loginEmail } }), 1200);
         return;
       }
-      if (data.Utiimg) localStorage.setItem('profileImage', data.Utiimg);
+      // Voir Login.tsx processLoginSuccess pour la note de bug 2026-05-23 :
+      // le backend renvoie tout en camelCase (utiimg/uticod/utiadm), pas en
+      // PascalCase. Avant ce fix, ça marchait par accident depuis la home (`/`
+      // n'est pas dans AUTH_FREE_PATHS donc /me corrigeait le state) mais
+      // cassait depuis /login. On aligne les deux call-sites.
+      if (data.utiimg) localStorage.setItem('profileImage', data.utiimg);
       else localStorage.removeItem('profileImage');
       if (data.socimg) localStorage.setItem('societeImage', data.socimg);
       else localStorage.removeItem('societeImage');
@@ -395,8 +400,8 @@ export default function InlineAuthCard({ presetPlan, presetNonce }: InlineAuthCa
         sitcod: data.societe?.sitcod,
         userName: data.utilib,
         soclib: data.soclib,
-        uticod: data.Uticod ?? null,
-        utiadm: data.Utiadm ?? null,
+        uticod: data.uticod ?? null,
+        utiadm: data.utiadm ?? null,
         isManager: data.isManager,
         isEmp: Boolean(data.isEmp),
       });

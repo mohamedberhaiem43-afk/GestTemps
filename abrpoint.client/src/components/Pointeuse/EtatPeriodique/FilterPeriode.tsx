@@ -188,9 +188,9 @@ function FilterPeriode() {
     <div className="cc-filter-section">
       <div className="cc-filter-row">
         <div className="cc-filter-field-narrow">
-          <label className="cc-filter-label">Filiale</label>
+          <label className="cc-filter-label">Site</label>
           <select className="cc-filter-select" value={selectedFiliale} onChange={(e) => setSelectedFiliale(e.target.value)}>
-            <option value="">Toutes</option>
+            <option value="">Tous</option>
             {Object.entries(filiale).map(([cod, lib]) => (
               <option key={cod} value={cod}>{lib}</option>
             ))}

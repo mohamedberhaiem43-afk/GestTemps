@@ -136,6 +136,26 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
   const [isFetchingEmployee, setIsFetchingEmployee] = useState(false);
   const [form, setForm] = useState(createInitialForm());
 
+  // Liste des sites du tenant — utilisée pour le sélecteur « Site ». Avant
+  // 2026-05-23, le champ s'appelait « Filiale » et était readOnly avec auto-fill
+  // depuis l'employé. Demande UX : afficher la vraie liste de sites disponibles
+  // (récupérée via /Sites/get-sitlibs/{soccod}) pour qu'un contrat puisse être
+  // explicitement rattaché à un site, même différent de celui de l'employé.
+  const [sitesList, setSitesList] = useState<{ sitcod: string; sitlib: string }[]>([]);
+  useEffect(() => {
+    if (!soccod) return;
+    apiInstance.get(`/Sites/get-sitlibs/${soccod}`)
+      .then((r) => {
+        // L'endpoint peut renvoyer un Array ou un dict {sitcod: sitlib}.
+        const data = r.data;
+        const arr: { sitcod: string; sitlib: string }[] = Array.isArray(data)
+          ? data.map((s: any) => ({ sitcod: s.sitcod ?? s.Sitcod ?? '', sitlib: s.sitlib ?? s.Sitlib ?? '' })).filter(s => s.sitcod)
+          : Object.entries<string>(data ?? {}).map(([sitcod, sitlib]) => ({ sitcod, sitlib }));
+        setSitesList(arr);
+      })
+      .catch((err) => console.error('Erreur chargement des sites:', err));
+  }, [soccod]);
+
   // Fetch next contract number from backend
   const fetchNextConcod = useCallback(async () => {
     if (!soccod || editingContract) return;
@@ -465,7 +485,11 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
             </Box>
           </Box>
 
-          {/* Auto-filled: Filiale, Poste */}
+          {/* Site (anciennement « Filiale ») + Poste.
+              2026-05-23 — Le champ est désormais un Select alimenté par
+              /Sites/get-sitlibs (cf. sitesList plus haut). L'auto-fill depuis
+              la fiche employé reste actif (pré-sélection) mais l'utilisateur
+              peut surcharger pour rattacher le contrat à un autre site. */}
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
             <Box>
               <Typography
@@ -478,28 +502,37 @@ const SaisieContratModern = ({ editingContract, setEditingContract }: SaisieCont
                   mb: 0.5,
                 }}
               >
-                Filiale
+                Site
               </Typography>
-              <TextField
-                size="small"
-                fullWidth
-                value={form.filiale}
-                onChange={(e) => updateField('filiale', e.target.value)}
-                InputProps={{
-                  readOnly: true,
-                  startAdornment: (
+              <FormControl fullWidth size="small">
+                <Select
+                  value={form.filiale}
+                  onChange={(e) => updateField('filiale', e.target.value)}
+                  displayEmpty
+                  startAdornment={
                     <InputAdornment position="start">
                       <BusinessIcon sx={{ fontSize: 16, color: '#94a3b8' }} />
                     </InputAdornment>
-                  ),
-                }}
-                placeholder="Auto-rempli"
-                sx={{
-                  backgroundColor: '#f0f4f8',
-                  borderRadius: '8px',
-                  '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                }}
-              />
+                  }
+                  sx={{
+                    backgroundColor: '#f2f4f6',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                    '&:hover': { backgroundColor: '#ffffff' },
+                    '&.Mui-focused': { backgroundColor: '#ffffff' },
+                  }}
+                >
+                  <MenuItem value="" disabled>
+                    {sitesList.length === 0 ? 'Aucun site disponible' : 'Sélectionner un site…'}
+                  </MenuItem>
+                  {sitesList.map((s) => (
+                    <MenuItem key={s.sitcod} value={s.sitcod}>
+                      {s.sitlib || s.sitcod}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Box>
             <Box>
               <Typography

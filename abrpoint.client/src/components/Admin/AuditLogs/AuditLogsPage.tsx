@@ -44,8 +44,67 @@ function actionChipColor(action: string | null): 'default' | 'success' | 'warnin
   return 'default';
 }
 
+// 2026-05-23 — Demande UX : ne plus afficher le nom technique de table
+// (`employes`, `conges`, `utilisateurs`…) dans la colonne « Description »,
+// ni les codes d'action brute (« Added », « Modified »…). À la place, on
+// affiche une phrase courte en français lisible pour le métier.
+//
+// On garde le couple (action, table) en source de vérité côté backend ; ce
+// mapping reste un détail de présentation, sans contrat avec l'API. Si un
+// nom de table n'est pas mappé, on retombe sur l'action brute pour rester
+// informatif (jamais d'écran vide).
+const TABLE_LABELS: Record<string, string> = {
+  employes: 'collaborateur',
+  utilisateurs: 'utilisateur',
+  conges: 'congé',
+  demconge: 'demande de congé',
+  contrats: 'contrat',
+  societes: 'société',
+  sites: 'site',
+  filiale: 'filiale',
+  services: 'service',
+  fonctions: 'fonction',
+  presences: 'pointage',
+  pointage: 'pointage',
+  notedefrais: 'note de frais',
+  noteDeFrais: 'note de frais',
+  missions: 'mission',
+  teletravail: 'demande de télétravail',
+  demande_absence: "demande d'absence",
+  autoriser: "demande d'autorisation",
+  documents: 'document',
+  vault_document: 'document du coffre',
+  refresh_token: 'session',
+  known_devices: 'appareil de confiance',
+  notifications: 'notification',
+};
+
+function actionVerb(action: string | null): { verb: string; subject: 'm' | 'f' } | null {
+  if (!action) return null;
+  const a = action.toLowerCase();
+  if (a.startsWith('added'))    return { verb: 'Création',     subject: 'f' };
+  if (a.startsWith('modified')) return { verb: 'Modification', subject: 'f' };
+  if (a.startsWith('deleted'))  return { verb: 'Suppression',  subject: 'f' };
+  if (a.startsWith('trust'))    return { verb: 'Audit',        subject: 'm' };
+  return null;
+}
+
+function describeAction(action: string | null, tableName: string | null): string {
+  const verb = actionVerb(action);
+  const tableKey = (tableName ?? '').toLowerCase().trim();
+  const label = TABLE_LABELS[tableKey];
+  if (verb && label) return `${verb} : ${label}`;
+  // Fallback : action brute pour ne jamais laisser un écran vide quand une
+  // nouvelle table apparaît sans entrée dans TABLE_LABELS.
+  if (verb && !label) return verb.verb;
+  if (action) return action;
+  return '—';
+}
+
 function toCsv(rows: AuditLogRow[]): string {
-  const header = ['Date', 'Uticod', 'Utilisateur', 'Action', 'Table', 'IP'];
+  // Export aligné sur les colonnes affichées : on remplace « Action » + « Table »
+  // par la même description courte que l'UI (cf. describeAction).
+  const header = ['Date', 'Uticod', 'Utilisateur', 'Description', 'IP'];
   const escape = (v: string | null | undefined) => {
     const s = (v ?? '').toString();
     if (s.includes('"') || s.includes(',') || s.includes('\n')) {
@@ -58,8 +117,7 @@ function toCsv(rows: AuditLogRow[]): string {
       new Date(r.dateAction).toISOString(),
       r.uticod,
       r.userDisplay,
-      r.action,
-      r.tableName,
+      describeAction(r.action, r.tableName),
       r.ipAddress,
     ]
       .map(escape)
@@ -223,19 +281,11 @@ export default function AuditLogsPage() {
               <MenuItem key={a} value={a}>{a}</MenuItem>
             ))}
           </TextField>
-          <TextField
-            size="small"
-            select
-            label={t('auditLogs.table', 'Table')}
-            value={draftFilters.table}
-            onChange={(e) => setDraftFilters((f) => ({ ...f, table: e.target.value }))}
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="">{t('auditLogs.all', 'Toutes')}</MenuItem>
-            {(facets?.tables ?? []).map((tbl) => (
-              <MenuItem key={tbl} value={tbl}>{tbl}</MenuItem>
-            ))}
-          </TextField>
+          {/* Filtre « Table » retiré 2026-05-23 : l'utilisateur final n'a pas
+              à voir les noms de tables techniques. La description suffit pour
+              filtrer mentalement, et la recherche libre couvre les besoins
+              avancés. Le champ `table` reste dans le state pour compat URL/CSV
+              mais n'est plus présent dans l'UI. */}
           <TextField
             size="small"
             label={t('auditLogs.ip', 'Adresse IP')}
@@ -277,21 +327,22 @@ export default function AuditLogsPage() {
             <TableRow>
               <TableCell>{t('auditLogs.col.date', 'Date')}</TableCell>
               <TableCell>{t('auditLogs.col.user', 'Utilisateur')}</TableCell>
-              <TableCell>{t('auditLogs.col.action', 'Action')}</TableCell>
-              <TableCell>{t('auditLogs.col.table', 'Table')}</TableCell>
+              {/* Colonnes « Action » et « Table » fusionnées en une description
+                  courte lisible métier (2026-05-23). */}
+              <TableCell>{t('auditLogs.col.description', 'Description')}</TableCell>
               <TableCell>{t('auditLogs.col.ip', 'Adresse IP')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
                   <CircularProgress size={20} />
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                <TableCell colSpan={4} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                   {t('auditLogs.empty', 'Aucun journal trouvé pour ces critères.')}
                 </TableCell>
               </TableRow>
@@ -310,14 +361,12 @@ export default function AuditLogsPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {row.action ? (
-                      <Chip size="small" label={row.action} color={actionChipColor(row.action)} variant="outlined" />
-                    ) : (
-                      '—'
-                    )}
-                  </TableCell>
-                  <TableCell sx={{ fontFamily: 'monospace', fontSize: 12 }}>
-                    {row.tableName ?? '—'}
+                    <Chip
+                      size="small"
+                      label={describeAction(row.action, row.tableName)}
+                      color={actionChipColor(row.action)}
+                      variant="outlined"
+                    />
                   </TableCell>
                   <TableCell sx={{ fontFamily: 'monospace', fontSize: 12 }}>
                     {row.ipAddress ?? '—'}

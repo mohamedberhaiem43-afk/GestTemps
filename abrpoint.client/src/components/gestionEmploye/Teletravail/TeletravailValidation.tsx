@@ -77,7 +77,10 @@ export default function TeletravailValidation() {
     } finally {
       setLoading(false);
     }
-  }, [filter, feedback]);
+    // `feedback` exclu volontairement — cf. note dans DemandeAbsenceModern.tsx
+    // (boucle infinie de GET sinon, le hook recrée son objet à chaque render).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   useEffect(() => { reload(); }, [reload]);
 

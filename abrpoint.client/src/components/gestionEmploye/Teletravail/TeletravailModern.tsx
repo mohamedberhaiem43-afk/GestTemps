@@ -69,7 +69,10 @@ export default function TeletravailModern() {
     } finally {
       setLoading(false);
     }
-  }, [feedback]);
+    // `feedback` exclu volontairement — cf. note dans DemandeAbsenceModern.tsx
+    // (boucle infinie de GET sinon, le hook recrée son objet à chaque render).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => { reload(); }, [reload]);
 

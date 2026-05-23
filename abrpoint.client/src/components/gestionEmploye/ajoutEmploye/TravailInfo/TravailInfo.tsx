@@ -72,11 +72,11 @@ const TravailInfo = ({
         </Grid>
         <Grid item xs={2}>
         <FormControl variant="standard" fullWidth>
-        <InputLabel  shrink id="employe-label">{t('employe.work.branch') || 'Filiale'}</InputLabel>
+        <InputLabel  shrink id="employe-label">{t('employe.work.branch') || 'Site'}</InputLabel>
         <Select
               fullWidth
               size="small"
-              label={t('employe.work.branch') || 'Filiale'}
+              label={t('employe.work.branch') || 'Site'}
               name="sitcod"
               value={formData.sitcod}
               onChange={handleChange}

@@ -40,7 +40,7 @@
     "direction": "Direction",
     "service": "Service",
     "section": "Section",
-    "branch": "Filiale",
+    "branch": "Site",
     "country": "Pays",
     "city": "Ville",
     "function": "Fonction",
@@ -261,7 +261,7 @@
       "regime": "Régime",
       "hourly": "Horaire",
       "monthly": "Mensuelle",
-      "branch": "Filiale",
+      "branch": "Site",
       "charge": "Charge",
       "direct": "Directe",
       "indirect": "Indirecte",
@@ -381,8 +381,8 @@
     "addErrorService": "Erreur lors de l'ajout du service",
     "addedSchedule": "Classe horaire ajoutée avec succès",
     "addErrorSchedule": "Erreur lors de l'ajout de la classe horaire",
-    "addedBranch": "Filiale ajoutée avec succès",
-    "addErrorBranch": "Erreur lors de l'ajout de la filiale",
+    "addedBranch": "Site ajouté avec succès",
+    "addErrorBranch": "Erreur lors de l'ajout du site",
     "addedCity": "Ville ajoutée avec succès",
     "addErrorCity": "Erreur lors de l'ajout de la ville",
     "addedCountry": "Pays ajouté avec succès",
@@ -437,7 +437,7 @@
       "regime": "Régime",
       "monthly": "Mensuelle",
       "hourly": "Horaire",
-      "branchSite": "Filiale (Site)",
+      "branchSite": "Site",
       "service": "Service",
       "timeClass": "Classe Horaire",
       "outOfRange": "(hors plage active)",
@@ -477,7 +477,7 @@
       "ville": "Nouvelle Ville",
       "villeCodeHint": "Code numérique (ex. 75001)",
       "pays": "Nouveau Pays",
-      "filiale": "Nouvelle Filiale",
+      "filiale": "Nouveau Site",
       "service": "Nouveau Service",
       "classeHoraire": "Nouvelle Classe Horaire",
       "fonction": "Nouvelle Fonction",
@@ -499,7 +499,7 @@
     "email": "Email",
     "password": "Mot de passe",
     "company": "Société",
-    "site": "Filiale / Site",
+    "site": "Site",
     "button": "Connecter",
     "requiredError": "Veuillez remplir tous les champs obligatoires",
     "loginError": "Échec de la connexion. Vérifiez vos identifiants.",
@@ -705,8 +705,8 @@
     "filters": {
       "employees": "Employés",
       "selectedCount": "{{count}} sélectionné(s)",
-      "branch": "Filiale",
-      "allBranches": "Toutes les filiales",
+      "branch": "Site",
+      "allBranches": "Tous les sites",
       "service": "Service",
       "myService": "Mon service",
       "allServices": "Tous les services",
@@ -1487,7 +1487,7 @@
     "editTitle": "Modifier le Contrat",
     "newTitle": "Nouveau Contrat",
     "company": "Société",
-    "branchSite": "Filiale / Site",
+    "branchSite": "Site",
     "selectPlaceholder": "Sélectionner...",
     "employee": "Employé",
     "selectEmployeePlaceholder": "Sélectionner un employé...",
@@ -1560,7 +1560,7 @@
       "optimisation": "Optimisation pointage (journée)"
     },
   "filters": {
-    "branch": "Filiale",
+    "branch": "Site",
     "service": "Service",
     "regime": "Régime",
     "employees": "Employés",
@@ -2341,16 +2341,16 @@
       "importExcel": "Importer Excel"
     },
     "filiale": {
-      "noConsultRight": "Vous n'avez pas le droit de consulter les filiales.",
-      "heading": "Gestion des Filiales",
-      "subtitle": "Configurer les sites et filiales de votre société",
+      "noConsultRight": "Vous n'avez pas le droit de consulter les sites.",
+      "heading": "Gestion des Sites",
+      "subtitle": "Configurer les sites de votre société",
       "saving": "Enregistrement...",
-      "tableTitle": "Portefeuille des Filiales ({{count}})",
-      "noResults": "Aucune filiale enregistrée.",
-      "footerCount": "Affichage de {{count}} filiales",
-      "deleteConfirm": "Supprimer cette filiale ?",
-      "msgUpdated": "Filiale mise à jour.",
-      "msgAdded": "Filiale ajoutée.",
+      "tableTitle": "Portefeuille des Sites ({{count}})",
+      "noResults": "Aucun site enregistré.",
+      "footerCount": "Affichage de {{count}} sites",
+      "deleteConfirm": "Supprimer ce site ?",
+      "msgUpdated": "Site mis à jour.",
+      "msgAdded": "Site ajouté.",
       "codeRequired": "Code et Libellé sont obligatoires.",
       "headers": {
         "name": "Nom",
@@ -2359,10 +2359,10 @@
         "hoursMonth": "Hrs/Mois"
       },
       "details": {
-        "titleEdit": "Détails de la filiale :",
-        "titleNew": "Nouvelle filiale",
-        "subEdit": "Modifiez les informations de la filiale sélectionnée.",
-        "subNew": "Renseignez les informations de la nouvelle filiale."
+        "titleEdit": "Détails du site :",
+        "titleNew": "Nouveau site",
+        "subEdit": "Modifiez les informations du site sélectionné.",
+        "subNew": "Renseignez les informations du nouveau site."
       },
       "card": {
         "identification": "Identification",
@@ -2371,8 +2371,8 @@
         "geofence": "Pointage Géolocalisé"
       },
       "field": {
-        "code": "Code Filiale",
-        "name": "Nom Filiale",
+        "code": "Code Site",
+        "name": "Nom Site",
         "address": "Adresse",
         "phone": "Téléphone",
         "fax": "Fax",
@@ -2444,7 +2444,7 @@
     "tableTitle": "Portefeuille des Sociétés",
     "filterByType": "Filtrer par type :",
     "all": "Toutes",
-    "branches": "Filiales",
+    "branches": "Sites",
     "groups": "Groupes",
     "headers": {
       "actions": "Actions",
@@ -2477,7 +2477,7 @@
     "type": {
       "siege": "Siège",
       "groupe": "Groupe",
-      "filiale": "Filiale"
+      "filiale": "Site"
     },
     "card": {
       "identification": "Identification",
@@ -2555,7 +2555,7 @@
       "export": "Exporter",
       "print": "Imprimer",
       "collaborators": "Collaborateurs",
-      "branch": "Filiale",
+      "branch": "Site",
       "service": "Service",
       "regime": "Régime",
       "regimeAll": "Tous",
@@ -2722,7 +2722,7 @@
   },
   "etats": {
     "filter": {
-      "branch": "Filiale",
+      "branch": "Site",
       "all": "Toutes",
       "service": "Service",
       "myService": "Mon service",
@@ -3737,7 +3737,7 @@
     "subtitle": "Gestion et suivi des congés du personnel",
     "yearLabel": "Année {{year}}",
     "filter": {
-      "filiale": "Filiale",
+      "filiale": "Site",
       "filialeAll": "Toutes",
       "service": "Service",
       "myService": "Mon service",
@@ -3757,7 +3757,7 @@
       "search": "RECHERCHE",
       "selectedLabel": "{{label}} — {{count}} employé(s) sélectionné(s)",
       "noEmpFilter": "Aucun employé actif ne correspond aux filtres.",
-      "noEmpFilterLong": "Aucun employe actif ne correspond aux filtres selectionnes. Selectionnez un employe ou ajustez la filiale, le service ou le regime.",
+      "noEmpFilterLong": "Aucun employe actif ne correspond aux filtres selectionnes. Selectionnez un employe ou ajustez le site, le service ou le regime.",
       "justifiedOptions": {
         "all": "Tous les types",
         "yes": "Justifiée",
@@ -4161,7 +4161,7 @@
       "password": "Mot de passe",
       "passwordPlaceholder": "••••••••",
       "company": "Société",
-      "site": "Site / Filiale",
+      "site": "Site",
       "selectPlaceholder": "Sélectionner...",
       "role": "Rôle",
       "requiredFields": "Veuillez remplir tous les champs obligatoires.",
@@ -4518,7 +4518,7 @@
     "pack": {
       "title": "Pack de Mise en Place",
       "tagline": "Gagnez un temps précieux et assurez un démarrage optimal sur Concorde-work-force",
-      "intro1": "Vous êtes un nouvel utilisateur de Concorde-work-force et vous souhaitez intégrer vos données existantes sans tracas ? Vous ouvrez une nouvelle filiale et avez besoin d'une configuration rapide et efficace ?",
+      "intro1": "Vous êtes un nouvel utilisateur de Concorde-work-force et vous souhaitez intégrer vos données existantes sans tracas ? Vous ouvrez un nouveau site et avez besoin d'une configuration rapide et efficace ?",
       "intro2": "Notre « Pack de Mise en Place » est la solution idéale pour vous !",
       "whatTitle": "Qu'est-ce que le Pack de Mise en Place Concorde-work-force ?",
       "whatBody": "Notre équipe de spécialistes Concorde-work-force prend en charge la configuration initiale de votre compte, vous permettant de vous concentrer pleinement sur votre cœur de métier. Nous vous accompagnons pas à pas pour paramétrer votre environnement Concorde-work-force selon vos besoins spécifiques.",
@@ -4529,7 +4529,7 @@
           "body": "Simplifiez l'importation des données de votre ancien outil (entreprises, employés, etc.) et assurez une transition fluide."
         },
         "branch": {
-          "title": "Ouverture d'une nouvelle filiale",
+          "title": "Ouverture d'un nouveau site",
           "body": "Configurez rapidement et efficacement votre nouvel espace Concorde-work-force."
         },
         "expert": {
@@ -4540,7 +4540,7 @@
       "includesTitle": "Ce que notre Pack de Mise en Place peut comprendre",
       "includesNote": "Sur-mesure selon votre devis — nous adaptons le périmètre à votre contexte.",
       "includes": {
-        "import": "Importation de vos données existantes (sociétés, filiales, employés, contrats, soldes de congés)",
+        "import": "Importation de vos données existantes (sociétés, sites, employés, contrats, soldes de congés)",
         "calendar": "Paramétrage du calendrier (jours fériés, repos hebdomadaires, conventions collectives)",
         "rules": "Configuration des règles de pointage, classes horaires et postes de travail",
         "users": "Création des comptes utilisateurs et attribution des droits d'accès (RBAC)",
@@ -4634,7 +4634,7 @@
       },
       "multi": {
         "title": "Multi-société, multi-site",
-        "text": "Une seule installation pour piloter plusieurs entités juridiques, plusieurs sites et plusieurs filiales avec leurs propres calendriers et règles métier."
+        "text": "Une seule installation pour piloter plusieurs entités juridiques et plusieurs sites avec leurs propres calendriers et règles métier."
       }
     },
     "vision": {
@@ -4696,10 +4696,10 @@
       "importExcel": "Importer Excel"
     },
     "filiale": {
-      "editTitle": "✏️ Modifier la Filiale",
-      "newTitle": "➕ Nouvelle Filiale",
-      "code": "Code Filiale",
-      "name": "Nom Filiale",
+      "editTitle": "✏️ Modifier le Site",
+      "newTitle": "➕ Nouveau Site",
+      "code": "Code Site",
+      "name": "Nom Site",
       "phone": "Téléphone",
       "fax": "Fax",
       "address": "Adresse",
@@ -4714,8 +4714,8 @@
       "newBtn": "Nouveau",
       "cancel": "Annuler",
       "requiredFields": "Le code et le nom sont obligatoires.",
-      "saveSuccess": "Filiale enregistrée avec succès !",
-      "updateSuccess": "Filiale modifiée avec succès !",
+      "saveSuccess": "Site enregistré avec succès !",
+      "updateSuccess": "Site modifié avec succès !",
       "saveError": "Erreur lors de l'enregistrement.",
       "updateError": "Erreur lors de la modification.",
       "list": {
@@ -4728,7 +4728,7 @@
         "months": "Mois",
         "leaves": "Congés",
         "society": "Société",
-        "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette Filiale ?"
+        "confirmDelete": "Êtes-vous sûr de vouloir supprimer ce Site ?"
       }
     },
     "societe": {

@@ -226,7 +226,7 @@ function FilterPointageMois() {
         <Grid item xs={1.5}>
           {filiale && (
             <SelectInputComponent
-              label="Filiale"
+              label="Site"
               value={selectedFiliale ?? ""}
               setValue={setSelectedFiliale}
               maplist={filiale}

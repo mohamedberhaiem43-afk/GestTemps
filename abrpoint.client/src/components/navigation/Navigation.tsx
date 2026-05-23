@@ -47,10 +47,6 @@ const EtatPeriodiqueModern = React.lazy(() => import('../Pointeuse/EtatPeriodiqu
 const Utilisateur = React.lazy(() => import('../DonneeDeBase/Utilisteur/Utilisateur'));
 const DemCongeModern = React.lazy(() => import('../gestionEmploye/gestionConge/DemConge/DemCongeModern'));
 const DemandeAutorisationModern = React.lazy(() => import('../gestionEmploye/DemandeAutorisation/DemandeAutorisationModern'));
-const TeletravailModern = React.lazy(() => import('../gestionEmploye/Teletravail/TeletravailModern'));
-const TeletravailValidation = React.lazy(() => import('../gestionEmploye/Teletravail/TeletravailValidation'));
-const DemandeAbsenceModern = React.lazy(() => import('../gestionEmploye/DemandeAbsence/DemandeAbsenceModern'));
-const DemandeAbsenceValidation = React.lazy(() => import('../gestionEmploye/DemandeAbsence/DemandeAbsenceValidation'));
 const SoldeCongeModern = React.lazy(() => import('../gestionEmploye/gestionConge/SoldeConge/SoldeCongeModern'));
 const SoldeCongeAdmin = React.lazy(() => import('../gestionEmploye/gestionConge/SoldeConge/SoldeCongeAdmin'));
 const TitreConge = React.lazy(() => import('../gestionEmploye/gestionConge/TitreConge/TitreConge'));
@@ -82,10 +78,6 @@ const AdminVaultModern = React.lazy(() => import('../gestionEmploye/Vault/AdminV
 const ContractBuilderModern = React.lazy(() => import('../gestionEmploye/Vault/ContractBuilderModern'));
 const DocumentsModern = React.lazy(() => import('../Rag/Documents/DocumentsModern'));
 const RagAuditTable = React.lazy(() => import('../Rag/Audit/RagAuditTable'));
-const AuditLogsPage = React.lazy(() => import('../Admin/AuditLogs/AuditLogsPage'));
-const RetentionPolicyPage = React.lazy(() => import('../Admin/Retention/RetentionPolicyPage'));
-const ProcessingNoticePage = React.lazy(() => import('../Admin/ProcessingNotice/ProcessingNoticePage'));
-const GeolocationPolicyPage = React.lazy(() => import('../Admin/Geolocation/GeolocationPolicyPage'));
 const LetterTemplatesModern = React.lazy(() => import('../Rag/Letters/LetterTemplatesModern'));
 const SignaturePage = React.lazy(() => import('../gestionEmploye/Vault/SignaturePage'));
 const PlanUpgradePage = React.lazy(() => import('../Pricing/PlanUpgradePage'));
@@ -208,10 +200,6 @@ const useNavigationItems = (): NavGroup[] => {
     'contrat': 'Contrats et Avenants',
     'allaitement': 'Gestion Employés',
     'gestion-de-conge': 'Demande de Congé',
-    'teletravail': 'Demande de Télétravail',
-    'validation-teletravail': 'Absences et Sanctions',
-    'demande-absence': 'Demande d\'absence',
-    'validation-absence': 'Absences et Sanctions',
     'gestion-de-solde': 'Gestion des Congés',
     'affectation-solde': 'Gestion des Congés',
     'titre-de-conge': 'Gestion des Congés',
@@ -247,10 +235,6 @@ const useNavigationItems = (): NavGroup[] => {
     'documents': 'Administration',
     'courriers': 'Administration',
     'rag-audit': 'Administration',
-    'audit-logs': 'Administration',
-    'retention-rgpd': 'Administration',
-    'notice-rgpd': 'Administration',
-    'geolocation-rgpd': 'Administration',
   };
 
   const canSee = (segment: string) => {
@@ -276,14 +260,8 @@ const useNavigationItems = (): NavGroup[] => {
         items: [
           ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
           ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
-          // Télétravail : gating cohérent avec leaveManagement (workflow demande/validation
-          // ouvert dans tous les packs depuis 2026-05-12). Cf. TeletravailController.
-          ...(planAllows('leaveManagement') ? [{ label: t('navigation.remoteWorkRequest', 'Demande de Télétravail'), href: '/dashboard/teletravail', icon: Home }] : []),
-          // Demande d'absence avec justificatif : même gating que Teletravail.
-          // Workflow distinct de leaveRequest car ponctuel + nécessite document.
-          ...(planAllows('leaveManagement') ? [{ label: t('navigation.absenceRequest', "Demande d'absence"), href: '/dashboard/demande-absence', icon: CalendarX }] : []),
           ...(planAllows('missions') ? [{ label: t('navigation.myMissions'), href: '/dashboard/missions', icon: Briefcase }] : []),
-          ...(planAllows('expenseReports') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
+          { label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt },
           ...(planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
           { label: t('navigation.profile'), href: '/dashboard/profile', icon: CircleUser },
           ...(planAllows('digitalVault') ? [{ label: t('navigation.myVault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
@@ -337,11 +315,11 @@ const useNavigationItems = (): NavGroup[] => {
       items: [
         ...(canSee('gestion-employe') ? [{ label: t('navigation.employeeManagement'), href: '/dashboard/gestion-employe', icon: Users }] : []),
         ...(canSee('profil-employe') ? [{ label: t('navigation.employeeProfile'), href: '/dashboard/profil-employe', icon: User }] : []),
-        ...(canSee('contrat') && planAllows('contractManagement') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat', icon: FileText }] : []),
+        ...(canSee('contrat') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat', icon: FileText }] : []),
         ...(planAllows('missions') ? [{ label: t('navigation.missions'), href: '/dashboard/missions', icon: Briefcase }] : []),
         // Renouvellement de contrat : intégré directement dans la liste des contrats (bouton
         // "Renouveler" par ligne) et dans le dashboard (KPI échéance contrat → dialog).
-        ...(canSee('allaitement') && planAllows('breastfeedingManagement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
+        ...(canSee('allaitement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
         ...(canSee('coffre-fort') && planAllows('digitalVault') ? [{ label: t('navigation.vault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
         ...(canSee('admin-vault') && planAllows('digitalVault') ? [{ label: t('navigation.vaultGlobalView'), href: '/dashboard/admin-vault', icon: Eye }] : []),
       ],
@@ -364,7 +342,7 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
         ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
         ...(canSee('titre-de-conge-general') && planAllows('generalLeave') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
-        ...(canSee('remboursement') && planAllows('expenseReports') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
+        ...(canSee('remboursement') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
         ...(isAdminEffective ? [{ label: t('navigation.balanceAllocation'), href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
         ...(isAdminEffective ? [{ label: t('navigation.timeSavingAccount'), href: '/dashboard/cet', icon: CalendarCheck }] : []),
       ],
@@ -378,16 +356,6 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('autorisation-de-sortie') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorization'), href: '/dashboard/autorisation-de-sortie', icon: Timer }] : []),
         ...(canSee('autorisation-de-sortie-generale') && planAllows('generalExit') ? [{ label: t('navigation.generalExit'), href: '/dashboard/autorisation-de-sortie-generale', icon: Timer }] : []),
         ...(canSee('demande-autorisation') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
-        // Validation télétravail — admin/manager uniquement (côté employé,
-        // l'entrée « Demande de télétravail » vit dans Mon espace). Visible
-        // dans le même groupe que les autres validations RH pour cohérence UX.
-        ...((isAdminEffective || isManager) && planAllows('leaveManagement')
-          ? [{ label: t('navigation.remoteWorkValidation', 'Validation Télétravail'), href: '/dashboard/validation-teletravail', icon: Home }]
-          : []),
-        // Validation des demandes d'absence — admin/manager uniquement.
-        ...((isAdminEffective || isManager) && planAllows('leaveManagement')
-          ? [{ label: t('navigation.absenceValidation', "Validation des absences"), href: '/dashboard/validation-absence', icon: CalendarX }]
-          : []),
         // Validation heures sup. — admin/manager uniquement (les employés n'ont
         // pas accès à ce groupe car la nav "Demandes et validations" est filtrée
         // plus haut sur isEmp). Stocké dans la table autoriser avec marker
@@ -460,25 +428,9 @@ const useNavigationItems = (): NavGroup[] => {
         // Affectation site → utilisateur (table Socuser). Visible admin only.
         { label: t('navigation.siteAccess', "Droits d'accès par site"), href: '/dashboard/droit-acces-site', icon: ShieldCheck },
         { label: t('navigation.contractTemplates'), href: '/dashboard/template-builder', icon: FileText },
-        // Documents juridiques : stockés dans le coffre numérique (DocumentVaultService),
-        // donc gating cohérent avec la feature DigitalVault (Standard+).
-        ...(planAllows('digitalVault') ? [{ label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText }] : []),
-        // Modèles de courrier : couplés à la génération assistée RAG/IA.
-        // Sur Starter (RagAi=false) l'entrée est masquée ; le backend renvoie 402 si bypass.
-        ...(planAllows('ragAi') ? [{ label: t('navigation.letterTemplates'), href: '/dashboard/courriers', icon: FileText }] : []),
+        { label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText },
+        { label: t('navigation.letterTemplates'), href: '/dashboard/courriers', icon: FileText },
         ...(planAllows('ragAi') ? [{ label: t('navigation.ragAudit'), href: '/dashboard/rag-audit', icon: History }] : []),
-        // Journaux d'audit : visible aux admins ET gaté par le plan (Standard+).
-        // Pour les managers, on l'ajoute via un groupe séparé plus bas (même gating).
-        ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.auditLogs', "Journaux d'audit"), href: '/dashboard/audit-logs', icon: History }] : []),
-        // Politique de rétention RGPD : strictement admin (responsable de traitement).
-        { label: t('navigation.retentionPolicy', "Rétention RGPD"), href: '/dashboard/retention-rgpd', icon: Shield },
-        // Notice d'information RGPD (art. 13) — texte affiché aux salariés.
-        { label: t('navigation.processingNotice', "Notice RGPD"), href: '/dashboard/notice-rgpd', icon: Gavel },
-        // Politique de géolocalisation (sous-finalités + plages horaires).
-        // Pas de raison de configurer une politique géoloc si le pack n'inclut pas
-        // la feature Geolocation — on masque l'entrée sur Starter pour éviter la
-        // confusion (et le backend renvoie 402 si bypass via URL directe).
-        ...(planAllows('geolocation') ? [{ label: t('navigation.geolocationPolicy', "Géolocalisation RGPD"), href: '/dashboard/geolocation-rgpd', icon: Eye }] : []),
         { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
         { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
         // Lien Chatbot retiré du sidebar : l'assistant reste accessible via le bouton flottant
@@ -498,18 +450,6 @@ const useNavigationItems = (): NavGroup[] => {
       items: [
         { label: t('navigation.subscription', 'Abonnement'), href: '/dashboard/mon-abonnement', icon: Wallet },
         { label: t('navigation.concordeInvoices', 'Factures Concorde'), href: '/dashboard/factures-concorde', icon: Receipt },
-      ],
-    }] : []),
-    // Journaux d'audit : pour les managers (sans utiadm), on les expose dans un
-    // mini-groupe dédié vu qu'ils n'ont pas la section "Administration" complète.
-    // Les admins voient l'entrée dans Administration (cf. block plus haut). Même
-    // gating plan que les admins — masqué sur Starter.
-    ...(isManager && !isAdminEffective && planAllows('advancedAuditLogs') ? [{
-      label: t('navigation.auditLogs', "Journaux d'audit"),
-      href: '/dashboard/audit-logs',
-      icon: History,
-      items: [
-        { label: t('navigation.auditLogs', "Journaux d'audit"), href: '/dashboard/audit-logs', icon: History },
       ],
     }] : []),
   ];
@@ -533,9 +473,9 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
   let content: React.ReactNode;
 
   switch (pathname) {
-    // Landing publique : nouvelle homepage marketing (HomePage).
-    // 2026-05-23 : PricingPage (anciennement /dashboard/pricing) supprimée.
-    // L'utilisateur connecté gère son plan via /dashboard/mon-abonnement.
+    // Landing publique : nouvelle homepage marketing (HomePage). PricingPage reste
+    // accessible via /dashboard/pricing pour les utilisateurs authentifiés qui veulent
+    // changer de plan, mais la racine '/' sert désormais la maquette commerciale.
     case '/': content = <HomePage />; break;
     case '/about': content = <AboutPage />; break;
     case '/login': content = <CredentialsSignInPage />; break;
@@ -584,10 +524,6 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/intitule-des-absences': content = <IntituleDesAbsencesModern />; break;
     case '/dashboard/absence-et-sanction': content = <AbsenceSanctionModern />; break;
     case '/dashboard/gestion-de-conge': content = <DemCongeModern />; break;
-    case '/dashboard/teletravail': content = <TeletravailModern />; break;
-    case '/dashboard/validation-teletravail': content = <TeletravailValidation />; break;
-    case '/dashboard/demande-absence': content = <DemandeAbsenceModern />; break;
-    case '/dashboard/validation-absence': content = <DemandeAbsenceValidation />; break;
     case '/dashboard/coffre-fort': content = <CoffreFortModern />; break;
     case '/dashboard/admin-vault': content = <AdminVaultModern />; break;
     case '/dashboard/titre-de-conge': content = <TitreConge />; break;
@@ -606,12 +542,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/documents': content = <DocumentsModern />; break;
     case '/dashboard/courriers': content = <LetterTemplatesModern />; break;
     case '/dashboard/rag-audit': content = <RagAuditTable />; break;
-    case '/dashboard/audit-logs': content = <AuditLogsPage />; break;
-    case '/dashboard/retention-rgpd': content = <RetentionPolicyPage />; break;
-    case '/dashboard/notice-rgpd': content = <ProcessingNoticePage />; break;
-    case '/dashboard/geolocation-rgpd': content = <GeolocationPolicyPage />; break;
     case '/dashboard/sign-document': content = <SignaturePage />; break;
-    // /dashboard/pricing retiré (2026-05-23) : géré via /dashboard/mon-abonnement.
     case '/dashboard/plan-configuration': content = <PlanConfigurationPage />; break;
     case '/dashboard/mon-abonnement': content = <MonAbonnementPage />; break;
     case '/dashboard/factures-concorde': content = <FacturesConcordePage />; break;
@@ -989,7 +920,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
     } else if (pathname === '/signup') {
       document.title = `Concorde Workforce | ${t('navigation.signupTitle')}`;
     } else if (pathname === '/') {
-      document.title = `Concorde Workforce`;
+      document.title = `Concorde Workforce | ${t('navigation.pricingTitle')}`;
     } else {
       document.title = `Concorde Workforce`;
     }
@@ -1141,17 +1072,11 @@ function DashboardLayoutAccount(_props: DemoProps) {
   }
 
   if (isPublicPage || isProfilePage) {
-    // HomePage embarque sa propre nav `position: fixed`. PageFade applique
-    // `transform` + `will-change` sur son wrapper — ce qui crée un containing
-    // block et casse le fixed positioning de la nav (elle se met à scroller
-    // avec la page au lieu de rester collée au viewport). On bypass donc
-    // PageFade pour la landing ; ses propres animations `.reveal` suffisent.
-    const routedContent = <DemoPageContent pathname={canonicalPathname} />;
     return (
       <>
-        {canonicalPathname === '/'
-          ? routedContent
-          : <PageFade routeKey={canonicalPathname}>{routedContent}</PageFade>}
+        <PageFade routeKey={canonicalPathname}>
+          <DemoPageContent pathname={canonicalPathname} />
+        </PageFade>
         {/* Assistant IA : réservé aux utilisateurs connectés ET au plan Premium
             (feature `RagAi` côté backend). Avant, on l'exposait sur la landing
             publique mais le backend renvoyait 401 ; depuis 2026-05-12 on ajoute

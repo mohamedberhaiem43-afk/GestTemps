@@ -42,8 +42,19 @@ namespace ABRPOINT.Server.Tests.CalculService
             _optimizer = new Mock<IPointageOptimizerService>();
         }
 
+        // Constructeur PresencesController étendu : ApplicationDbContext + dépendances
+        // optionnelles (IWebHostEnvironment, logger, validator, current tenant). On passe
+        // null pour les optionnelles ; les méthodes testées ici n'y touchent pas.
         private PresencesController NewPresenceCtrl() => new(
-            _presenceRepo.Object, _reportSvc.Object, _utilRepo.Object, _optimizer.Object);
+            _presenceRepo.Object,
+            _reportSvc.Object,
+            _utilRepo.Object,
+            _optimizer.Object,
+            new ApplicationDbContext(),
+            env: null!,
+            logger: null,
+            geoValidator: null,
+            currentTenant: null);
 
         private AbsencesController NewAbsenceCtrl() => new(
             _absenceRepo.Object, _reportSvc.Object, new ApplicationDbContext());

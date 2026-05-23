@@ -91,7 +91,15 @@ export default function DemandeAbsenceModern() {
     } finally {
       setLoading(false);
     }
-  }, [feedback]);
+    // ⚠️ `feedback` est volontairement omis des deps : useFeedbackSnackbar()
+    // retourne un nouvel objet à chaque render (l'élément Snackbar JSX dépend
+    // du state interne). L'inclure ici recrée `reload` à chaque render →
+    // useEffect ci-dessous re-fire → boucle infinie de GET /DemandeAbsence/me
+    // qui finit par 503er le backend (cf. incident 2026-05-23). Les méthodes
+    // appelées (`showError`) sont elles-mêmes stables (useCallback côté hook),
+    // donc capturer une "vieille" référence ne change rien à leur comportement.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Chargement des types d'absence (réutilise l'endpoint existant — pas besoin
   // de dupliquer la liste côté nouveau modèle).

@@ -116,20 +116,28 @@ export default function CredentialsSignInPage() {
   const [tempUticod, setTempUticod] = useState('');
 
   const processLoginSuccess = async (data: any) => {
-    const { societe, Utiimg, socimg } = data;
+    // ⚠️ Bug 2026-05-23 — le backend ASP.NET Core sérialise en camelCase par
+    // défaut (cf. Program.cs:131 — aucun PropertyNamingPolicy custom). Les
+    // champs réels du payload sont `uticod`, `utiadm`, `utiimg` (et non
+    // `Uticod`/`Utiadm`/`Utiimg` comme le suggéraient les anciennes versions).
+    // Avant ce fix, la lecture en PascalCase renvoyait `undefined`, posait
+    // `uticod=null` dans le contexte → sessionStorage vidé → la garde
+    // AUTH_FREE_PATHS de refreshAuth re-déclenchait le mode déconnecté et
+    // l'utilisateur revenait sur /login après une connexion pourtant réussie.
+    const { societe, utiimg, socimg } = data;
 
-    if (Utiimg) localStorage.setItem('profileImage', Utiimg);
+    if (utiimg) localStorage.setItem('profileImage', utiimg);
     else localStorage.removeItem('profileImage');
 
     if (socimg) localStorage.setItem('societeImage', socimg);
     else localStorage.removeItem('societeImage');
     setAuthData({
-      soccod: societe.soccod,
-      sitcod: societe.sitcod,
+      soccod: societe?.soccod,
+      sitcod: societe?.sitcod,
       userName: data.utilib,
       soclib: data.soclib,
-      uticod: data.Uticod ?? null,
-      utiadm: data.Utiadm ?? null,
+      uticod: data.uticod ?? null,
+      utiadm: data.utiadm ?? null,
       isManager: data.isManager,
       isEmp: Boolean(data.isEmp),
     });

@@ -1,4 +1,5 @@
-﻿using ABRPOINT.Server.Dtaos;
+﻿using ABRPOINT.Server.Annotations.SocieteAttributes;
+using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Tenancy;
@@ -87,6 +88,7 @@ namespace ABRPOINT.Server.Controllers
 
         // POST api/Services
         [Authorize]
+        [CanAddSociete]
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Societe societe)
         {
@@ -129,6 +131,7 @@ namespace ABRPOINT.Server.Controllers
 
         // PUT api/Services/5
         [Authorize]
+        [CanUpdateSociete]
         [HttpPut]
         public async Task<IActionResult> Put([FromBody] Societe societe)
         {
@@ -170,6 +173,7 @@ namespace ABRPOINT.Server.Controllers
 
         // DELETE api/Services/{seccod}
         [Authorize]
+        [CanDeleteSociete]
         [HttpDelete("{soccod}")]
         public async Task<IActionResult> Delete(string soccod)
         {
