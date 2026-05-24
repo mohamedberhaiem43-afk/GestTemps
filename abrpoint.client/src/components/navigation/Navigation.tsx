@@ -351,8 +351,14 @@ const useNavigationItems = (): NavGroup[] => {
       icon: CalendarDays,
       items: [
         ...(canSee('gestion-de-conge') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
-        ...(canSee('demande-absence') ? [{ label: t('navigation.absenceRequest'), href: '/dashboard/demande-absence', icon: ClipboardList }] : []),
-        ...(canSee('demande-teletravail') ? [{ label: t('navigation.remoteWorkRequest'), href: '/dashboard/demande-teletravail', icon: Laptop }] : []),
+        // Les entrées "Demande d'absence" / "Demande de télétravail" sont des
+        // formulaires de SAISIE pour le collaborateur. L'admin n'en a pas
+        // besoin (il ne pose pas de demande pour lui-même via cet écran) :
+        // ses validations couvrent tout le flux. Cf. décision produit 2026-05.
+        // Les managers gardent l'accès aux deux : ils peuvent avoir besoin de
+        // poser leur propre demande tout en validant celles de leur équipe.
+        ...(!isAdminEffective && canSee('demande-absence') ? [{ label: t('navigation.absenceRequest'), href: '/dashboard/demande-absence', icon: ClipboardList }] : []),
+        ...(!isAdminEffective && canSee('demande-teletravail') ? [{ label: t('navigation.remoteWorkRequest'), href: '/dashboard/demande-teletravail', icon: Laptop }] : []),
         ...((isAdminEffective || isManager) && canSee('validation-absence') ? [{ label: t('navigation.absenceValidation'), href: '/dashboard/validation-absence', icon: CheckSquare }] : []),
         ...((isAdminEffective || isManager) && canSee('validation-teletravail') ? [{ label: t('navigation.remoteWorkValidation'), href: '/dashboard/validation-teletravail', icon: CheckSquare }] : []),
         ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),

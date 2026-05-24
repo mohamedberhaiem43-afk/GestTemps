@@ -356,6 +356,38 @@ namespace ABRPOINT.Server.Controllers
                         .Select(e => e.Sitcod)
                         .FirstOrDefaultAsync();
 
+                    // ─── Bypass télétravail approuvé ───
+                    // Exigence produit 2026-05 : un salarié avec une demande de
+                    // télétravail Approved couvrant la date du pointage doit
+                    // pouvoir pointer depuis n'importe quelle position (domicile
+                    // tiers, coworking…). On saute donc l'intégralité du contrôle
+                    // GPS, mais on log les coordonnées si fournies pour conserver
+                    // une trace anti-fraude (si un attaquant détourne le bypass,
+                    // les positions divergentes ressortent dans l'audit).
+                    //
+                    // Note : on n'utilise pas `stamp` car il est calculé plus bas
+                    // (ligne ~425). On recalcule la date du pointage avec la même
+                    // règle (clientTime ?? Now) pour rester cohérent.
+                    var pointageDate = (clientTime ?? DateTime.Now).Date;
+                    var hasApprovedTeletravail = await _db.Teletravails.AsNoTracking()
+                        .AnyAsync(t => t.Soccod == soccod
+                                    && t.Empcod == empcod
+                                    && t.Status == "Approved"
+                                    && t.StartDate.Date <= pointageDate
+                                    && t.EndDate.Date >= pointageDate);
+
+                    if (hasApprovedTeletravail)
+                    {
+                        _logger?.LogInformation(
+                            "Pointage GPS bypass (télétravail approuvé) — empcod={Empcod} soccod={Soccod} date={Date:yyyy-MM-dd} site={Sitcod} lat={Lat} lon={Lon} acc={Acc}m",
+                            empcod, soccod, pointageDate, empSitcod, lat, lon, acc);
+                        // Pas de check geofence — on tombe dans la suite du flux
+                        // (skew, dates contrat, AddPresence). Le pointage est
+                        // accepté quelle que soit la position.
+                    }
+                    else
+                    {
+
                     var configMode = _geoValidator.ConfiguredMode;
                     var siteHasGeofence = !string.IsNullOrEmpty(empSitcod)
                         && await _geoValidator.HasGeofenceForSiteAsync(soccod, empSitcod);
@@ -417,6 +449,8 @@ namespace ABRPOINT.Server.Controllers
                             "Clock-in GPS (no geofence on site {Sitcod}) soccod={Soccod} empcod={Empcod} lat={Lat} lon={Lon} acc={Acc}m",
                             empSitcod, soccod, empcod, lat, lon, acc);
                     }
+
+                    } // fin else !hasApprovedTeletravail — bypass télétravail au-dessus
                 }
 
                 // Si le mobile fournit un horodatage local, on s'en sert (DateTimeKind.Local

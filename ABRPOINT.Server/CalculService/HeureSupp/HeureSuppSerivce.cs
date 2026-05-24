@@ -158,6 +158,26 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     }
                 }
 
+                // ─── Déduction de la plage repas configurée sur le poste ───
+                // Exigence produit 2026-05 : les h.supp ne doivent JAMAIS inclure
+                // la plage repas, même si le salarié a continué de pointer dessus.
+                // L'overlap est calculé entre les intervalles de présence réelle
+                // et la fenêtre repas pour ce jour de la semaine ; on retire le
+                // minimum entre cet overlap et nbHeurSupp (clamp pour éviter de
+                // produire un négatif quand l'overlap dépasse les h.supp actuelles
+                // — ex. journée standard sans dépassement où l'employé a juste
+                // travaillé pendant sa pause).
+                var (repasStart, repasEnd) = GenericMethodes.GetRepasWindowWorkDay(presence.Dmdate, poste);
+                int lunchOverlapMin = GenericMethodes.ComputeLunchOverlapMinutes(
+                    presence.Preentmatup, presence.Presortmatup,
+                    presence.Preentamidiup, presence.Presortamidiup,
+                    presence.Preentasupup, presence.Presortsupup,
+                    repasStart, repasEnd);
+                if (lunchOverlapMin > 0)
+                {
+                    nbHeurSupp -= Math.Min(lunchOverlapMin, nbHeurSupp);
+                }
+
                 // Garde-fou : les H.Sup ne peuvent jamais excéder le temps réellement travaillé.
                 // Tothre est en "HH:mm" — ConvertHHmmToDouble retourne des heures décimales.
                 var totalWorkedHours = GenericMethodes.ConvertHHmmToDouble(presence.Tothre) ?? 0;
@@ -311,6 +331,18 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         int SupEvening = actualLeaveMinutes - overtimeStart;
                         if (SupEvening > 0) nbHeurSupp += SupEvening;
                     }
+                }
+
+                // Déduction plage repas (cf. note dans CalculateHeureSuppOptimise).
+                var (repasStart2, repasEnd2) = GenericMethodes.GetRepasWindowWorkDay(presence.Dmdate, poste);
+                int lunchOverlapMin2 = GenericMethodes.ComputeLunchOverlapMinutes(
+                    presence.Preentmatup, presence.Presortmatup,
+                    presence.Preentamidiup, presence.Presortamidiup,
+                    presence.Preentasupup, presence.Presortsupup,
+                    repasStart2, repasEnd2);
+                if (lunchOverlapMin2 > 0)
+                {
+                    nbHeurSupp -= Math.Min(lunchOverlapMin2, nbHeurSupp);
                 }
 
                 // Garde-fou : H.Sup ≤ temps réellement travaillé (Tothre).

@@ -270,6 +270,87 @@ namespace ABRPOINT.Helper
 
             return repas;
         }
+        /// <summary>
+        /// Renvoie la plage horaire de pause-déjeuner définie sur le poste pour
+        /// le jour de la date donnée (paires <c>lunhdrep</c>/<c>lunhfrep</c>,
+        /// <c>marhdrep</c>/<c>marhfrep</c>, etc.). Si l'une des deux bornes est
+        /// vide, on renvoie <c>(null, null)</c> — l'appelant interprète cela
+        /// comme « aucune plage repas configurée » et n'applique aucune déduction
+        /// (compat ascendante avec les postes existants).
+        /// </summary>
+        public static (string? Start, string? End) GetRepasWindowWorkDay(DateTime? date, Poste poste)
+        {
+            if (poste == null) return (null, null);
+            var dayOfWeek = date?.DayOfWeek ?? DateTime.Now.DayOfWeek;
+
+            (string? start, string? end) = dayOfWeek switch
+            {
+                DayOfWeek.Monday    => (poste.Lunhdrep, poste.Lunhfrep),
+                DayOfWeek.Tuesday   => (poste.Marhdrep, poste.Marhfrep),
+                DayOfWeek.Wednesday => (poste.Merhdrep, poste.Merhfrep),
+                DayOfWeek.Thursday  => (poste.Jeuhdrep, poste.Jeuhfrep),
+                DayOfWeek.Friday    => (poste.Venhdrep, poste.Venhfrep),
+                DayOfWeek.Saturday  => (poste.Samhdrep, poste.Samhfrep),
+                DayOfWeek.Sunday    => (poste.Dimhdrep, poste.Dimhfrep),
+                _ => (null, null)
+            };
+
+            return (start, end);
+        }
+
+        /// <summary>
+        /// Calcule le nombre de MINUTES de chevauchement entre les périodes de
+        /// présence d'un employé (matin / après-midi / heures sup) et la plage
+        /// de pause-déjeuner du poste pour le jour considéré.
+        ///
+        /// Renvoie 0 si la plage repas n'est pas configurée, si aucun pointage
+        /// n'est fourni, ou si les périodes ne se chevauchent pas (cas typique :
+        /// l'employé a effectivement pointé sa sortie pour le déjeuner, le gap
+        /// 12:00→13:00 n'est dans aucun intervalle de présence).
+        ///
+        /// Conséquence pour l'appelant : on peut soustraire ce résultat aussi
+        /// bien aux heures travaillées qu'aux heures supplémentaires sans risque
+        /// de double-décompte sur le cas « 4 pointages » (déjà naturellement
+        /// exclu) — la déduction n'a d'effet que sur le cas « 2 pointages »
+        /// (présence continue à travers la plage repas).
+        /// </summary>
+        public static int ComputeLunchOverlapMinutes(
+            string? ent1, string? sort1,
+            string? ent2, string? sort2,
+            string? ent3, string? sort3,
+            string? repasStart, string? repasEnd)
+        {
+            if (string.IsNullOrWhiteSpace(repasStart) || string.IsNullOrWhiteSpace(repasEnd))
+                return 0;
+
+            if (!TimeSpan.TryParse(repasStart, out var lunchStart)
+                || !TimeSpan.TryParse(repasEnd, out var lunchEnd))
+                return 0;
+
+            if (lunchEnd <= lunchStart) return 0;
+
+            int lunchStartMin = (int)lunchStart.TotalMinutes;
+            int lunchEndMin = (int)lunchEnd.TotalMinutes;
+
+            int totalOverlap = 0;
+            totalOverlap += OverlapMinutes(ent1, sort1, lunchStartMin, lunchEndMin);
+            totalOverlap += OverlapMinutes(ent2, sort2, lunchStartMin, lunchEndMin);
+            totalOverlap += OverlapMinutes(ent3, sort3, lunchStartMin, lunchEndMin);
+            return totalOverlap;
+        }
+
+        private static int OverlapMinutes(string? entry, string? exit, int lunchStartMin, int lunchEndMin)
+        {
+            if (string.IsNullOrWhiteSpace(entry) || string.IsNullOrWhiteSpace(exit)) return 0;
+            if (!TimeSpan.TryParse(entry, out var e) || !TimeSpan.TryParse(exit, out var s)) return 0;
+            int entryMin = (int)e.TotalMinutes;
+            int exitMin = (int)s.TotalMinutes;
+            if (exitMin <= entryMin) return 0;
+            int overlapStart = Math.Max(entryMin, lunchStartMin);
+            int overlapEnd = Math.Min(exitMin, lunchEndMin);
+            return Math.Max(0, overlapEnd - overlapStart);
+        }
+
         public static float? GetDoucheWorkDay(DateTime? date, Poste poste)
         {
             var dayOfWeek = date?.DayOfWeek ?? DateTime.Now.DayOfWeek;

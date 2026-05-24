@@ -1,6 +1,8 @@
 using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Services;
 using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,11 +34,24 @@ public class TeletravailController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
     private readonly ILogger<TeletravailController> _log;
+    // Notifications best-effort : un push/email qui échoue ne doit jamais
+    // faire retomber l'action métier sur "Impossible de créer la demande"
+    // alors que la ligne est bien persistée. Champs nullable + try/catch
+    // autour de chaque appel — pattern repris d'AutorisersController et
+    // DemCongesController.
+    private readonly IUserNotificationService? _notify;
+    private readonly IEmailService? _email;
 
-    public TeletravailController(ApplicationDbContext db, ILogger<TeletravailController> log)
+    public TeletravailController(
+        ApplicationDbContext db,
+        ILogger<TeletravailController> log,
+        IUserNotificationService? notify = null,
+        IEmailService? email = null)
     {
         _db = db;
         _log = log;
+        _notify = notify;
+        _email = email;
     }
 
     // ───────────────────────────────────────────────────────────────────────
@@ -136,6 +151,32 @@ public class TeletravailController : ControllerBase
         _db.Teletravails.Add(entity);
         await _db.SaveChangesAsync(ct);
 
+        // ─── Notification managers/admins (best-effort) ───
+        // On notifie ceux qui peuvent valider qu'une nouvelle demande arrive.
+        // Pas d'email côté managers (trop spammy en cas de pic de demandes) :
+        // push/in-app seulement. L'email part lors de la décision côté employé.
+        try
+        {
+            if (_notify != null)
+            {
+                var who = await _db.Employes.AsNoTracking()
+                    .Where(e => e.Soccod == entity.Soccod && e.Empcod == entity.Empcod)
+                    .Select(e => e.Emplib)
+                    .FirstOrDefaultAsync(ct) ?? entity.Empcod ?? "Un collaborateur";
+                var period = entity.StartDate.Date == entity.EndDate.Date
+                    ? entity.StartDate.ToString("dd/MM/yyyy")
+                    : $"{entity.StartDate:dd/MM/yyyy} → {entity.EndDate:dd/MM/yyyy}";
+                _ = _notify.NotifyManagersAsync(
+                    "🏠 Demande de télétravail à valider",
+                    $"{who} demande le télétravail du {period}.",
+                    new { type = "teletravail_request_created", id = entity.Id, soccod = entity.Soccod });
+            }
+        }
+        catch (Exception notifyEx)
+        {
+            _log.LogWarning(notifyEx, "Teletravail.Create — notification managers ignorée (record sauvegardé).");
+        }
+
         return Ok(await ProjectAsync(entity.Id, ct));
     }
 
@@ -163,6 +204,28 @@ public class TeletravailController : ControllerBase
         entity.DecidedAt = DateTime.UtcNow;
         entity.DecidedBy = caller;
         await _db.SaveChangesAsync(ct);
+
+        // Courtoisie : on prévient les managers que la demande qu'ils avaient
+        // peut-être dans leur file "à valider" a disparu. Évite qu'ils ouvrent
+        // l'écran de validation pour découvrir une demande déjà annulée.
+        try
+        {
+            if (_notify != null)
+            {
+                var period = entity.StartDate.Date == entity.EndDate.Date
+                    ? entity.StartDate.ToString("dd/MM/yyyy")
+                    : $"{entity.StartDate:dd/MM/yyyy} → {entity.EndDate:dd/MM/yyyy}";
+                _ = _notify.NotifyManagersAsync(
+                    "🏠 Demande de télétravail annulée",
+                    $"La demande du {period} a été annulée par le collaborateur.",
+                    new { type = "teletravail_request_cancelled", id = entity.Id, soccod = entity.Soccod });
+            }
+        }
+        catch (Exception notifyEx)
+        {
+            _log.LogWarning(notifyEx, "Teletravail.Cancel — notification managers ignorée.");
+        }
+
         return Ok(await ProjectAsync(entity.Id, ct));
     }
 
@@ -240,7 +303,89 @@ public class TeletravailController : ControllerBase
         entity.DecidedAt = DateTime.UtcNow;
         entity.DecisionComment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
         await _db.SaveChangesAsync(ct);
+
+        // ─── Notification employé : push/in-app + email best-effort ───
+        // Pattern aligné sur AutorisersController.HandleOvertimeDecisionAsync.
+        // Tous les envois sont fail-silent : l'action métier est déjà persistée
+        // et un échec downstream (provider push down, SMTP en rade) ne doit
+        // pas renvoyer 5xx au front qui invaliderait son cache de demandes.
+        try
+        {
+            var employee = await _db.Employes.AsNoTracking()
+                .Where(e => e.Soccod == entity.Soccod && e.Empcod == entity.Empcod)
+                .Select(e => new { e.Emplib, e.Empemail })
+                .FirstOrDefaultAsync(ct);
+
+            var period = entity.StartDate.Date == entity.EndDate.Date
+                ? entity.StartDate.ToString("dd/MM/yyyy")
+                : $"{entity.StartDate:dd/MM/yyyy} → {entity.EndDate:dd/MM/yyyy}";
+
+            // 1. Push + centre de notifications
+            if (_notify != null && !string.IsNullOrEmpty(entity.Empcod))
+            {
+                var title = accept ? "✅ Télétravail validé" : "❌ Télétravail refusé";
+                var bodyText = accept
+                    ? $"Votre demande du {period} a été validée."
+                        + (string.IsNullOrWhiteSpace(entity.DecisionComment) ? "" : $" Note : {entity.DecisionComment}")
+                    : $"Votre demande du {period} a été refusée. Motif : {entity.DecisionComment}";
+                _ = _notify.NotifyUserAsync(entity.Empcod, title, bodyText,
+                    new { type = accept ? "teletravail_request_approved" : "teletravail_request_rejected", id = entity.Id, soccod = entity.Soccod });
+            }
+
+            // 2. Email — seulement si l'employé a un Empemail valide. Échec silencieux.
+            if (_email != null && !string.IsNullOrWhiteSpace(employee?.Empemail))
+            {
+                try
+                {
+                    var subject = accept
+                        ? "Votre demande de télétravail a été validée"
+                        : "Votre demande de télétravail a été refusée";
+                    var html = BuildTeletravailDecisionEmail(
+                        employeeName: employee.Emplib ?? entity.Empcod ?? "",
+                        approved: accept,
+                        period: period,
+                        reason: entity.Reason,
+                        commentaire: entity.DecisionComment);
+                    await _email.SendEmailAsync(employee.Empemail!, subject, html);
+                }
+                catch (Exception emailEx)
+                {
+                    _log.LogWarning(emailEx, "Email de notification télétravail non envoyé — id={Id} empcod={Empcod}", entity.Id, entity.Empcod);
+                }
+            }
+        }
+        catch (Exception notifyEx)
+        {
+            _log.LogWarning(notifyEx, "Teletravail.DecideAsync — notification employé ignorée (record sauvegardé).");
+        }
+
         return Ok(await ProjectAsync(entity.Id, ct));
+    }
+
+    /// <summary>Email HTML simple aligné stylistiquement sur BuildOvertimeDecisionEmail
+    /// (cf. AutorisersController). À factoriser dans EmailTemplates.cs si un 3e
+    /// flux gagne le même mail de décision.</summary>
+    private static string BuildTeletravailDecisionEmail(string employeeName, bool approved, string period, string? reason, string? commentaire)
+    {
+        var statusLabel = approved ? "validée" : "refusée";
+        var statusColor = approved ? "#16a34a" : "#dc2626";
+        var statusIcon = approved ? "✅" : "❌";
+        var commentaireBlock = string.IsNullOrWhiteSpace(commentaire)
+            ? ""
+            : $"<p style='margin:12px 0;padding:12px;background:#f8fafc;border-left:3px solid {statusColor};border-radius:4px;'><strong>{(approved ? "Note du validateur" : "Motif du refus")} :</strong><br>{System.Net.WebUtility.HtmlEncode(commentaire)}</p>";
+
+        return $@"<!DOCTYPE html>
+<html><body style='font-family:Arial,Helvetica,sans-serif;color:#1e293b;max-width:560px;margin:0 auto;padding:24px;'>
+  <h2 style='color:{statusColor};margin:0 0 16px;'>{statusIcon} Demande de télétravail {statusLabel}</h2>
+  <p>Bonjour {System.Net.WebUtility.HtmlEncode(employeeName)},</p>
+  <p>Votre demande de télétravail a été <strong style='color:{statusColor};'>{statusLabel}</strong>.</p>
+  <table style='width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;'>
+    <tr><td style='padding:8px;border-bottom:1px solid #e2e8f0;color:#64748b;'>Période</td><td style='padding:8px;border-bottom:1px solid #e2e8f0;'><strong>{System.Net.WebUtility.HtmlEncode(period)}</strong></td></tr>
+    <tr><td style='padding:8px;color:#64748b;'>Motif</td><td style='padding:8px;'>{System.Net.WebUtility.HtmlEncode(reason ?? "—")}</td></tr>
+  </table>
+  {commentaireBlock}
+  <p style='margin-top:24px;font-size:12px;color:#94a3b8;'>Concorde Workly — Notification automatique</p>
+</body></html>";
     }
 
     // ───────────────────────────────────────────────────────────────────────

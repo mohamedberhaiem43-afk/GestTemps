@@ -22,13 +22,13 @@ import OnboardingNextStepHint from "../Dashboard/OnboardingNextStepHint";
 import "./PosteTravailModern.css";
 
 const emptySchedule = [
-  { jour: 'Lundi', prefix: 'lun', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0" },
-  { jour: 'Mardi', prefix: 'mar', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0" },
-  { jour: 'Mercredi', prefix: 'mer', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0" },
-  { jour: 'Jeudi', prefix: 'jeu', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0" },
-  { jour: 'Vendredi', prefix: 'ven', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0" },
-  { jour: 'Samedi', prefix: 'sam', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "1" },
-  { jour: 'Dimanche', prefix: 'dim', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "1" },
+  { jour: 'Lundi', prefix: 'lun', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0", repasDeb: "", repasFin: "" },
+  { jour: 'Mardi', prefix: 'mar', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0", repasDeb: "", repasFin: "" },
+  { jour: 'Mercredi', prefix: 'mer', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0", repasDeb: "", repasFin: "" },
+  { jour: 'Jeudi', prefix: 'jeu', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0", repasDeb: "", repasFin: "" },
+  { jour: 'Vendredi', prefix: 'ven', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "0", repasDeb: "", repasFin: "" },
+  { jour: 'Samedi', prefix: 'sam', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "1", repasDeb: "", repasFin: "" },
+  { jour: 'Dimanche', prefix: 'dim', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "1", repasDeb: "", repasFin: "" },
 ];
 
 export default function PosteTravailModern() {
@@ -77,13 +77,13 @@ export default function PosteTravailModern() {
       }));
       
       setScheduleData([
-        { jour: 'Lundi', prefix: 'lun', DebEntree: poste.lunhdematin, Entrée: poste.lunhdmat, FinEntree: poste.lunhfematin, Sortie: poste.lunhfmat, DebEntree2: poste.lunhdeamidi, Entree2: poste.lunhdam, Sortie2: poste.lunhfam, FinEntree2: poste.lunhfeamidi, repasBonus: poste.lunrepas, repos: poste.lunrepos },
-        { jour: 'Mardi', prefix: 'mar', DebEntree: poste.marhdematin, Entrée: poste.marhdmat, FinEntree: poste.marhfematin, Sortie: poste.marhfmat, DebEntree2: poste.marhdeamidi, Entree2: poste.marhdam, Sortie2: poste.marhfam, FinEntree2: poste.marhfeamidi, repasBonus: poste.marrepas, repos: poste.marrepos },
-        { jour: 'Mercredi', prefix: 'mer', DebEntree: poste.merhdematin, Entrée: poste.merhdmat, FinEntree: poste.merhfematin, Sortie: poste.merhfmat, DebEntree2: poste.merhdeamidi, Entree2: poste.merhdam, Sortie2: poste.merhfam, FinEntree2: poste.merhfeamidi, repasBonus: poste.merrepas, repos: poste.merrepos },
-        { jour: 'Jeudi', prefix: 'jeu', DebEntree: poste.jeuhdematin, Entrée: poste.jeuhdmat, FinEntree: poste.jeuhfematin, Sortie: poste.jeuhfmat, DebEntree2: poste.jeuhdeamidi, Entree2: poste.jeuhdam, Sortie2: poste.jeuhfam, FinEntree2: poste.jeuhfeamidi, repasBonus: poste.jeurepas, repos: poste.jeurepos },
-        { jour: 'Vendredi', prefix: 'ven', DebEntree: poste.venhdematin, Entrée: poste.venhdmat, FinEntree: poste.venhfematin, Sortie: poste.venhfmat, DebEntree2: poste.venhdeamidi, Entree2: poste.venhdam, Sortie2: poste.venhfam, FinEntree2: poste.venhfeamidi, repasBonus: poste.venrepas, repos: poste.venrepos },
-        { jour: 'Samedi', prefix: 'sam', DebEntree: poste.samhdematin, Entrée: poste.samhdmat, FinEntree: poste.samhfematin, Sortie: poste.samhfmat, DebEntree2: poste.samhdeamidi, Entree2: poste.samhdam, Sortie2: poste.samhfam, FinEntree2: poste.samhfeamidi, repasBonus: poste.samrepas, repos: poste.samrepos },
-        { jour: 'Dimanche', prefix: 'dim', DebEntree: poste.dimhdematin, Entrée: poste.dimhdmat, FinEntree: poste.dimhfematin, Sortie: poste.dimhfmat, DebEntree2: poste.dimhdeamidi, Entree2: poste.dimhdam, Sortie2: poste.dimhfam, FinEntree2: poste.dimhfeamidi, repasBonus: poste.dimrepas, repos: poste.dimrepos },
+        { jour: 'Lundi', prefix: 'lun', DebEntree: poste.lunhdematin, Entrée: poste.lunhdmat, FinEntree: poste.lunhfematin, Sortie: poste.lunhfmat, DebEntree2: poste.lunhdeamidi, Entree2: poste.lunhdam, Sortie2: poste.lunhfam, FinEntree2: poste.lunhfeamidi, repasBonus: poste.lunrepas, repos: poste.lunrepos, repasDeb: (poste as any).lunhdrep ?? '', repasFin: (poste as any).lunhfrep ?? '' },
+        { jour: 'Mardi', prefix: 'mar', DebEntree: poste.marhdematin, Entrée: poste.marhdmat, FinEntree: poste.marhfematin, Sortie: poste.marhfmat, DebEntree2: poste.marhdeamidi, Entree2: poste.marhdam, Sortie2: poste.marhfam, FinEntree2: poste.marhfeamidi, repasBonus: poste.marrepas, repos: poste.marrepos, repasDeb: (poste as any).marhdrep ?? '', repasFin: (poste as any).marhfrep ?? '' },
+        { jour: 'Mercredi', prefix: 'mer', DebEntree: poste.merhdematin, Entrée: poste.merhdmat, FinEntree: poste.merhfematin, Sortie: poste.merhfmat, DebEntree2: poste.merhdeamidi, Entree2: poste.merhdam, Sortie2: poste.merhfam, FinEntree2: poste.merhfeamidi, repasBonus: poste.merrepas, repos: poste.merrepos, repasDeb: (poste as any).merhdrep ?? '', repasFin: (poste as any).merhfrep ?? '' },
+        { jour: 'Jeudi', prefix: 'jeu', DebEntree: poste.jeuhdematin, Entrée: poste.jeuhdmat, FinEntree: poste.jeuhfematin, Sortie: poste.jeuhfmat, DebEntree2: poste.jeuhdeamidi, Entree2: poste.jeuhdam, Sortie2: poste.jeuhfam, FinEntree2: poste.jeuhfeamidi, repasBonus: poste.jeurepas, repos: poste.jeurepos, repasDeb: (poste as any).jeuhdrep ?? '', repasFin: (poste as any).jeuhfrep ?? '' },
+        { jour: 'Vendredi', prefix: 'ven', DebEntree: poste.venhdematin, Entrée: poste.venhdmat, FinEntree: poste.venhfematin, Sortie: poste.venhfmat, DebEntree2: poste.venhdeamidi, Entree2: poste.venhdam, Sortie2: poste.venhfam, FinEntree2: poste.venhfeamidi, repasBonus: poste.venrepas, repos: poste.venrepos, repasDeb: (poste as any).venhdrep ?? '', repasFin: (poste as any).venhfrep ?? '' },
+        { jour: 'Samedi', prefix: 'sam', DebEntree: poste.samhdematin, Entrée: poste.samhdmat, FinEntree: poste.samhfematin, Sortie: poste.samhfmat, DebEntree2: poste.samhdeamidi, Entree2: poste.samhdam, Sortie2: poste.samhfam, FinEntree2: poste.samhfeamidi, repasBonus: poste.samrepas, repos: poste.samrepos, repasDeb: (poste as any).samhdrep ?? '', repasFin: (poste as any).samhfrep ?? '' },
+        { jour: 'Dimanche', prefix: 'dim', DebEntree: poste.dimhdematin, Entrée: poste.dimhdmat, FinEntree: poste.dimhfematin, Sortie: poste.dimhfmat, DebEntree2: poste.dimhdeamidi, Entree2: poste.dimhdam, Sortie2: poste.dimhfam, FinEntree2: poste.dimhfeamidi, repasBonus: poste.dimrepas, repos: poste.dimrepos, repasDeb: (poste as any).dimhdrep ?? '', repasFin: (poste as any).dimhfrep ?? '' },
       ]);
       setMode("update");
     }
@@ -150,6 +150,11 @@ export default function PosteTravailModern() {
       mergedData[`${p}hfam`] = row.Sortie2;
       mergedData[`${p}repas`] = row.repasBonus;
       mergedData[`${p}repos`] = row.repos;
+      // Plage repas (déduite des heures travaillées/h.supp en état périodique
+      // même si l'employé ne pointe pas sa sortie déjeuner). Colonnes
+      // lunhdrep/lunhfrep (et équivalents par jour) déjà présentes en DB.
+      mergedData[`${p}hdrep`] = row.repasDeb;
+      mergedData[`${p}hfrep`] = row.repasFin;
     });
 
     if (mode === "update") {
@@ -219,7 +224,9 @@ export default function PosteTravailModern() {
         Entree2: monday.Entree2,
         FinEntree2: monday.FinEntree2,
         Sortie2: monday.Sortie2,
-        repasBonus: monday.repasBonus
+        repasBonus: monday.repasBonus,
+        repasDeb: monday.repasDeb,
+        repasFin: monday.repasFin,
       };
     });
     setScheduleData(updated);
@@ -488,6 +495,8 @@ export default function PosteTravailModern() {
                     <th>{t('posteTravail.schedule.headers.entryNoon')}</th>
                     <th>{t('posteTravail.schedule.headers.exitPm')}</th>
                     <th>{t('posteTravail.schedule.headers.endPm')}</th>
+                    <th>{t('posteTravail.schedule.headers.mealStart', { defaultValue: 'Début repas' })}</th>
+                    <th>{t('posteTravail.schedule.headers.mealEnd', { defaultValue: 'Fin repas' })}</th>
                     <th>{t('posteTravail.schedule.headers.meal')}</th>
                     <th>{t('posteTravail.schedule.headers.rest')}</th>
                   </tr>
@@ -497,7 +506,7 @@ export default function PosteTravailModern() {
                     <tr key={idx} className={row.repos === '1' ? 'row-weekend' : ''}>
                       <td className="row-day">{row.jour}</td>
                       {row.repos === '1' ? (
-                        <td colSpan={9} className="weekend-text">{t('posteTravail.schedule.weeklyRest')}</td>
+                        <td colSpan={11} className="weekend-text">{t('posteTravail.schedule.weeklyRest')}</td>
                       ) : (
                         <>
                           <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.DebEntree || ''} onChange={e => handleScheduleChange(idx, 'DebEntree', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
@@ -509,6 +518,12 @@ export default function PosteTravailModern() {
                           <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.Entree2 || ''} onChange={e => handleScheduleChange(idx, 'Entree2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
                           <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.Sortie2 || ''} onChange={e => handleScheduleChange(idx, 'Sortie2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
                           <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.FinEntree2 || ''} onChange={e => handleScheduleChange(idx, 'FinEntree2', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+
+                          {/* Début/Fin repas : si renseignés, les heures de cette plage
+                              sont éliminées de Tothre + H.Sup en état périodique
+                              même si l'employé n'a pas pointé sa sortie déjeuner. */}
+                          <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.repasDeb || ''} onChange={e => handleScheduleChange(idx, 'repasDeb', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.repasFin || ''} onChange={e => handleScheduleChange(idx, 'repasFin', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
 
                           <td><input className="modern-input" style={{ width: 55 }} type="number" min="0" value={row.repasBonus || '0'} onChange={e => handleScheduleChange(idx, 'repasBonus', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
                         </>

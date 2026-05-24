@@ -1246,6 +1246,40 @@ namespace ABRPOINT.Server.Repository
 
                 double hretrv = CalcNbHeure(presence.Preentmatup, presence.Presortmatup, presence.Preentamidiup,
                     presence.Presortamidiup, presence.Preentasupup, presence.Presortsupup, presence.Prerepas);
+
+                // ─── Déduction systématique de la plage repas configurée sur le poste ───
+                // Exigence produit 2026-05 : « en état périodique, les heures repas
+                // doivent être éliminées même si le salarié n'a pas pointé sa
+                // sortie pendant cette plage » (cas typique : présence continue
+                // 08:00-17:00 sans clock-out à midi → on retire quand même la
+                // pause).
+                //
+                // ComputeLunchOverlapMinutes calcule l'intersection entre les
+                // intervalles de présence réelle et la fenêtre repas du poste
+                // pour ce jour de la semaine. Sur le cas "4 pointages" (sortie
+                // déjeuner pointée), le gap 12:00→13:00 n'est dans aucun
+                // intervalle de présence → overlap = 0 → pas de double-décompte.
+                // Sur le cas "2 pointages" (présence continue), overlap = durée
+                // pleine de la plage → on déduit.
+                //
+                // Si la plage repas n'est pas configurée sur le poste (lunhdrep/
+                // lunhfrep vides), le helper retourne 0 et le comportement reste
+                // identique à l'historique (compat ascendante).
+                if (poste != null)
+                {
+                    var (repasStart, repasEnd) = GenericMethodes.GetRepasWindowWorkDay(presence.Dmdate, poste);
+                    int lunchOverlapMin = GenericMethodes.ComputeLunchOverlapMinutes(
+                        presence.Preentmatup, presence.Presortmatup,
+                        presence.Preentamidiup, presence.Presortamidiup,
+                        presence.Preentasupup, presence.Presortsupup,
+                        repasStart, repasEnd);
+                    if (lunchOverlapMin > 0)
+                    {
+                        hretrv -= lunchOverlapMin / 60.0;
+                        if (hretrv < 0) hretrv = 0;
+                    }
+                }
+
                 hretrv += ((double)nbHeurSupp) /60f;
                 // Étape 2 : Ajout heures d'autorisation si absence de présence — UNIQUEMENT si l'absence
                 // est payée (Abspayer == "O"). Sinon les heures autorisées non travaillées ne s'ajoutent pas.
@@ -1356,6 +1390,25 @@ namespace ABRPOINT.Server.Repository
 
                 double hretrv = CalcNbHeure(presence.Preentmatup, presence.Presortmatup, presence.Preentamidiup,
                     presence.Presortamidiup, presence.Preentasupup, presence.Presortsupup, presence.Prerepas);
+
+                // Déduction systématique de la plage repas (cf. note détaillée
+                // dans CalcHreTrav ligne ~1250). Helper portable, 0 si pas de
+                // plage configurée → backward-compat.
+                if (poste != null)
+                {
+                    var (repasStart, repasEnd) = GenericMethodes.GetRepasWindowWorkDay(presence.Dmdate, poste);
+                    int lunchOverlapMin = GenericMethodes.ComputeLunchOverlapMinutes(
+                        presence.Preentmatup, presence.Presortmatup,
+                        presence.Preentamidiup, presence.Presortamidiup,
+                        presence.Preentasupup, presence.Presortsupup,
+                        repasStart, repasEnd);
+                    if (lunchOverlapMin > 0)
+                    {
+                        hretrv -= lunchOverlapMin / 60.0;
+                        if (hretrv < 0) hretrv = 0;
+                    }
+                }
+
                 hretrv += ((double)nbHeurSupp - nbRetard) / 60f;
                 // Étape 2 : Ajout heures d'autorisation si absence de présence — UNIQUEMENT si l'absence
                 // est payée (Abspayer == "O"). Sinon les heures autorisées non travaillées ne s'ajoutent pas.
