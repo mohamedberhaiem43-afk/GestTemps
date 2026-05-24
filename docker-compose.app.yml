@@ -1,0 +1,182 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Stack APP-only — à déployer sur le serveur applicatif.
+# La base de données vit sur un AUTRE serveur (cf. docker-compose.db.yml).
+# Les chaînes de connexion pointent vers ${DB_HOST} (IP/DNS du serveur DB).
+#
+# Démarrage :
+#   docker compose -f docker-compose.app.yml --env-file .env.app up -d
+#
+# Variables d'environnement requises dans .env.app (voir .env.example) :
+#   DB_HOST, DB_PORT, POSTGRES_PASSWORD
+#   JWT_SECRET, AES_KEY, ANTHROPIC_API_KEY, OPENROUTER_API_KEY,
+#   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, GEMINI_API_KEY,
+#   SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM_EMAIL,
+#   RAG_SIDECAR_KEY, APK_URL (optionnel)
+#
+# SEC — vérifier la connectivité DB AVANT le up applicatif :
+#   docker run --rm postgres:16-alpine \
+#     psql "postgresql://abrpoint:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT:-5432}/abrpoint_master" -c "select 1"
+# ─────────────────────────────────────────────────────────────────────────
+
+volumes:
+  uploads_data:
+  letsencrypt_data:
+  qdrant_data:
+  crowdsec_data:
+  crowdsec_config:
+  nginx_logs:
+
+networks:
+  app-network:
+
+services:
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - uploads_data:/app/uploads:ro
+      - letsencrypt_data:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - abrpoint.server
+      - abrpoint.client
+    networks:
+      - app-network
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: abrpoint.crowdsec
+    environment:
+      COLLECTIONS: "crowdsecurity/nginx crowdsecurity/http-cve crowdsecurity/base-http-scenarios"
+      DISABLE_ONLINE_API: "true"
+    volumes:
+      - crowdsec_data:/var/lib/crowdsec/data
+      - crowdsec_config:/etc/crowdsec
+      - nginx_logs:/var/log/nginx:ro
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  certbot:
+    # Premier setup (à lancer une seule fois manuellement) :
+    #   docker compose -f docker-compose.app.yml run --rm certbot certonly --webroot \
+    #     -w /var/www/certbot -d concorde-work-force.com -d www.concorde-work-force.com \
+    #     --email mohamedberhaiem43@gmail.com --agree-tos --non-interactive
+    image: certbot/certbot
+    volumes:
+      - letsencrypt_data:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot
+    entrypoint: "/bin/sh -c"
+    command: 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --deploy-hook "touch /etc/letsencrypt/.renewed"; sleep 12h & wait $${!}; done;'
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  abrpoint.server:
+    container_name: abrpoint.server
+    image: mohamedbenrhaiem2003/abrpoint-server
+    restart: unless-stopped
+    volumes:
+      - uploads_data:/app/uploads
+    environment:
+      # ── Connexion Postgres distant (serveur DB séparé) ──────────────
+      # Format Npgsql. Ssl Mode=Prefer : tente TLS si dispo, retombe en
+      # clair sinon. Passer à "Require" + "Trust Server Certificate=true"
+      # dès que le serveur Postgres distant aura un certificat (recommandé
+      # pour toute liaison hors VPC privé / WireGuard).
+      DB_HOST: "${DB_HOST:?DB_HOST manquant — IP ou DNS du serveur DB}"
+      DB_PORT: "${DB_PORT:-5432}"
+      DB_NAME: "abrpoint_master"
+      DB_USER: "${POSTGRES_USER:-abrpoint}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant}"
+      ConnectionStrings__MasterConnection: "Host=${DB_HOST};Port=${DB_PORT:-5432};Database=abrpoint_master;Username=${POSTGRES_USER:-abrpoint};Password=${POSTGRES_PASSWORD};Ssl Mode=Prefer;Trust Server Certificate=true;Pooling=true;Maximum Pool Size=100"
+      ConnectionStrings__TenantTemplate: "Host=${DB_HOST};Port=${DB_PORT:-5432};Database={DbName};Username=${POSTGRES_USER:-abrpoint};Password=${POSTGRES_PASSWORD};Ssl Mode=Prefer;Trust Server Certificate=true;Pooling=true;Maximum Pool Size=100"
+      ConnectionStrings__DefaultConnection: "Host=${DB_HOST};Port=${DB_PORT:-5432};Database=abrpoint_master;Username=${POSTGRES_USER:-abrpoint};Password=${POSTGRES_PASSWORD};Ssl Mode=Prefer;Trust Server Certificate=true"
+      ConnectionStrings__FastReportConnection: "Host=${DB_HOST};Port=${DB_PORT:-5432};Database=abrpoint_master;Username=${POSTGRES_USER:-abrpoint};Password=${POSTGRES_PASSWORD};Ssl Mode=Prefer;Trust Server Certificate=true"
+      Hosting__RootDomain: "concorde-work-force.com"
+      ASPNETCORE_URLS: "http://+:8080"
+      DatabaseInitialization__Enabled: "true"
+      DatabaseInitialization__SocieteCode: "01"
+      DatabaseInitialization__SocieteName: "Default Company"
+      DatabaseInitialization__SiteCode: "01"
+      DatabaseInitialization__SiteName: "Main Site"
+      DatabaseInitialization__AdminCode: "AD"
+      DatabaseInitialization__AdminFirstName: "Admin"
+      DatabaseInitialization__AdminLastName: "System"
+      DatabaseInitialization__AdminEmail: "admin@abrpoint.local"
+      DatabaseInitialization__AdminPassword: "${ADMIN_BOOTSTRAP_PASSWORD:?Définir un mot de passe admin initial fort}"
+      DatabaseInitialization__ApplicationCode: "GRH"
+      OpenRouter__ApiKey: "${OPENROUTER_API_KEY:-}"
+      Rag__Enabled: "true"
+      Rag__Sidecar__BaseUrl: "http://rag-svc:8080"
+      Rag__Sidecar__ApiKey: "${RAG_SIDECAR_KEY:-}"
+      Rag__Anthropic__ApiKey: "${ANTHROPIC_API_KEY:-}"
+      Rag__Anthropic__OpenRouterModel: "google/gemini-2.0-flash-001"
+      Smtp__Host: "${SMTP_HOST:-ssl0.ovh.net}"
+      Smtp__Port: "${SMTP_PORT:-587}"
+      Smtp__Username: "${SMTP_USERNAME:-}"
+      Smtp__Password: "${SMTP_PASSWORD:-}"
+      Smtp__FromName: "${SMTP_FROM_NAME:-Concorde Work Force}"
+      Smtp__FromEmail: "${SMTP_FROM_EMAIL:-}"
+      Smtp__EnableSsl: "true"
+      Download__ApkUrl: "${APK_URL:-https://expo.dev/artifacts/eas/5AWJzSxWsNWJ9vi2oYAxAd.apk}"
+      Download__ApkVersion: "${APK_VERSION:-1.0.0}"
+      Download__ApkSizeMb: "${APK_SIZE_MB:-}"
+      Download__ApkPublishedAt: "${APK_PUBLISHED_AT:-2026-05-15}"
+      Jwt__Key: "${JWT_SECRET:?JWT_SECRET manquant (>= 32 chars aléatoires)}"
+      Encryption__AesKey: "${AES_KEY:?AES_KEY manquant (16/24/32 chars)}"
+      Stripe__SecretKey: "${STRIPE_SECRET_KEY:-}"
+      Stripe__WebhookSecret: "${STRIPE_WEBHOOK_SECRET:-}"
+      Gemini__ApiKey: "${GEMINI_API_KEY:-}"
+    depends_on:
+      # Plus de depends_on: abrpoint.database — la base est externe.
+      rag-svc:
+        condition: service_started
+    networks:
+      - app-network
+    expose:
+      - "8080"
+
+  abrpoint.client:
+    container_name: abrpoint.client
+    image: mohamedbenrhaiem2003/abrpoint-client:latest
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      - abrpoint.server
+    networks:
+      - app-network
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.0
+    container_name: abrpoint.qdrant
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    expose:
+      - "6333"
+      - "6334"
+    networks:
+      - app-network
+
+  rag-svc:
+    container_name: abrpoint.rag-svc
+    image: mohamedbenrhaiem2003/abrpoint-rag-svc:latest
+    restart: unless-stopped
+    environment:
+      QDRANT_URL: "http://qdrant:6333"
+      EMBED_MODEL: "intfloat/multilingual-e5-large"
+      EMBED_DEVICE: "cpu"
+      SIDECAR_KEY: "${RAG_SIDECAR_KEY:-}"
+      LOG_LEVEL: "INFO"
+    depends_on:
+      - qdrant
+    expose:
+      - "8080"
+    networks:
+      - app-network

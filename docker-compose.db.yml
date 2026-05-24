@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Stack DB-only — à déployer sur le serveur dédié base de données.
+# Le serveur applicatif (autre VPS) se connectera à ce Postgres via
+# l'IP/DNS publique du serveur DB sur le port 5432.
+#
+# Démarrage :
+#   POSTGRES_PASSWORD=... docker compose -f docker-compose.db.yml up -d
+#
+# SEC — Avant d'exposer 5432 publiquement :
+#   1. Firewall : UFW/iptables doit n'accepter le port 5432 QUE depuis
+#      l'IP du serveur applicatif.
+#        ufw allow from <APP_SERVER_IP> to any port 5432 proto tcp
+#        ufw deny  5432/tcp
+#   2. Idéalement, faire passer la connexion par un tunnel WireGuard /
+#      VPC privé plutôt qu'Internet public.
+#   3. Si exposition Internet inévitable : forcer Ssl Mode=Require côté
+#      Npgsql + monter ses propres certificats serveur (postgresql.conf
+#      ssl=on, ssl_cert_file, ssl_key_file).
+# ─────────────────────────────────────────────────────────────────────────
+
+volumes:
+  # Volume hôte explicite pour que la donnée survive aux upgrades de
+  # l'image et puisse être backupée par cron côté hôte sans rentrer
+  # dans le conteneur.
+  postgres_backup:
+
+services:
+  abrpoint.database:
+    image: postgres:16-alpine
+    container_name: abrpoint.database
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-abrpoint}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD env var manquant}"
+      # DB master créée au premier démarrage. Les DB tenant sont créées
+      # dynamiquement par ProvisioningService côté serveur applicatif via
+      # le rôle abrpoint (qui doit garder CREATEDB — par défaut pour le
+      # superuser créé par POSTGRES_USER).
+      POSTGRES_DB: "abrpoint_master"
+      LANG: "fr_FR.utf8"
+      # scram-sha-256 est l'auth par défaut depuis Postgres 14 ; on le
+      # rend explicite pour qu'un downgrade d'image ne retombe pas sur md5.
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    volumes:
+      - /var/lib/abrpoint/postgres:/var/lib/postgresql/data
+      - postgres_backup:/var/lib/postgresql/backups
+    ports:
+      # Exposé sur toutes les interfaces — le pare-feu de l'hôte est la
+      # ligne de défense (cf. en-tête). NE PAS retomber sur 127.0.0.1:5432
+      # comme dans l'ancien single-host : le serveur applicatif distant
+      # ne pourrait plus joindre la base.
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=300"
+      - "-c"
+      - "shared_buffers=512MB"
+      - "-c"
+      - "log_min_duration_statement=500"
