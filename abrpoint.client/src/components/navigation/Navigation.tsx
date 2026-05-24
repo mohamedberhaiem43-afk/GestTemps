@@ -51,6 +51,11 @@ const TeletravailModern = React.lazy(() => import('../gestionEmploye/Teletravail
 const TeletravailValidation = React.lazy(() => import('../gestionEmploye/Teletravail/TeletravailValidation'));
 const DemandeAbsenceModern = React.lazy(() => import('../gestionEmploye/DemandeAbsence/DemandeAbsenceModern'));
 const DemandeAbsenceValidation = React.lazy(() => import('../gestionEmploye/DemandeAbsence/DemandeAbsenceValidation'));
+const AuditLogsPage = React.lazy(() => import('../Admin/AuditLogs/AuditLogsPage'));
+const RetentionPolicyPage = React.lazy(() => import('../Admin/Retention/RetentionPolicyPage'));
+const ProcessingNoticePage = React.lazy(() => import('../Admin/ProcessingNotice/ProcessingNoticePage'));
+const GeolocationPolicyPage = React.lazy(() => import('../Admin/Geolocation/GeolocationPolicyPage'));
+const PositionTrackingPage = React.lazy(() => import('../Admin/PositionTracking/PositionTrackingPage'));
 const SoldeCongeModern = React.lazy(() => import('../gestionEmploye/gestionConge/SoldeConge/SoldeCongeModern'));
 const SoldeCongeAdmin = React.lazy(() => import('../gestionEmploye/gestionConge/SoldeConge/SoldeCongeAdmin'));
 const TitreConge = React.lazy(() => import('../gestionEmploye/gestionConge/TitreConge/TitreConge'));
@@ -453,6 +458,19 @@ const useNavigationItems = (): NavGroup[] => {
         { label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText },
         { label: t('navigation.letterTemplates'), href: '/dashboard/courriers', icon: FileText },
         ...(planAllows('ragAi') ? [{ label: t('navigation.ragAudit'), href: '/dashboard/rag-audit', icon: History }] : []),
+        // Suivi positions GPS — page Leaflet alimentée par les colonnes
+        // prelat/prelon de la table presence (capturées au pointage mobile).
+        // Gated sur le plan Geolocation (Standard + Business) ; sur Starter
+        // la feature est masquée (la capture GPS l'est déjà côté backend).
+        ...(planAllows('geolocation') ? [{ label: t('navigation.positionTracking', 'Suivi positions'), href: '/dashboard/suivi-positions', icon: MapPin }] : []),
+        // Journaux d'audit + 3 pages de configuration RGPD : gated sur
+        // AdvancedAuditLogs (true uniquement sur le pack Business).
+        // Avant 2026-05-24 ces 4 entrées n'apparaissaient nulle part dans la
+        // sidebar — les composants existaient mais étaient orphelins.
+        ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.auditLogs', "Journaux d'audit"), href: '/dashboard/audit-logs', icon: History }] : []),
+        ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.retentionPolicy', 'Rétention RGPD'), href: '/dashboard/retention-rgpd', icon: Shield }] : []),
+        ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.processingNotice', 'Notice RGPD'), href: '/dashboard/notice-rgpd', icon: Shield }] : []),
+        ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.geolocationPolicy', 'Géolocalisation RGPD'), href: '/dashboard/geolocation-rgpd', icon: Shield }] : []),
         { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
         { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
         // Lien Chatbot retiré du sidebar : l'assistant reste accessible via le bouton flottant
@@ -558,6 +576,11 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/validation-teletravail': content = <TeletravailValidation />; break;
     case '/dashboard/demande-absence': content = <DemandeAbsenceModern />; break;
     case '/dashboard/validation-absence': content = <DemandeAbsenceValidation />; break;
+    case '/dashboard/audit-logs': content = <AuditLogsPage />; break;
+    case '/dashboard/retention-rgpd': content = <RetentionPolicyPage />; break;
+    case '/dashboard/notice-rgpd': content = <ProcessingNoticePage />; break;
+    case '/dashboard/geolocation-rgpd': content = <GeolocationPolicyPage />; break;
+    case '/dashboard/suivi-positions': content = <PositionTrackingPage />; break;
     case '/dashboard/validation-heures-sup': content = <HeuresSupValidation />; break;
     case '/dashboard/gestion-de-solde': content = <SoldeCongeModern />; break;
     case '/dashboard/affectation-solde': content = <SoldeCongeAdmin />; break;

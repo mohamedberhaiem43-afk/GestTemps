@@ -193,4 +193,20 @@ public partial class Presence : BaseEntity
     [Column("predouche")]
     public float? Predouche { get; set; }
 
+    // ─── Position GPS du pointage ───
+    // Renseignés par PresencesController.MarkPresence quand le mobile envoie
+    // les coordonnées en query string (?lat=&lon=&acc=). Utilisés ensuite par
+    // la page admin /dashboard/suivi-positions pour afficher la trace géo.
+    // Précision DECIMAL(10,7) ≈ 1 cm à l'équateur — largement suffisant et
+    // aligné sur Site.Sitlat/Sitlon (cf. BaseDataSchemaMigrator ligne ~93).
+    // Nullable : un pointage badgeuse / web sans GPS doit rester valide.
+    [Column("prelat", TypeName = "decimal(10,7)")]
+    public decimal? Prelat { get; set; }
+
+    [Column("prelon", TypeName = "decimal(10,7)")]
+    public decimal? Prelon { get; set; }
+
+    /// <summary>Précision GPS reportée par l'appareil, en mètres.</summary>
+    [Column("preacc")]
+    public int? Preacc { get; set; }
 }

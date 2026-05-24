@@ -49,6 +49,92 @@ namespace ABRPOINT.Server.Controllers
             return new { message = userMessage };
         }
 
+        /// <summary>
+        /// Suivi des positions GPS des pointages — page admin /dashboard/suivi-positions.
+        /// Renvoie la liste des pointages géolocalisés sur la plage donnée
+        /// (uniquement les lignes avec lat/lon non-null). Réservé admin/manager
+        /// et gated sur le plan Geolocation (PlanCatalog : true sur Standard +
+        /// Business, false sur Starter).
+        /// </summary>
+        [HttpGet("positions")]
+        [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.Geolocation))]
+        public async Task<IActionResult> GetPositions(
+            [FromQuery] string soccod,
+            [FromQuery] DateTime dateDebut,
+            [FromQuery] DateTime dateFin,
+            [FromQuery] List<string>? empcods,
+            CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                return BadRequest(new { message = "Société requise." });
+
+            // Admin/manager only — un employé ne voit pas la position de ses
+            // collègues. Aligné sur le pattern CallerCanDecideAsync utilisé
+            // par TeletravailController / DemandeAbsenceController.
+            var caller = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return Unauthorized();
+            var canSee = await _db.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == caller)
+                .Select(u => u.Utiadm == "1"
+                          || PermissionCatalog.IsAdminRole(u.Utirole)
+                          || u.Utirole == PermissionCatalog.Roles.Manager)
+                .FirstOrDefaultAsync(ct);
+            if (!canSee) return Forbid();
+
+            var startDay = dateDebut.Date;
+            var endDay = dateFin.Date;
+
+            // Filtre empcods optionnel ; null/vide = tous les employés de la
+            // société. On ne retourne que les lignes avec une position GPS
+            // valide (lat ET lon non-null) — inutile de polluer la carte avec
+            // les pointages badgeuse hardware ou les saisies web manuelles.
+            var query = _db.Presences.AsNoTracking()
+                .Where(p => p.Soccod == soccod
+                            && p.Predat.HasValue
+                            && p.Predat.Value.Date >= startDay
+                            && p.Predat.Value.Date <= endDay
+                            && p.Prelat.HasValue
+                            && p.Prelon.HasValue);
+
+            if (empcods != null && empcods.Count > 0)
+                query = query.Where(p => empcods.Contains(p.Empcod));
+
+            // Jointure manuelle pour récupérer le libellé employé + le site
+            // rattaché (utile pour comparer la position au geofence et colorer
+            // les markers hors zone côté front).
+            var rows = await (from p in query
+                              join e in _db.Employes.AsNoTracking()
+                                   on new { p.Soccod, p.Empcod } equals new { e.Soccod, e.Empcod } into je
+                              from emp in je.DefaultIfEmpty()
+                              join s in _db.Sites.AsNoTracking()
+                                   on new { Soccod = emp != null ? emp.Soccod : null, Sitcod = emp != null ? emp.Sitcod : null }
+                                   equals new { s.Soccod, s.Sitcod } into js
+                              from site in js.DefaultIfEmpty()
+                              orderby p.Predat descending
+                              select new
+                              {
+                                  empcod = p.Empcod,
+                                  emplib = emp != null ? emp.Emplib : null,
+                                  sitcod = emp != null ? emp.Sitcod : null,
+                                  sitlib = site != null ? site.Sitlib : null,
+                                  sitlat = site != null ? site.Sitlat : null,
+                                  sitlon = site != null ? site.Sitlon : null,
+                                  sitrad = site != null ? site.Sitrad : null,
+                                  predat = p.Predat,
+                                  prelat = p.Prelat,
+                                  prelon = p.Prelon,
+                                  preacc = p.Preacc,
+                                  preentmatup = p.Preentmatup,
+                                  presortmatup = p.Presortmatup,
+                                  preentamidiup = p.Preentamidiup,
+                                  presortamidiup = p.Presortamidiup,
+                              })
+                              .Take(2000) // garde-fou : 2000 lignes max → carte reste fluide
+                              .ToListAsync(ct);
+
+            return Ok(rows);
+        }
+
         [HttpPut("optimiserPointage/{soccod}/{empmat}/{dateDeb}/{dateFin}")]
         [CanUpdateEtatPeriodique] // S4 : modifier le pointage = permission "modify" sur état périodique.
         public async Task OptimizePointage(string soccod,string empMat,DateTime dateDeb,DateTime dateFin)
@@ -521,7 +607,14 @@ namespace ABRPOINT.Server.Controllers
                     });
                 }
 
-                var result = await _presenceRepository.AddPresenceAsync(soccod, empcod, stamp, poicod ?? "");
+                // Coordonnées GPS persistées sur la ligne Presence (cf. exigence
+                // 2026-05 : page admin "Suivi positions" alimentée par ces
+                // colonnes). Conversion double→decimal pour cadrer avec la
+                // précision DECIMAL(10,7) en DB ; acc arrondi en mètres entiers.
+                var result = await _presenceRepository.AddPresenceAsync(soccod, empcod, stamp, poicod ?? "",
+                    lat: lat.HasValue ? (decimal?)Math.Round((decimal)lat.Value, 7) : null,
+                    lon: lon.HasValue ? (decimal?)Math.Round((decimal)lon.Value, 7) : null,
+                    acc: acc.HasValue ? (int?)Math.Round(acc.Value) : null);
                 if (result == null)
                     return NotFound(new { message = "Employé introuvable" });
 

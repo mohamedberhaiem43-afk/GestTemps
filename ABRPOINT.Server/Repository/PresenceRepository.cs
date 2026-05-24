@@ -79,7 +79,8 @@ namespace ABRPOINT.Server.Repository
         // Thread-safe cache (was Dictionary<string,int> which is not safe under concurrent requests).
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> _longbdgCache = new();
 
-        public async Task<PresenceDto?> AddPresenceAsync(string soccod, string empcod, DateTime date, string poicod)
+        public async Task<PresenceDto?> AddPresenceAsync(string soccod, string empcod, DateTime date, string poicod,
+            decimal? lat = null, decimal? lon = null, int? acc = null)
         {
             try
             {
@@ -138,6 +139,16 @@ namespace ABRPOINT.Server.Repository
                 }
                 // ✅ VALIDATION DE TOUTES LES DATES
                 ValidatePresenceDates(dbpresence);
+                // Coordonnées GPS du pointage : on écrase à chaque appel pour
+                // conserver la DERNIÈRE position connue de la journée (pertinent
+                // si l'employé fait plusieurs pointages successifs). Conservé
+                // pour l'audit anti-fraude + la page admin "Suivi positions".
+                // Ignoré si l'appelant n'a pas fourni de coordonnées (pointeuse
+                // hardware, saisie web manuelle — ne doit pas vider une position
+                // antérieure valide → on n'écrit que si non null).
+                if (lat.HasValue) dbpresence.Prelat = lat;
+                if (lon.HasValue) dbpresence.Prelon = lon;
+                if (acc.HasValue) dbpresence.Preacc = acc;
                 await _dmpointRepository.AddPointageAsync(dbpresence, date, poicod);
                 await _dbContext.SaveChangesAsync();
                 return _mapper.Map<PresenceDto>(dbpresence);

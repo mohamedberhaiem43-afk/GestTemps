@@ -95,6 +95,15 @@ public static class BaseDataSchemaMigrator
         var siteGeoRad = await AddColumnIfMissingAsync(db, "site", "sitrad", "INTEGER NULL", ct);
         var siteGeofenceAdded = siteGeoLat || siteGeoLon || siteGeoRad;
 
+        // GPS du pointage : conservé pour la page admin "Suivi positions"
+        // (audit anti-fraude + visualisation cartographique). Capté par le
+        // mobile à chaque clock-in, persisté par PresencesController.MarkPresence.
+        // Aligné dimensionnellement sur les colonnes geofence du Site (DECIMAL(10,7)
+        // ≈ précision cm). Préacc en entier = mètres reportés par l'OS.
+        await AddColumnIfMissingAsync(db, "presence", "prelat", "DECIMAL(10,7) NULL", ct);
+        await AddColumnIfMissingAsync(db, "presence", "prelon", "DECIMAL(10,7) NULL", ct);
+        await AddColumnIfMissingAsync(db, "presence", "preacc", "INTEGER NULL", ct);
+
         // SEC-G2 / SEC-G6 — refresh_tokens.
         var rtPurpose = await AddColumnIfMissingAsync(db, "refresh_tokens", "purpose",
             "VARCHAR(20) NOT NULL DEFAULT 'Refresh'", ct);

@@ -70,5 +70,11 @@
         public float? OvertimeRejectedHours { get; set; }
         /// <summary>Commentaire du manager — affiché en tooltip côté UI sur les jours refusés.</summary>
         public string? OvertimeDecisionComment { get; set; }
+
+        // Position GPS du pointage (capturée par le mobile, persistée par
+        // MarkPresence). Affichée sur la page admin /dashboard/suivi-positions.
+        public decimal? Prelat { get; set; }
+        public decimal? Prelon { get; set; }
+        public int? Preacc { get; set; }
     }
 }
