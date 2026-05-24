@@ -167,32 +167,38 @@ export default function GeolocationPolicyPage() {
 
       <Paper variant="outlined" sx={{ p: 3, mb: 2 }}>
         <Typography sx={{ fontSize: 14, fontWeight: 800, color: '#0040a1', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Plage horaire & jours autorisés
+          Plage horaire quotidienne & jours autorisés
         </Typography>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-          Hors de cette fenêtre, le pointage reste accepté mais aucune coordonnée
-          GPS n'est ni enregistrée ni journalisée.
+          Définit les <strong>heures</strong> de la journée (et non une période
+          de dates) pendant lesquelles la position GPS est capturée. Ex. 08:00
+          → 18:00 : la géoloc s'active à 8 h chaque jour et s'arrête à 18 h.
+          Hors de cette fenêtre, le pointage reste accepté mais aucune
+          coordonnée n'est ni enregistrée ni journalisée. Une fenêtre traversant
+          minuit (22:00 → 06:00) est supportée pour les équipes de nuit.
         </Typography>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} sx={{ mb: 3 }}>
           <TextField
-            label="Début"
+            label="Heure de début"
             type="time"
             value={draft.windowStartTime}
             onChange={(e) => setDraft({ ...draft, windowStartTime: e.target.value })}
             disabled={saving}
             InputLabelProps={{ shrink: true }}
             inputProps={{ step: 300 }}
-            sx={{ width: 160 }}
+            helperText="Format 24 h, ex. 08:00"
+            sx={{ width: 180 }}
           />
           <TextField
-            label="Fin"
+            label="Heure de fin"
             type="time"
             value={draft.windowEndTime}
             onChange={(e) => setDraft({ ...draft, windowEndTime: e.target.value })}
             disabled={saving}
             InputLabelProps={{ shrink: true }}
             inputProps={{ step: 300 }}
-            sx={{ width: 160 }}
+            helperText="Format 24 h, ex. 18:00"
+            sx={{ width: 180 }}
           />
         </Stack>
         <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>Jours autorisés</Typography>
@@ -209,9 +215,6 @@ export default function GeolocationPolicyPage() {
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-          Une fenêtre traversant minuit (ex. 22:00 → 06:00) est supportée.
-        </Typography>
       </Paper>
 
       <Divider sx={{ mb: 2 }} />

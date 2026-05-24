@@ -79,24 +79,30 @@ const TABLE_LABELS: Record<string, string> = {
   notifications: 'notification',
 };
 
-function actionVerb(action: string | null): { verb: string; subject: 'm' | 'f' } | null {
+function actionVerb(action: string | null): string | null {
   if (!action) return null;
   const a = action.toLowerCase();
-  if (a.startsWith('added'))    return { verb: 'Création',     subject: 'f' };
-  if (a.startsWith('modified')) return { verb: 'Modification', subject: 'f' };
-  if (a.startsWith('deleted'))  return { verb: 'Suppression',  subject: 'f' };
-  if (a.startsWith('trust'))    return { verb: 'Audit',        subject: 'm' };
+  if (a.startsWith('added'))    return 'ajout';
+  if (a.startsWith('modified')) return 'modification';
+  if (a.startsWith('deleted'))  return 'suppression';
+  if (a.startsWith('trust'))    return 'audit appareil';
   return null;
 }
 
 function describeAction(action: string | null, tableName: string | null): string {
+  // Format produit attendu (cf. demande métier 2026-05-24) : phrase courte
+  // tout en bas-de-casse façon "suppression employé", "ajout congé", etc.
+  // Avant : on rendait `${verb} : ${label}` mais avec verb = OBJET (cf. bug
+  // ancien `return ${verb} : ${label}` qui sortait "[object Object] : employé").
+  // Maintenant : actionVerb retourne directement une string + on supprime les
+  // deux-points pour une lecture plus naturelle dans la liste d'audit.
   const verb = actionVerb(action);
   const tableKey = (tableName ?? '').toLowerCase().trim();
   const label = TABLE_LABELS[tableKey];
-  if (verb && label) return `${verb} : ${label}`;
+  if (verb && label) return `${verb} ${label}`;
   // Fallback : action brute pour ne jamais laisser un écran vide quand une
   // nouvelle table apparaît sans entrée dans TABLE_LABELS.
-  if (verb && !label) return verb.verb;
+  if (verb && !label) return verb;
   if (action) return action;
   return '—';
 }
