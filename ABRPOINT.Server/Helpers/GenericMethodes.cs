@@ -252,6 +252,43 @@ namespace ABRPOINT.Helper
 
             return repas;
         }
+
+        // Fallback : quand un salarié pointe sans classe horaire assignée (poste null),
+        // on ne peut pas lire Lunrepos/Marrepos/… On retombe alors sur la chaîne
+        // Parametre.Jourrepos (paramètres société) qui code les jours de repos par défaut.
+        // Format accepté : aligné avec CalendrierRepository.ParseJoursRepos —
+        //   "0".."6"        (DayOfWeek US : 0=Dim, 1=Lun, …, 6=Sam)
+        //   "7" / "samdim"  (alias historique Sam+Dim)
+        //   "0,6" / "1;5"   (plusieurs jours séparés par , ; - ou espace)
+        //   "lun","mar",…   (lib FR abrégés)
+        // Retourne "1" si jour de repos, "0" sinon ; null si la chaîne est vide
+        // (l'appelant gardera Prerepos = null comme avant).
+        public static string? GetReposFromJourrepos(DateTime? date, string? jourreposCsv)
+        {
+            if (string.IsNullOrWhiteSpace(jourreposCsv)) return null;
+            var dayOfWeek = date?.DayOfWeek ?? DateTime.Now.DayOfWeek;
+            var repos = new HashSet<DayOfWeek>();
+            foreach (var raw in jourreposCsv.Split(new[] { ',', '-', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var token = raw.Trim().ToLowerInvariant();
+                switch (token)
+                {
+                    case "samdim":
+                    case "7":
+                        repos.Add(DayOfWeek.Saturday);
+                        repos.Add(DayOfWeek.Sunday);
+                        break;
+                    case "dim": case "dimanche": case "0": repos.Add(DayOfWeek.Sunday); break;
+                    case "lun": case "lundi": case "1": repos.Add(DayOfWeek.Monday); break;
+                    case "mar": case "mardi": case "2": repos.Add(DayOfWeek.Tuesday); break;
+                    case "mer": case "mercredi": case "3": repos.Add(DayOfWeek.Wednesday); break;
+                    case "jeu": case "jeudi": case "4": repos.Add(DayOfWeek.Thursday); break;
+                    case "ven": case "vendredi": case "5": repos.Add(DayOfWeek.Friday); break;
+                    case "sam": case "samedi": case "6": repos.Add(DayOfWeek.Saturday); break;
+                }
+            }
+            return repos.Contains(dayOfWeek) ? "1" : "0";
+        }
         public static int? GetRepasWorkDay(DateTime? date, Poste poste)
         {
             var dayOfWeek = date?.DayOfWeek ?? DateTime.Now.DayOfWeek;

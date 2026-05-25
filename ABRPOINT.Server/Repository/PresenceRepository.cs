@@ -229,6 +229,16 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
+                // Salarié sans classe horaire (poste null) → on retombe sur les jours de repos
+                // par défaut société (Parametre.Jourrepos). Sinon Prerepos resterait null et
+                // l'employé apparaîtrait comme "travaillant" même un dimanche.
+                string? prerepos = GenericMethodes.GetReposWorkDay(date, poste);
+                if (poste == null && string.IsNullOrEmpty(prerepos))
+                {
+                    var jourreposParam = await _parametreRepository.GetJourReposAsync(soccod);
+                    prerepos = GenericMethodes.GetReposFromJourrepos(date, jourreposParam);
+                }
+
                 var presence = new Presence()
                 {
                     Preobs = "",
@@ -253,7 +263,7 @@ namespace ABRPOINT.Server.Repository
                     Preapressort = poste?.Apressort,
                     Empcharge = emp?.Emptype,
                     Prerepas = GenericMethodes.GetRepasWorkDay(date, poste),
-                    Prerepos = GenericMethodes.GetReposWorkDay(date, poste),
+                    Prerepos = prerepos,
                     Preretmate = DateTime.Today,
                     Preretmateup = DateTime.Today,
                     Preretmats = DateTime.Today,
