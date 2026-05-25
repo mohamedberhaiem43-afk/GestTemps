@@ -533,7 +533,11 @@ namespace ABRPOINT.Server.Controllers
                 byte[]? pdf = null;
                 if (ext == ".html") {
                     var html = await System.IO.File.ReadAllTextAsync(filePath);
-                    pdf = _reportsService.GenerateFromHtml(html, doc.Soccod, doc.Empcod);
+                    // On passe explicitement doc.SignaturePath pour que le placeholder
+                    // {{Signature_Employe}} soit substitué par l'image PRÉCISE de CE
+                    // document, et pas par la « dernière signature de l'employé »
+                    // (qui pourrait pointer un autre doc plus récent).
+                    pdf = _reportsService.GenerateFromHtml(html, doc.Soccod, doc.Empcod, doc.SignaturePath);
                 } else {
                     var lowerName = doc.DocName.ToLower();
                     if (lowerName.Contains("contrat")) pdf = _reportsService.GenerateContratReport(doc.Soccod, doc.Empcod);
@@ -599,7 +603,11 @@ namespace ABRPOINT.Server.Controllers
                     if (isHtml)
                     {
                         var html = await System.IO.File.ReadAllTextAsync(filePath);
-                        pdf = _reportsService.GenerateFromHtml(html, doc.Soccod, doc.Empcod);
+                        // En preview, on passe doc.SignaturePath (null si pas encore signé)
+                        // pour que l'admin voie aussi la vraie signature en visualisation,
+                        // pas seulement au download. Si null → fallback historique sur la
+                        // requête "dernière signature de l'employé".
+                        pdf = _reportsService.GenerateFromHtml(html, doc.Soccod, doc.Empcod, doc.SignaturePath);
                     }
                     else 
                     {

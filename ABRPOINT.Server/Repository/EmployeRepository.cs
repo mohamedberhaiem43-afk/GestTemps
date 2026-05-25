@@ -263,29 +263,40 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                string? empnuit = await _dbContext.Employes.Where(emp => emp.Soccod == soccod && emp.Empcod == empcod)
+                // Sélecteur Empnuit côté UI (EmployeModern.tsx) : "0" = Nuit normale,
+                // "1" = Nuit spéciale. La valeur "9" historique = "ne pas compter".
+                // Sémantique attendue ici :
+                //   null / "" / "0"  → plage NORMALE  (Parametre.Nuitdeb / Nuitfin)
+                //   "1"              → plage SPÉCIALE (Parametre.Nuitsdeb / Nuitsfin)
+                //   "9" (ou autre)   → désactivé      → return (null,null) → 0 h nuit
+                //
+                // BUG corrigé 2026-05 : l'ancien code traitait "1" comme une valeur
+                // inconnue et renvoyait (null,null), donc tout employé ayant choisi
+                // "Nuit spéciale" obtenait 0 h nuit malgré la config société. De plus
+                // une fiche jamais touchée (Empnuit null) bloquait aussi le calcul,
+                // alors qu'on devrait retomber sur la plage normale par défaut.
+                string? empnuit = await _dbContext.Employes
+                    .Where(emp => emp.Soccod == soccod && emp.Empcod == empcod)
                     .Select(emp => emp.Empnuit)
                     .SingleOrDefaultAsync();
-                if (empnuit == null || empnuit == "9")
-                    return (null, null);
-                var result = await (from emp in _dbContext.Employes
-                                    where emp.Empcod == empcod && emp.Soccod == soccod
-                                    join param in _dbContext.Parametres
-                                    on emp.Soccod equals param.Soccod
-                                    select new
-                                    {
-                                        NuitDeb = emp.Empnuit == "0" ? param.Nuitdeb :
-                                                  emp.Empnuit == "9" ? param.Nuitsdeb : null,
-                                        NuitFin = emp.Empnuit == "0" ? param.Nuitfin :
-                                                  emp.Empnuit == "9" ? param.Nuitsfin : null
-                                    }).SingleOrDefaultAsync();
 
-                if (result == null)
+                bool useNormale = string.IsNullOrEmpty(empnuit) || empnuit == "0";
+                bool useSpeciale = empnuit == "1";
+                if (!useNormale && !useSpeciale)
+                    return (null, null); // désactivé pour cet employé
+
+                var param = await _dbContext.Parametres
+                    .Where(p => p.Soccod == soccod)
+                    .Select(p => new { p.Nuitdeb, p.Nuitfin, p.Nuitsdeb, p.Nuitsfin })
+                    .FirstOrDefaultAsync();
+                if (param == null)
                     return (null, null);
 
-                // Convertir string en TimeSpan?
-                TimeSpan? debut = TimeSpan.TryParse(result.NuitDeb, out var d) ? d : (TimeSpan?)null;
-                TimeSpan? fin = TimeSpan.TryParse(result.NuitFin, out var f) ? f : (TimeSpan?)null;
+                string? deb = useNormale ? param.Nuitdeb : param.Nuitsdeb;
+                string? fin_ = useNormale ? param.Nuitfin : param.Nuitsfin;
+
+                TimeSpan? debut = TimeSpan.TryParse(deb, out var d) ? d : (TimeSpan?)null;
+                TimeSpan? fin = TimeSpan.TryParse(fin_, out var f) ? f : (TimeSpan?)null;
 
                 return (debut, fin);
             }

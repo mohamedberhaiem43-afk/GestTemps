@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Box, Typography, ToggleButton, ToggleButtonGroup, Chip, Stack, Paper, Divider,
   Switch, Collapse, IconButton,
@@ -103,6 +103,21 @@ const ADDONS: AddonDef[] = [
   { key: 'supportPrioritaire',    displayName: 'Support prioritaire étendu',       description: 'Réponse sous 2h ouvrées, hotline dédiée, account manager.',      priceMonthly: 49 },
 ];
 
+// Modules déjà inclus dans chaque pack — quand un addon est dans cette liste, on
+// le grise dans l'UI (Switch désactivé + chip « Inclus ») et on le retire
+// automatiquement de `selectedAddons` lors d'un changement de pack pour ne pas
+// facturer un module dont la fonction est déjà ouverte.
+// Source de vérité : PlanCatalog.cs (PlanFeatures côté backend).
+//   • Standard / Premium  → ElectronicSignature = true  → signatureElectronique inclus
+//   • Premium             → RagAi = true               → aiAssistantRh + iaDocumentaireAvancee inclus
+//   • Premium             → Support prioritaire (cf. highlights commerciaux) → supportPrioritaire inclus
+//   • apiAvancee : pas d'équivalent dans aucun pack → toujours optionnel.
+const PACK_INCLUDED_ADDONS: Record<PlanKey, AddonKey[]> = {
+  Starter: [],
+  Standard: ['signatureElectronique'],
+  Premium: ['signatureElectronique', 'aiAssistantRh', 'iaDocumentaireAvancee', 'supportPrioritaire'],
+};
+
 interface PlanPickerProps {
   selectedPlan: PlanKey;
   onPlanChange: (plan: PlanKey) => void;
@@ -119,7 +134,24 @@ export default function PlanPicker({
 }: PlanPickerProps) {
   const [addonsOpen, setAddonsOpen] = useState(false);
 
+  const includedAddons = PACK_INCLUDED_ADDONS[selectedPlan] ?? [];
+  const isIncluded = (key: AddonKey) => includedAddons.includes(key);
+
+  // Quand le pack change, on retire automatiquement de la sélection les addons
+  // désormais inclus dans le pack — sinon on facturerait deux fois la même fonction.
+  // Note : on ne « réactive » pas les addons quand l'utilisateur revient à un pack
+  // plus modeste : il devra recocher manuellement (comportement plus sûr — évite
+  // une réactivation involontaire d'une facturation supplémentaire).
+  useEffect(() => {
+    const filtered = selectedAddons.filter(k => !isIncluded(k));
+    if (filtered.length !== selectedAddons.length) {
+      onAddonsChange(filtered);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlan]);
+
   const toggleAddon = (key: AddonKey) => {
+    if (isIncluded(key)) return; // sécurité — l'UI désactive déjà le switch
     onAddonsChange(
       selectedAddons.includes(key)
         ? selectedAddons.filter(k => k !== key)
@@ -271,25 +303,48 @@ export default function PlanPicker({
           <Divider />
           <Stack divider={<Divider />}>
             {ADDONS.map(addon => {
-              const checked = selectedAddons.includes(addon.key);
+              const included = isIncluded(addon.key);
+              const checked = included || selectedAddons.includes(addon.key);
               return (
                 <Stack
                   key={addon.key}
                   direction="row"
                   alignItems="center"
                   spacing={1.5}
-                  sx={{ p: 1.5 }}
+                  sx={{
+                    p: 1.5,
+                    bgcolor: included ? '#f1f5f9' : 'transparent',
+                    opacity: included ? 0.75 : 1,
+                  }}
                 >
                   <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>
-                      {addon.displayName}
-                    </Typography>
+                    <Stack direction="row" spacing={0.8} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>
+                        {addon.displayName}
+                      </Typography>
+                      {included && (
+                        <Chip
+                          size="small"
+                          icon={<CheckIcon sx={{ fontSize: 13 }} />}
+                          label="Inclus dans le pack"
+                          sx={{
+                            height: 18, fontSize: 10.5, fontWeight: 700,
+                            bgcolor: '#dcfce7', color: '#15803d',
+                            '& .MuiChip-icon': { color: '#15803d' },
+                          }}
+                        />
+                      )}
+                    </Stack>
                     <Typography sx={{ fontSize: 11.5, color: '#64748b', lineHeight: 1.4 }}>
                       {addon.description}
                     </Typography>
                   </Box>
                   <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                    <Typography sx={{ fontWeight: 800, fontSize: 13, color: '#0040a1' }}>
+                    <Typography sx={{
+                      fontWeight: 800, fontSize: 13,
+                      color: included ? '#94a3b8' : '#0040a1',
+                      textDecoration: included ? 'line-through' : 'none',
+                    }}>
                       +{addon.priceMonthly}€<Typography component="span" sx={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}> /mois</Typography>
                     </Typography>
                   </Box>
@@ -297,6 +352,7 @@ export default function PlanPicker({
                     checked={checked}
                     onChange={() => toggleAddon(addon.key)}
                     size="small"
+                    disabled={included}
                   />
                 </Stack>
               );

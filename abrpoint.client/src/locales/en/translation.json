@@ -1735,7 +1735,10 @@
       "compterSortie": "Count exit day",
       "exclureNuit": "Exclude night if exit during day",
       "majoreHnuit": "Increase Night Hrs to Normal Hrs",
-      "seuilMin": "Min Night Threshold (h)"
+      "seuilMin": "Min Night Threshold (h)",
+      "plageNormale": "Normal night window",
+      "plageSpeciale": "Special night window",
+      "plageSpecialeHint": "Applied to employees who selected \"1- Special\" in their profile."
     },
     "part1": {
       "jourDebut": "Start day",

@@ -18,6 +18,13 @@ namespace ABRPOINT.Server.Interfaces
         byte[] GenerateCertificatTravailReport(string soccod, string empcod);
         byte[] GenerateAttestationSalaireReport(string soccod, string empcod);
         byte[] GenerateFromHtml(string html, string soccod, string empcod);
+        // Overload 2026-05 — quand on régénère le PDF d'un document VAULT déjà signé,
+        // on peut passer le chemin de signature directement plutôt que de relire le
+        // « dernier doc signé » de l'employé (qui peut pointer sur un AUTRE document
+        // signé après celui-ci). Plus déterministe + corrige le cas où la requête
+        // SELECT signaturepath FROM documentvault renvoie un chemin /api/uploads/...
+        // mal résolu côté disque (cf. bug 2026-05 Signature_Collaborateur en texte brut).
+        byte[] GenerateFromHtml(string html, string soccod, string empcod, string? signaturePath);
         byte[] GenerateAllaitementReport(string soccod, string empcod, string concod);
         byte[] GenerateEtatGlobalReport(EtatGlobalRequest data);
         byte[] GenerateEtatDetailleReport(EtatDetailleRequest request);

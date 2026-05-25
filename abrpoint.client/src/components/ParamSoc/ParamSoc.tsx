@@ -482,7 +482,10 @@ export default function ParamSocModern() {
               <h3 className="ps-modern-card-title">{t('paramSoc.tabsHeader.configurationNuit')}</h3>
               <Switch checked={formData.parnuit === '1'} onChange={(e) => handleInputChange('parnuit', e.target.checked ? '1' : '0')} />
             </div>
-            <div className="ps-modern-time-grid" style={{ marginBottom: '2rem' }}>
+            <div style={{ marginBottom: '0.5rem', fontWeight: 700, color: '#475569', fontSize: '0.85rem' }}>
+              {t('paramSoc.nuit.plageNormale')}
+            </div>
+            <div className="ps-modern-time-grid" style={{ marginBottom: '1.5rem' }}>
               <div className="ps-modern-input-wrapper">
                 <label className="ps-modern-label">{t('paramSoc.nuit.debut')}</label>
                 <input type="text" className="ps-modern-input" value={formData.nuitdeb || '22:00'} onChange={(e) => handleInputChange('nuitdeb', e.target.value)} />
@@ -491,6 +494,23 @@ export default function ParamSocModern() {
                 <label className="ps-modern-label">{t('paramSoc.nuit.fin')}</label>
                 <input type="text" className="ps-modern-input" value={formData.nuitfin || '06:00'} onChange={(e) => handleInputChange('nuitfin', e.target.value)} />
               </div>
+            </div>
+
+            <div style={{ marginBottom: '0.5rem', fontWeight: 700, color: '#475569', fontSize: '0.85rem' }}>
+              {t('paramSoc.nuit.plageSpeciale')}
+            </div>
+            <div className="ps-modern-time-grid" style={{ marginBottom: '0.5rem' }}>
+              <div className="ps-modern-input-wrapper">
+                <label className="ps-modern-label">{t('paramSoc.nuit.debut')}</label>
+                <input type="text" className="ps-modern-input" value={formData.nuitsdeb || ''} onChange={(e) => handleInputChange('nuitsdeb', e.target.value)} />
+              </div>
+              <div className="ps-modern-input-wrapper">
+                <label className="ps-modern-label">{t('paramSoc.nuit.fin')}</label>
+                <input type="text" className="ps-modern-input" value={formData.nuitsfin || ''} onChange={(e) => handleInputChange('nuitsfin', e.target.value)} />
+              </div>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '1.5rem', fontStyle: 'italic' }}>
+              {t('paramSoc.nuit.plageSpecialeHint')}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>

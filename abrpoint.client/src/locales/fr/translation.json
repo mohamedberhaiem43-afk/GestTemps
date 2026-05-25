@@ -1736,7 +1736,10 @@
       "compterSortie": "Compter journée sortie",
       "exclureNuit": "Exclure nuit si sortie jour",
       "majoreHnuit": "Majoré H.Nuit aux H.Norm",
-      "seuilMin": "Seuil Min Nuit (h)"
+      "seuilMin": "Seuil Min Nuit (h)",
+      "plageNormale": "Plage nuit normale",
+      "plageSpeciale": "Plage nuit spéciale",
+      "plageSpecialeHint": "Appliquée aux employés ayant choisi « 1- Spécial » dans leur fiche."
     },
     "part1": {
       "jourDebut": "Jour début",

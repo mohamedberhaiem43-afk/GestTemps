@@ -417,13 +417,15 @@ Calculées **chaque jour** en comparant les heures réellement pointées aux heu
 
 #### Heures sup hebdomadaires
 
-Calculées **chaque semaine** en comparant le total des heures travaillées au seuil hebdomadaire contractuel (35 h en France par défaut, 40 h ou 44 h ailleurs).
+Calculées **chaque semaine** en comparant le total des heures travaillées au **seuil hebdomadaire défini par le calendrier société** pour cette semaine précise.
+
+> **Le rôle du calendrier société est central ici :** ce n'est pas une valeur fixe « 35 h » qui sert de référence. Pour chaque jour de la semaine, le calendrier société porte un nombre d'heures théoriques (`heures/jour`). L'application **additionne ces valeurs jour par jour sur les 7 jours de la semaine** pour obtenir le seuil hebdomadaire applicable. Cela permet aux semaines avec jour férié, fermeture collective ou pont d'avoir automatiquement un seuil réduit, sans intervention manuelle.
 
 **Formule :**
-> HS hebdo = (heures travaillées + heures de jours fériés + heures de congés payés) − seuil hebdomadaire
+> HS hebdo = (heures travaillées + heures de jours fériés + heures de congés payés) − **somme des heures théoriques de la semaine telles qu'inscrites dans le calendrier société**
 
 **Tranches et taux :**
-Les HS hebdomadaires sont réparties en **tranches** avec des taux de majoration croissants. La grille typique en France :
+Les HS hebdomadaires sont réparties en **tranches** avec des taux de majoration croissants, configurés dans les paramètres société. Grille typique :
 
 | Tranche | Plage | Taux |
 |---|---|---|
@@ -431,22 +433,21 @@ Les HS hebdomadaires sont réparties en **tranches** avec des taux de majoration
 | 2 | de la 6ᵉ à la 8ᵉ HS (41ᵉ → 43ᵉ h) | +50 % |
 | 3 | au-delà | +100 % |
 
-**Exemple chiffré :**
-- Contrat 35 h/semaine, tranche 1 = 5 h à +25 %, tranche 2 = au-delà à +50 %.
-- Semaine réelle : 42 h travaillées.
+**Exemple chiffré (semaine standard, sans férié) :**
+- Calendrier société : 7 h × 5 jours = **35 h théoriques** sur la semaine.
+- Semaine réelle pointée : 42 h.
 - HS hebdo = 42 − 35 = **7 h**.
 - Répartition : 5 h en tranche 1 (+25 %), 2 h en tranche 2 (+50 %).
 
-**Paramètres qui interviennent :**
-- Seuil hebdomadaire (paramètres société)
-- Plafonds par tranche (paramètres société)
-- Taux par tranche (paramètres société)
-- Plafond journalier (ex. 4 h HS/jour max)
-- Plafond mensuel (ex. 50 h HS/mois max — au-delà, l'application ne paye plus mais comptabilise pour récupération)
+**Exemple chiffré (semaine avec férié payé) :**
+- Calendrier société : un jour férié → `heures/jour = 0` pour ce jour. Total semaine = 7 h × 4 = **28 h théoriques**.
+- Semaine réelle pointée : 35 h (le salarié a travaillé normalement, le férié est compté à part).
+- HS hebdo = 35 − 28 = **7 h** alors que physiquement le salarié n'a pas dépassé son horaire habituel : ce sont les heures « gagnées » grâce au férié, qui basculent en HS au taux paramétré.
 
 **Cas particuliers :**
-- **Cadres au forfait** : pas d'HS calculées, les heures excédentaires sont ignorées (option à activer sur la catégorie).
-- **Jours fériés travaillés** : peuvent être inclus ou exclus du calcul HS (option « éliminer fériés du calcul HS » dans les paramètres).
+- **Cadres / maîtrise / exécutants** : un paramètre société par catégorie autorise (ou non) le calcul des HS — si l'option est désactivée pour une catégorie (typiquement « Cadres au forfait »), les heures excédentaires sont ignorées et n'apparaissent pas en HS.
+- **Jours fériés travaillés** : un paramètre société « éliminer fériés du calcul HS » permet de retirer ces heures du total avant comparaison, pour éviter qu'elles génèrent à la fois une majoration férié ET une majoration HS.
+- **Repos samedi / repos dimanche** : si un employé a un mode de repos déclaré (samedi seul, dimanche seul, ou les deux), les heures correspondant à ses jours de repos sont retirées du total avant calcul.
 
 ### 10.2 Les retards
 
@@ -572,11 +573,13 @@ L'application calcule l'intersection entre la plage du salarié pointée et la p
 | Calcul | Paramètres principaux | Localisation |
 |---|---|---|
 | **HS quotidiennes** | Tolérances embauche/débauche, plages horaires, durée panier | Poste de travail |
-| **HS hebdomadaires** | Seuil hebdo, plafonds par tranche, taux par tranche, plafonds journalier/mensuel | Paramètres société (onglet HS) |
+| **HS hebdomadaires** | **Seuil hebdo** (somme `heures/jour` du calendrier) ; tranches + taux ; droit aux HS par catégorie ; mode repos sam/dim ; option « éliminer fériés du calcul HS » ; mode d'arrondi HS | **Calendrier société + Paramètres société (onglet HS)** |
 | **Retards** | Tolérance arrivée, seuil sanction, coefficient | Poste de travail |
-| **Absences** | Heures théoriques du jour, minimum demi-journée, nature des absences | Poste + catalogue absences |
-| **Heures de nuit** | Plage nuit, minutes panier nuit | Paramètres société (onglet nuit) |
-| **Férié travaillé** | Règle majoration, plafond mensuel | Paramètres société + calendrier |
+| **Absences** | Plages matin/après-midi du jour, minimum demi-journée, nature de l'absence | Poste + catalogue absences |
+| **Heures de nuit** | Activation, plage début/fin nuit | Paramètres société (onglet nuit) |
+| **Férié travaillé** | Plafond d'heures férié rémunérées à taux normal, heures/jour férié par défaut | Paramètres société + calendrier |
+| **Mois de paie** | Jour de début / jour de fin du mois pointage | Paramètres société (onglet général) |
+| **Cohérence pointage** | Écart minimum entre deux pointages successifs (anti-doublon) | Paramètres société |
 
 ---
 
@@ -862,7 +865,7 @@ Dispositif légal courant (France, certains pays maghrébins), utile pour fidél
 
 #### À quoi ça sert
 
-C'est le **panneau de contrôle central** qui définit les règles de calcul appliquées par toute l'application : tolérances, arrondis, seuils d'heures sup, plages nuit, mois de paie, droits à congé.
+C'est le **panneau de contrôle central** qui définit les règles de calcul **réellement appliquées** par Concorde Workforce : période du mois de paie, tranches d'heures sup, plage nuit, comportement des fériés travaillés, écart minimal entre pointages, droit aux HS par catégorie.
 
 Un changement ici **impacte tous les pointages et toutes les paies futures**. À manipuler avec précaution.
 
@@ -870,55 +873,68 @@ Un changement ici **impacte tous les pointages et toutes les paies futures**. À
 
 - **Administrateur** uniquement.
 
-#### Sections paramétrables
+#### Champs effectivement consommés par les calculs et la gestion
 
-**Section générale**
-- **Affichage de l'échéance des contrats** sur la page d'accueil.
-- **Mode de calcul des semaines** (calendrier société ou lundi-dimanche fixe).
-- **Longueur du matricule auto-généré** (6 chiffres → « 000001 »).
-- **Format d'export paie** (compatible Sage, Navision, autre).
+> Cette liste se limite aux champs **réellement lus par les services de calcul** (pointage, HS hebdo/mensuel, nuit, retards, absences, fériés) et par les écrans de gestion. Les autres champs présents dans l'écran de paramétrage mais sans effet métier dans la version actuelle ne sont pas listés ici.
 
-**Section arrondis de pointage**
-- **Arrondi global** des pointages (à la 5, 10 ou 15 min).
-- **Seuil de bascule arrondi entrée/sortie** : à partir de combien de minutes restantes on arrondit vers le haut.
-- **Arrondi spécifique des HS**.
+**Mois de paie**
 
-**Section mois de paie**
-- **Premier jour du mois de paie** (1ᵉʳ janvier, 26 du mois courant, etc.).
-- **Dernier jour** (dernier jour du mois, 25 du mois suivant…).
+| Champ | Rôle réel dans l'application |
+|---|---|
+| **Jour de début du mois pointage** | Détermine le 1ᵉʳ jour de la période de calcul du « mois pointage » (peut différer du 1ᵉʳ jour calendaire : ex. mois pointage du 26 au 25). Consulté par tous les écrans Pointage du mois / État périodique / Préparation paie. |
+| **Jour de fin du mois pointage** | Délimite le dernier jour de la période. |
+| **Mois début / mois fin** | Indique si le début ou la fin se situe sur le mois civil précédent / courant / suivant. Sert au calcul automatique de la fenêtre exacte. |
 
-**Section congés et repos**
-- **Heures de congé annuel** (plafond).
-- **Durée d'un jour férié payé** (typiquement 8 h).
-- **Règle pour jour férié travaillé** (compté normal, majoré, doublé).
-- **Jours de repos hebdomadaires fixes** (samedi-dimanche par défaut).
+**Heures supplémentaires hebdomadaires** (consommés par `HeuresSupplementaireHebdomadaireService`)
 
-**Section heures supplémentaires**
-- **Tranches hebdomadaires** : jusqu'à 5 h à +25 %, ensuite +50 %, etc.
-- **Tranches mensuelles** : limite cumulée sur le mois.
-- **Plafonds journaliers et mensuels**.
+| Champ | Rôle réel dans l'application |
+|---|---|
+| **Mode calcul HS hebdo** | Active (ou non) le calcul des HS hebdomadaires. |
+| **Tranche 1 — seuil + taux** | Les premières heures dépassant le seuil hebdo (issu du calendrier société, cf. §15.2) sont valorisées au taux Tranche 1 (typique +25 %). |
+| **Tranche 2 — seuil + taux** | Heures suivantes valorisées au taux Tranche 2 (typique +50 %). |
+| **Droit HS Cadres / Maîtrise / Exécutants** | 3 commutateurs « 1 = oui / 0 = non » par catégorie. Si une catégorie a 0, ses heures excédentaires ne sont pas converties en HS. |
+| **Mode arrondi HS** | Méthode d'arrondi appliquée au cumul HS journalier avant agrégation hebdomadaire. |
 
-**Section heures de nuit**
-- **Activation du calcul nuit**.
-- **Plage horaire nuit** (22:00 → 06:00 par défaut).
-- **2ᵉ fenêtre nuit spéciale** optionnelle.
+**Heures supplémentaires mensuelles**
 
-**Section catégories**
-- **Activation des règles spécifiques** par catégorie (cadres, maîtrise, exécutants).
-- **Heures incluses au forfait cadre** (heures nuit, HS non payées).
+| Champ | Rôle réel dans l'application |
+|---|---|
+| **Mode calcul HS mensuel** | Active (ou non) le calcul des HS mensuelles. |
+| **Tranche 1 mensuelle — seuil + taux** | Analogue hebdo, mais cumul sur le mois pointage. |
+| **Tranche 2 mensuelle — seuil + taux** | Deuxième palier mensuel. |
 
-**Section absences**
-- **Permettre la saisie manuelle** d'absence (sinon réservée aux pointages effectifs).
-- **Limiter les congés à certaines périodes** (blackout dates).
-- **Imposer la semaine complète** pour un congé.
+**Jours fériés et repos**
 
-**Section CET**
-- **Date limite de transfert** (cf. §14).
-- **Plafond annuel de jours CET**.
+| Champ | Rôle réel dans l'application |
+|---|---|
+| **Plafond mensuel d'heures férié rémunérées à taux normal** | Au-delà de cette limite, les heures férié travaillées basculent en majoration HS plutôt qu'en simple rémunération. Lu lors du calcul HS hebdo. |
+| **Éliminer fériés travaillés du calcul HS** | Commutateur 0/1. Si « 1 », les heures pointées un jour férié sont retirées du total avant comparaison au seuil hebdo (évite la double majoration férié + HS). |
+| **Mode repos samedi / dimanche** | Code 0 (aucun), 2 (samedi), 3 (dimanche) — détermine quels jours réduisent le total des heures travaillées pour les employés ayant ce mode déclaré. |
+| **Jours de repos par défaut société** | Liste des jours de repos appliqués aux salariés qui n'ont pas de classe horaire assignée (fallback ajouté 2026-05). Pris en compte au moment du pointage pour marquer le jour comme « repos ». |
+| **Heures par jour de congé payé** | Convertit un jour de congé payé en heures (ex. 8) pour l'inclure dans le seuil hebdo HS. |
+| **Heures par jour férié (défaut)** | Valeur fallback utilisée pour les jours fériés non explicitement configurés dans le calendrier société. |
 
-**Section affichage**
-- **Séparateur décimal** (virgule française ou point anglais).
-- **Pourcentage de saisie congé par salarié** (le reste reste à la main de l'admin).
+**Heures de nuit** (consommés par `HeureNuitService`)
+
+| Champ | Rôle réel dans l'application |
+|---|---|
+| **Activer le calcul des heures de nuit** | Commutateur 0/1. À 0, aucun calcul nuit n'est effectué. |
+| **Heure de début plage nuit** | Borne basse de la fenêtre nocturne (typique 22:00). |
+| **Heure de fin plage nuit** | Borne haute (typique 06:00). |
+
+**Cohérence des pointages**
+
+| Champ | Rôle réel dans l'application |
+|---|---|
+| **Écart minimum entre deux pointages** | En minutes. Empêche le double-tap accidentel sur la pointeuse : si un nouveau pointage arrive avant ce délai après le précédent, il est ignoré. Lu par `PresenceRepository.UpdateExistingPresence`. |
+
+**Identification**
+
+| Champ | Rôle réel dans l'application |
+|---|---|
+| **Longueur du matricule auto-généré** | Détermine le format de l'empcod (ex. 6 chiffres → « 000001 »). Appliqué à la création d'employés. |
+
+> **Note transparence** : l'écran de paramétrage expose un certain nombre de champs additionnels (séparateur décimal, échéance contrats, plafonds CET, sanctions de retard, divers arrondis spéciaux…) qui sont **stockés en base mais pas encore branchés** sur les services de calcul de la version actuelle. Ces champs n'ont pas été inclus volontairement dans la liste ci-dessus pour ne pas laisser croire à un effet métier qu'ils n'ont pas.
 
 #### Bonnes pratiques
 
@@ -928,28 +944,51 @@ Un changement ici **impacte tous les pointages et toutes les paies futures**. À
 
 ### 15.2 Calendrier société
 
-#### À quoi ça sert
+#### À quoi ça sert dans l'application
 
-Le **calendrier annuel** des jours non travaillés : jours fériés (§4), fermetures collectives (15-31 août pour beaucoup d'entreprises), ponts attribués.
+Le calendrier société n'est pas un simple agenda affiché à l'écran. C'est la **table de référence horaire utilisée par le moteur de calcul des heures supplémentaires**. Pour chaque jour de l'année et chaque société, il porte un nombre d'heures théoriques (`heures/jour`).
 
-Sans ce calendrier, l'application considère tous les jours comme ouvrés et compte les jours non travaillés comme absences.
+**3 rôles concrets dans Concorde Workforce :**
+
+1. **Définit le seuil hebdomadaire HS** (rôle principal).
+   Quand le service de calcul HS hebdo s'exécute (cf. §10.1), il **additionne les `heures/jour` du calendrier société sur les 7 jours de la semaine**. C'est cette somme — et non une valeur fixe « 35 h » — qui sert de seuil de déclenchement des HS pour cette semaine. Résultat : une semaine contenant un férié payé (avec `heures/jour = 0` ce jour) baisse automatiquement son seuil, sans intervention manuelle.
+
+2. **Détermine implicitement les jours de repos calendaires.**
+   Si `heures/jour = 0` pour un jour donné, ce jour est traité comme un jour non travaillé au niveau société. Cela affecte le découpage hebdomadaire et la détection des dépassements.
+
+3. **Sert de fallback aux heures fériés.**
+   Quand un jour férié est pointé par un salarié et que sa configuration spécifique n'a pas été détaillée, l'application retombe sur la valeur `heures/jour` du calendrier société pour ce jour (combinée avec « Heures par jour férié (défaut) » des paramètres société).
 
 #### Qui utilise
 
 - **Administrateur** uniquement.
 
-#### Fonctionnalités
+#### Fonctionnalités effectivement disponibles dans l'écran
 
-- **Saisie manuelle** d'un jour férié ou d'une fermeture.
-- **Import automatique** des jours fériés du pays pour l'année.
-- **Vue calendrier** mensuelle/annuelle pour vérification visuelle.
-- **Différenciation** : férié payé / fermeture non payée / pont / journée exceptionnelle.
+| Fonctionnalité | Description |
+|---|---|
+| **Saisie annuelle** | Création/modification du calendrier pour une année et une société donnée. |
+| **Édition par mois ou pour toute l'année** | Le commutateur « tous mois » applique la modification à l'ensemble de l'année en un clic, ou la limite à un seul mois sélectionné. |
+| **Heures par jour normal** | Valeur d'heures théoriques pour les jours ouvrés. |
+| **Heures par jour samedi** | Valeur distincte pour le samedi (souvent < jour normal, ou 0). |
+| **Jours de repos hebdomadaires** | Liste des jours de la semaine systématiquement à 0 h (typique samedi+dimanche). Accepte plusieurs formats : `samdim`, `0,6`, `sam,dim`, etc. Tous les jours marqués repos sont mis à `heures/jour = 0`. |
+| **Clonage d'année** | Recopie le calendrier d'une année sur l'année suivante en un clic — gain de temps en janvier. |
+| **Cumul annuel** | Vue de synthèse : total d'heures théoriques par mois et pour l'année. |
+
+#### Articulation avec les autres modules
+
+| Module | Comment il consomme le calendrier |
+|---|---|
+| **Calcul HS hebdo** | Lit `heures/jour` × 7 pour le seuil hebdomadaire. |
+| **Pointage du mois / État périodique** | Affiche les heures théoriques de référence à côté des heures pointées. |
+| **Jours fériés (§4)** | Les jours saisis comme férié sont automatiquement positionnés à 0 h dans le calendrier société pour l'année concernée. |
 
 #### Bonnes pratiques
 
-- Saisir le calendrier **chaque début d'année** (idéalement décembre/janvier).
-- Si vous avez plusieurs sociétés/pays, **calendrier distinct par société** : les fériés diffèrent.
-- Re-saisir les **fermetures collectives** spécifiques à l'entreprise (semaine entre Noël et Nouvel An, par exemple).
+- **Initialiser le calendrier dès l'ouverture de la société** : sans lui, le calcul HS hebdo n'a pas de seuil et retombe sur des valeurs nulles.
+- Saisir le calendrier **chaque début d'année** (idéalement décembre/janvier) — ou utiliser le clonage de l'année précédente.
+- Si vous avez plusieurs sociétés, **un calendrier distinct par société** : les jours fériés et les heures hebdo diffèrent (France ≠ Tunisie ≠ Maroc).
+- Toujours vérifier le calendrier **après ajout d'un jour férié** dans le module §4 : le férié doit être reflété à 0 h dans le calendrier société pour que le seuil HS de la semaine soit correctement abaissé.
 
 ---
 

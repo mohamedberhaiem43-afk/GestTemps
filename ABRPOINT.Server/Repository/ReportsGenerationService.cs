@@ -425,6 +425,9 @@ namespace ABRPOINT.Server.Repository
         //  HTML/CSS â†’ PDF rendering with tables, headers, footers, etc.
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         public byte[] GenerateFromHtml(string html, string soccod, string empcod)
+            => GenerateFromHtml(html, soccod, empcod, signaturePath: null);
+
+        public byte[] GenerateFromHtml(string html, string soccod, string empcod, string? signaturePath)
         {
             try
             {
@@ -471,28 +474,55 @@ namespace ABRPOINT.Server.Repository
                 // 3. Add Signature if exists
                 if (!string.IsNullOrEmpty(empcod) && processedHtml.Contains("[Signature_Collaborateur]"))
                 {
+                    // Priorité 1 : signaturePath passé explicitement par l'appelant
+                    // (cf. VaultController.Download/Preview qui passe doc.SignaturePath).
+                    // Plus déterministe que la requête "last signed doc" — évite de coller
+                    // la signature d'un AUTRE document signé après celui qu'on régénère.
+                    //
+                    // Priorité 2 : fallback sur la requête historique pour compat avec
+                    // les callers qui n'ont pas le signaturePath sous la main (Templates/
+                    // preview, scénarios externes, etc.).
+                    //
                     // `issigned` est une colonne PostgreSQL `boolean`. Comparer à l'entier
-                    // 1 déclenche 42883 « operator does not exist: boolean = integer » →
-                    // exception remontée jusqu'au contrôleur Templates/preview qui renvoie
-                    // un 400 au client. Symptôme reproductible : dès qu'un modèle contient
-                    // un placeholder de signature collaborateur, l'aperçu retourne 400.
-                    // Filtre soccod ajouté en même temps : sans lui, un tenant multi-société
-                    // pouvait récupérer la signature d'un homonyme empcod dans une autre
-                    // société.
-                    var lastSign = connection.QueryFirstOrDefault<string>(@"
-                        SELECT signaturepath from documentvault
-                        where empcod = @empcod and soccod = @soccod and issigned = true
-                        order by signaturedate desc
-                        LIMIT 1", new { empcod, soccod });
-                    
+                    // 1 déclenche 42883 « operator does not exist: boolean = integer ».
+                    // Filtre soccod : sans lui, un tenant multi-société pouvait récupérer
+                    // la signature d'un homonyme empcod dans une autre société.
+                    var lastSign = signaturePath;
+                    if (string.IsNullOrEmpty(lastSign))
+                    {
+                        lastSign = connection.QueryFirstOrDefault<string>(@"
+                            SELECT signaturepath from documentvault
+                            where empcod = @empcod and soccod = @soccod and issigned = true
+                            order by signaturedate desc
+                            LIMIT 1", new { empcod, soccod });
+                    }
+
                     if (!string.IsNullOrEmpty(lastSign))
                     {
-                        var fullSigPath = Path.Combine(Directory.GetCurrentDirectory(), lastSign.TrimStart('/'));
-                        if (System.IO.File.Exists(fullSigPath))
+                        // BUG corrigé 2026-05 : avant on faisait
+                        //   Path.Combine(cwd, lastSign.TrimStart('/'))
+                        // qui produisait {cwd}/api/uploads/{slug}/sig_xxx.png — un chemin
+                        // INEXISTANT sur disque (les fichiers sont sous {cwd}/uploads/...,
+                        // sans le segment "api/" qui n'existe que dans l'URL HTTP). Donc
+                        // File.Exists renvoyait false et la signature n'était jamais
+                        // embarquée → le PDF gardait "[Signature_Collaborateur]" en texte.
+                        // ResolveUploadFilePath gère les deux formats (legacy "uploads/file"
+                        // et per-tenant "uploads/{slug}/file") + Docker vs dev.
+                        var fullSigPath = Helpers.FileHelper.ResolveUploadFilePath(lastSign);
+                        if (!string.IsNullOrEmpty(fullSigPath) && System.IO.File.Exists(fullSigPath))
                         {
+                            var sigExt = Path.GetExtension(fullSigPath).TrimStart('.').ToLowerInvariant();
+                            var sigMime = sigExt switch
+                            {
+                                "svg" => "image/svg+xml",
+                                "jpg" or "jpeg" => "image/jpeg",
+                                "gif" => "image/gif",
+                                "webp" => "image/webp",
+                                _ => "image/png",
+                            };
                             var sigBase64 = Convert.ToBase64String(System.IO.File.ReadAllBytes(fullSigPath));
-                            processedHtml = processedHtml.Replace("[Signature_Collaborateur]", 
-                                $@"<div style='text-align:right;'><img src='data:image/png;base64,{sigBase64}' style='height:80px;' /><br><small>Signé électroniquement</small></div>");
+                            processedHtml = processedHtml.Replace("[Signature_Collaborateur]",
+                                $@"<div style='text-align:right;'><img src='data:{sigMime};base64,{sigBase64}' style='height:80px;' /><br><small>Signé électroniquement</small></div>");
                         }
                     }
                 }

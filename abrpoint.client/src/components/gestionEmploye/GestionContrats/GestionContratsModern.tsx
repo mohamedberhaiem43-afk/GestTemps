@@ -9,7 +9,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ChecklistIcon from '@mui/icons-material/Checklist';
-import AddIcon from '@mui/icons-material/Add';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import SaveIcon from '@mui/icons-material/Save';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -884,29 +883,6 @@ const GestionContratsModernInner = () => {
           </Box>
         </Paper>
       </Box>
-
-      {/* FAB — « Nouveau contrat » : reset le formulaire ET scrolle jusqu'à lui.
-          Sur cette page le formulaire est dans la colonne gauche tout en haut, la
-          FAB tout en bas à droite : sans scrollIntoView le clic « réinitialisait »
-          le form hors écran et l'utilisateur ne voyait aucun effet visible. */}
-      {canAdd && (
-        <Box
-          onClick={() => {
-            handleReset();
-            // setTimeout 0 : laisse React commiter le state reset avant de scroller
-            // (sinon le scroll part avant que le formulaire n'ait rendu son nouvel
-            // état « add » avec le titre « Nouveau contrat »).
-            setTimeout(() => {
-              formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 0);
-          }}
-          role="button"
-          aria-label={t('contrat.newTitle') || 'Nouveau contrat'}
-          sx={{ position: 'fixed', bottom: 28, right: 28, width: 52, height: 52, background: 'linear-gradient(135deg, #0a2463 0%, #0040a1 100%)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(0,64,161,0.4)', cursor: 'pointer', zIndex: 100, transition: 'all 0.2s', '&:hover': { transform: 'scale(1.08)' } }}
-        >
-          <AddIcon sx={{ color: '#fff', fontSize: 24 }} />
-        </Box>
-      )}
 
       <AlertModal
         open={!!deleteTarget}
