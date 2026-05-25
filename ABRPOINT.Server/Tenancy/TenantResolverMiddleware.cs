@@ -89,13 +89,29 @@ public sealed class TenantResolverMiddleware
 
         // Tenant désactivé → on bloque l'accès aux endpoints applicatifs MAIS on laisse passer
         // /api/billing/* pour permettre la réactivation Stripe (cas Cancelled : l'admin doit
-        // pouvoir re-souscrire dans la fenêtre de rétention sans devoir recréer un tenant).
+        // pouvoir re-souscrire dans la fenêtre de rétention sans devoir recréer un tenant),
+        // ET les endpoints d'authentification (connect/me/refresh/logout) — sans quoi l'admin
+        // d'un tenant résilié ne pouvait littéralement plus se connecter à son espace pour
+        // cliquer sur « Réactiver » (la POST /Utilisateurs/connect retombait sur 402, ce que
+        // le front interprétait comme PendingPayment et déclenchait resumeStripeCheckout
+        // anonyme → après paiement le navigateur revenait sur /dashboard sans session → 402
+        // sur /me → redirect /login → boucle infinie de redirections Stripe ↔ Login).
+        // /me est aussi exposé pour que le front puisse lire tenantStatus="Cancelled" et
+        // rediriger l'utilisateur authentifié vers /dashboard/mon-abonnement (où il peut
+        // lancer la réactivation via /api/billing/checkout — qui passe déjà).
         if (tenant.Status is "Suspended" or "Cancelled" or "Failed")
         {
-            if (path.StartsWith("/api/billing/", StringComparison.OrdinalIgnoreCase))
+            var isBillingPath = path.StartsWith("/api/billing/", StringComparison.OrdinalIgnoreCase);
+            var isAuthEndpoint =
+                path.StartsWith("/api/Utilisateurs/connect", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith("/api/Utilisateurs/me", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith("/api/Utilisateurs/refresh", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith("/api/Utilisateurs/logout", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith("/api/Utilisateurs/complete-2fa-login", StringComparison.OrdinalIgnoreCase);
+            if (isBillingPath || isAuthEndpoint)
             {
-                // Bypass — la route Billing gère sa propre auth (Authorize ou AllowAnonymous
-                // pour resume-checkout) et appliquera ses propres règles de réactivation.
+                // Bypass — auth endpoints gèrent leur propre logique ; billing gère
+                // ses propres règles de réactivation (cf. ResumeCheckout, Reactivate).
             }
             else
             {

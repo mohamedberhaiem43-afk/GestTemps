@@ -278,7 +278,8 @@ const useNavigationItems = (): NavGroup[] => {
           ...(planAllows('leaveManagement') ? [{ label: t('navigation.absenceRequest'), href: '/dashboard/demande-absence', icon: ClipboardList }] : []),
           ...(planAllows('leaveManagement') ? [{ label: t('navigation.remoteWorkRequest'), href: '/dashboard/demande-teletravail', icon: Laptop }] : []),
           ...(planAllows('missions') ? [{ label: t('navigation.myMissions'), href: '/dashboard/missions', icon: Briefcase }] : []),
-          { label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt },
+          // Cf. note plus bas dans la nav full : notes de frais gated sur expenseReports.
+          ...(planAllows('expenseReports') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
           ...(planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
           { label: t('navigation.profile'), href: '/dashboard/profile', icon: CircleUser },
           ...(planAllows('digitalVault') ? [{ label: t('navigation.myVault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
@@ -332,11 +333,15 @@ const useNavigationItems = (): NavGroup[] => {
       items: [
         ...(canSee('gestion-employe') ? [{ label: t('navigation.employeeManagement'), href: '/dashboard/gestion-employe', icon: Users }] : []),
         ...(canSee('profil-employe') ? [{ label: t('navigation.employeeProfile'), href: '/dashboard/profil-employe', icon: User }] : []),
-        ...(canSee('contrat') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat', icon: FileText }] : []),
+        // Gating commercial : Gestion des contrats est un module facturable
+        // (cf. PlanFeatures.contractManagement) — exclu du pack Starter qui se
+        // limite au pointage + fiches collaborateurs. Sans ce gate, l'entrée
+        // s'affichait sur Starter mais le backend renvoyait 402 à l'ouverture.
+        ...(canSee('contrat') && planAllows('contractManagement') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat', icon: FileText }] : []),
         ...(planAllows('missions') ? [{ label: t('navigation.missions'), href: '/dashboard/missions', icon: Briefcase }] : []),
         // Renouvellement de contrat : intégré directement dans la liste des contrats (bouton
         // "Renouveler" par ligne) et dans le dashboard (KPI échéance contrat → dialog).
-        ...(canSee('allaitement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
+        ...(canSee('allaitement') && planAllows('breastfeedingManagement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
         ...(canSee('coffre-fort') && planAllows('digitalVault') ? [{ label: t('navigation.vault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
         ...(canSee('admin-vault') && planAllows('digitalVault') ? [{ label: t('navigation.vaultGlobalView'), href: '/dashboard/admin-vault', icon: Eye }] : []),
       ],
@@ -369,7 +374,10 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
         ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
         ...(canSee('titre-de-conge-general') && planAllows('generalLeave') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
-        ...(canSee('remboursement') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
+        // Notes de frais : module facturable (PlanFeatures.expenseReports) —
+        // exclu du Starter. Sans ce gate, /dashboard/remboursement s'ouvrait
+        // côté UI mais NoteDeFraisController renvoyait 402 à toute requête.
+        ...(canSee('remboursement') && planAllows('expenseReports') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
         ...(isAdminEffective ? [{ label: t('navigation.balanceAllocation'), href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
         ...(isAdminEffective ? [{ label: t('navigation.timeSavingAccount'), href: '/dashboard/cet', icon: CalendarCheck }] : []),
       ],
@@ -454,9 +462,15 @@ const useNavigationItems = (): NavGroup[] => {
         { label: t('navigation.accessRights'), href: '/dashboard/droit-accees', icon: Shield },
         // Affectation site → utilisateur (table Socuser). Visible admin only.
         { label: t('navigation.siteAccess', "Droits d'accès par site"), href: '/dashboard/droit-acces-site', icon: ShieldCheck },
-        { label: t('navigation.contractTemplates'), href: '/dashboard/template-builder', icon: FileText },
+        // Builder de modèles de contrat : lié à PlanFeatures.contractManagement
+        // (mêmes endpoints /api/Templates côté backend qui posent le 402 sur Starter).
+        ...(planAllows('contractManagement') ? [{ label: t('navigation.contractTemplates'), href: '/dashboard/template-builder', icon: FileText }] : []),
         { label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText },
-        { label: t('navigation.letterTemplates'), href: '/dashboard/courriers', icon: FileText },
+        // Courriers IA : la génération de lettres passe par le pipeline RAG
+        // (cf. LetterGenerationService) — gated sur PlanFeatures.ragAi
+        // (Premium uniquement). Le composant LetterTemplatesModern appelle
+        // /api/LetterTemplates qui dépend de ragAi pour la complétion.
+        ...(planAllows('ragAi') ? [{ label: t('navigation.letterTemplates'), href: '/dashboard/courriers', icon: FileText }] : []),
         ...(planAllows('ragAi') ? [{ label: t('navigation.ragAudit'), href: '/dashboard/rag-audit', icon: History }] : []),
         // Suivi positions GPS — page Leaflet alimentée par les colonnes
         // prelat/prelon de la table presence (capturées au pointage mobile).

@@ -27,6 +27,12 @@ interface ExcelImportButtonProps {
    *  pour montrer à l'utilisateur le format attendu. La ligne reste éditable
    *  ou supprimable dans Excel. */
   templateExample?: Record<string, string | number>;
+  /** Optionnel : libellés humains pour les en-têtes du modèle Excel (clé = clé de
+   *  columnMap, valeur = libellé affiché). Si absent, on affiche la clé brute (ex
+   *  « Empcod ») qui est techniquement le nom DB et reste illisible. Les libellés
+   *  fournis doivent figurer dans les alias de columnMap (sinon le ré-upload ne
+   *  matcherait pas la colonne). Le matching à l'import reste insensible à la casse. */
+  labelMap?: Record<string, string>;
 }
 
 /**
@@ -39,7 +45,7 @@ interface ExcelImportButtonProps {
  */
 export default function ExcelImportButton({
   endpoint, columnMap, extraBody, onImported, label = 'Importer Excel',
-  templateFileName, templateExample,
+  templateFileName, templateExample, labelMap,
 }: ExcelImportButtonProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
@@ -74,25 +80,52 @@ export default function ExcelImportButton({
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: 'array' });
       const sheet = wb.Sheets[wb.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
 
-      // Mapping insensible à la casse / espaces : pour chaque clé attendue, on cherche
-      // la 1ère colonne du fichier dont le nom (lowercased + trimmé) match l'un des alias.
-      const rows = json.map((srcRow) => {
+      // Lecture en mode `header: 1` (array-of-arrays) plutôt que le mode objet
+      // par défaut. Pourquoi : le mode objet repose sur la propriété `!ref` de
+      // la feuille pour borner la lecture, or certains éditeurs (Google Sheets
+      // export, LibreOffice anciennes versions, sauvegardes via XLSX.writeFile
+      // d'un modèle initialement vide) n'étendent pas `!ref` quand l'utilisateur
+      // ajoute des lignes — résultat : seule la première ligne de données était
+      // remontée et le reste était silencieusement ignoré. `header: 1` itère sur
+      // toutes les lignes effectivement présentes dans la feuille indépendamment
+      // de `!ref`.
+      const aoa = XLSX.utils.sheet_to_json<any[]>(sheet, {
+        header: 1,
+        defval: '',
+        blankrows: false,
+        raw: false, // formate dates / nombres en chaînes lisibles
+      });
+
+      if (aoa.length < 2) {
+        feedback.showWarning('Le fichier ne contient pas de données — uniquement la ligne d\'en-tête.');
+        return;
+      }
+
+      const headerRow = (aoa[0] ?? []).map((h) => String(h ?? '').trim().toLowerCase());
+      // Pré-calcule l'index de colonne pour chaque alias attendu — évite de
+      // refaire `indexOf` à chaque ligne (perf sur gros imports).
+      const colIndex: Record<string, number> = {};
+      Object.entries(columnMap).forEach(([targetKey, aliases]) => {
+        for (const alias of aliases) {
+          const idx = headerRow.indexOf(alias.toLowerCase());
+          if (idx >= 0) { colIndex[targetKey] = idx; break; }
+        }
+      });
+
+      const rows = aoa.slice(1).map((arr) => {
         const out: Record<string, any> = {};
-        const normalized: Record<string, any> = {};
-        Object.keys(srcRow).forEach(k => { normalized[k.trim().toLowerCase()] = srcRow[k]; });
-        Object.entries(columnMap).forEach(([targetKey, aliases]) => {
-          for (const alias of aliases) {
-            const v = normalized[alias.toLowerCase()];
-            if (v !== undefined && v !== '') { out[targetKey] = String(v).trim(); break; }
+        Object.entries(colIndex).forEach(([targetKey, idx]) => {
+          const v = arr[idx];
+          if (v !== undefined && v !== null && v !== '') {
+            out[targetKey] = String(v).trim();
           }
         });
         return out;
       }).filter(r => Object.values(r).some(v => v !== undefined && v !== ''));
 
       if (rows.length === 0) {
-        feedback.showWarning('Aucune ligne valide enregistrée dans le fichier.');
+        feedback.showWarning('Aucune ligne valide trouvée. Vérifiez que les en-têtes correspondent au modèle.');
         return;
       }
 
@@ -117,27 +150,33 @@ export default function ExcelImportButton({
 
   const handleDownloadTemplate = () => {
     try {
-      const headers = Object.keys(columnMap);
-      if (headers.length === 0) {
+      const keys = Object.keys(columnMap);
+      if (keys.length === 0) {
         feedback.showWarning('Aucune colonne définie pour le modèle.');
         return;
       }
-      // Une seule ligne : la ligne d'en-tête. Si templateExample est fourni,
-      // on ajoute une ligne d'exemple pour aider à la saisie.
-      const rows: Record<string, any>[] = templateExample
-        ? [headers.reduce<Record<string, any>>((acc, h) => {
-            acc[h] = templateExample[h] ?? '';
-            return acc;
-          }, {})]
-        : [];
-      const sheet = XLSX.utils.json_to_sheet(rows, { header: headers });
+      // En-têtes affichés : libellés humains (labelMap) si fournis, sinon la
+      // clé brute (ex « Empcod »). Les libellés DOIVENT figurer dans les alias
+      // de columnMap pour que le ré-upload retrouve la colonne (matching
+      // insensible à la casse, déjà géré dans handleFile).
+      const displayHeaders = keys.map(k => labelMap?.[k] ?? k);
+
+      // Construction explicite en array-of-arrays via aoa_to_sheet — garantit
+      // que `!ref` couvre exactement (entêtes + exemple) au lieu de pouvoir
+      // rester à A1:A1 sur un appel json_to_sheet([]) (cause de la régression
+      // « seule la 1ère ligne est importée »).
+      const aoa: any[][] = [displayHeaders];
+      if (templateExample) {
+        aoa.push(keys.map(k => templateExample[k] ?? ''));
+      }
+      const sheet = XLSX.utils.aoa_to_sheet(aoa);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, sheet, 'Modèle');
 
-      // Largeur de colonnes approximative basée sur la longueur de l'en-tête.
-      // Sans ça, les colonnes "Empemail" ou "Empadr" sont compressées à 8 chars
-      // dans Excel et l'utilisateur ne voit pas l'en-tête en entier.
-      sheet['!cols'] = headers.map(h => ({ wch: Math.max(12, h.length + 4) }));
+      // Largeur de colonnes approximative basée sur la longueur du libellé
+      // affiché. Sans ça, les colonnes type « Date d'embauche » sont compressées
+      // à ~10 chars dans Excel et l'utilisateur ne voit pas l'en-tête en entier.
+      sheet['!cols'] = displayHeaders.map(h => ({ wch: Math.max(14, h.length + 4) }));
 
       // Nom du fichier : préfixe "modele-" + dernier segment de l'endpoint si pas
       // de templateFileName explicite. '/BulkImport/fonctions' → 'modele-fonctions.xlsx'.

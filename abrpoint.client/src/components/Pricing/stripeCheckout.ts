@@ -10,6 +10,16 @@ export interface CheckoutPlan {
 const successUrl = () => `${window.location.origin}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
 const cancelUrl = () => `${window.location.origin}/dashboard/plan-configuration?checkout=cancelled`;
 
+// Resume flow : pas de session établie après /billing/resume-checkout (endpoint
+// anonyme), donc /dashboard renvoie 401 → redirect /login → re-tentative connect
+// qui peut retomber en 402 si le webhook Stripe n'a pas encore flippé le tenant
+// (race typique 1-5s). On retombe donc sur /login avec un flag qui pré-remplit
+// l'email + affiche un bandeau « Paiement confirmé, reconnectez-vous » et qui
+// permettra à la prochaine tentative connect de passer (middleware bypass +
+// post-login redirect vers /mon-abonnement si tenant pas encore Active).
+const resumeSuccessUrl = (email: string) =>
+  `${window.location.origin}/login?reactivated=1&email=${encodeURIComponent(email)}&session_id={CHECKOUT_SESSION_ID}`;
+
 // Demande au backend une session Stripe Checkout puis redirige le navigateur
 // vers l'URL hostée par Stripe. La page de paiement est entièrement gérée par
 // Stripe — l'app ne collecte plus de données carte.
@@ -33,7 +43,7 @@ export async function resumeStripeCheckout(email: string, password: string): Pro
   const { data } = await apiInstance.post('/billing/resume-checkout', {
     email,
     password,
-    successUrl: successUrl(),
+    successUrl: resumeSuccessUrl(email),
     cancelUrl: cancelUrl(),
   });
   if (!data?.url) throw new Error('Réponse Stripe invalide.');

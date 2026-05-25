@@ -397,10 +397,13 @@ function DashboardModernAdmin() {
       const donutOuterR = 22;
       const donutInnerR = 12;
 
+      // Tuples explicites `as [r, g, b]` : sans ça TS infère `number[]` (longueur
+      // variable) ce qui casse le spread `doc.setFillColor(...color)` qui exige
+      // exactement 3 nombres.
       const slices: { value: number; color: [number, number, number]; label: string }[] = [
-        { value: genderM, color: [0, 64, 161], label: 'Hommes' },
-        { value: genderF, color: [217, 70, 239], label: 'Femmes' },
-        { value: genderAutre, color: [148, 163, 184], label: 'Autre' },
+        { value: genderM, color: [0, 64, 161] as [number, number, number], label: 'Hommes' },
+        { value: genderF, color: [217, 70, 239] as [number, number, number], label: 'Femmes' },
+        { value: genderAutre, color: [148, 163, 184] as [number, number, number], label: 'Autre' },
       ].filter((s) => s.value > 0);
 
       // Trace une part de tarte via polygone radial : centre \u2192 arc \u00E9chantillonn\u00E9 \u2192 centre.

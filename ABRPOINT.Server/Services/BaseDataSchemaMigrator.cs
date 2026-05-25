@@ -69,6 +69,12 @@ public static class BaseDataSchemaMigrator
         // peut pas remplir rétroactivement les missions des notes déjà saisies.
         var nfMission = await AddColumnIfMissingAsync(db, "notedefrais", "missionid", "INTEGER NULL", ct);
 
+        // Email collaborateur : VARCHAR(30) initial trop court (rejetait silencieusement
+        // toute adresse moyennement longue, ex prenom.nom@entreprise.fr). Élargi à
+        // VARCHAR(254) conformément au plafond RFC 5321. Aligné côté code par
+        // [StringLength(254)] sur Employe.Empemail.
+        var empemail = await ExpandColumnIfNeededAsync(db, "employe", "empemail", "VARCHAR(254)", currentMaxLen: 30, targetMaxLen: 254, makeNotNull: false, ct);
+
         // RTT (Réduction du Temps de Travail, loi française) :
         // 4 colonnes sur employe + 2 colonnes sur solde. Toutes nullables.
         var rttMethode = await AddColumnIfMissingAsync(db, "employe", "emp_rtt_methode", "VARCHAR(1) NULL", ct);

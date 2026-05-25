@@ -105,6 +105,19 @@ export default function CredentialsSignInPage() {
         setSearchParams(next, { replace: true });
       }
     }
+    // Retour Stripe après resumeStripeCheckout : on pré-remplit l'email et on
+    // affiche un bandeau « Paiement confirmé ». Le webhook Stripe a flippé (ou
+    // est en train de flipper) le tenant Cancelled → Active ; à la prochaine
+    // tentative connect le middleware laissera passer et le post-login redirect
+    // routera vers /mon-abonnement qui poll jusqu'à confirmation finale.
+    if (searchParams.get('reactivated') === '1') {
+      const e = searchParams.get('email') ?? '';
+      if (e) setUtimail(e);
+      setSuccess('Paiement confirmé ✓ — connectez-vous pour finaliser la réactivation de votre espace.');
+      const next = new URLSearchParams(searchParams);
+      next.delete('reactivated'); next.delete('email'); next.delete('session_id');
+      setSearchParams(next, { replace: true });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -155,6 +168,22 @@ export default function CredentialsSignInPage() {
         return;
       }
     }
+    // Si le tenant est résilié (Cancelled) ou en attente de paiement
+    // (PendingPayment), on ne peut PAS le router vers /dashboard : les
+    // endpoints applicatifs sont bloqués 402 par TenantResolverMiddleware.
+    // On l'envoie sur /dashboard/mon-abonnement (route SPA, n'appelle que
+    // /api/billing/* qui est dans le bypass middleware) pour qu'il réactive
+    // ou finalise son paiement. Sans ce redirect, l'utilisateur tombait sur
+    // un /dashboard cassé (KPIs vides, /me succès mais tous les autres
+    // appels en 402) et la seule façon de sortir était une URL manuelle.
+    try {
+      const me = await apiInstance.get('/Utilisateurs/me');
+      const tenantStatus = (me.data?.tenantStatus ?? '').toString();
+      if (tenantStatus === 'Cancelled' || tenantStatus === 'PendingPayment') {
+        navigate('/dashboard/mon-abonnement', { replace: true });
+        return;
+      }
+    } catch { /* fall through au navigate dashboard */ }
     // Si le visiteur a été redirigé depuis une page protégée (returnUrl=/dashboard/xxx),
     // on retourne sur cette page après login. Sinon fallback dashboard.
     navigate(returnUrl ?? '/dashboard');

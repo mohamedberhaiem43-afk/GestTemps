@@ -252,7 +252,13 @@ const ContractBuilderModern = () => {
    * ce qui plantait sur tout tenant qui n'avait pas exactement cet empcod.
    */
   const handlePreview = async () => {
-    if (!selectedTpl) return;
+    if (!selectedTpl) {
+      // Avant : return silencieux → l'utilisateur cliquait sur « Aperçu PDF »
+      // et rien ne se passait visuellement, ce qui faisait croire que le bouton
+      // était cassé. On notifie maintenant qu'un modèle doit être sélectionné.
+      showSnack(t('contractBuilder.snack.selectTemplateExport') || 'Sélectionnez un modèle dans la liste avant de lancer l\'aperçu.', 'error');
+      return;
+    }
     if (!soccod || !uticod) {
       showSnack(t('contractBuilder.snack.sessionExpiredPreview'), 'error');
       return;
@@ -374,12 +380,31 @@ const ContractBuilderModern = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (editorRef.current) {
-         editorRef.current.innerHTML += sanitizeRichHtml(res.data.text);
-         setContent(editorRef.current.innerHTML);
+        // Comportement « import = remplacer » (et non plus « append »). L'ancien
+        // `innerHTML +=` fusionnait l'import avec le contenu existant — quand on
+        // importait un PDF par-dessus un modèle déjà rédigé on obtenait deux
+        // contrats empilés sans séparateur. Si l'éditeur n'est pas vide on
+        // demande confirmation avant d'écraser. Pas de wrapping <div> autour de
+        // l'import : le sélecteur Tailwind .prose ne stylise QUE ses enfants
+        // directs (> p, > h1…) — entourer les <p> dans un <div> perdrait les
+        // marges entre paragraphes et donnerait un bloc compact illisible.
+        const imported = sanitizeRichHtml(res.data.text || '');
+        const existing = editorRef.current.innerHTML.replace(/<br\s*\/?>(\s|&nbsp;)*/gi, '').trim();
+        const editorHasContent = existing.length > 0 && existing !== '<p><br></p>';
+        if (editorHasContent && !window.confirm(t('contractBuilder.import.confirmReplace') || 'Le modèle actuel sera remplacé par le contenu du PDF. Continuer ?')) {
+          return;
+        }
+        editorRef.current.innerHTML = imported;
+        setContent(editorRef.current.innerHTML);
       }
     } catch (err: any) {
        showSnack(err.response?.data || t('contractBuilder.snack.importFailed'), 'error');
-    } finally { setImporting(false); }
+    } finally {
+      setImporting(false);
+      // Reset l'input pour que ré-importer le MÊME fichier déclenche bien
+      // l'onChange (sinon le navigateur le considère inchangé).
+      if (e.target) e.target.value = '';
+    }
   };
 
   return (
@@ -489,35 +514,52 @@ const ContractBuilderModern = () => {
 
         {/* ── Main Canvas ── */}
         <main className="flex-1 bg-slate-50 overflow-y-auto p-12 flex flex-col items-center">
-           {/* Floating Toolbar */}
-           <div className="w-full max-w-4xl bg-white p-2.5 rounded-2xl shadow-xl border border-slate-200 mb-8 flex items-center gap-2 sticky top-0 z-40">
-              <div className="flex gap-0.5 border-r border-slate-100 pr-2">
+           {/* Floating Toolbar
+               flex-wrap : les 6 groupes de boutons + le CTA « Aperçu PDF » dépassent
+               max-w-4xl dès que la sidebar Variables est ouverte → sans wrap le bouton
+               le plus à droite (Aperçu) sortait du conteneur et était inaccessible.
+               shrink-0 sur chaque groupe garantit qu'aucun ne se compresse en dessous
+               de sa taille naturelle (Material IconButtons n'ont pas de min-width). */}
+           <div className="w-full max-w-4xl bg-white p-2.5 rounded-2xl shadow-xl border border-slate-200 mb-8 flex flex-wrap items-center gap-y-2 gap-x-2 sticky top-0 z-40">
+              <div className="flex shrink-0 gap-0.5 border-r border-slate-100 pr-2">
                  <IconButton size="small" onClick={() => exec('bold')}><span className="material-symbols-outlined text-sm">format_bold</span></IconButton>
                  <IconButton size="small" onClick={() => exec('italic')}><span className="material-symbols-outlined text-sm">format_italic</span></IconButton>
                  <IconButton size="small" onClick={() => exec('underline')}><span className="material-symbols-outlined text-sm">format_underlined</span></IconButton>
               </div>
-              <div className="flex gap-0.5 border-r border-slate-100 pr-2">
+              <div className="flex shrink-0 gap-0.5 border-r border-slate-100 pr-2">
                  <IconButton size="small" onClick={() => exec('justifyLeft')}><span className="material-symbols-outlined text-sm">format_align_left</span></IconButton>
                  <IconButton size="small" onClick={() => exec('justifyCenter')}><span className="material-symbols-outlined text-sm">format_align_center</span></IconButton>
                  <IconButton size="small" onClick={() => exec('justifyRight')}><span className="material-symbols-outlined text-sm">format_align_right</span></IconButton>
               </div>
-              <div className="flex gap-0.5 border-r border-slate-100 pr-2">
+              <div className="flex shrink-0 gap-0.5 border-r border-slate-100 pr-2">
                  <IconButton size="small" onClick={() => exec('insertHorizontalRule')}><span className="material-symbols-outlined text-sm">horizontal_rule</span></IconButton>
                  <IconButton size="small" onClick={insertTable}><span className="material-symbols-outlined text-sm">table_chart</span></IconButton>
               </div>
-              <div className="flex gap-0.5 border-r border-slate-100 pr-2">
+              <div className="flex shrink-0 gap-0.5 border-r border-slate-100 pr-2">
                  <IconButton size="small" onClick={() => exec('insertHTML', '<header><p>[Logo_Entreprise]</p><p><b>[Table.soclib]</b></p><p>[Table.socadr]</p></header><br>')} title={t('contractBuilder.toolbar.insertHeader')}><span className="material-symbols-outlined text-sm">vertical_align_top</span></IconButton>
                  <IconButton size="small" onClick={() => exec('insertHTML', '<br><footer><p><i>[Table.soclib] — [Table.socadr]</i></p></footer>')} title={t('contractBuilder.toolbar.insertFooter')}><span className="material-symbols-outlined text-sm">vertical_align_bottom</span></IconButton>
               </div>
-              <div className="flex gap-1 border-r border-slate-100 pr-2 items-center">
+              <div className="flex shrink-0 gap-1 border-r border-slate-100 pr-2 items-center">
                  <select className="text-[11px] font-bold bg-slate-50 rounded-lg px-2 py-1 border-none outline-none" onChange={(e) => exec('fontSize', e.target.value)}>
                     <option value="3">{t('contractBuilder.toolbar.fontNormal')}</option>
                     <option value="5">{t('contractBuilder.toolbar.fontLarge')}</option>
                     <option value="1">{t('contractBuilder.toolbar.fontSmall')}</option>
                  </select>
               </div>
-              <div className="ml-auto">
-                 <Button size="small" onClick={handlePreview} startIcon={<span className="material-symbols-outlined text-[16px]">visibility</span>} className="text-slate-500 font-bold normal-case">{t('contractBuilder.toolbar.previewPdf')}</Button>
+              {/* ml-auto pousse à droite quand il reste de la place sur la ligne ;
+                  sinon (cas wrap) le bouton retombe sur la 2e ligne, toujours visible
+                  et cliquable. variant="contained" pour le rendre plus repérable
+                  visuellement vs les icônes de formatage. */}
+              <div className="ml-auto shrink-0">
+                 <Button
+                   size="small"
+                   variant="contained"
+                   onClick={handlePreview}
+                   startIcon={<span className="material-symbols-outlined text-[16px]">visibility</span>}
+                   className="font-bold normal-case whitespace-nowrap bg-blue-700 hover:bg-blue-800 shadow-sm"
+                 >
+                   {t('contractBuilder.toolbar.previewPdf')}
+                 </Button>
               </div>
            </div>
 

@@ -613,17 +613,50 @@ doc.text(`${t('employe.labels.name') || 'Name'}: ${employe.emplib}`, 20, y);
               extraBody={{ Soccod: soccod, Sitcod: '01' }}
               columnMap={{
                 Empcod: ['empcod', 'matricule', 'code'],
-                Emplib: ['emplib', 'nom', 'nom complet', 'nom et prenom', 'nom et prénom', 'employe', 'employé'],
+                Emplib: ['emplib', 'nom complet', 'nom', 'nom et prenom', 'nom et prénom', 'employe', 'employé'],
                 Emplnais: ['emplnais', 'lieu de naissance', 'lieu naissance'],
                 Empdnais: ['empdnais', 'date de naissance', 'date naissance', 'naissance'],
                 Empsexe: ['empsexe', 'sexe', 'genre'],
                 Empcin: ['empcin', 'cin', 'cnie', 'identite', 'identité'],
-                Emptel: ['emptel', 'telephone', 'téléphone', 'tel', 'mobile'],
+                Emptel: ['emptel', 'téléphone', 'telephone', 'tel', 'mobile'],
                 Empemail: ['empemail', 'email', 'mail', 'e-mail'],
                 Empadr: ['empadr', 'adresse', 'address'],
-                Empemb: ['empemb', 'date embauche', 'date d\'embauche', 'embauche', 'hire date'],
+                Empemb: ['empemb', 'date d\'embauche', 'date embauche', 'embauche', 'hire date'],
                 ServiceLib: ['servicelib', 'service', 'serlib', 'departement', 'département'],
                 FonctionLib: ['fonctionlib', 'fonction', 'fonlib', 'poste', 'job'],
+              }}
+              // Libellés humains affichés dans le modèle Excel téléchargé. Doivent
+              // exister dans les alias de columnMap ci-dessus (matching à l'import
+              // se fait par alias insensible à la casse) — ainsi un utilisateur
+              // qui télécharge le modèle, le remplit puis le ré-importe reconnaît
+              // ses colonnes en français et l'import sait toujours les mapper.
+              labelMap={{
+                Empcod: 'Matricule',
+                Emplib: 'Nom complet',
+                Emplnais: 'Lieu de naissance',
+                Empdnais: 'Date de naissance',
+                Empsexe: 'Sexe',
+                Empcin: 'CIN',
+                Emptel: 'Téléphone',
+                Empemail: 'Email',
+                Empadr: 'Adresse',
+                Empemb: 'Date d\'embauche',
+                ServiceLib: 'Service',
+                FonctionLib: 'Fonction',
+              }}
+              templateExample={{
+                Empcod: '',
+                Emplib: 'Jean Dupont',
+                Emplnais: 'Paris',
+                Empdnais: '1990-01-15',
+                Empsexe: 'M',
+                Empcin: 'AB123456',
+                Emptel: '0612345678',
+                Empemail: 'jean.dupont@example.com',
+                Empadr: '12 rue de la Paix, 75002 Paris',
+                Empemb: '2024-09-01',
+                ServiceLib: 'Production',
+                FonctionLib: 'Opérateur',
               }}
               onImported={refetch}
             />

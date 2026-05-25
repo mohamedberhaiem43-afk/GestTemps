@@ -7,6 +7,7 @@ import CheckboxComponent from "../../../CheckboxComponent/CheckboxComponent";
 import useGetQualificationsLibs from "../../../../hooks/QualificationHooks/useGetQualificationsLibs";
 import useGetFonctionsLibs from "../../../../hooks/fonctionHooks/useGetFonctionsLibs";
 import useGetSectionsLibs from "../../../../hooks/sectionHooks/useGetSectionsLibs";
+import useGetEmployeesLibs from "../../../../hooks/employeHooks/useGetEmployeesLibs";
 import Employe from "../../../../models/Employe";
 import { useTranslation } from 'react-i18next';
 import apiInstance from "../../../API/apiInstance";
@@ -46,6 +47,14 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
     const {data:sections = []} = useGetSectionsLibs()
     const {data:qualifications = []} = useGetQualificationsLibs()
     const {data:fonctions = []} = useGetFonctionsLibs()
+    // Liste des employés pour le sélecteur Manager (empresp = empcod du
+    // manager). Le hook renvoie un map empcod → emplib partagé par les autres
+    // sélecteurs de la fiche. On exclut l'employé en cours d'édition pour
+    // empêcher l'auto-référence (un manager ne peut pas être son propre manager).
+    const { data: allEmployes = {} } = useGetEmployeesLibs();
+    const managersMap: Record<string, string> = Object.fromEntries(
+        Object.entries(allEmployes as Record<string, string>).filter(([code]) => code !== empData?.empcod)
+    );
     const [calendrier, setCalendrier] = useState<any[]>([]);
 
     useEffect(() => {
@@ -135,6 +144,17 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
                 setValue={(value)=>handleChange({target:{ name: 'seccod', value }})}
                 maplist={sections} />
             </Grid>
+            {/* Manager (Empresp) : le backend Employe.cs stocke un Empcod ici, et la
+                fiche en vue (EmployeProfileView) affiche déjà ce champ via emp.resplib.
+                Sans ce sélecteur dans le formulaire, le champ vue restait toujours vide. */}
+            <Grid item xs={2}>
+                <SelectInputComponent
+                    label={t('employe.fields.manager') || 'Manager'}
+                    value={formData.empresp}
+                    setValue={(value)=>handleChange({target:{ name: 'empresp', value }})}
+                    maplist={managersMap}
+                />
+            </Grid>
             <Grid item xs={2.5}>
                 <FormControl variant="standard" fullWidth>
             <InputLabel shrink id="employe-label">{t('employe.fields.position') || 'Position'}</InputLabel>
@@ -170,18 +190,26 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
                 </Select>
                 </FormControl>
             </Grid>
+            {/* Date d'embauche / sortie / retraite : on passe la valeur BRUTE
+                (string ISO ou Date object). InputComponent[type="date"] est un
+                wrapper MUI X DatePicker (cf. components/Inputs/Input.tsx) qui
+                parse via dayjs en interne — il accepte string ISO, Date object,
+                Dayjs ou null. L'ancien `.toString().slice(0, 10)` cassait sur
+                Date object (« Sun Sep 01 2024 ».slice(0,10) → « Sun Sep 01 »
+                non parsable) → le picker apparaissait vide, la saisie année
+                était systématiquement écrasée à chaque re-render. */}
             <Grid item xs={2}>
                   <InputComponent
                     type="date"
                     label={t('employe.documents.hireDate') || 'Hire Date'}
-                    value={formData.empemb?.toString().slice(0, 10) || ''}
+                    value={formData.empemb ?? null}
                     setValue={(value:any)=> handleChange ({target:{ name: 'empemb', value }})} />
             </Grid>
             <Grid item xs={2}>
                   <InputComponent
                     type="date"
                     label={t('employe.documents.exitDate') || 'Exit Date'}
-                    value={formData.empsort?.toString().slice(0, 10) || ''}
+                    value={formData.empsort ?? null}
                     setValue={(value:any)=> handleChange ({target:{ name: 'empsort', value }})} />
             </Grid>
 
@@ -193,7 +221,7 @@ export default function shrinkEmployeInfo({ onChange,empData }:EmployeDetailsPro
                   <InputComponent
                     type="date"
                     label={t('employe.fields.retirementDate') || 'Retirement date'}
-                    value={formData.empretraite?.toString().slice(0, 10) || ''}
+                    value={formData.empretraite ?? null}
                     setValue={(value:any)=> handleChange ({target:{ name: 'empretraite', value }})} />
             </Grid>
             <Grid item xs={1}>

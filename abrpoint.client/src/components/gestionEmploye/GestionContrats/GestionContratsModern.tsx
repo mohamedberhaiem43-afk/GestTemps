@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Box, Typography, Paper, TextField, Select, MenuItem,
   FormControl, Button, Avatar, Chip, IconButton, CircularProgress, Snackbar, Alert,
@@ -16,6 +16,10 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { Skeleton } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import 'dayjs/locale/fr';
 import { staggerSx } from '../../helper/animations/Stagger';
 import { Contrat } from '../../../models/Contrat';
 import useUpdateContrat from '../../../hooks/contratHooks/useUpdateContrat';
@@ -39,11 +43,6 @@ import './GestionContratsModern.css';
 const fmtDate = (d: any) => {
   if (!d) return '—';
   try { return dayjs(d).format('DD MMM YYYY'); } catch { return '—'; }
-};
-
-const fmtDateInput = (d: any) => {
-  if (!d) return '';
-  try { return dayjs(d).format('YYYY-MM-DD'); } catch { return ''; }
 };
 
 const TYPE_COLORS: Record<string, { bg: string; color: string }> = {
@@ -327,6 +326,11 @@ const GestionContratsModernInner = () => {
     setMode('edit');
   };
 
+  // Ref sur le Paper du formulaire : la FAB « + » en bas de page reset le form
+  // ET scrolle vers lui — sinon le clic réinitialisait silencieusement le form
+  // hors écran et l'utilisateur croyait que la FAB ne faisait rien.
+  const formRef = useRef<HTMLDivElement | null>(null);
+
   const handleReset = () => {
     setForm(emptyForm(soccod || ''));
     setMode('add');
@@ -470,7 +474,7 @@ const GestionContratsModernInner = () => {
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '360px 1fr' }, gap: 2.5, px: { xs: 1.5, sm: 3 } }}>
 
         {/* ── Form ── */}
-        <Paper elevation={0} sx={{ borderRadius: '16px', backgroundColor: '#fff', border: '1px solid #edf0f5', boxShadow: '0 2px 8px rgba(15,23,42,0.05)', overflow: 'hidden' }}>
+        <Paper ref={formRef} elevation={0} sx={{ borderRadius: '16px', backgroundColor: '#fff', border: '1px solid #edf0f5', boxShadow: '0 2px 8px rgba(15,23,42,0.05)', overflow: 'hidden' }}>
           <Box sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2.5, borderBottom: '1px solid #f1f5f9' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -575,24 +579,69 @@ const GestionContratsModernInner = () => {
             </Box>
 
             {/* Date début + Date fin — pour un CDI, on masque Date Fin */}
+            {/* Dates contrat (début / fin) :
+                Avant : <TextField type="date"> utilisait l'input HTML natif. Le
+                segment année y a un UX douloureux (taper « 5 » écrit l'année 0005,
+                il faut re-cliquer dans le segment pour saisir 4 chiffres d'affilée
+                — et chaque re-render React peut clobberer le buffer interne du
+                segment en cours de saisie).
+                Maintenant : MUI X DatePicker en mode texte DD/MM/YYYY (saisie
+                libre acceptée par dayjs) + ouverture sur la vue mois et bascule
+                année possible via le header — même UX que les autres dates de
+                la fiche collaborateur via [[InputComponent]]. */}
             <Box sx={{ display: 'grid', gridTemplateColumns: isCDI ? '1fr' : '1fr 1fr', gap: 1.5 }}>
-              <Box>
-                <Typography sx={labelSx}>{t('contrat.dateStart')}</Typography>
-                <TextField name="empemb" type="date" value={fmtDateInput(form.empemb)} onChange={handleField}
-                  size="small" fullWidth sx={fieldSx} InputLabelProps={{ shrink: true }} />
-              </Box>
-              {!isCDI && (
+              <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
                 <Box>
-                  <Typography sx={labelSx}>{t('contrat.dateEnd')}</Typography>
-                  <TextField name="empsort" type="date" value={fmtDateInput(form.empsort)} onChange={handleField}
-                    size="small" fullWidth sx={fieldSx} InputLabelProps={{ shrink: true }} />
+                  <Typography sx={labelSx}>{t('contrat.dateStart')}</Typography>
+                  <DatePicker
+                    value={form.empemb ? dayjs(form.empemb) : null}
+                    // Cast en `any` : Contrat.empemb est typé `Date` côté modèle,
+                    // mais l'historique `handleField` (via TextField type="date")
+                    // y posait une string ISO `YYYY-MM-DD`. Le backend accepte
+                    // les deux formats — on conserve la string pour rester
+                    // strictement aligné sur l'ancien comportement de save.
+                    onChange={(v) => setForm(p => ({ ...p, empemb: (v && v.isValid() ? v.format('YYYY-MM-DD') : '') as any }))}
+                    format="DD/MM/YYYY"
+                    views={['year', 'month', 'day']}
+                    openTo="day"
+                    minDate={dayjs().subtract(50, 'year')}
+                    maxDate={dayjs().add(10, 'year')}
+                    slotProps={{
+                      textField: { size: 'small', fullWidth: true, sx: fieldSx },
+                      calendarHeader: { format: 'MMMM YYYY' },
+                    }}
+                  />
                 </Box>
-              )}
+                {!isCDI && (
+                  <Box>
+                    <Typography sx={labelSx}>{t('contrat.dateEnd')}</Typography>
+                    <DatePicker
+                      value={form.empsort ? dayjs(form.empsort) : null}
+                      // Cast `any` — cf. note empemb plus haut.
+                      onChange={(v) => setForm(p => ({ ...p, empsort: (v && v.isValid() ? v.format('YYYY-MM-DD') : '') as any }))}
+                      format="DD/MM/YYYY"
+                      views={['year', 'month', 'day']}
+                      openTo="day"
+                      minDate={dayjs().subtract(50, 'year')}
+                      maxDate={dayjs().add(10, 'year')}
+                      slotProps={{
+                        textField: { size: 'small', fullWidth: true, sx: fieldSx },
+                        calendarHeader: { format: 'MMMM YYYY' },
+                      }}
+                    />
+                  </Box>
+                )}
+              </LocalizationProvider>
             </Box>
 
-            {/* Poste + Salaire */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-              <Box>
+            {/* Poste + Salaire
+                gridTemplateColumns: '2fr 1fr' (et plus '1fr 1fr') — la fonction
+                affiche des libellés longs (« Assistante Direction Générale »)
+                qui méritent ~2/3 de la largeur. Le salaire est numérique court,
+                1/3 suffit largement et reste lisible. Avant : 1fr 1fr coupait le
+                titre de fonction tout en laissant le salaire mi-vide. */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 1.5 }}>
+              <Box sx={{ minWidth: 0 /* permet au Select de respecter le 2fr au lieu de pousser */ }}>
                 <Typography sx={labelSx}>{t('contrat.positionFunction')}</Typography>
                 <FormControl fullWidth size="small">
                   <Select value={form.emppost || ''} onChange={handleSelect('emppost')} sx={selectSx}
@@ -604,9 +653,28 @@ const GestionContratsModernInner = () => {
                   </Select>
                 </FormControl>
               </Box>
-              <Box>
+              <Box sx={{ minWidth: 0 }}>
                 <Typography sx={labelSx}>{t('contrat.baseSalary')}</Typography>
-                <TextField name="empsbase" type="number" value={form.empsbase ?? ''} onChange={handleField} size="small" fullWidth sx={fieldSx} />
+                {/* type="text" + inputMode="decimal" plutôt que type="number" :
+                    masque les flèches du spinner natif (qui mangeaient ~20px de
+                    visible sur un input déjà étroit, donnant l'impression que le
+                    salaire « 2200 » s'affichait tronqué en « 22° »). Le clavier
+                    numérique mobile reste activé via inputMode. Filtre regex sur
+                    la valeur pour ne garder que chiffres + un séparateur décimal. */}
+                <TextField
+                  name="empsbase"
+                  type="text"
+                  inputMode="decimal"
+                  value={form.empsbase ?? ''}
+                  onChange={(e) => {
+                    const cleaned = e.target.value.replace(/[^\d.,]/g, '').replace(',', '.');
+                    handleField({ ...e, target: { ...e.target, name: 'empsbase', value: cleaned } } as any);
+                  }}
+                  size="small"
+                  fullWidth
+                  placeholder="0"
+                  sx={fieldSx}
+                />
               </Box>
             </Box>
 
@@ -817,10 +885,25 @@ const GestionContratsModernInner = () => {
         </Paper>
       </Box>
 
-      {/* FAB */}
+      {/* FAB — « Nouveau contrat » : reset le formulaire ET scrolle jusqu'à lui.
+          Sur cette page le formulaire est dans la colonne gauche tout en haut, la
+          FAB tout en bas à droite : sans scrollIntoView le clic « réinitialisait »
+          le form hors écran et l'utilisateur ne voyait aucun effet visible. */}
       {canAdd && (
-        <Box onClick={handleReset}
-          sx={{ position: 'fixed', bottom: 28, right: 28, width: 52, height: 52, background: 'linear-gradient(135deg, #0a2463 0%, #0040a1 100%)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(0,64,161,0.4)', cursor: 'pointer', zIndex: 100, transition: 'all 0.2s', '&:hover': { transform: 'scale(1.08)' } }}>
+        <Box
+          onClick={() => {
+            handleReset();
+            // setTimeout 0 : laisse React commiter le state reset avant de scroller
+            // (sinon le scroll part avant que le formulaire n'ait rendu son nouvel
+            // état « add » avec le titre « Nouveau contrat »).
+            setTimeout(() => {
+              formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 0);
+          }}
+          role="button"
+          aria-label={t('contrat.newTitle') || 'Nouveau contrat'}
+          sx={{ position: 'fixed', bottom: 28, right: 28, width: 52, height: 52, background: 'linear-gradient(135deg, #0a2463 0%, #0040a1 100%)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(0,64,161,0.4)', cursor: 'pointer', zIndex: 100, transition: 'all 0.2s', '&:hover': { transform: 'scale(1.08)' } }}
+        >
           <AddIcon sx={{ color: '#fff', fontSize: 24 }} />
         </Box>
       )}

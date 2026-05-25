@@ -172,8 +172,13 @@ public partial class Employe : BaseEntity
     [StringLength(1)]
     public string? Empretard { get; set; }
 
+    // RFC 5321 borne la longueur totale d'une adresse à 254 octets (64 local + @ + 189
+    // domaine, en pratique on plafonne au max global). La contrainte historique à 30
+    // rejetait silencieusement toute adresse moyennement longue (ex prénom.nom@entreprise.fr
+    // dépasse vite). Migration runtime via BaseDataSchemaMigrator pour les tenants déjà
+    // provisionnés en VARCHAR(30).
     [Column("empemail")]
-    [StringLength(30)]
+    [StringLength(254)]
     public string? Empemail { get; set; }
 
     [Column("empresp")]
