@@ -1,5 +1,6 @@
 ﻿using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Services;
 using ABRPOINT.Server.Tenancy;
 using FastReport;
 using FastReport.Data;
@@ -19,10 +20,19 @@ namespace ABRPOINT.Server.Repository
         private readonly PostgresDataConnection _sqlConnection;
         private readonly string _vaultPath;
         private readonly IConverter _pdfConverter;
+        private readonly EncryptionService _encryptionService;
 
-        public ReportsGenerationService(IConfiguration config, IWebHostEnvironment env, IConverter converter, ICurrentTenant currentTenant)
+        // Colonnes employé chiffrées au repos (cf. ApplicationDbContext + EncryptedStringConverter).
+        // Les keys Dapper sont lowercase (Postgres fold les identifiants non quotés). Sans ce set,
+        // les placeholders [Table.empcin], [Table.emptel], [Table.empsbase/brut/net] s'affichent
+        // en ciphertext "v2:..." dans le PDF (Dapper bypass le ValueConverter EF Core).
+        private static readonly HashSet<string> EncryptedEmployeeFields =
+            new(StringComparer.OrdinalIgnoreCase) { "empcin", "emptel", "empsbase", "empsbrut", "empsnet" };
+
+        public ReportsGenerationService(IConfiguration config, IWebHostEnvironment env, IConverter converter, ICurrentTenant currentTenant, EncryptionService encryptionService)
         {
             _pdfConverter = converter;
+            _encryptionService = encryptionService;
             _vaultPath = Path.Combine(env.ContentRootPath, "VaultTemplates");
             if (!Directory.Exists(_vaultPath)) Directory.CreateDirectory(_vaultPath);
 
@@ -461,12 +471,19 @@ namespace ABRPOINT.Server.Repository
                 // 3. Add Signature if exists
                 if (!string.IsNullOrEmpty(empcod) && processedHtml.Contains("[Signature_Collaborateur]"))
                 {
-                    // For mockup, we could look up the latest signature for this employee in the vault
+                    // `issigned` est une colonne PostgreSQL `boolean`. Comparer à l'entier
+                    // 1 déclenche 42883 « operator does not exist: boolean = integer » →
+                    // exception remontée jusqu'au contrôleur Templates/preview qui renvoie
+                    // un 400 au client. Symptôme reproductible : dès qu'un modèle contient
+                    // un placeholder de signature collaborateur, l'aperçu retourne 400.
+                    // Filtre soccod ajouté en même temps : sans lui, un tenant multi-société
+                    // pouvait récupérer la signature d'un homonyme empcod dans une autre
+                    // société.
                     var lastSign = connection.QueryFirstOrDefault<string>(@"
                         SELECT signaturepath from documentvault
-                        where empcod = @empcod and issigned = 1
+                        where empcod = @empcod and soccod = @soccod and issigned = true
                         order by signaturedate desc
-                        LIMIT 1", new { empcod });
+                        LIMIT 1", new { empcod, soccod });
                     
                     if (!string.IsNullOrEmpty(lastSign))
                     {
@@ -475,7 +492,7 @@ namespace ABRPOINT.Server.Repository
                         {
                             var sigBase64 = Convert.ToBase64String(System.IO.File.ReadAllBytes(fullSigPath));
                             processedHtml = processedHtml.Replace("[Signature_Collaborateur]", 
-                                $@"<div style='text-align:right;'><img src='data:image/png;base64,{sigBase64}' style='height:80px;' /><br><small>SignÃ© Ã©lectroniquement</small></div>");
+                                $@"<div style='text-align:right;'><img src='data:image/png;base64,{sigBase64}' style='height:80px;' /><br><small>Signé électroniquement</small></div>");
                         }
                     }
                 }
@@ -590,7 +607,7 @@ namespace ABRPOINT.Server.Repository
                             FooterSettings = new FooterSettings
                             {
                                 FontSize = 8,
-                                Center = "Document gÃ©nÃ©rÃ© le " + DateTime.Now.ToString("dd/MM/yyyy"),
+                                Center = "Document généré le " + DateTime.Now.ToString("dd/MM/yyyy"),
                                 Line = false,
                                 Spacing = 5
                             }
@@ -610,16 +627,35 @@ namespace ABRPOINT.Server.Repository
         {
             string processedHtml = html;
 
+            // Le ContractBuilder côté client emballe chaque variable insérée dans un
+            // <span class="..." contenteditable="false" data-tag="{{...}}">{{...}}</span>
+            // pour la styliser dans l'éditeur. Pour les SIGNATURES on déballe le span
+            // AVANT le remplacement texte : sinon la <img>/<div> de la signature se
+            // retrouve à la fois dans le contenu du span (block-in-inline non valide)
+            // et dans la valeur de l'attribut data-tag (qui devient malformé). Pour
+            // les autres placeholders (champs DB) le span reste : il est neutralisé
+            // visuellement par les règles CSS de GenerateFromHtml.
+            processedHtml = Regex.Replace(
+                processedHtml,
+                @"<span[^>]*\bdata-tag=""\{\{Signature_Employe\}\}""[^>]*>.*?</span>",
+                "[Signature_Collaborateur]",
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            processedHtml = Regex.Replace(
+                processedHtml,
+                @"<span[^>]*\bdata-tag=""\{\{Signature_Entreprise\}\}""[^>]*>.*?</span>",
+                "{{Signature_Entreprise}}",
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
             // Signature placeholders
             processedHtml = processedHtml.Replace("{{Signature_Employe}}", "[Signature_Collaborateur]")
                                          .Replace("[Signature.Employe]", "[Signature_Collaborateur]");
-            
+
             // Signature SociÃ©tÃ© : on ne hardcode plus de nom (placeholder
             // historique "Sarah Jenkins") â€” on laisse "ReprÃ©sentant lÃ©gal"
             // qui sera complÃ©tÃ© par la signature manuscrite rÃ©elle persistÃ©e
             // cÃ´tÃ© coffre-fort.
             const string signatureEntreprise =
-                "<br><br><b>Pour la SociÃ©tÃ© :</b><br><div style='color:#0040a1; font-weight:bold;'>ReprÃ©sentant lÃ©gal</div><small>SignÃ© numÃ©riquement</small><br>";
+                "<br><br><b>Pour la Société :</b><br><div style='color:#0040a1; font-weight:bold;'>Représentant légal</div><small>Signé numériquement</small><br>";
             processedHtml = processedHtml.Replace("{{Signature_Entreprise}}", signatureEntreprise)
                                          .Replace("[Signature.Entreprise]", signatureEntreprise);
 
@@ -632,6 +668,16 @@ namespace ABRPOINT.Server.Repository
                     var val = kvp.Value?.ToString() ?? "";
                     if (kvp.Value is DateTime dt)
                         val = dt.ToString("dd/MM/yyyy");
+                    // Décryptage des PII : Dapper court-circuite le ValueConverter EF Core
+                    // qui décrypte d'habitude empcin/emptel/empsbase/brut/net. Sans cette
+                    // étape, les placeholders [Table.empcin] etc. produisent "v2:base64..."
+                    // dans le PDF. DecryptOrPassthrough est tolérant : les vieilles lignes
+                    // en clair (pré-migration) sont rendues telles quelles plutôt que de
+                    // casser la génération.
+                    else if (EncryptedEmployeeFields.Contains(kvp.Key) && !string.IsNullOrEmpty(val))
+                    {
+                        val = _encryptionService.DecryptOrPassthrough(val) ?? val;
+                    }
                     processedHtml = processedHtml.Replace($"[Table.{kvp.Key}]", val);
                 }
             }

@@ -80,7 +80,10 @@
   border-bottom: 1px solid var(--hp-surface-container);
   transition: all 0.3s;
 }
-.home-page .hp-nav.scrolled { background: rgba(247,249,251,0.97); }
+.home-page .hp-nav.scrolled {
+  background: rgba(247,249,251,0.97);
+  box-shadow: 0 4px 18px rgba(0, 32, 80, 0.08);
+}
 .home-page .nav-logo {
   display: flex; align-items: center; gap: 12px;
   font-family: var(--hp-font-headline);

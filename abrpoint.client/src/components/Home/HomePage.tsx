@@ -268,7 +268,7 @@ export default function HomePage() {
         </div>
         <ul className="nav-links">
           <li><a href="#features">Fonctionnalités</a></li>
-          <li><a href="#how">Comment ça marche</a></li>
+          <li><a href="#how">Notre méthode</a></li>
           <li><a href="#pricing">Tarifs</a></li>
           <li><a href="#comparison">Comparatif</a></li>
           <li><a href="#download">Téléchargement</a></li>
@@ -298,7 +298,7 @@ export default function HomePage() {
       {mobileMenuOpen && (
         <div className="nav-mobile-menu" role="menu" onClick={() => setMobileMenuOpen(false)}>
           <a href="#features" role="menuitem">Fonctionnalités</a>
-          <a href="#how" role="menuitem">Comment ça marche</a>
+          <a href="#how" role="menuitem">Notre méthode</a>
           <a href="#pricing" role="menuitem">Tarifs</a>
           <a href="#comparison" role="menuitem">Comparatif</a>
           <a href="#download" role="menuitem">Téléchargement</a>
