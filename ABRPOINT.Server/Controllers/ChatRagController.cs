@@ -25,12 +25,14 @@ public class ChatRagController : ControllerBase
     private readonly IClaudeRagService _claude;
     private readonly ApplicationDbContext _db;
     private readonly ICurrentTenant _currentTenant;
+    private readonly ILogger<ChatRagController> _logger;
 
-    public ChatRagController(IClaudeRagService claude, ApplicationDbContext db, ICurrentTenant currentTenant)
+    public ChatRagController(IClaudeRagService claude, ApplicationDbContext db, ICurrentTenant currentTenant, ILogger<ChatRagController> logger)
     {
         _claude = claude;
         _db = db;
         _currentTenant = currentTenant;
+        _logger = logger;
     }
 
     /// <summary>POST /api/ChatRag/ask — pose une question au RAG.</summary>
@@ -49,11 +51,20 @@ public class ChatRagController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return StatusCode(503, new { error = "Erreur interne. Consultez les logs serveur pour le détail." });
+            // Les InvalidOperationException du pipeline RAG portent des messages
+            // explicitement actionnables (clé LLM absente, sidecar désactivé,
+            // tenant manquant) qui n'exposent aucun secret. On les remonte au
+            // client pour que l'admin diagnostique sans accès aux logs serveur.
+            _logger.LogWarning(ex, "ChatRag/ask : configuration RAG invalide");
+            return StatusCode(503, new { error = ex.Message });
         }
         catch (HttpRequestException ex)
         {
-            return StatusCode(502, new { error = "Service IA temporairement indisponible.", detail = "Erreur interne. Consultez les logs serveur pour le détail." });
+            // Erreur réseau vers LLM/sidecar : on log le détail mais on ne remonte
+            // pas le body upstream (peut contenir un message d'erreur OpenRouter/Anthropic
+            // utile mais aussi parfois un echo du prompt avec PII).
+            _logger.LogError(ex, "ChatRag/ask : LLM/sidecar HTTP failure");
+            return StatusCode(502, new { error = "Service IA temporairement indisponible (erreur réseau vers le LLM ou le sidecar). Vérifiez les logs serveur." });
         }
     }
 

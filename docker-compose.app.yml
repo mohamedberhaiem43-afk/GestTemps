@@ -115,6 +115,12 @@ services:
       Rag__Sidecar__BaseUrl: "http://rag-svc:8080"
       Rag__Sidecar__ApiKey: "${RAG_SIDECAR_KEY:-}"
       Rag__Anthropic__ApiKey: "${ANTHROPIC_API_KEY:-}"
+      # Mode OpenRouter activé : /api/ChatRag/ask passe par OpenRouter Chat
+      # Completions (compatible OpenAI) plutôt que par l'API Messages Anthropic
+      # directe. Modèle ciblé : Gemini 2.0 Flash (cf. OpenRouterModel ci-dessous).
+      # Pour revenir en mode Anthropic direct (recommandé RGPD si compte UE),
+      # passer à "false" et renseigner ANTHROPIC_API_KEY.
+      Rag__Anthropic__UseOpenRouter: "true"
       Rag__Anthropic__OpenRouterModel: "google/gemini-2.0-flash-001"
       Smtp__Host: "${SMTP_HOST:-ssl0.ovh.net}"
       Smtp__Port: "${SMTP_PORT:-587}"
