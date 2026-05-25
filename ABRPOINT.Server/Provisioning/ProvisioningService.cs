@@ -170,6 +170,13 @@ public sealed class ProvisioningService : IProvisioningService
                 Utiactif = "1",
                 Utiadm = "1",
                 Utirole = PermissionCatalog.Roles.ResponsableRH,
+                // Email non vérifié à la création. Le hash + expiry du code OTP sont
+                // posés ici si le caller les a fournis (signup standard). Resterait null
+                // si le tenant est créé par un script back-office sans vérification.
+                UtiEmailVerified = "0",
+                UtiEmailVerifCode = seed.EmailVerifCodeHash,
+                UtiEmailVerifExpiry = seed.EmailVerifCodeExpiry,
+                UtiEmailVerifAttempts = 0,
             });
         }
 

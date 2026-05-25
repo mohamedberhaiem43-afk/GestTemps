@@ -37,6 +37,10 @@ namespace GestionDesTickets.Server.Controllers
         private readonly IKnownDeviceService _knownDevices;
         private readonly TwoFactorSecretProtector _totpProtector;
         private readonly IStorageQuotaGuard _quotaGuard;
+        // Optional pour rester aligné sur la convention SignupController : si la conf SMTP
+        // n'est pas posée (dev local), l'injection passe en null et le resend log le code en INFO.
+        private readonly IEmailService? _emailService;
+        private readonly ILogger<UtilisateursController>? _logger;
         public UtilisateursController(
             IConfiguration configuration,
             ApplicationDbContext dbContext,
@@ -46,7 +50,9 @@ namespace GestionDesTickets.Server.Controllers
             IPasswordBreachChecker passwordBreach,
             IKnownDeviceService knownDevices,
             TwoFactorSecretProtector totpProtector,
-            IStorageQuotaGuard quotaGuard)
+            IStorageQuotaGuard quotaGuard,
+            IEmailService? emailService = null,
+            ILogger<UtilisateursController>? logger = null)
         {
             _configuration = configuration;
             _dbContext = dbContext;
@@ -57,6 +63,8 @@ namespace GestionDesTickets.Server.Controllers
             _knownDevices = knownDevices;
             _totpProtector = totpProtector;
             _quotaGuard = quotaGuard;
+            _emailService = emailService;
+            _logger = logger;
         }
         private bool IsHttpsRequest()
         {
@@ -775,6 +783,8 @@ namespace GestionDesTickets.Server.Controllers
                     u.Utiprn,
                     u.Utinom,
                     u.Utiimg,
+                    u.Utimail,
+                    u.UtiEmailVerified,
                     Role = _dbContext.Roles
                         .Include(r => r.Permissions)
                         .FirstOrDefault(r => r.RoleName == u.Utirole)
@@ -847,6 +857,13 @@ namespace GestionDesTickets.Server.Controllers
                 uticod = user.Uticod,
                 utiadm = user.Utiadm,
                 utiimg = user.Utiimg,
+                utimail = user.Utimail,
+                // emailVerified : true sauf si la colonne est explicitement "0" (créé par un
+                // signup post-2026-05 sans encore avoir saisi son OTP). Les comptes legacy
+                // (colonne NULL — créés avant l'introduction de la vérification email) sont
+                // grandfathered : on ne va pas leur afficher une bannière "vérifiez votre
+                // email" rétroactivement alors qu'ils utilisent le SaaS depuis des mois.
+                emailVerified = !string.Equals(user.UtiEmailVerified, "0", StringComparison.Ordinal),
                 isEmp,
                 isAdmin,
                 isManager,
@@ -872,6 +889,166 @@ namespace GestionDesTickets.Server.Controllers
                 planFeatures = effectiveFeatures,
                 permissions = user.Role?.Permissions ?? new List<RolePermission>()
             });
+        }
+
+        public sealed record VerifyEmailRequest(string Code);
+
+        /// <summary>
+        /// Vérifie le code OTP 6 chiffres envoyé à l'email de l'utilisateur. Sur succès,
+        /// flippe Utilisateur.UtiEmailVerified="1" et efface les champs OTP. Idempotent
+        /// (déjà vérifié → 200 OK). Anti brute-force : compteur d'essais incrémenté à
+        /// chaque échec, code invalidé après MaxAttempts essais.
+        /// </summary>
+        [Authorize]
+        [HttpPost("verify-email")]
+        [EnableRateLimiting("auth-login")] // même policy que le login : ~6 tentatives/min/IP
+        public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest req, CancellationToken ct)
+        {
+            if (req is null || string.IsNullOrWhiteSpace(req.Code))
+                return BadRequest(new { error = "Code requis.", code = "code_required" });
+
+            var uticod = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(uticod)) return Unauthorized();
+
+            var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == uticod, ct);
+            if (user is null) return Unauthorized();
+
+            // Déjà vérifié : on renvoie 200 silencieusement (idempotent). Couvre :
+            //   - "1" : vérifié via cet endpoint ;
+            //   - NULL : compte legacy grandfathered (cf. /me pour le même critère).
+            if (!string.Equals(user.UtiEmailVerified, "0", StringComparison.Ordinal))
+                return Ok(new { verified = true, alreadyVerified = true });
+
+            if (string.IsNullOrEmpty(user.UtiEmailVerifCode))
+                return BadRequest(new { error = "Aucun code en cours. Demandez un nouveau code.", code = "no_code_issued" });
+
+            if (user.UtiEmailVerifExpiry is null || user.UtiEmailVerifExpiry < DateTime.UtcNow)
+            {
+                // Expiration silencieuse : on n'efface PAS la ligne pour que /resend remette
+                // tout à zéro proprement (et pour garder une trace audit du dernier hash si jamais).
+                return BadRequest(new { error = "Code expiré. Demandez un nouveau code.", code = "code_expired" });
+            }
+
+            if ((user.UtiEmailVerifAttempts ?? 0) >= EmailVerificationHelper.MaxAttempts)
+                return BadRequest(new { error = "Trop de tentatives. Demandez un nouveau code.", code = "too_many_attempts" });
+
+            // Cleanup défensif du code saisi : on tolère espaces / tirets en cas de copier-coller
+            // depuis l'email où le code est parfois affiché « 123 456 » par certains clients.
+            var submitted = new string(req.Code.Where(char.IsDigit).ToArray());
+            var ok = !string.IsNullOrEmpty(submitted) && BCrypt.Net.BCrypt.Verify(submitted, user.UtiEmailVerifCode);
+            if (!ok)
+            {
+                user.UtiEmailVerifAttempts = (user.UtiEmailVerifAttempts ?? 0) + 1;
+                await _dbContext.SaveChangesAsync(ct);
+                var remaining = Math.Max(0, EmailVerificationHelper.MaxAttempts - user.UtiEmailVerifAttempts.Value);
+                return BadRequest(new { error = $"Code invalide. {remaining} tentative(s) restante(s).", code = "invalid_code", remaining });
+            }
+
+            user.UtiEmailVerified = "1";
+            user.UtiEmailVerifCode = null;
+            user.UtiEmailVerifExpiry = null;
+            user.UtiEmailVerifAttempts = 0;
+            await _dbContext.SaveChangesAsync(ct);
+            _logger?.LogInformation("Email vérifié pour {Uticod} ({Email})", user.Uticod, user.Utimail);
+            return Ok(new { verified = true });
+        }
+
+        /// <summary>
+        /// Régénère un nouveau code OTP et l'envoie par email. Rate-limité côté serveur
+        /// (cooldown de ResendCooldownSeconds entre 2 demandes) en plus du rate limiter
+        /// IP. Reset le compteur d'essais. Idempotent — si l'email est déjà vérifié,
+        /// renvoie 200 sans rien faire (évite de spammer un utilisateur déjà valide).
+        /// </summary>
+        [Authorize]
+        [HttpPost("resend-verification")]
+        [EnableRateLimiting("auth-login")]
+        public async Task<IActionResult> ResendVerification(CancellationToken ct)
+        {
+            var uticod = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(uticod)) return Unauthorized();
+
+            var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == uticod, ct);
+            if (user is null) return Unauthorized();
+
+            // Idempotent : déjà vérifié OU legacy NULL → no-op pour ne pas spammer un user valide.
+            if (!string.Equals(user.UtiEmailVerified, "0", StringComparison.Ordinal))
+                return Ok(new { sent = false, alreadyVerified = true });
+            if (string.IsNullOrWhiteSpace(user.Utimail))
+                return BadRequest(new { error = "Aucune adresse email enregistrée pour ce compte.", code = "no_email" });
+
+            // Cooldown anti-spam : si l'expiry actuelle est encore récente (< CodeLifetimeMinutes
+            // moins le cooldown), on refuse le resend pour empêcher quelqu'un de matraquer
+            // l'API. Calcul : si on est < ResendCooldownSeconds après l'émission précédente.
+            if (user.UtiEmailVerifExpiry.HasValue)
+            {
+                var emittedAt = user.UtiEmailVerifExpiry.Value.AddMinutes(-EmailVerificationHelper.CodeLifetimeMinutes);
+                var sinceEmit = DateTime.UtcNow - emittedAt;
+                if (sinceEmit.TotalSeconds < EmailVerificationHelper.ResendCooldownSeconds)
+                {
+                    var wait = (int)Math.Ceiling(EmailVerificationHelper.ResendCooldownSeconds - sinceEmit.TotalSeconds);
+                    return StatusCode(429, new { error = $"Veuillez patienter {wait}s avant un nouvel envoi.", code = "cooldown", retryAfterSeconds = wait });
+                }
+            }
+
+            var code = EmailVerificationHelper.GenerateCode();
+            user.UtiEmailVerifCode = BCrypt.Net.BCrypt.HashPassword(code);
+            user.UtiEmailVerifExpiry = DateTime.UtcNow.AddMinutes(EmailVerificationHelper.CodeLifetimeMinutes);
+            user.UtiEmailVerifAttempts = 0;
+            await _dbContext.SaveChangesAsync(ct);
+
+            // Envoi best-effort — un échec SMTP ne doit pas bloquer l'utilisateur ; il pourra
+            // re-cliquer ou contacter le support. En DEV (pas d'IEmailService), on log le code
+            // au niveau INFO pour permettre le développement sans serveur mail.
+            if (_emailService is null)
+            {
+                _logger?.LogInformation("[DEV] Code de vérification email pour {Email} : {Code} (valide {Minutes}min)",
+                    user.Utimail, code, EmailVerificationHelper.CodeLifetimeMinutes);
+                return Ok(new { sent = true, devLogged = true });
+            }
+
+            try
+            {
+                var firstName = (user.Utiprn ?? "").Trim();
+                var safeFirstName = System.Net.WebUtility.HtmlEncode(firstName);
+                var safeCode = System.Net.WebUtility.HtmlEncode(code);
+
+                var verifBlock = $@"
+<table role=""presentation"" cellpadding=""0"" cellspacing=""0"" border=""0"" width=""100%"" style=""margin:20px 0;"">
+  <tr>
+    <td style=""background:#f0f6ff;border:1px solid #cdd9ee;border-radius:14px;padding:24px;text-align:center;"">
+      <p style=""margin:0 0 8px;color:#475569;font-size:13px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;"">Votre nouveau code de vérification</p>
+      <div style=""font-family:'Courier New',monospace;font-size:36px;font-weight:800;letter-spacing:10px;color:#0040a1;margin:4px 0 10px;padding:8px 0;"">{safeCode}</div>
+      <p style=""margin:0;color:#64748b;font-size:12px;"">Valable {EmailVerificationHelper.CodeLifetimeMinutes} minutes.</p>
+    </td>
+  </tr>
+</table>";
+
+                var greeting = string.IsNullOrEmpty(safeFirstName)
+                    ? "<p>Bonjour,</p>"
+                    : $"<p>Bonjour <strong>{safeFirstName}</strong>,</p>";
+                var inner =
+                    greeting +
+                    "<p>Vous avez demandé un nouveau code de vérification pour confirmer votre adresse email.</p>" +
+                    verifBlock +
+                    "<p style=\"color:#64748b;font-size:13px;\">Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email — votre compte reste sécurisé tant que le code n'est pas utilisé.</p>" +
+                    "<p style=\"margin-top:18px;\">L'équipe Concorde Workforce</p>";
+
+                var subject = $"Code de vérification {ABRPOINT.Server.Services.EmailTemplates.BrandName} : {code}";
+                var body = ABRPOINT.Server.Services.EmailTemplates.Wrap(
+                    title: "Nouveau code de vérification",
+                    preview: $"Votre nouveau code de vérification : {code} (valable {EmailVerificationHelper.CodeLifetimeMinutes} min).",
+                    innerHtml: inner);
+                await _emailService.SendEmailAsync(user.Utimail, subject, body);
+                _logger?.LogInformation("Code de vérification renvoyé à {Email}", user.Utimail);
+                return Ok(new { sent = true });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Resend verification échoué pour {Email}", user.Utimail);
+                // On a déjà stocké le hash en DB — le code est valide. L'utilisateur peut
+                // retenter le resend (qui refera un nouveau code) ou contacter le support.
+                return StatusCode(502, new { error = "Échec d'envoi de l'email. Réessayez dans quelques instants.", code = "email_send_failed" });
+            }
         }
 
         // POST api/Utilisateurs/logout

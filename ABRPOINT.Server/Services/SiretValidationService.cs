@@ -60,6 +60,7 @@ public class SiretValidator : ISiretValidator
             "BE" => await ValidateBelgiumAsync(id, ct),
             "MA" => ValidateMorocco(id),
             "SN" => ValidateSenegal(id),
+            "TN" => ValidateTunisia(id),
             _ => new(false, "siret_country_unsupported", "Pays non supporté pour la validation.", null),
         };
     }
@@ -422,6 +423,34 @@ public class SiretValidator : ISiretValidator
     {
         if (!Digits9.IsMatch(ninea))
             return new(false, "siret_format", "Le NINEA doit contenir 9 chiffres.", null);
+        return new(true, null, null, null);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 🇹🇳 TUNISIE — Matricule Fiscal :
+    //   - Forme courte (matricule de base) : 7 chiffres + 1 lettre clé. Ex: 1234567A
+    //   - Forme complète (utilisée sur les factures TVA) : 7 chiffres + 1 lettre clé
+    //     + code TVA (1 lettre : A/B/N/P/D) + code catégorie (1 lettre : M/P/C/N/S)
+    //     + 3 chiffres établissement. Ex: 1234567AAM001 (12-13 chars).
+    // Aucune API publique gratuite ne permet de valider l'existence côté DGI tunisienne
+    // (le portail e-services nécessite une auth professionnelle), donc validation
+    // format uniquement — l'unicité est garantie par UX_Tenants_Siret_Active en DB.
+    // ─────────────────────────────────────────────────────────────────────────
+    private static readonly Regex TunisianMatriculeFiscal = new(
+        "^[0-9]{7}[A-Z]([A-Z]{1,3}[0-9]{0,3})?$",
+        RegexOptions.Compiled);
+
+    private static SiretValidationResult ValidateTunisia(string matricule)
+    {
+        // Normalisation : upper-case pour accepter aussi bien "1234567a" que "1234567A".
+        // Le caller a déjà stripé espaces/tirets/points dans ValidateAsync.
+        var normalized = matricule.ToUpperInvariant();
+        if (!TunisianMatriculeFiscal.IsMatch(normalized))
+            return new(false, "siret_format",
+                "Le Matricule Fiscal tunisien doit contenir 7 chiffres + 1 lettre clé " +
+                "(forme courte, ex: 1234567A) ou inclure les codes TVA/établissement " +
+                "(ex: 1234567AAM001).",
+                null);
         return new(true, null, null, null);
     }
 }

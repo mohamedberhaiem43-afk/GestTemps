@@ -24,4 +24,12 @@ public sealed record ProvisioningSeedRequest(
     string AdminFirstName,
     string AdminLastName,
     string AdminEmail,
-    string AdminPassword);
+    string AdminPassword,
+    // Hash BCrypt du code OTP de vérification email (6 chiffres) généré par le caller
+    // avant l'appel. Pré-rempli dans la colonne uti_email_verif_code de l'admin "AD"
+    // dès la création. Null = pas de vérification (legacy / tests). Le caller envoie
+    // ensuite l'email contenant le code en clair.
+    string? EmailVerifCodeHash = null,
+    // Expiration absolue du code ci-dessus (UTC). Lue par /Utilisateurs/verify-email pour
+    // refuser les codes périmés. Convention : DateTime.UtcNow.AddMinutes(15).
+    DateTime? EmailVerifCodeExpiry = null);

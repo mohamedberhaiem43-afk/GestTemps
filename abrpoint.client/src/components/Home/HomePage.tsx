@@ -37,7 +37,6 @@ const COMPARISON_ROWS: CompRow[] = [
   { type: 'feature', label: 'Pointage web',                                          starter: true,  standard: true,           premium: true },
   { type: 'feature', label: 'Application mobile (iOS / Android)',                    starter: true,  standard: true,           premium: true },
   { type: 'feature', label: 'Pointage géolocalisé',                                  starter: false, standard: true,           premium: true },
-  { type: 'feature', label: 'Mode offline mobile',                                   starter: true,  standard: true,           premium: true },
   { type: 'feature', label: 'État périodique & exports PDF/Excel',                   starter: true,  standard: true,           premium: true },
 
   { type: 'section', label: 'Gestion des employés' },
@@ -737,11 +736,6 @@ export default function HomePage() {
             </div>
             {!monthly && (
               <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column' }}>
-                {/* Référence per-mois (sous le total annuel) pour situer le tarif
-                    par rapport au mensuel ; le « gros chiffre » reste l'annuel. */}
-                <span style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
-                  soit {formatPrice(annualMonthly.starter)} € HT / mois ({formatPrice(annualMonthly.starter)} € × 12)
-                </span>
                 {/* Tarif mensuel standard annualisé barré : comparaison apples-to-apples
                     en cycle annuel (99 €/mois × 12 = 1188 €/an). */}
                 <span style={{ fontSize: 18, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
@@ -828,9 +822,6 @@ export default function HomePage() {
             </div>
             {!monthly && (
               <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
-                  soit {formatPrice(annualMonthly.standard)} € HT / mois ({formatPrice(annualMonthly.standard)} € × 12)
-                </span>
                 <span style={{ fontSize: 18, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
                   {formatPrice(monthlyBase.standard )} € HT / mois
                 </span>
@@ -931,9 +922,6 @@ export default function HomePage() {
             </div>
             {!monthly && (
               <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 12, color: '#a08a52', marginBottom: 8 }}>
-                  soit {formatPrice(annualMonthly.premium)} € HT / mois ({formatPrice(annualMonthly.premium)} € × 12)
-                </span>
                 <span style={{ fontSize: 18, fontWeight: 700, color: '#cbb778', textDecoration: 'line-through' }}>
                   {formatPrice(monthlyBase.premium )} € HT / mois
                 </span>

@@ -23,6 +23,13 @@ interface AuthContextType {
   isTrialing: boolean;
   trialEndsAt: string | null;
   trialDaysRemaining: number | null;
+  // True ssi l'utilisateur a confirmé son email via le code OTP envoyé au signup.
+  // Source : Utilisateur.UtiEmailVerified == "1". Consommé par /verify-email pour
+  // sortir de la page une fois vérifié, et par le dashboard pour afficher un bandeau
+  // de rappel tant que false.
+  emailVerified: boolean;
+  // Email courant — utile pour pré-remplir /verify-email + afficher dans la bannière.
+  utimail: string | null;
   planCode: string | null;
   planLimits: {
     maxEmployees: number | null;
@@ -90,6 +97,8 @@ const AuthContext = createContext<AuthContextType>({
   isTrialing: false,
   trialEndsAt: null,
   trialDaysRemaining: null,
+  emailVerified: false,
+  utimail: null,
   planCode: null,
   planLimits: null,
   planFeatures: null,
@@ -132,6 +141,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isTrialing: false,
     trialEndsAt: null as string | null,
     trialDaysRemaining: null as number | null,
+    emailVerified: false,
+    utimail: null as string | null,
     planCode: null as string | null,
     planLimits: null as {
       maxEmployees: number | null;
@@ -178,6 +189,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         sercod: null, isTrialing: false, trialEndsAt: null,
         trialDaysRemaining: null, planCode: null,
         planLimits: null, planFeatures: null, permissions: [],
+        emailVerified: false, utimail: null,
       }));
       setAuthReady(true);
       return;
@@ -210,6 +222,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isTrialing: Boolean(response.data.isTrialing),
         trialEndsAt: response.data.trialEndsAt ?? null,
         trialDaysRemaining: response.data.trialDaysRemaining ?? null,
+        emailVerified: Boolean(response.data.emailVerified),
+        utimail: response.data.utimail ?? null,
         planCode: response.data.planCode ?? null,
         planLimits: response.data.planLimits ?? null,
         planFeatures: response.data.planFeatures ?? null,
@@ -258,6 +272,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isTrialing: false,
         trialEndsAt: null,
         trialDaysRemaining: null,
+        emailVerified: false,
+        utimail: null,
         planCode: null,
         planLimits: null,
         planFeatures: null,
@@ -324,6 +340,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isTrialing: false,
       trialEndsAt: null,
       trialDaysRemaining: null,
+      emailVerified: false,
+      utimail: null,
       planCode: null,
       planLimits: null,
       planFeatures: null,

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, TextField, Button, CircularProgress, Alert,
-  Paper, Stack, InputAdornment, Chip, MenuItem,
+  Paper, Stack, InputAdornment, MenuItem,
 } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import BadgeIcon from '@mui/icons-material/Badge';
@@ -15,56 +15,19 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
-import { startStripeCheckout } from '../Pricing/stripeCheckout';
 import GetRestCountries from '../../services/RestCountriesService/GetRestCountries';
+import PlanPicker, { type PlanKey, type Cycle, type AddonKey } from './PlanPicker';
 
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$/;
 
 type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'reserved';
-// 'personal' → adresse acceptée techniquement mais hébergée par un fournisseur grand
-// public (Gmail, Outlook, Yahoo…) ou un service jetable. Bloque la soumission : un
-// compte SaaS B2B se souscrit avec un email pro lié au domaine de l'entreprise.
-type EmailStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'personal';
+type EmailStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
-// Liste des domaines d'emails personnels / jetables refusés à l'inscription. Couvre
-// les principaux fournisseurs grand public FR/EU/US/MA + quelques jetables courants.
-// La liste vit ici en dur (pas d'API tierce) parce qu'elle change rarement et qu'on
-// veut un feedback instantané sans round-trip réseau. Le backend duplique le check.
-const PERSONAL_EMAIL_DOMAINS = new Set<string>([
-  // Google
-  'gmail.com', 'googlemail.com',
-  // Microsoft
-  'hotmail.com', 'hotmail.fr', 'hotmail.co.uk', 'outlook.com', 'outlook.fr',
-  'live.com', 'live.fr', 'msn.com',
-  // Yahoo
-  'yahoo.com', 'yahoo.fr', 'yahoo.co.uk', 'ymail.com', 'rocketmail.com',
-  // Apple
-  'icloud.com', 'me.com', 'mac.com',
-  // AOL / Verizon
-  'aol.com', 'aim.com',
-  // Proton / GMX / Tutanota / Zoho / Fastmail
-  'protonmail.com', 'proton.me', 'pm.me',
-  'gmx.com', 'gmx.fr', 'gmx.net', 'gmx.de',
-  'tutanota.com', 'tutamail.com', 'tuta.io',
-  'zoho.com', 'fastmail.com', 'mail.com',
-  // FAI français
-  'free.fr', 'orange.fr', 'wanadoo.fr', 'laposte.net', 'sfr.fr',
-  'neuf.fr', 'bbox.fr', 'numericable.fr', 'aliceadsl.fr', 'club-internet.fr',
-  // Yandex / Mail.ru
-  'yandex.com', 'yandex.ru', 'mail.ru', 'bk.ru', 'list.ru', 'inbox.ru',
-  // Asie
-  '163.com', '126.com', 'qq.com', 'sina.com', 'sina.cn', '139.com',
-  // Jetables
-  'mailinator.com', 'yopmail.com', '10minutemail.com', 'tempmail.com',
-  'guerrillamail.com', 'guerrillamail.net', 'throwaway.email', 'sharklasers.com',
-  'getnada.com', 'temp-mail.org', 'dispostable.com', 'maildrop.cc',
-]);
-
-function isPersonalEmailDomain(email: string): boolean {
-  const at = email.lastIndexOf('@');
-  if (at < 0) return false;
-  return PERSONAL_EMAIL_DOMAINS.has(email.slice(at + 1).toLowerCase());
-}
+// Filtre « email professionnel uniquement » RETIRÉ (2026-05) — la contrainte bloquait
+// trop de prospects légitimes (indépendants, associations, petites structures sans
+// domaine propre). Remplacé par la vérification email obligatoire au signup : l'OTP
+// 6 chiffres envoyé sur l'adresse saisie prouve que l'utilisateur en a le contrôle.
+// Cf. /verify-email + UtilisateursController.VerifyEmail côté serveur.
 // Statuts SIRET — reflètent les codes renvoyés par /api/signup/check-siret :
 //   format/checksum → ID mal formé localement (format dépend du pays) ;
 //   not_found/closed → API Sirene ne reconnaît pas l'établissement ou il est fermé ;
@@ -79,17 +42,33 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // CALÉ sur les validations côté backend (SiretValidator.ValidateXxx) — toute
 // modification ici doit être propagée là-bas et vice-versa.
 // ─────────────────────────────────────────────────────────────────────────
-type CountryCode = 'FR' | 'BE' | 'MA' | 'SN';
+type CountryCode = 'FR' | 'BE' | 'MA' | 'SN' | 'TN';
 
 interface CountryConfig {
   code: CountryCode;
   label: string; // libellé FR
   cca3: string;  // pour matcher avec restcountries (drapeau)
   idLabel: string;
+  // Nombre de "caractères" attendus dans le format de base (sert au compteur et au
+  // helper). Pour les ID 100% numériques (FR/BE/MA/SN) c'est aussi le nombre de
+  // chiffres exacts. Pour TN (alphanumérique) c'est la longueur minimale (8 chars =
+  // matricule de base 1234567A ; la forme longue jusqu'à 13 chars reste acceptée).
   idDigits: number;
   idPlaceholder: string;
   idHelper: string;
   apiValidated: boolean; // true = format + API publique ; false = format uniquement
+  // True quand le format inclut des lettres (TN). Influe sur : (1) le filtre de saisie
+  // qui autorise [A-Za-z] en plus des chiffres, (2) la regex de validation côté client,
+  // (3) la longueur max acceptée dans l'input. Default false = numérique pur.
+  idAlphanumeric?: boolean;
+  // Regex stricte appliquée à la valeur normalisée (uppercase, sans espaces/tirets/points).
+  // Default = `^[0-9]{idDigits}$` pour les ID numériques. Override pour TN qui accepte
+  // une forme courte 8 chars OU une forme longue 10-13 chars avec codes TVA/établissement.
+  idRegex?: RegExp;
+  // Longueur max saisissable (caractères bruts, espaces/séparateurs inclus). Default
+  // = idDigits + 6 (suffisant pour le formatage usuel). TN peut nécessiter plus pour
+  // accommoder la forme complète "1234567/A/M/001".
+  idMaxInputLength?: number;
 }
 
 const COUNTRY_CONFIG: Record<CountryCode, CountryConfig> = {
@@ -125,9 +104,23 @@ const COUNTRY_CONFIG: Record<CountryCode, CountryConfig> = {
     idHelper: 'Validation du format uniquement (9 chiffres). Aucune API publique n\'est disponible côté ADEPME.',
     apiValidated: false,
   },
+  TN: {
+    code: 'TN', label: 'Tunisie', cca3: 'TUN',
+    idLabel: 'Matricule Fiscal',
+    idDigits: 8, // forme courte = 7 chiffres + 1 lettre clé
+    idPlaceholder: 'ex. 1234567A (court) ou 1234567AAM001 (complet)',
+    idHelper: 'Format DGI : 7 chiffres + 1 lettre clé, suivis optionnellement des codes TVA/catégorie/établissement. Aucune API publique disponible.',
+    apiValidated: false,
+    idAlphanumeric: true,
+    // 7 chiffres + 1 lettre clé, plus optionnellement 1-3 lettres (TVA/catégorie) +
+    // 0-3 chiffres (établissement). Couvre la forme courte `1234567A` (8 chars) et
+    // les formes complètes `1234567AAM`, `1234567AAM001`, etc. (jusqu'à 13 chars).
+    idRegex: /^[0-9]{7}[A-Z]([A-Z]{1,3}[0-9]{0,3})?$/,
+    idMaxInputLength: 20, // marge pour les séparateurs "1234567 / A / M / 001"
+  },
 };
 
-const SUPPORTED_COUNTRIES: CountryCode[] = ['FR', 'BE', 'MA', 'SN'];
+const SUPPORTED_COUNTRIES: CountryCode[] = ['FR', 'BE', 'MA', 'SN', 'TN'];
 
 function slugify(input: string): string {
   return input
@@ -159,7 +152,7 @@ export default function SignupPage() {
   // On filtre côté client sur les 4 pays supportés. Si l'appel échoue, l'app reste
   // fonctionnelle — les drapeaux sont juste un confort UX, pas critiques.
   const [countryFlags, setCountryFlags] = useState<Record<CountryCode, string>>({
-    FR: '', BE: '', MA: '', SN: '',
+    FR: '', BE: '', MA: '', SN: '', TN: '',
   });
 
   // Identifiant entreprise. Validé selon le pays sélectionné — quand le user change
@@ -180,6 +173,21 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [emailStatus, setEmailStatus] = useState<EmailStatus>('idle');
   const [password, setPassword] = useState('');
+
+  // Sélection du pack + cycle + modules optionnels. Pré-rempli depuis planFromPricing
+  // si l'utilisateur vient de la pricing page ; sinon défauts commerciaux (Standard +
+  // annuel = mid-tier + meilleur ratio prix/engagement). Le pack choisi est posé sur
+  // Tenant.PlanCode au signup et drive planFeatures via /me — la sélection ouvre donc
+  // immédiatement les bons modules pendant l'essai 30j. Les addons sont parqués en
+  // sessionStorage pour pré-cocher le Stripe Checkout déclenché plus tard depuis
+  // /mon-abonnement (la facturation des addons n'est pas active pendant l'essai).
+  const [pickerPlan, setPickerPlan] = useState<PlanKey>(
+    (planFromPricing?.plan as PlanKey) ?? 'Standard'
+  );
+  const [pickerCycle, setPickerCycle] = useState<Cycle>(
+    (planFromPricing?.cycle as Cycle) ?? 'annual'
+  );
+  const [pickerAddons, setPickerAddons] = useState<AddonKey[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -209,7 +217,7 @@ export default function SignupPage() {
     (async () => {
       try {
         const all = await GetRestCountries.getAll();
-        const flags: Record<CountryCode, string> = { FR: '', BE: '', MA: '', SN: '' };
+        const flags: Record<CountryCode, string> = { FR: '', BE: '', MA: '', SN: '', TN: '' };
         for (const cc of SUPPORTED_COUNTRIES) {
           const cca3 = COUNTRY_CONFIG[cc].cca3;
           const match = all.find(c => c.cca3 === cca3);
@@ -282,9 +290,6 @@ export default function SignupPage() {
     const trimmed = email.trim();
     if (!trimmed) { setEmailStatus('idle'); return; }
     if (!EMAIL_REGEX.test(trimmed)) { setEmailStatus('invalid'); return; }
-    // Bloque les emails grand public / jetables AVANT l'appel réseau — UX immédiate.
-    // Le backend revérifie côté POST /signup pour empêcher tout contournement.
-    if (isPersonalEmailDomain(trimmed)) { setEmailStatus('personal'); return; }
 
     setEmailStatus('checking');
     const controller = new AbortController();
@@ -312,14 +317,30 @@ export default function SignupPage() {
     };
   }, [email]);
 
-  // Debounced validation de l'identifiant entreprise. Le nombre de chiffres attendu
-  // varie selon le pays (countryConfig.idDigits). Le backend valide en deux temps :
-  // format + (pour FR) appel API Sirene. Pour BE on a un checksum local, MA/SN
-  // format seul. Timeout 6s — adapté au pire cas (API Sirene lente).
+  // Normalisation de l'ID selon le pays : pour FR/BE/MA/SN on garde uniquement les
+  // chiffres. Pour TN (alphanumérique) on garde chiffres + lettres et on uppercase
+  // pour matcher l'index unique côté DB qui est case-sensitive.
+  const normalizeSiret = (raw: string): string => {
+    if (countryConfig.idAlphanumeric) {
+      return raw.replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+    }
+    return raw.replace(/\D/g, '');
+  };
+
+  // Debounced validation de l'identifiant entreprise. Le format attendu varie selon
+  // le pays (countryConfig.idDigits + idRegex optionnel). Le backend valide en deux
+  // temps : format + (pour FR) appel API Sirene. Pour BE on a un checksum local ;
+  // MA/SN/TN sont format-only. Timeout 6s — adapté au pire cas (API Sirene lente).
   useEffect(() => {
-    const digits = siret.replace(/\D/g, '');
-    if (!digits) { setSiretStatus('idle'); setSiretCompanyName(null); setSiretCompanyAddress(null); return; }
-    if (digits.length !== countryConfig.idDigits) {
+    const normalized = normalizeSiret(siret);
+    if (!normalized) { setSiretStatus('idle'); setSiretCompanyName(null); setSiretCompanyAddress(null); return; }
+    // Pour les ID numériques on garde le check de longueur exacte. Pour les ID
+    // alphanumériques (TN), on délègue 100% à la regex personnalisée qui couvre la
+    // forme courte ET les formes longues.
+    const formatOk = countryConfig.idRegex
+      ? countryConfig.idRegex.test(normalized)
+      : normalized.length === countryConfig.idDigits;
+    if (!formatOk) {
       setSiretStatus('format');
       setSiretCompanyName(null);
       setSiretCompanyAddress(null);
@@ -333,7 +354,7 @@ export default function SignupPage() {
     const handle = setTimeout(async () => {
       try {
         const { data } = await apiInstance.get('/signup/check-siret', {
-          params: { siret: digits, country: countryConfig.code },
+          params: { siret: normalized, country: countryConfig.code },
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
@@ -372,24 +393,29 @@ export default function SignupPage() {
       clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [siret, countryConfig.idDigits, countryConfig.code]);
+  }, [siret, countryConfig.idDigits, countryConfig.code, countryConfig.idAlphanumeric, countryConfig.idRegex]);
 
   const siretHelper = useMemo(() => {
     // Messages cohérents avec le pays : on remplace "SIRET" par le nom métier de l'ID
     // selon le pays sélectionné, et on adapte "API Sirene" quand l'API n'est pas FR.
-    const idName = countryConfig.idLabel.split(' ')[0]; // "SIRET" / "Numéro" / "ICE" / "NINEA"
+    const idName = countryConfig.idLabel.split(' ')[0]; // "SIRET" / "Numéro" / "ICE" / "NINEA" / "Matricule"
     // Source de vérification dépend du pays : Sirene pour FR, cbeapi.be pour BE, sinon format local.
     const verifSource =
       country === 'FR' ? 'auprès du référentiel Sirene' :
       country === 'BE' ? 'auprès du registre BCE' :
       'du format et de l\'unicité';
+    // Message d'erreur format adapté : pour TN (alphanumérique) on évite "doit contenir N chiffres"
+    // qui est faux ; on renvoie sur le placeholder/helper qui décrit le format DGI.
+    const formatErrorText = countryConfig.idAlphanumeric
+      ? `Format invalide. Attendu : ${countryConfig.idPlaceholder}.`
+      : `Le numéro doit contenir ${countryConfig.idDigits} chiffres.`;
     switch (siretStatus) {
       case 'checking': return { color: 'info' as const, text: `Vérification ${verifSource}…` };
       case 'available': return {
         color: 'success' as const,
         text: siretCompanyName ? `Entreprise reconnue : ${siretCompanyName}.` : `${idName} valide.`,
       };
-      case 'format': return { color: 'error' as const, text: `Le numéro doit contenir ${countryConfig.idDigits} chiffres.` };
+      case 'format': return { color: 'error' as const, text: formatErrorText };
       case 'checksum': return { color: 'error' as const, text: `Numéro invalide (clé de contrôle ${country === 'FR' ? 'SIRET' : country === 'BE' ? 'mod 97' : ''}).` };
       case 'not_found': return { color: 'error' as const, text: 'Aucune entreprise enregistrée pour ce numéro dans le référentiel.' };
       case 'closed': return { color: 'error' as const, text: 'Cet établissement est administrativement fermé.' };
@@ -408,10 +434,6 @@ export default function SignupPage() {
       case 'available': return { color: 'success' as const, text: 'Email disponible.' };
       case 'taken': return { color: 'error' as const, text: 'Cet email est déjà utilisé.' };
       case 'invalid': return { color: 'error' as const, text: 'Format d\'email invalide.' };
-      case 'personal': return {
-        color: 'error' as const,
-        text: 'Merci d\'utiliser une adresse email professionnelle (liée au domaine de votre entreprise). Les adresses Gmail, Outlook, Yahoo… ne sont pas acceptées.',
-      };
       default: return null;
     }
   }, [emailStatus]);
@@ -439,12 +461,17 @@ export default function SignupPage() {
     && slugStatus !== 'invalid';
 
   // L'ID entreprise est obligatoire (anti-fraude). Format exigé selon le pays
-  // (countryConfig.idDigits) ; on ne bloque pas sur 'checking' ou 'idle' pour
-  // permettre la soumission si l'API Sirene FR est lente (le backend re-valide
-  // de toute façon et la contrainte unique en DB protège en dernier recours).
-  const siretDigitsRegex = new RegExp(`^[0-9]{${countryConfig.idDigits}}$`);
+  // (countryConfig.idDigits + idRegex optionnel pour les ID alphanumériques) ;
+  // on ne bloque pas sur 'checking' ou 'idle' pour permettre la soumission si
+  // l'API Sirene FR est lente (le backend re-valide de toute façon et la
+  // contrainte unique en DB protège en dernier recours).
+  const siretFormatOk = (() => {
+    const normalized = normalizeSiret(siret);
+    if (countryConfig.idRegex) return countryConfig.idRegex.test(normalized);
+    return normalized.length === countryConfig.idDigits && /^\d+$/.test(normalized);
+  })();
   const siretAccepted =
-    siretDigitsRegex.test(siret.replace(/\D/g, '')) &&
+    siretFormatOk &&
     siretStatus !== 'format' &&
     siretStatus !== 'checksum' &&
     siretStatus !== 'not_found' &&
@@ -462,7 +489,6 @@ export default function SignupPage() {
     /.+@.+\..+/.test(email) &&
     emailStatus !== 'taken' &&
     emailStatus !== 'invalid' &&
-    emailStatus !== 'personal' &&
     password.length >= 8 &&
     captchaChallengeId.length > 0 &&
     captchaAnswer.trim() !== '';
@@ -479,14 +505,18 @@ export default function SignupPage() {
       const { data } = await apiInstance.post('/signup', {
         slug,
         companyName: companyName.trim(),
-        siret: siret.replace(/\D/g, ''),
+        siret: normalizeSiret(siret),
         country,
         adminFirstName: firstName.trim(),
         adminLastName: lastName.trim(),
         adminEmail: email.trim(),
         adminPassword: password,
-        planCode: planFromPricing?.plan,
-        billingCycle: planFromPricing?.cycle,
+        // Pack + cycle : pris dans le PlanPicker (lui-même pré-rempli depuis
+        // planFromPricing si l'utilisateur vient de la pricing page). Garantit que
+        // tenant.PlanCode est toujours posé → planFeatures côté /me reflète le bon
+        // pack dès la première seconde de l'essai.
+        planCode: pickerPlan,
+        billingCycle: pickerCycle,
         requiresPayment,
         captchaChallengeId,
         captchaAnswer: captchaAnswer === '' ? null : Number(captchaAnswer),
@@ -498,30 +528,26 @@ export default function SignupPage() {
       // Recharge le contexte d'auth maintenant que les cookies JWT du nouveau tenant sont posés
       // ET que tenantSlug est en localStorage : /me ira chercher l'admin dans la base du tenant.
       await refreshAuth();
-      // L'utilisateur arrive depuis PlanConfigurationPage (visiteur) avec plan + userCount :
-      //   → on déclenche directement la session Stripe Checkout pour pré-enregistrer
-      //     son mode de paiement (sans débit immédiat — l'essai gratuit reste actif).
-      // Avec uniquement plan/cycle (PricingPage → signup direct) :
-      //   → on l'envoie sur /dashboard/plan-configuration pour finaliser la config.
-      // Sans plan choisi : dashboard + trial 30j.
+      // Politique 2026-05 : tous les nouveaux comptes passent par l'écran de vérification
+      // email AVANT toute autre étape. Le code OTP a été envoyé par /api/signup dans
+      // l'email de bienvenue. Pour les visiteurs venant de PlanConfiguration (avec
+      // plan + userCount), on stocke l'intention de checkout en sessionStorage pour
+      // que VerifyEmailPage déclenche Stripe automatiquement après vérification réussie.
       if (planFromPricing?.plan && planFromPricing?.userCount) {
-        await startStripeCheckout({
-          plan: planFromPricing.plan,
-          cycle: planFromPricing.cycle ?? 'annual',
+        sessionStorage.setItem('pendingStripeCheckout', JSON.stringify({
+          plan: pickerPlan,
+          cycle: pickerCycle,
           userCount: planFromPricing.userCount,
-        });
-        return;
-      } else {
-        // Avant 2026-05-23 : `planFromPricing.plan` sans userCount routait sur
-        // `/dashboard/plan-configuration`, qui re-déclenchait Stripe Checkout et
-        // demandait la carte bancaire. Politique 2026-05-23 (HomePage CTA
-        // « Essayer 30 jours gratuit ») : l'essai 30j est sans CB, on doit donc
-        // shortcuter toute étape Stripe post-signup. Le `planCode` choisi est
-        // déjà persisté côté backend par /api/signup → /dashboard suffit, le
-        // user peut upgrader plus tard via /dashboard/mon-abonnement quand il
-        // est prêt à donner ses informations de paiement.
-        navigate('/dashboard', { state: { signupRedirectUrl: data.redirectUrl } });
+          addons: pickerAddons,
+        }));
       }
+      // Parking des addons sélectionnés (toujours, même hors PlanConfiguration) — lus
+      // plus tard par /mon-abonnement pour pré-cocher la session Stripe Checkout quand
+      // l'utilisateur décide d'activer son abonnement à la fin de l'essai 30j.
+      if (pickerAddons.length > 0) {
+        sessionStorage.setItem('signupAddons', JSON.stringify(pickerAddons));
+      }
+      navigate('/verify-email', { state: { email: email.trim(), signupRedirectUrl: data.redirectUrl } });
     } catch (e: any) {
       // Cas spécial : email lié à un compte résilié, mais dans la fenêtre de réactivation
       // (90j). On redirige l'utilisateur vers /login en pré-remplissant l'email — le login
@@ -557,7 +583,7 @@ export default function SignupPage() {
       justifyContent: 'center',
       p: { xs: 2, md: 4 },
     }}>
-      <Paper elevation={2} sx={{ maxWidth: 560, width: '100%', p: { xs: 3, md: 5 }, borderRadius: 3 }}>
+      <Paper elevation={2} sx={{ maxWidth: 820, width: '100%', p: { xs: 3, md: 5 }, borderRadius: 3 }}>
         <Box sx={{ textAlign: 'center', mb: 3 }}>
           {/* Tous les packs (Starter/Standard/Premium) = 30 jours offerts sans CB. Le titre
               s'adapte selon que l'utilisateur arrive depuis PlanConfiguration (étape 1 sur 2,
@@ -582,16 +608,24 @@ export default function SignupPage() {
               </Typography>
             </>
           )}
-          {planFromPricing?.plan && (
-            <Chip
-              sx={{ mt: 2 }}
-              color="primary"
-              label={`Plan sélectionné : ${planFromPricing.plan} (${planFromPricing.cycle === 'annual' ? 'annuel' : 'mensuel'})`}
-            />
-          )}
+          {/* Chip « Plan sélectionné » supprimée — l'information vit désormais dans
+              le PlanPicker ci-dessous, qui affiche le pack actif visuellement + permet
+              de le changer. Éviter le doublon réduit la charge cognitive. */}
         </Box>
 
         <Stack spacing={2.5}>
+          {/* Sélection du pack en tête : c'est la décision structurante (elle ouvre
+              ou ferme les modules de l'app pendant les 30j d'essai). Pré-rempli si
+              l'utilisateur vient de la pricing page, modifiable sinon. */}
+          <PlanPicker
+            selectedPlan={pickerPlan}
+            onPlanChange={setPickerPlan}
+            selectedCycle={pickerCycle}
+            onCycleChange={setPickerCycle}
+            selectedAddons={pickerAddons}
+            onAddonsChange={setPickerAddons}
+          />
+
           {/* Ordre des champs (2026-05) : Pays + ID entreprise EN PREMIER, puis email
               pro, puis nom de société (souvent auto-rempli depuis l'API Sirene/BCE),
               puis slug, identité de l'admin, mot de passe. Le pays détermine le format
@@ -628,10 +662,13 @@ export default function SignupPage() {
               label={countryConfig.idLabel}
               value={siret}
               onChange={(e) => {
-                // On accepte espaces/tirets/points en saisie pour confort (variants de
-                // formatage : BCE "0123.456.789", ICE par segments…). On persiste la
-                // chaîne brute, le useEffect strip avant validation.
-                const cleaned = e.target.value.replace(/[^0-9\s\-.]/g, '').slice(0, countryConfig.idDigits + 6);
+                // Filtre de saisie : on accepte espaces/tirets/points pour confort (variants
+                // de formatage : BCE "0123.456.789", ICE par segments, Matricule Fiscal TN
+                // "1234567/A/M/001"…). Pour les pays alphanumériques (TN), on autorise aussi
+                // les lettres ; sinon chiffres uniquement.
+                const allowed = countryConfig.idAlphanumeric ? /[^0-9A-Za-z\s\-./]/g : /[^0-9\s\-.]/g;
+                const maxLen = countryConfig.idMaxInputLength ?? (countryConfig.idDigits + 6);
+                const cleaned = e.target.value.replace(allowed, '').slice(0, maxLen);
                 setSiret(cleaned);
               }}
               placeholder={countryConfig.idPlaceholder}
@@ -647,7 +684,10 @@ export default function SignupPage() {
                   </InputAdornment>
                 ),
               }}
-              inputProps={{ inputMode: 'numeric' }}
+              // inputMode : "numeric" déclenche le pavé numérique sur mobile (FR/BE/MA/SN
+              // 100% chiffres). Pour TN qui contient des lettres, on bascule sur le clavier
+              // texte standard sinon l'utilisateur mobile ne peut pas saisir "A".
+              inputProps={{ inputMode: countryConfig.idAlphanumeric ? 'text' : 'numeric' }}
               helperText={countryConfig.idHelper + ' Un seul essai gratuit par numéro.'}
             />
             {siretHelper && (
@@ -675,7 +715,7 @@ export default function SignupPage() {
             <TextField
               fullWidth
               type="email"
-              label="Email professionnel"
+              label="Adresse email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               InputProps={{
@@ -684,13 +724,13 @@ export default function SignupPage() {
                   <InputAdornment position="end">
                     {emailStatus === 'checking' && <CircularProgress size={18} />}
                     {emailStatus === 'available' && <CheckCircleIcon color="success" fontSize="small" />}
-                    {(emailStatus === 'taken' || emailStatus === 'invalid' || emailStatus === 'personal') && (
+                    {(emailStatus === 'taken' || emailStatus === 'invalid') && (
                       <ErrorIcon color="error" fontSize="small" />
                     )}
                   </InputAdornment>
                 ),
               }}
-              helperText="Adresse liée au domaine de votre entreprise (pas Gmail/Outlook/Yahoo…)."
+              helperText="Un code à 6 chiffres sera envoyé à cette adresse pour confirmer votre inscription."
             />
             {emailHelper && (
               <Typography variant="caption" color={`${emailHelper.color}.main`} sx={{ display: 'block', mt: 0.5, ml: 1 }}>

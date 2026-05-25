@@ -63,4 +63,40 @@ public partial class Utilisateur : BaseEntity
     /// </summary>
     [Column("uti_lockout_until")]
     public DateTime? UtiLockoutUntil { get; set; }
+
+    /// <summary>
+    /// "1" si l'email de l'utilisateur a été confirmé via le code OTP envoyé au signup.
+    /// "0" ou null = non vérifié. Distinct de UtiResetCode (réservé au reset password)
+    /// pour éviter qu'une procédure efface les données de l'autre. Pas d'enforcement
+    /// dur côté API à ce jour — seulement un bandeau d'incitation côté front, conçu
+    /// pour ne pas bloquer un utilisateur valide qui aurait des problèmes de SMTP.
+    /// </summary>
+    [Column("uti_email_verified")]
+    [StringLength(1)]
+    public string? UtiEmailVerified { get; set; }
+
+    /// <summary>
+    /// BCrypt hash du code OTP 6 chiffres en attente de vérification. Effacé dès la
+    /// vérification réussie. Renouvelé à chaque resend (via /Utilisateurs/resend-verification).
+    /// Hash plutôt que plaintext : même si un dump de la table fuit, le code reste
+    /// inexploitable (BCrypt cost 10 + expiry 15min + max 5 tentatives).
+    /// </summary>
+    [Column("uti_email_verif_code")]
+    [StringLength(72)]
+    public string? UtiEmailVerifCode { get; set; }
+
+    /// <summary>
+    /// Timestamp UTC d'expiration du code OTP courant (15 minutes après émission).
+    /// Toute tentative de vérification après cette date renvoie code_expired.
+    /// </summary>
+    [Column("uti_email_verif_expiry")]
+    public DateTime? UtiEmailVerifExpiry { get; set; }
+
+    /// <summary>
+    /// Compteur d'échecs de vérification consécutifs pour le code OTP courant. Au-delà
+    /// de 5 tentatives, le code est invalidé (l'utilisateur doit relancer un resend).
+    /// Évite le brute-force en ligne (10^6 codes possibles vs 5 essais → infaisable).
+    /// </summary>
+    [Column("uti_email_verif_attempts")]
+    public int? UtiEmailVerifAttempts { get; set; }
 }

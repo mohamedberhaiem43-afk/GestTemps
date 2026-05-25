@@ -30,47 +30,11 @@ public class SignupController : ControllerBase
         "master", "auth", "login", "signup", "stripe", "test", "demo", "staging", "prod",
     };
 
-    // Domaines d'emails personnels / jetables refusés à l'inscription. Synchronisé
-    // avec PERSONAL_EMAIL_DOMAINS côté SignupPage.tsx — toute modif ici doit être
-    // propagée là-bas (et vice-versa). Le client filtre pour UX immédiate ; ici on
-    // re-vérifie pour empêcher tout contournement par appel API direct.
-    private static readonly HashSet<string> PersonalEmailDomains = new(StringComparer.OrdinalIgnoreCase)
-    {
-        // Google
-        "gmail.com", "googlemail.com",
-        // Microsoft
-        "hotmail.com", "hotmail.fr", "hotmail.co.uk", "outlook.com", "outlook.fr",
-        "live.com", "live.fr", "msn.com",
-        // Yahoo
-        "yahoo.com", "yahoo.fr", "yahoo.co.uk", "ymail.com", "rocketmail.com",
-        // Apple
-        "icloud.com", "me.com", "mac.com",
-        // AOL / Verizon
-        "aol.com", "aim.com",
-        // Proton / GMX / Tutanota / Zoho / Fastmail / Mail.com
-        "protonmail.com", "proton.me", "pm.me",
-        "gmx.com", "gmx.fr", "gmx.net", "gmx.de",
-        "tutanota.com", "tutamail.com", "tuta.io",
-        "zoho.com", "fastmail.com", "mail.com",
-        // FAI français
-        "free.fr", "orange.fr", "wanadoo.fr", "laposte.net", "sfr.fr",
-        "neuf.fr", "bbox.fr", "numericable.fr", "aliceadsl.fr", "club-internet.fr",
-        // Yandex / Mail.ru
-        "yandex.com", "yandex.ru", "mail.ru", "bk.ru", "list.ru", "inbox.ru",
-        // Asie
-        "163.com", "126.com", "qq.com", "sina.com", "sina.cn", "139.com",
-        // Jetables
-        "mailinator.com", "yopmail.com", "10minutemail.com", "tempmail.com",
-        "guerrillamail.com", "guerrillamail.net", "throwaway.email", "sharklasers.com",
-        "getnada.com", "temp-mail.org", "dispostable.com", "maildrop.cc",
-    };
-
-    private static bool IsPersonalEmail(string email)
-    {
-        var at = email.LastIndexOf('@');
-        if (at < 0) return false;
-        return PersonalEmailDomains.Contains(email[(at + 1)..]);
-    }
+    // Note 2026-05 — Liste des domaines d'emails personnels/jetables RETIRÉE : la contrainte
+    // « adresse pro uniquement » bloquait trop de prospects légitimes (indépendants, asso,
+    // petites structures sans domaine propre). Compensé par la vérification email obligatoire
+    // (OTP 6 chiffres envoyé au signup, cf. UtilisateursController.VerifyEmail) qui prouve
+    // que l'utilisateur contrôle réellement l'adresse — peu importe le fournisseur.
 
     private readonly IDbContextFactory<MasterDbContext> _masterFactory;
     private readonly IProvisioningService _provisioning;
@@ -176,10 +140,9 @@ public class SignupController : ControllerBase
         email = (email ?? string.Empty).Trim().ToLowerInvariant();
         if (string.IsNullOrEmpty(email) || !email.Contains('@'))
             return Ok(new { available = false, reason = "format" });
-        // Refuse les emails grand public / jetables. La règle métier est dupliquée
-        // dans POST /api/signup pour empêcher le contournement par appel direct.
-        if (IsPersonalEmail(email))
-            return Ok(new { available = false, reason = "personal" });
+        // Filtre "email pro" retiré (2026-05) — cf. note en tête de classe : tout email
+        // valide est accepté, la preuve de contrôle de l'adresse passe désormais par
+        // la vérification OTP envoyée au signup.
 
         await using var master = await _masterFactory.CreateDbContextAsync(ct);
         var taken = await master.TenantEmailIndex.AsNoTracking()
@@ -189,10 +152,10 @@ public class SignupController : ControllerBase
 
     /// <summary>
     /// Vérifie en temps réel qu'un identifiant entreprise (SIRET FR / BCE BE / ICE MA /
-    /// NINEA SN) est valide ET qu'il n'a pas déjà été utilisé pour souscrire un essai
-    /// gratuit. Appelé en onBlur depuis le formulaire signup pour donner un feedback
-    /// immédiat à l'utilisateur. La règle métier est dupliquée dans le POST /api/signup
-    /// pour empêcher tout contournement côté client.
+    /// NINEA SN / Matricule Fiscal TN) est valide ET qu'il n'a pas déjà été utilisé pour
+    /// souscrire un essai gratuit. Appelé en onBlur depuis le formulaire signup pour donner
+    /// un feedback immédiat à l'utilisateur. La règle métier est dupliquée dans le POST
+    /// /api/signup pour empêcher tout contournement côté client.
     /// </summary>
     [HttpGet("check-siret")]
     public async Task<IActionResult> CheckSiret([FromQuery] string siret, [FromQuery] string? country, CancellationToken ct)
@@ -201,7 +164,11 @@ public class SignupController : ControllerBase
         if (!validation.IsValid)
             return Ok(new { available = false, reason = validation.ErrorCode, message = validation.ErrorMessage });
 
-        var normalized = (siret ?? string.Empty).Replace(" ", "").Replace("-", "").Replace(".", "").Trim();
+        // Uppercase pour normaliser le casing des ID alpha-numériques (TN — Matricule Fiscal
+        // tunisien `1234567A`/`1234567AAM001`). No-op pour FR/BE/MA/SN qui sont 100% chiffres.
+        // Sans ça, l'index unique UX_Tenants_Siret_Active traiterait `1234567a` et `1234567A`
+        // comme deux ID distincts → double trial possible par variation de casse.
+        var normalized = (siret ?? string.Empty).Replace(" ", "").Replace("-", "").Replace(".", "").Trim().ToUpperInvariant();
         await using var master = await _masterFactory.CreateDbContextAsync(ct);
         // Unicité globale (tous pays confondus) sur l'ID brut : un attaquant ne peut pas
         // contourner en changeant le pays s'il garde le même numéro. La contrainte unique
@@ -227,14 +194,7 @@ public class SignupController : ControllerBase
             return BadRequest(new { error = "Ce slug est réservé." });
         if (string.IsNullOrWhiteSpace(req.AdminEmail) || !req.AdminEmail.Contains('@'))
             return BadRequest(new { error = "Email administrateur invalide." });
-        // Anti-contournement client : on bloque ici les emails grand public / jetables
-        // même si le frontend ne le faisait pas. Cf. PersonalEmailDomains pour la liste.
-        if (IsPersonalEmail(req.AdminEmail.Trim().ToLowerInvariant()))
-            return BadRequest(new
-            {
-                error = "Merci d'utiliser une adresse email professionnelle (liée au domaine de votre entreprise). Les adresses Gmail, Outlook, Yahoo, etc. ne sont pas acceptées.",
-                code = "email_personal",
-            });
+        // Filtre "email pro" retiré (2026-05) — cf. note en tête de classe.
         if (string.IsNullOrWhiteSpace(req.AdminPassword) || req.AdminPassword.Length < 8)
             return BadRequest(new { error = "Mot de passe trop court (8 caractères minimum)." });
         if (string.IsNullOrWhiteSpace(req.CompanyName))
@@ -258,18 +218,21 @@ public class SignupController : ControllerBase
             return BadRequest(new { error = "Captcha invalide ou expiré. Rechargez et réessayez.", code = "captcha_failed" });
 
         // Anti-fraude business ID multi-pays (2026-05) : un même identifiant entreprise
-        // (SIRET FR / BCE BE / ICE MA / NINEA SN) ne peut bénéficier que d'un seul
-        // essai gratuit. La validation diffère par pays (FR a une API complète, BE a un
-        // checksum local mod 97, MA/SN n'ont qu'un check format), mais l'unicité en base
-        // s'applique globalement.
+        // (SIRET FR / BCE BE / ICE MA / NINEA SN / Matricule Fiscal TN) ne peut bénéficier
+        // que d'un seul essai gratuit. La validation diffère par pays (FR a une API complète,
+        // BE a un checksum local mod 97, MA/SN/TN n'ont qu'un check format), mais l'unicité
+        // en base s'applique globalement.
         var countryNormalized = string.IsNullOrWhiteSpace(req.Country) ? "FR" : req.Country.Trim().ToUpperInvariant();
         if (!IsSupportedCountry(countryNormalized))
-            return BadRequest(new { error = "Pays non supporté. Choisissez parmi : FR, BE, MA, SN.", code = "country_unsupported" });
+            return BadRequest(new { error = "Pays non supporté. Choisissez parmi : FR, BE, MA, SN, TN.", code = "country_unsupported" });
 
         var siretValidation = await _siretValidator.ValidateAsync(req.Siret, countryNormalized, ct);
         if (!siretValidation.IsValid)
             return BadRequest(new { error = siretValidation.ErrorMessage ?? "Identifiant entreprise invalide.", code = siretValidation.ErrorCode ?? "siret_invalid" });
-        var siretNormalized = (req.Siret ?? string.Empty).Replace(" ", "").Replace("-", "").Replace(".", "").Trim();
+        // Uppercase ici aussi — cf. CheckSiret pour le commentaire détaillé. Sans cette
+        // normalisation, le check d'unicité plus bas (master.Tenants.AnyAsync(t => t.Siret == ...))
+        // peut laisser passer un doublon `1234567a` vs `1234567A`.
+        var siretNormalized = (req.Siret ?? string.Empty).Replace(" ", "").Replace("-", "").Replace(".", "").Trim().ToUpperInvariant();
 
         await using var master = await _masterFactory.CreateDbContextAsync(ct);
 
@@ -399,6 +362,13 @@ public class SignupController : ControllerBase
         }
         await master.SaveChangesAsync(ct);
 
+        // Pré-génération du code OTP de vérification email AVANT le seed pour que la valeur
+        // hashée soit posée dès la création de l'admin "AD". Le code clair n'est conservé
+        // que le temps d'envoyer l'email (variable locale, jamais persistée ni loggée hors DEV).
+        var verifCodePlain = EmailVerificationHelper.GenerateCode();
+        var verifCodeHash = BCrypt.Net.BCrypt.HashPassword(verifCodePlain);
+        var verifCodeExpiry = DateTime.UtcNow.AddMinutes(EmailVerificationHelper.CodeLifetimeMinutes);
+
         try
         {
             await _provisioning.CreateDatabaseAsync(dbName, ct);
@@ -408,7 +378,9 @@ public class SignupController : ControllerBase
                 AdminFirstName: string.IsNullOrWhiteSpace(req.AdminFirstName) ? "Admin" : req.AdminFirstName,
                 AdminLastName: string.IsNullOrWhiteSpace(req.AdminLastName) ? "Compte" : req.AdminLastName,
                 AdminEmail: req.AdminEmail,
-                AdminPassword: req.AdminPassword
+                AdminPassword: req.AdminPassword,
+                EmailVerifCodeHash: verifCodeHash,
+                EmailVerifCodeExpiry: verifCodeExpiry
             ), ct);
 
             // Stripe : Customer + Subscription en mode trial. Si Stripe non configuré, ce no-op
@@ -465,14 +437,14 @@ public class SignupController : ControllerBase
             var rootDomain = _cfg["Hosting:RootDomain"] ?? "concorde.com";
             var redirectUrl = $"https://{slug}.{rootDomain}/dashboard";
 
-            // Email de bienvenue professionnel — best practice SaaS : l'admin sait
-            // immédiatement (1) que son inscription est confirmée, (2) son URL d'accès
-            // dédiée (sous-domaine tenant), (3) la durée + la fin de son essai gratuit,
-            // (4) qu'aucune CB n'est requise pendant l'essai. Sert aussi de trace écrite
-            // pour retrouver le tenant si l'admin oublie son URL (typique au moment d'inviter
-            // l'équipe quelques jours plus tard). On envoie en best-effort : un échec SMTP
-            // ne doit jamais casser l'inscription puisque l'utilisateur est déjà connecté.
-            _ = SendWelcomeEmailAsync(tenant, req, redirectUrl, rootDomain, ct);
+            // Email combiné bienvenue + code de vérification (6 chiffres). L'utilisateur :
+            //   (1) confirme qu'il contrôle réellement l'adresse en saisissant le code sur
+            //       /verify-email,
+            //   (2) reçoit son URL d'espace, les conditions de l'essai, etc.
+            // Best-effort SMTP : un échec d'envoi ne casse pas le signup. Si le mail ne
+            // part pas, l'utilisateur peut relancer depuis la page /verify-email
+            // (POST /api/Utilisateurs/resend-verification).
+            _ = SendWelcomeEmailAsync(tenant, req, redirectUrl, rootDomain, verifCodePlain, ct);
 
             // SEC-20 — `dbName` retiré de la réponse : exposait la convention de nommage
             // de la base SQL (`tenant_<slug>_<8hex>`), ce qui facilite une attaque ciblée
@@ -522,18 +494,30 @@ public class SignupController : ControllerBase
     }
 
     /// <summary>
-    /// Email de bienvenue branded envoyé à l'admin du nouveau tenant juste après
-    /// un signup réussi. Best-effort : tout échec (SMTP non configuré, timeout, etc.)
+    /// Email combiné « bienvenue + vérification email » envoyé à l'admin du nouveau tenant
+    /// juste après un signup réussi. Le code OTP 6 chiffres est affiché en gros et expire
+    /// 15 min après émission. Best-effort : tout échec (SMTP non configuré, timeout, etc.)
     /// est loggé mais NE re-throw PAS — l'inscription reste valide même sans email.
+    /// L'utilisateur peut relancer un nouveau code depuis /verify-email
+    /// (POST /api/Utilisateurs/resend-verification).
     /// </summary>
     private async Task SendWelcomeEmailAsync(
         Tenant tenant,
         SignupRequest req,
         string redirectUrl,
         string rootDomain,
+        string verificationCode,
         CancellationToken ct)
     {
-        if (_email is null) return; // SMTP non configuré (dev local sans .env)
+        if (_email is null)
+        {
+            // En DEV sans SMTP : on log le code pour que le développeur puisse tester le
+            // flow de vérification sans configurer un serveur mail. Volontairement INFO
+            // (pas DEBUG) car cette info est cruciale au flow ; ne JAMAIS exposer en prod.
+            _log.LogInformation("[DEV] Code de vérification email pour {Email} : {Code} (valide {Minutes}min)",
+                tenant.AdminEmail, verificationCode, EmailVerificationHelper.CodeLifetimeMinutes);
+            return;
+        }
         if (string.IsNullOrWhiteSpace(tenant.AdminEmail)) return;
 
         try
@@ -567,43 +551,61 @@ public class SignupController : ControllerBase
                 ["Fin de l'essai gratuit"] = safeTrialEnd,
             });
 
+            // Bloc OTP — affichage volontairement gros (32px, letter-spacing 8px) pour que
+            // l'utilisateur puisse le copier d'un coup d'œil sur mobile sans dérouler.
+            // Codé en tableau HTML inline pour rester rendable dans Outlook/Gmail.
+            var safeCode = System.Net.WebUtility.HtmlEncode(verificationCode);
+            var verifyUrl = $"{redirectUrl.TrimEnd('/')}/verify-email";
+            var verifBlock = $@"
+<table role=""presentation"" cellpadding=""0"" cellspacing=""0"" border=""0"" width=""100%"" style=""margin:20px 0;"">
+  <tr>
+    <td style=""background:#f0f6ff;border:1px solid #cdd9ee;border-radius:14px;padding:24px;text-align:center;"">
+      <p style=""margin:0 0 8px;color:#475569;font-size:13px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;"">Votre code de vérification</p>
+      <div style=""font-family:'Courier New',monospace;font-size:36px;font-weight:800;letter-spacing:10px;color:#0040a1;margin:4px 0 10px;padding:8px 0;"">{safeCode}</div>
+      <p style=""margin:0;color:#64748b;font-size:12px;"">Valable {EmailVerificationHelper.CodeLifetimeMinutes} minutes. À saisir sur la page de vérification après votre première connexion.</p>
+    </td>
+  </tr>
+</table>";
+
             var greeting = string.IsNullOrEmpty(safeFirstName)
                 ? "<p>Bonjour,</p>"
                 : $"<p>Bonjour <strong>{safeFirstName}</strong>,</p>";
 
             var inner =
                 greeting +
-                $"<p>Votre compte <strong>{Services.EmailTemplates.BrandName}</strong> vient d'être créé avec succès pour <strong>{safeCompany}</strong>. 🎉</p>" +
+                $"<p>Votre compte <strong>{Services.EmailTemplates.BrandName}</strong> vient d'être créé pour <strong>{safeCompany}</strong>. 🎉</p>" +
+                "<p><strong>Première étape :</strong> confirmez votre adresse email en saisissant le code ci-dessous sur l'écran de vérification. Cette étape ne prend que quelques secondes et nous permet de vous garantir l'accès aux notifications et aux fonctions sensibles (réinitialisation de mot de passe, alertes RGPD, etc.).</p>" +
+                verifBlock +
+                Services.EmailTemplates.Button("Vérifier mon email", verifyUrl) +
                 "<p>Vous bénéficiez de <strong>30 jours d'essai gratuit</strong>, sans carte bancaire, avec accès complet à votre pack — pointage web &amp; mobile, gestion RH, congés &amp; absences, et reporting.</p>" +
                 infoCard +
-                Services.EmailTemplates.Button("Accéder à mon espace", redirectUrl) +
                 Services.EmailTemplates.StatusBanner(
                     $"Votre essai gratuit prend fin le {trialEndStr}. Nous vous enverrons un rappel 10 jours avant pour activer votre abonnement Stripe — vous gardez la main jusqu'au dernier moment.",
                     Services.EmailTemplates.StatusKind.Info) +
                 "<p style=\"margin-top:18px;\"><strong>Prochaines étapes recommandées :</strong></p>" +
                 "<ol style=\"padding-left:20px;color:#334155;line-height:1.8;\">" +
+                "<li>Vérifiez votre email avec le code ci-dessus.</li>" +
                 "<li>Connectez-vous à votre espace et complétez la fiche de votre société.</li>" +
-                "<li>Invitez vos premiers collaborateurs depuis <em>Gestion des employés</em> — chacun recevra un lien pour définir son mot de passe.</li>" +
-                "<li>Téléchargez l'application mobile pour pointer en déplacement et recevoir les notifications.</li>" +
+                "<li>Invitez vos premiers collaborateurs depuis <em>Gestion des employés</em>.</li>" +
+                "<li>Téléchargez l'application mobile pour pointer en déplacement.</li>" +
                 "</ol>" +
                 Services.EmailTemplates.MobileAppCard(downloadUrl) +
                 "<p style=\"margin-top:24px;\">Une question ? Répondez simplement à cet email — notre équipe support vous accompagne pendant toute la durée de votre essai et au-delà.</p>" +
                 "<p style=\"margin-top:18px;\">Bienvenue à bord,<br/><strong>L'équipe Concorde Workforce</strong></p>";
 
-            var subject = $"Bienvenue chez {Services.EmailTemplates.BrandName} — votre espace {safeSlug} est prêt";
+            var subject = $"Bienvenue chez {Services.EmailTemplates.BrandName} — code de vérification : {verificationCode}";
             var body = Services.EmailTemplates.Wrap(
                 title: string.IsNullOrEmpty(firstName) ? "Bienvenue !" : $"Bienvenue, {firstName}",
-                preview: $"Votre espace {Services.EmailTemplates.BrandName} est prêt — accédez à votre dashboard et démarrez votre essai gratuit de 30 jours.",
+                preview: $"Votre code de vérification : {verificationCode} (valable {EmailVerificationHelper.CodeLifetimeMinutes} min). Espace prêt sur {safeSlug}.{rootDomain}.",
                 innerHtml: inner);
 
             await _email.SendEmailAsync(tenant.AdminEmail, subject, body);
-            _log.LogInformation("Welcome email envoyé à {Email} (tenant {Slug})", tenant.AdminEmail, tenant.Slug);
+            _log.LogInformation("Welcome+verify email envoyé à {Email} (tenant {Slug})", tenant.AdminEmail, tenant.Slug);
         }
         catch (Exception ex)
         {
             // Best-effort : on log mais on ne fait pas échouer le signup. L'admin
-            // est déjà sur son dashboard, l'email peut être renvoyé manuellement
-            // depuis le back-office en cas de besoin.
+            // peut demander un nouveau code depuis /verify-email.
             _log.LogWarning(ex, "Welcome email échoué pour {Email} (tenant {Slug}) — signup non impacté.",
                 tenant.AdminEmail, tenant.Slug);
         }
@@ -616,7 +618,7 @@ public class SignupController : ControllerBase
     /// pour préserver l'intégrité des reports/audit.
     /// </summary>
     private static bool IsSupportedCountry(string code) =>
-        code == "FR" || code == "BE" || code == "MA" || code == "SN";
+        code == "FR" || code == "BE" || code == "MA" || code == "SN" || code == "TN";
 
     private CookieOptions BuildAuthCookie(DateTimeOffset expires, bool httpOnly = true)
     {
@@ -641,13 +643,13 @@ public class SignupRequest
     public string AdminEmail { get; set; } = string.Empty;
     public string AdminPassword { get; set; } = string.Empty;
     /// <summary>
-    /// Identifiant entreprise (SIRET FR / BCE BE / ICE MA / NINEA SN). Validé selon le
-    /// pays choisi et utilisé comme clé anti-fraude : un seul essai gratuit par ID.
-    /// Obligatoire depuis 2026-05.
+    /// Identifiant entreprise (SIRET FR / BCE BE / ICE MA / NINEA SN / Matricule Fiscal TN).
+    /// Validé selon le pays choisi et utilisé comme clé anti-fraude : un seul essai gratuit
+    /// par ID. Obligatoire depuis 2026-05.
     /// </summary>
     public string Siret { get; set; } = string.Empty;
     /// <summary>
-    /// Code pays ISO 3166-1 alpha-2. Valeurs supportées : FR | BE | MA | SN.
+    /// Code pays ISO 3166-1 alpha-2. Valeurs supportées : FR | BE | MA | SN | TN.
     /// Défaut FR si absent (rétro-compat). Détermine le format attendu pour Siret.
     /// </summary>
     public string? Country { get; set; }

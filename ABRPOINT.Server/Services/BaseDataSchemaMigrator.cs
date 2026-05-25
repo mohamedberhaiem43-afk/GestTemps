@@ -122,6 +122,14 @@ public static class BaseDataSchemaMigrator
         await AddColumnIfMissingAsync(db, "utilisateur", "uti_failed_logins", "INTEGER NULL", ct);
         await AddColumnIfMissingAsync(db, "utilisateur", "uti_lockout_until", "TIMESTAMP NULL", ct);
 
+        // Vérification email (2026-05) : OTP 6 chiffres envoyé au signup. BCrypt-hashé en
+        // colonne uti_email_verif_code, expiré 15min après émission, anti-bruteforce via
+        // compteur d'essais. Cf. Utilisateur.UtiEmailVerified / UtilisateursController.VerifyEmail.
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_email_verified", "VARCHAR(1) NULL", ct);
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_email_verif_code", "VARCHAR(72) NULL", ct);
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_email_verif_expiry", "TIMESTAMP NULL", ct);
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_email_verif_attempts", "INTEGER NULL", ct);
+
         // AuditLog : capture de l'IP cliente à l'origine de l'action. 45 chars suffisent
         // pour un IPv6 complet (39) + suffixe scope éventuel. NULL pour les actions issues
         // d'un hosted service ou d'une migration design-time sans HttpContext.

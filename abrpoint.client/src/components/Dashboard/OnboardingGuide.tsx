@@ -1,8 +1,9 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   Box, Typography, IconButton, LinearProgress, Stack, Button, Chip,
   Collapse, Tooltip,
 } from '@mui/material';
+import { keyframes } from '@mui/system';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../helper/AuthProvider';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
@@ -122,11 +123,23 @@ interface OnboardingGuideProps {
   totalEmployees?: number;
 }
 
+// Animation pulse appliquée à la bordure du guide lors de la première visite post-signup.
+// 3 secondes de glow bleu pour attirer l'œil sans être agressif. S'estompe ensuite.
+const firstVisitPulse = keyframes`
+  0%   { box-shadow: 0 0 0 0 rgba(0, 64, 161, 0.55); }
+  70%  { box-shadow: 0 0 0 16px rgba(0, 64, 161, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 64, 161, 0); }
+`;
+
 export default function OnboardingGuide({ totalEmployees }: OnboardingGuideProps) {
   const { soccod } = useAuth();
   const navigate = useNavigate();
   const [state, setState] = useState<OnboardingState>(() => loadState(soccod ?? ''));
   const [expanded, setExpanded] = useState(true);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  // True le temps de la première mise en avant post-signup — déclenche scroll + pulse.
+  // Auto-reset après ~3s pour ne pas distraire en permanence.
+  const [firstVisit, setFirstVisit] = useState(false);
 
   // Auto-complétion de l'étape "Employé" dès que le dashboard remonte un compteur
   // > 0 — évite à l'admin de devoir cocher manuellement quelque chose qui est
@@ -140,6 +153,35 @@ export default function OnboardingGuide({ totalEmployees }: OnboardingGuideProps
       });
     }
   }, [totalEmployees, soccod, state.done.employe]);
+
+  // Détection du flag `justSignedUp` posé par VerifyEmailPage à la fin du flow
+  // d'inscription. Effet : (1) on désdismisse le guide (au cas où le tenant aurait
+  // un état persisté venant d'un autre admin qui aurait fermé), (2) on force expand,
+  // (3) on scrolle dessus, (4) on applique 3s de pulse. Le flag est consommé
+  // immédiatement pour ne pas re-déclencher à chaque navigation.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (sessionStorage.getItem('justSignedUp') !== '1') return;
+    sessionStorage.removeItem('justSignedUp');
+
+    // Reset complet de l'état persisté : on veut absolument que le nouveau tenant
+    // voie le guide ouvert, même si pour une raison X le defaultState a été modifié.
+    setState(prev => {
+      const next = { ...prev, dismissed: false };
+      saveState(soccod ?? '', next);
+      return next;
+    });
+    setExpanded(true);
+    setFirstVisit(true);
+
+    // Scroll + pulse appliqués au prochain frame pour laisser React poser le DOM.
+    requestAnimationFrame(() => {
+      rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    const t = setTimeout(() => setFirstVisit(false), 3200);
+    return () => clearTimeout(t);
+  }, [soccod]);
 
   const completedCount = useMemo(
     () => Object.values(state.done).filter(Boolean).length,
@@ -180,6 +222,7 @@ export default function OnboardingGuide({ totalEmployees }: OnboardingGuideProps
 
   return (
     <Box
+      ref={rootRef}
       sx={{
         background: allDone
           ? 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)'
@@ -191,6 +234,10 @@ export default function OnboardingGuide({ totalEmployees }: OnboardingGuideProps
         mb: 3,
         position: 'relative',
         transition: 'all 0.3s',
+        // Pulse 3s post-signup pour signaler au nouvel admin qu'il y a quelque chose
+        // d'important ici. `animation` est posée conditionnellement — pas d'overhead
+        // GPU sur les renders normaux.
+        animation: firstVisit ? `${firstVisitPulse} 1.4s ease-out 2` : undefined,
       }}
     >
       {/* Header : titre + progression + actions */}

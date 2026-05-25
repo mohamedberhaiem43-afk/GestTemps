@@ -32,6 +32,7 @@ const GestionContratsModern = React.lazy(() => import('../gestionEmploye/Gestion
 const ClasseHoraireModern = React.lazy(() => import('../ClasseHoraire/ClasseHoraireModern'));
 const CredentialsSignInPage = React.lazy(() => import('../Login/Login'));
 const SignupPage = React.lazy(() => import('../Signup/SignupPage'));
+const VerifyEmailPage = React.lazy(() => import('../Signup/VerifyEmailPage'));
 const IntituleDesAbsencesModern = React.lazy(() => import('../ClasseHoraire/IntituleDesAbsences/IntituleDesAbsencesModern'));
 const ReposModern = React.lazy(() => import('../ClasseHoraire/Repos/ReposModern'));
 const JourDeCompensation = React.lazy(() => import('../gestionEmploye/gestionAbsence/jourCompensation/JourCompensation'));
@@ -534,6 +535,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/about': content = <AboutPage />; break;
     case '/login': content = <CredentialsSignInPage />; break;
     case '/signup': content = <SignupPage />; break;
+    case '/verify-email': content = <VerifyEmailPage />; break;
     case '/download': content = <DownloadPage />; break;
     case '/plan-configuration': content = <PlanConfigurationPage />; break;
     case '/contact-sales': content = <ContactSalesPage />; break;
