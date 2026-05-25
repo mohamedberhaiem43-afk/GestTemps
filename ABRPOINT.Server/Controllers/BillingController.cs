@@ -28,6 +28,7 @@ public class BillingController : ControllerBase
     private readonly IConfiguration _cfg;
     private readonly ILogger<BillingController> _log;
     private readonly Interfaces.IEmailService _email;
+    private readonly ITenantStore _tenantStore;
 
     /// <summary>
     /// Adresse interne notifiée à chaque résiliation pour suivi commercial / churn.
@@ -53,7 +54,8 @@ public class BillingController : ControllerBase
         IStorageQuotaGuard quotaGuard,
         IConfiguration cfg,
         ILogger<BillingController> log,
-        Interfaces.IEmailService email)
+        Interfaces.IEmailService email,
+        ITenantStore tenantStore)
     {
         _masterFactory = masterFactory;
         _tenantDb = tenantDb;
@@ -63,6 +65,7 @@ public class BillingController : ControllerBase
         _cfg = cfg;
         _log = log;
         _email = email;
+        _tenantStore = tenantStore;
     }
 
     /// <summary>
@@ -523,6 +526,82 @@ public class BillingController : ControllerBase
             cancellationRequestedAt = tenant.CancellationRequestedAt,
             hasActiveStripeSubscription = !string.IsNullOrEmpty(tenant.StripeSubscriptionId),
         });
+    }
+
+    public sealed record ConfirmCheckoutRequest(string SessionId);
+
+    /// <summary>
+    /// Réconciliation active post-checkout : interroge Stripe pour savoir si la session
+    /// est payée et bascule Tenant.Status → "Active" si oui. Sert de fallback quand le
+    /// webhook checkout.session.completed tarde à arriver (retry queue Stripe, DNS,
+    /// reverse proxy intermittent…). Idempotent — si le webhook arrive juste après, il
+    /// fera UPDATE Status='Active' sur un tenant déjà Active : no-op.
+    ///
+    /// SEC : la session DOIT correspondre au tenant courant (client_reference_id matché),
+    /// sinon un attaquant pourrait activer le tenant d'un tiers en lui passant une
+    /// session_id qu'il aurait payée pour un autre customer.
+    /// </summary>
+    [HttpPost("confirm-checkout")]
+    public async Task<IActionResult> ConfirmCheckout([FromBody] ConfirmCheckoutRequest req, CancellationToken ct)
+    {
+        if (req is null || string.IsNullOrWhiteSpace(req.SessionId))
+            return BadRequest(new { error = "SessionId requis." });
+
+        var slug = _currentTenant.Current?.Slug;
+        if (string.IsNullOrEmpty(slug))
+            return BadRequest(new { error = "Tenant non résolu." });
+
+        var secretKey = _cfg["Stripe:SecretKey"];
+        if (string.IsNullOrWhiteSpace(secretKey) || secretKey.Contains("REPLACE"))
+            return StatusCode(503, new { error = "Stripe non configuré côté serveur." });
+        StripeConfiguration.ApiKey = secretKey;
+
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var tenant = await master.Tenants.FirstOrDefaultAsync(t => t.Slug == slug, ct);
+        if (tenant is null)
+            return NotFound(new { error = "Tenant introuvable." });
+
+        // Court-circuit : déjà Active → rien à faire, on renvoie le statut courant pour que
+        // le front sorte de son polling immédiatement.
+        if (string.Equals(tenant.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            return Ok(new { status = tenant.Status, alreadyActive = true });
+
+        Session session;
+        try
+        {
+            session = await new SessionService().GetAsync(req.SessionId, cancellationToken: ct);
+        }
+        catch (StripeException ex)
+        {
+            _log.LogError(ex, "Lecture session Stripe {SessionId} échouée pour tenant {Slug}.", req.SessionId, slug);
+            return StatusCode(502, new { error = "Impossible de vérifier la session Stripe." });
+        }
+
+        if (!Guid.TryParse(session?.ClientReferenceId, out var tenantIdFromSession) || tenantIdFromSession != tenant.Id)
+        {
+            _log.LogWarning("Session Stripe {SessionId} ne correspond pas au tenant {Slug} (client_reference_id={ClientRef}).",
+                req.SessionId, slug, session?.ClientReferenceId);
+            return BadRequest(new { error = "Session non rattachée à ce tenant." });
+        }
+
+        // payment_status possibles : "paid", "unpaid", "no_payment_required".
+        // unpaid = en cours de traitement (SEPA, carte 3DS…) → on laisse le front re-poll.
+        var isPaid = string.Equals(session.PaymentStatus, "paid", StringComparison.OrdinalIgnoreCase)
+                  || string.Equals(session.PaymentStatus, "no_payment_required", StringComparison.OrdinalIgnoreCase);
+        if (!isPaid)
+        {
+            return Ok(new { status = tenant.Status, paymentStatus = session.PaymentStatus, reconciled = false });
+        }
+
+        // Réplique la logique du webhook checkout.session.completed (cf. StripeWebhookController).
+        if (!string.IsNullOrEmpty(session.SubscriptionId)) tenant.StripeSubscriptionId = session.SubscriptionId;
+        if (!string.IsNullOrEmpty(session.CustomerId)) tenant.StripeCustomerId = session.CustomerId;
+        tenant.Status = "Active";
+        await master.SaveChangesAsync(ct);
+        _tenantStore.Invalidate(tenant.Slug);
+
+        _log.LogInformation("Tenant {Slug} → Active via /confirm-checkout (réconciliation, session={SessionId}).", tenant.Slug, req.SessionId);
+        return Ok(new { status = tenant.Status, reconciled = true });
     }
 
     public sealed record CancelSubscriptionRequest(bool Immediate, string? Reason);

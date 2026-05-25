@@ -182,41 +182,77 @@ export default function MonAbonnementPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Retour de Stripe après réactivation : on est redirigé ici avec `?reactivated=1`.
-  // Le webhook `checkout.session.completed` est asynchrone (latence Stripe ~1-3s),
-  // donc on poll /billing/subscription jusqu'à observer Status === 'Active'.
-  // Sans ce polling, l'utilisateur voyait toujours l'écran « Abonnement résilié »
-  // car la page se charge AVANT que le webhook n'ait fait son travail.
+  // Retour de Stripe après réactivation : on est redirigé ici avec `?reactivated=1&session_id=…`.
+  // Stratégie en 2 temps pour ne plus dépendre uniquement du webhook asynchrone :
+  //   1) Réconciliation active immédiate via POST /billing/confirm-checkout — on demande à
+  //      Stripe (depuis le backend) si la session est payée et on bascule Status="Active"
+  //      sur place. Couvre 95% des cas en <1s (le webhook peut tomber 30s+ plus tard).
+  //   2) Si la réconciliation dit "payment_status != paid" (3DS en cours, SEPA…), on
+  //      retombe sur l'ancien polling /billing/subscription jusqu'au flip Active.
+  // Avant : on attendait passivement le webhook pendant 30s, ce qui affichait
+  // « Confirmation retardée » à chaque latence Stripe → mauvaise UX et tickets support.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('reactivated') !== '1') return;
+    const sessionId = params.get('session_id');
     let cancelled = false;
     setPollingReactivation(true);
     setPollingTimedOut(false);
-    const start = Date.now();
-    const MAX_MS = 30_000;
-    const tick = async () => {
+
+    const finishSuccess = async () => {
       if (cancelled) return;
-      const data = await fetchInfo({ silent: true });
-      if (cancelled) return;
-      if (data?.status === 'Active') {
-        setPollingReactivation(false);
-        setSuccessMsg('Réactivation confirmée. Redirection vers votre tableau de bord…');
-        try { await refreshAuth(); } catch { /* best-effort */ }
-        // Nettoyage du query param + redirection
-        setTimeout(() => navigate('/dashboard', { replace: true }), 1200);
-        return;
-      }
-      if (Date.now() - start > MAX_MS) {
-        setPollingReactivation(false);
-        setPollingTimedOut(true);
-        return;
-      }
-      setTimeout(tick, 2500);
+      setPollingReactivation(false);
+      setSuccessMsg('Réactivation confirmée. Redirection vers votre tableau de bord…');
+      try { await refreshAuth(); } catch { /* best-effort */ }
+      setTimeout(() => navigate('/dashboard', { replace: true }), 1200);
     };
-    tick();
+
+    const startPolling = () => {
+      const start = Date.now();
+      const MAX_MS = 30_000;
+      const tick = async () => {
+        if (cancelled) return;
+        const data = await fetchInfo({ silent: true });
+        if (cancelled) return;
+        if (data?.status === 'Active') {
+          await finishSuccess();
+          return;
+        }
+        if (Date.now() - start > MAX_MS) {
+          setPollingReactivation(false);
+          setPollingTimedOut(true);
+          return;
+        }
+        setTimeout(tick, 2500);
+      };
+      tick();
+    };
+
+    (async () => {
+      // Étape 1 — réconciliation active si on a un session_id.
+      if (sessionId) {
+        try {
+          const { data } = await apiInstance.post<{ status?: string; reconciled?: boolean; alreadyActive?: boolean }>(
+            '/billing/confirm-checkout',
+            { sessionId },
+          );
+          if (cancelled) return;
+          if (data?.status === 'Active') {
+            // Rafraîchit l'objet info affiché (chip, dates) avant le redirect.
+            await fetchInfo({ silent: true });
+            await finishSuccess();
+            return;
+          }
+        } catch {
+          // Réconciliation échouée → on tente le polling (le webhook peut tomber juste après).
+        }
+      }
+      // Étape 2 — fallback polling.
+      if (!cancelled) startPolling();
+    })();
+
     return () => { cancelled = true; };
-    // Volontairement vide : on ne déclenche le polling qu'au premier mount.
+    // Volontairement vide : on ne déclenche la séquence qu'au premier mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
