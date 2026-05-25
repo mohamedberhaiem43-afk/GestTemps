@@ -594,11 +594,9 @@ function SocieteModernContent() {
             <Typography className="soc-card-title">{t('societe.card.work')}</Typography>
           </Box>
           <Box className="soc-form-grid">
-            <Box className="soc-field soc-field--big">
-              <label>{t('societe.form.hoursPerMonth')}</label>
-              <input type="number" value={form.socmois} onChange={set('socmois')} />
-              <span className="soc-field-hint">{t('societe.form.legalDefault')}</span>
-            </Box>
+            {/* Champ "Heures par mois" (socmois) retiré de l'UI (2026-05) : redondant
+                avec le paramétrage centralisé via /dashboard/societe (table parametre).
+                Le champ reste en base pour rétrocompat, simplement masqué côté formulaire. */}
             <Box className="soc-info-box">
               <p>{t('societe.form.workInfo')}</p>
             </Box>

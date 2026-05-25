@@ -305,7 +305,10 @@ const useNavigationItems = (): NavGroup[] => {
         ...(canSee('gestion-societe') ? [{ label: t('navigation.society'), href: '/dashboard/gestion-societe', icon: Building2 }] : []),
         ...(canSee('structure-organisationnelle') ? [{ label: t('navigation.orgStructure'), href: '/dashboard/structure-organisationnelle', icon: Network }] : []),
         ...(canSee('filiale') ? [{ label: t('navigation.branch'), href: '/dashboard/filiale', icon: Flag }] : []),
-        ...(canSee('pays') ? [{ label: t('navigation.country'), href: '/dashboard/pays', icon: Globe }] : []),
+        // Entrée "Pays" retirée de la sidebar (2026-05) : le référentiel des pays est
+        // désormais résolu côté front via restcountries.com (cf. RestCountriesService) ;
+        // plus besoin d'une page admin dédiée à la saisie manuelle. La route /dashboard/pays
+        // reste fonctionnelle pour les cas d'override mais n'est plus exposée en navigation.
         ...(canSee('ville') ? [{ label: t('navigation.city'), href: '/dashboard/ville', icon: MapPin }] : []),
         ...(canSee('fonction') ? [{ label: t('navigation.function'), href: '/dashboard/fonction', icon: Briefcase }] : []),
         ...(canSee('qualification') ? [{ label: t('navigation.qualification'), href: '/dashboard/qualification', icon: Award }] : []),
@@ -388,7 +391,9 @@ const useNavigationItems = (): NavGroup[] => {
       href: '/dashboard/absences',
       icon: AlarmClock,
       items: [
-        ...(canSee('jour-de-compensation') && planAllows('compensationDays') ? [{ label: t('navigation.compensationDay'), href: '/dashboard/jour-de-compensation', icon: Clock3 }] : []),
+        // Entrée "Gestion compensation" (jour-de-compensation) masquée temporairement (2026-05).
+        // Le module reste accessible via URL directe — uniquement retiré de la sidebar.
+        // ...(canSee('jour-de-compensation') && planAllows('compensationDays') ? [{ label: t('navigation.compensationDay'), href: '/dashboard/jour-de-compensation', icon: Clock3 }] : []),
         ...(canSee('autorisation-de-sortie') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorization'), href: '/dashboard/autorisation-de-sortie', icon: Timer }] : []),
         ...(canSee('autorisation-de-sortie-generale') && planAllows('generalExit') ? [{ label: t('navigation.generalExit'), href: '/dashboard/autorisation-de-sortie-generale', icon: Timer }] : []),
         ...(canSee('demande-autorisation') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),

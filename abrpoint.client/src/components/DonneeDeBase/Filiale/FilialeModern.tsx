@@ -161,12 +161,11 @@ function FilialeModernContent() {
                   <th>{t('donneeBase.filiale.headers.name')}</th>
                   <th>{t('donneeBase.filiale.headers.phone')}</th>
                   <th>{t('donneeBase.filiale.headers.email')}</th>
-                  <th>{t('donneeBase.filiale.headers.hoursMonth')}</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={6} className="ref-empty">{t('donneeBase.filiale.noResults')}</td></tr>
+                  <tr><td colSpan={5} className="ref-empty">{t('donneeBase.filiale.noResults')}</td></tr>
                 ) : filtered.map(s => {
                   const isSelected = isEditMode && form.sitcod === s.sitcod;
                   return (
@@ -186,7 +185,6 @@ function FilialeModernContent() {
                     <td>{s.sitlib}</td>
                     <td>{s.sittel || '—'}</td>
                     <td style={{ color: '#64748b' }}>{s.sitemail || '—'}</td>
-                    <td><span className="ref-badge ref-badge--blue">{s.sitmois || '—'}</span></td>
                   </tr>
                   );
                 })}
@@ -262,17 +260,12 @@ function FilialeModernContent() {
             <Typography className="ref-card-title">{t('donneeBase.filiale.card.workParams')}</Typography>
           </Box>
           <Box className="ref-form-grid ref-form-grid--3">
-            <Box className="ref-field">
-              <label>{t('donneeBase.filiale.field.hoursMonth')}</label>
-              <input type="number" value={form.sitmois} onChange={set('sitmois')} placeholder="191" />
-            </Box>
+            {/* Champs "Heures/mois" (sitmois) et "Congés/mois" (sitcongem) retirés
+                (2026-05) : redondants avec les paramètres centraux. Seul "Congés/an"
+                (sitconge) reste utile car spécifique au site (multi-pays). */}
             <Box className="ref-field">
               <label>{t('donneeBase.filiale.field.leavesYear')}</label>
               <input type="number" value={form.sitconge} onChange={set('sitconge')} placeholder="18" />
-            </Box>
-            <Box className="ref-field">
-              <label>{t('donneeBase.filiale.field.leavesMonth')}</label>
-              <input type="number" value={form.sitcongem} onChange={set('sitcongem')} placeholder="1.5" />
             </Box>
           </Box>
         </Box>
