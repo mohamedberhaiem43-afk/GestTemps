@@ -112,6 +112,79 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         }
 
         /// <summary>
+        /// Calcule en pur (sans DB) la paire (HeuresNormales, HeuresSupplementaires)
+        /// hebdomadaires à partir des données déjà agrégées par <see cref="OptimizedPresenceService"/>.
+        ///
+        /// Règle métier "Éliminer férié" (<c>Parametre.Parelimftrv</c>) :
+        ///   • "1" → on retire les heures travaillées sur jour férié AVANT le seuil
+        ///           hebdo (NbhCalendSem, généralement 35h). Logique : un férié travaillé
+        ///           ne compte pas comme heure régulière de la semaine, il est compensé
+        ///           séparément (cf. colonne HreFerieTrv / HreFerieTrv2).
+        ///   • "0" → on garde les heures férié dans le compte régulier.
+        ///   • "2" → ancienne sémantique « après seuil » — alias rétro-compat (même effet
+        ///           que "1" depuis l'unification 2026-05-27).
+        ///
+        /// La règle ne s'applique qu'au régime horaire (<c>empreg == "H"</c>).
+        ///
+        /// ⚠ Régression corrigée 2026-05-27 : l'ancien code soustrayait NbhFerierTrv
+        /// DEUX fois quand EliminerFerier=="1" (une avant le seuil, une après dans le
+        /// total supp). Résultat : un employé H ayant travaillé 14h sur un férié voyait
+        /// son H.Supp diminué de moitié (~5.5h au lieu de 7h en EtatPeriodique pour le
+        /// même jour). Asymétrie aggravante : la 1ère condition utilisait `=="1"`, la
+        /// 2ème `!="0"`, rendant le cas "2" encore plus imprévisible. On unifie : UNE
+        /// seule déduction, AVANT le seuil hebdo. Méthode statique pour la tester
+        /// isolément sans monter toute la stack du service.
+        /// </summary>
+        /// <summary>
+        /// Applique le plafond <c>MaxFerier</c> aux heures travaillées sur jour férié
+        /// (<paramref name="nbhFerierTrv"/>) et répartit en deux tranches :
+        ///   • <c>HreFerieTrv</c>  = heures payées au taux férié majoré standard (≤ cap)
+        ///   • <c>HreFerieTrv2</c> = surplus au-delà du cap (taux majoré différent / hors barème)
+        ///
+        /// Sémantique du <paramref name="maxFerier"/> :
+        ///   • <c>null</c> (champ jamais saisi dans ParamSoc) → AUCUN PLAFOND. Toutes les
+        ///     heures effectivement travaillées sur férié vont en HreFerieTrv ; HreFerieTrv2=0.
+        ///     Régression corrigée 2026-05-27 : l'ancien défaut `?? 0` clampait à 0 → la
+        ///     colonne H.Fér.Trv affichait 0 sur tous les tenants n'ayant pas explicitement
+        ///     saisi ce paramètre (cas le plus fréquent — paramétrage non visible dans l'UI
+        ///     historique).
+        ///   • <c>0</c> explicite → cap = 0. Toutes les heures travaillées vont en HreFerieTrv2.
+        ///     Sémantique conservée pour les tenants qui ont volontairement saisi 0.
+        ///   • <c>N</c> (>0) → cap à N heures, surplus en HreFerieTrv2.
+        /// </summary>
+        public static (float? hreFerieTrv, float? hreFerieTrv2) ApplyFerierWorkedCap(
+            float? nbhFerierTrv, float? maxFerier)
+        {
+            var worked = nbhFerierTrv ?? 0f;
+            float capped = maxFerier.HasValue ? Math.Min(worked, maxFerier.Value) : worked;
+            return (capped, worked - capped);
+        }
+
+        public static (float? heuresNormales, float? heuresSupp) ComputeWeeklyNormalAndOvertime(
+            float? tothre,
+            float? heureRepos,
+            float? hreFerier,
+            float? nbhFerierTrv,
+            float? nbhCalendSem,
+            string? eliminerFerier,
+            string? empreg)
+        {
+            float? heuresNormales = tothre - ((heureRepos ?? 0f) + (hreFerier ?? 0f));
+
+            if ((eliminerFerier == "1" || eliminerFerier == "2") && empreg == "H")
+            {
+                heuresNormales -= nbhFerierTrv ?? 0f;
+            }
+
+            float? heuresSupp = 0f;
+            if (heuresNormales > nbhCalendSem)
+                heuresSupp = heuresNormales - nbhCalendSem;
+
+            heuresSupp = (float?)Math.Max(0, (double)(heuresSupp ?? 0));
+            return (heuresNormales, heuresSupp);
+        }
+
+        /// <summary>
         /// Applique le filtre d'approbation à un <see cref="HeuresSupplementairesResultat"/>
         /// déjà calculé : remplit HreSupCalcule/Approuvees/EnAttente/Refusees/HasRequests,
         /// et bascule HreSupSemaine (+ tranches) sur les seules heures approuvées si au
@@ -198,8 +271,9 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 result.Panier = res.Panier;
                 result.JourSamediTrv = res.JourSamediTrv;
                 result.HreSamediTrv = res.HreSamediTrv;
-                result.HreFerieTrv = Math.Min(res.NbhFerierTrv ?? 0, paramSupp.MaxFerier ?? 0);
-                result.HreFerieTrv2 = (res.NbhFerierTrv ?? 0) - (result.HreFerieTrv ?? 0);
+                var (hreFerieTrv, hreFerieTrv2) = ApplyFerierWorkedCap(res.NbhFerierTrv, paramSupp.MaxFerier);
+                result.HreFerieTrv = hreFerieTrv;
+                result.HreFerieTrv2 = hreFerieTrv2;
                 result.NbJourFerier = res.NbJourFerier;
                 result.HreFerier = res.HreFerier;
                 result.HreAllaitement = res.NbhAllaitement;
@@ -277,24 +351,16 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 }
 
                 // Calculate weekly overtime
-                float? heuresTravaillees = res.TotalHours;
-                float? heuresSupp = 0;
-                result.Tothre = heuresTravaillees;
-                result.HeuresNormales = result.Tothre - (res.HeureRepos + res.HreFerier);
-
-                if (paramSupp.EliminerFerier == "1" && empreg == "H")
-                {
-                    result.HeuresNormales -= res.NbhFerierTrv;
-                }
-
-                if (result.HeuresNormales > result.NbhCalendSem)
-                    heuresSupp = result.HeuresNormales - result.NbhCalendSem;
-
-                if (paramSupp.EliminerFerier != "0" && empreg == "H")
-                {
-                    heuresSupp -= res.NbhFerierTrv;
-                    heuresSupp = (float?)Math.Max(0, (double)heuresSupp);
-                }
+                result.Tothre = res.TotalHours;
+                var (heuresNormales, heuresSupp) = ComputeWeeklyNormalAndOvertime(
+                    tothre: res.TotalHours,
+                    heureRepos: res.HeureRepos,
+                    hreFerier: res.HreFerier,
+                    nbhFerierTrv: res.NbhFerierTrv,
+                    nbhCalendSem: result.NbhCalendSem,
+                    eliminerFerier: paramSupp.EliminerFerier,
+                    empreg: empreg);
+                result.HeuresNormales = heuresNormales;
                 result.HreSupSemaine = heuresSupp;
                 result.Tothre += heuresSupp;
                 result.HeuresSupTranche1 = Math.Min(heuresSupp ?? 0, tranche1 ?? 0);

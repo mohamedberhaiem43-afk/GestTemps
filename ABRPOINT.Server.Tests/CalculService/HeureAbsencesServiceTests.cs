@@ -198,27 +198,30 @@ namespace ABRPOINT.Server.Tests.CalculService
         }
 
         [Fact]
-        public async Task ActivePresence_NoConge_DiffLessOrEqualTwo_ReturnsZero()
+        public async Task ActivePresence_NoConge_DiffAboveToleranceReturnsDiff()
         {
-            // jour=8h, travaillé=7h → diff=1 ≤ 2 → retourne 0
+            // ⚠ Tolérance changée 2h → 15min en 2026-05 (cf. HeureAbsencesService.cs:161-165).
+            // Justification métier dans le code : « anciennement 2h, trop laxiste — masquait
+            // des absences réelles d'1h à 2h sur des journées partielles ».
+            // jour=8h, travaillé=7h → diff=1h ; 1h > 0.25h → retourne 1.
             SetupDayHours(8f);
             SetupConge(null);
             var presence = WorkingPresence();
 
             var result = await _service.CalculateHeureAbsences(presence, Soc, Pos, Day, null, hretrav: 7f);
 
-            Assert.Equal(0f, result);
+            Assert.Equal(1f, result);
         }
 
         [Fact]
-        public async Task ActivePresence_NoConge_DiffExactlyTwo_ReturnsZero()
+        public async Task ActivePresence_NoConge_DiffBelowToleranceReturnsZero()
         {
-            // diff == 2 (non > 2) → retourne 0
+            // Avec tolérance 15min : diff=10min (0.166h) ≤ 0.25h → 0.
             SetupDayHours(8f);
             SetupConge(null);
             var presence = WorkingPresence();
 
-            var result = await _service.CalculateHeureAbsences(presence, Soc, Pos, Day, null, hretrav: 6f);
+            var result = await _service.CalculateHeureAbsences(presence, Soc, Pos, Day, null, hretrav: 7.833f);
 
             Assert.Equal(0f, result);
         }
@@ -239,7 +242,12 @@ namespace ABRPOINT.Server.Tests.CalculService
         [Fact]
         public async Task ActivePresence_NoConge_WithUnpaidAuth_SubtractsAuth()
         {
-            // jour=8h, travaillé=4h, auth non payée=2h → diff = 8 − 4 − 2 = 2 (non > 2) → 0
+            // ⚠ Comportement actualisé : nouvelle tolérance 15min, diff=8−4−2=2h > 0.25h → 2.
+            // L'ancienne assertion (=0) datait de la tolérance 2h supprimée en 2026-05.
+            // Note : ce test peut entrer dans la branche "détection shift manqué" (ligne 67+)
+            //        si hreTravValue < maxhrejour-0.01 et que les plages poste sont remplies.
+            //        Comme on n'a pas configuré GetPoste(), elle ne se déclenche pas → on
+            //        retombe sur le cas général diff brute, soit 2h.
             SetupDayHours(8f);
             SetupConge(null);
             var aut = new AutDto
@@ -252,7 +260,7 @@ namespace ABRPOINT.Server.Tests.CalculService
 
             var result = await _service.CalculateHeureAbsences(presence, Soc, Pos, Day, aut, hretrav: 4f);
 
-            Assert.Equal(0f, result);
+            Assert.Equal(2f, result);
         }
 
         [Fact]

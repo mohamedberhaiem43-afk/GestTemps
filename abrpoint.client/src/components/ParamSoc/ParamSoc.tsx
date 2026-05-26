@@ -358,8 +358,25 @@ export default function ParamSocModern() {
               <div className="ps-modern-form-group">
                 <label className="ps-modern-label">{t('paramSoc.calculs.maxFerieMajore')}</label>
                 <div className="ps-modern-input-wrapper">
-                  <input type="number" className="ps-modern-input" value={formData.parmaxfer ?? 0} onChange={(e) => handleInputChange('parmaxfer', Number(e.target.value))} />
+                  {/* Plafond d'heures travaillées sur jour férié comptabilisées en HreFerieTrv
+                      (= colonne "H.Fér.Trv" du Pointage du Mois). Vide / non saisi = ILLIMITÉ
+                      (le backend prend toutes les heures travaillées sur férié). 0 explicite =
+                      aucune heure férié payée. Ancien bug : `?? 0` affichait 0 par défaut,
+                      faisant croire à l'admin qu'aucune limite n'était imposée alors que le
+                      backend lisait ce 0 comme un cap à zéro → H.Fér.Trv = 0 sur toutes les
+                      lignes (cf. ParametreRepository.cs:458 + HeuresSupp...ervice.cs:201). */}
+                  <input
+                    type="number"
+                    className="ps-modern-input"
+                    placeholder="∞ (illimité)"
+                    value={formData.parmaxfer ?? ''}
+                    onChange={(e) => handleInputChange('parmaxfer',
+                      e.target.value === '' ? null : Number(e.target.value))}
+                  />
                   <span className="ps-modern-unit">h</span>
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                  Plafond H.Fér.Trv (Pointage Mois). Vide = illimité. 0 = aucune heure férié comptée.
                 </div>
               </div>
               <div className="ps-modern-form-group">
