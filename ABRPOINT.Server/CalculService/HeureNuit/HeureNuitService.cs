@@ -2,6 +2,7 @@
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ABRPOINT.Server.CalculService.HeureNuit
 {
@@ -10,23 +11,44 @@ namespace ABRPOINT.Server.CalculService.HeureNuit
         private readonly ApplicationDbContext _dbContext;
         private readonly IParametreRepository _parametreRepository;
         private readonly IEmployeRepository _employeRepository;
-        public HeureNuitService(IParametreRepository parametreRepository,IEmployeRepository employeRepository, ApplicationDbContext dbContext)
+        private readonly ILogger<HeureNuitService> _logger;
+        public HeureNuitService(IParametreRepository parametreRepository, IEmployeRepository employeRepository, ApplicationDbContext dbContext, ILogger<HeureNuitService> logger)
         {
             _dbContext = dbContext;
             _parametreRepository = parametreRepository;
             _employeRepository = employeRepository;
+            _logger = logger;
         }
         public async Task<float?> CalculateHeureNuit(PresenceDto presence)
         {
             try
             {
+                // Tag de corrélation : permet de relier les logs de cette méthode entre
+                // eux quand plusieurs employés / dates sont calculés en parallèle (état
+                // périodique sur toute une équipe). Sans ça, impossible de savoir quelle
+                // ligne du log correspond à quelle journée d'un employé.
+                var tag = $"HeureNuit[soccod={presence.Soccod} emp={presence.Empcod} date={presence.Predat:yyyy-MM-dd}]";
+
                 ParametreNuitDto parametreNuit = await _parametreRepository.GetParametresNuitAsync(presence.Soccod);
                 if (parametreNuit?.CompterNuit == "0")
+                {
+                    // Cas le plus fréquent quand l'admin "voit" la config nuit dans l'UI
+                    // mais a oublié de sauvegarder : Parnuit reste "0" en base.
+                    _logger.LogInformation("{Tag} → 0 (CompterNuit=0 — toggle 'Configuration Nuit' désactivé en BD)", tag);
                     return 0;
+                }
                 var (nuitDebut, nuitFin) = await _employeRepository.GetEmpNuitIntervalle(presence.Soccod, presence.Empcod);
 
                 if (nuitDebut == null || nuitFin == null)
+                {
+                    // Trois causes possibles :
+                    //  - Employe.Empnuit = "9" (ou autre valeur non gérée) → désactivé pour CE salarié
+                    //  - Parametre row absente côté société
+                    //  - Nuitdeb/Nuitfin non parsables (chaîne vide ou format invalide)
+                    _logger.LogInformation("{Tag} → 0 (plage nuit indéfinie : nuitDebut={NuitDebut} nuitFin={NuitFin} — vérifier Employe.Empnuit et Parametre.Nuitdeb/Nuitfin)", tag, nuitDebut, nuitFin);
                     return 0;
+                }
+                _logger.LogDebug("{Tag} plage nuit = {NuitDebut} → {NuitFin}", tag, nuitDebut, nuitFin);
 
                 // Convertir les heures de présence en TimeSpan?
                 List<(string? start, string? end)> periodes = new()
@@ -56,9 +78,15 @@ namespace ABRPOINT.Server.CalculService.HeureNuit
                     }
 
                     if (IsDayExit(presence.Preentmatup, presence.Presortmatup, nuitDebut.Value))
+                    {
+                        _logger.LogInformation("{Tag} → 0 (PasCompterNuitSiSortieJour : sortie matin {Sortie} < nuitDebut {NuitDebut})", tag, presence.Presortmatup, nuitDebut.Value);
                         return 0;
+                    }
                     if (IsDayExit(presence.Preentamidiup, presence.Presortamidiup, nuitDebut.Value))
+                    {
+                        _logger.LogInformation("{Tag} → 0 (PasCompterNuitSiSortieJour : sortie AM {Sortie} < nuitDebut {NuitDebut})", tag, presence.Presortamidiup, nuitDebut.Value);
                         return 0;
+                    }
                 }
 
 
@@ -87,8 +115,12 @@ namespace ABRPOINT.Server.CalculService.HeureNuit
                     totalHeuresNuit -= (float)prerepas / 60;
                 }
                 if (totalHeuresNuit < parametreNuit?.MinHeureNuit)
+                {
+                    _logger.LogInformation("{Tag} → 0 (totalHeuresNuit={Total}h < MinHeureNuit={Min}h : sous seuil minimum)", tag, totalHeuresNuit, parametreNuit?.MinHeureNuit);
                     return 0;
+                }
 
+                _logger.LogDebug("{Tag} → {Total}h", tag, totalHeuresNuit);
                 return totalHeuresNuit;
             }
             catch (Exception)
