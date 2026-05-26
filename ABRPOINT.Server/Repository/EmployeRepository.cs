@@ -298,6 +298,22 @@ namespace ABRPOINT.Server.Repository
                 TimeSpan? debut = TimeSpan.TryParse(deb, out var d) ? d : (TimeSpan?)null;
                 TimeSpan? fin = TimeSpan.TryParse(fin_, out var f) ? f : (TimeSpan?)null;
 
+                // Cas observé en prod : l'admin saisit l'heure de début (ex. 20:00) dans
+                // ParamSoc → HeuresNuit, oublie de saisir l'heure de fin, puis sauvegarde.
+                // Résultat : tout calcul H.Nuit retourne 0 silencieusement (le UI ne signale
+                // pas le champ manquant). Plutôt que de bloquer le calcul, on retombe sur la
+                // fin de nuit légale française par défaut (06:00, cf. Code du travail
+                // L.3122-29 — plage 21h→6h ou 22h→7h). Si l'inverse se produit (fin sans
+                // début), on défaute le début à 22:00 (autre borne légale).
+                if (debut.HasValue && !fin.HasValue)
+                {
+                    fin = TimeSpan.FromHours(6);
+                }
+                else if (!debut.HasValue && fin.HasValue)
+                {
+                    debut = TimeSpan.FromHours(22);
+                }
+
                 return (debut, fin);
             }
             catch (Exception)

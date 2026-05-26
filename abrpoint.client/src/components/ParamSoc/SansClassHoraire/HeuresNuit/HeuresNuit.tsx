@@ -60,12 +60,16 @@ interface HeuresNuitProps {
                 variant="standard"
                 value={nuitfin}
                 onChange={(e) => setNuitFinNormal(e.target.value)}
+                placeholder="06:00"
+                helperText={!nuitfin && nuitdeb ? 'Défaut appliqué : 06:00 (légal FR)' : ''}
             />
             <TextField
                 label={t('paramSoc.sansClasse.speciale')}
                 variant="standard"
                 value={nuitsfin}
                 onChange={(e) => setNuitFinSpecial(e.target.value)}
+                placeholder="06:00"
+                helperText={!nuitsfin && nuitsdeb ? 'Défaut appliqué : 06:00 (légal FR)' : ''}
             />
         </div>
         <TextField label={t('common.minNightHoursPerDay')} variant="standard"

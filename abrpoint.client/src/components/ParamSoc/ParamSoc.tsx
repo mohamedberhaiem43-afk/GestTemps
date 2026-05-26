@@ -488,11 +488,14 @@ export default function ParamSocModern() {
             <div className="ps-modern-time-grid" style={{ marginBottom: '1.5rem' }}>
               <div className="ps-modern-input-wrapper">
                 <label className="ps-modern-label">{t('paramSoc.nuit.debut')}</label>
-                <input type="text" className="ps-modern-input" value={formData.nuitdeb || '22:00'} onChange={(e) => handleInputChange('nuitdeb', e.target.value)} />
+                {/* placeholder, pas value-fallback : un value=`||'22:00'` afficherait 22:00 alors que
+                    formData.nuitdeb reste '' → la sauvegarde envoyait vide et le calcul H.Nuit
+                    retournait 0 sans signaler quoi que ce soit. */}
+                <input type="text" className="ps-modern-input" placeholder="22:00" value={formData.nuitdeb || ''} onChange={(e) => handleInputChange('nuitdeb', e.target.value)} />
               </div>
               <div className="ps-modern-input-wrapper">
                 <label className="ps-modern-label">{t('paramSoc.nuit.fin')}</label>
-                <input type="text" className="ps-modern-input" value={formData.nuitfin || '06:00'} onChange={(e) => handleInputChange('nuitfin', e.target.value)} />
+                <input type="text" className="ps-modern-input" placeholder="06:00" value={formData.nuitfin || ''} onChange={(e) => handleInputChange('nuitfin', e.target.value)} />
               </div>
             </div>
 
