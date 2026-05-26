@@ -230,6 +230,13 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<Presencej> Presencejs { get; set; }
 
+    /// <summary>
+    /// Positions GPS « live » des salariés (cf. <see cref="LivePosition"/>).
+    /// Volatile : purgée par <c>LivePositionRetentionHostedService</c> au-delà de
+    /// 30 min d'inactivité.
+    /// </summary>
+    public virtual DbSet<LivePosition> LivePositions { get; set; } = null!;
+
     public virtual DbSet<Pret> Prets { get; set; }
 
     public virtual DbSet<Probarre> Probarres { get; set; }

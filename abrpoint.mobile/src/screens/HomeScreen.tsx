@@ -15,6 +15,7 @@ import MainMenuDrawer from '../components/MainMenuDrawer';
 import DeviceTrustBanner from '../components/DeviceTrustBanner';
 import { withCacheFallback } from '../services/cache';
 import { captureCurrentPosition } from '../services/geolocation';
+import { startLiveLocationHeartbeat, stopLiveLocationHeartbeat } from '../services/liveLocation';
 
 const { width } = Dimensions.get('window');
 
@@ -85,6 +86,28 @@ export default function HomeScreen({ navigation }: any) {
     });
     return unsub;
   }, [navigation, user]);
+
+  // Live tracking — démarre le heartbeat dès que le salarié est marqué « pointé »
+  // (entrée OK, pas encore de sortie) et l'arrête au pointage de sortie ou à la
+  // déconnexion. Le service liveLocation.ts gère lui-même la suspension en
+  // background via AppState. Effet déclenché à chaque changement du couple
+  // (hasEntry, hasExit) — couvre aussi le cas où l'app est rouverte alors que
+  // l'utilisateur était déjà pointé (todayStatus chargé async depuis l'API).
+  useEffect(() => {
+    if (!user?.soccod || !user?.uticod) {
+      stopLiveLocationHeartbeat();
+      return;
+    }
+    const isClockedIn = todayStatus.hasEntry && !todayStatus.hasExit && !todayStatus.isRepos;
+    if (isClockedIn) {
+      startLiveLocationHeartbeat({ soccod: user.soccod, empcod: user.uticod });
+    } else {
+      stopLiveLocationHeartbeat();
+    }
+    // Cleanup au démontage du composant (logout, navigation profonde) : on stoppe
+    // le service pour éviter qu'un timer continue à tourner en arrière-plan.
+    return () => { stopLiveLocationHeartbeat(); };
+  }, [user?.soccod, user?.uticod, todayStatus.hasEntry, todayStatus.hasExit, todayStatus.isRepos]);
 
   const loadUnreadCount = async () => {
     try {

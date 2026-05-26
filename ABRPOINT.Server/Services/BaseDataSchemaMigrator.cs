@@ -149,6 +149,12 @@ public static class BaseDataSchemaMigrator
         // politique de géolocalisation paramétrable par le client tenant.
         await EnsureGeolocationPolicyTableAsync(db, ct);
 
+        // Live tracking (2026-05-26) : table volatile contenant la dernière position
+        // GPS connue de chaque salarié (heartbeat mobile toutes les 60s). Distincte de
+        // presence.prelat/prelon qui n'a qu'un point par pointage. La table est purgée
+        // par LivePositionRetentionHostedService au-delà de 30 min d'inactivité.
+        await EnsureLivePositionTableAsync(db, ct);
+
         // RGPD Art. 13 — notice d'information aux salariés + preuve d'acquittement.
         await EnsureDataProcessingNoticeTableAsync(db, ct);
         await EnsureUserConsentTableAsync(db, ct);
@@ -497,6 +503,35 @@ CREATE TABLE geolocation_policy (
         await db.Database.ExecuteSqlRawAsync(@"
 INSERT INTO geolocation_policy (id) VALUES (1)
 ON CONFLICT (id) DO NOTHING;", ct);
+        return created;
+    }
+
+    private static async Task<bool> EnsureLivePositionTableAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        var created = !await TableExistsAsync(db, "live_position", ct);
+        if (created)
+        {
+            // PK composite (soccod, empcod) — une seule ligne par salarié, upsert à
+            // chaque heartbeat. Pas d'historique conservé : la sémantique « live »
+            // n'a besoin que de la dernière position connue ; les historiques de
+            // pointage restent dans presence.{prelat,prelon}.
+            await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE live_position (
+    soccod         VARCHAR(4)    NOT NULL,
+    empcod         VARCHAR(12)   NOT NULL,
+    lat            DECIMAL(10,7) NOT NULL,
+    lon            DECIMAL(10,7) NOT NULL,
+    acc            INTEGER       NULL,
+    updated_at     TIMESTAMP     NOT NULL,
+    session_id     VARCHAR(64)   NULL,
+    battery_level  INTEGER       NULL,
+    PRIMARY KEY (soccod, empcod)
+);", ct);
+            // Index sur updated_at — la requête GET /Presences/live-positions filtre
+            // par fraîcheur et la purge supprime sur ce même critère.
+            await db.Database.ExecuteSqlRawAsync(@"
+CREATE INDEX IF NOT EXISTS ix_live_position_updated_at ON live_position (updated_at);", ct);
+        }
         return created;
     }
 

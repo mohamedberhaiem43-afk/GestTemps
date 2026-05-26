@@ -255,6 +255,26 @@ class ApiService {
     return response.data;
   }
 
+  /**
+   * Heartbeat de position « live » — appelé par liveLocation.ts toutes les 60 s
+   * pendant que le salarié est pointé et l'app ouverte. UPSERT côté backend sur
+   * la PK (soccod, empcod). Le serveur peut renvoyer { accepted: false, reason }
+   * si la fenêtre RGPD ferme la capture (hors heure / hors jour autorisé) —
+   * dans ce cas l'appelant arrête le polling jusqu'au prochain pointage.
+   */
+  async postLiveLocation(payload: {
+    soccod: string;
+    empcod: string;
+    lat: number;
+    lon: number;
+    acc?: number;
+    sessionId?: string;
+    batteryLevel?: number;
+  }) {
+    const response = await this.client.post('/Presences/live-location', payload);
+    return response.data as { accepted: boolean; reason?: string };
+  }
+
   async markPresence(
     soccod: string,
     empcod: string,

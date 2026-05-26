@@ -135,6 +135,165 @@ namespace ABRPOINT.Server.Controllers
             return Ok(rows);
         }
 
+        // ────────────────────────────────────────────────────────────────────
+        // LIVE TRACKING — heartbeat mobile + lecture admin
+        // ────────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Heartbeat mobile : le téléphone du salarié POST sa position courante
+        /// toutes les ~60 s pendant qu'il est pointé et que l'app est ouverte
+        /// (cf. abrpoint.mobile/src/services/liveLocation.ts). UPSERT sur la PK
+        /// (soccod, empcod) — une seule ligne live par salarié à tout instant.
+        ///
+        /// RGPD : la capture est refusée hors fenêtre <see cref="GeolocationPolicy.IsWithinWindow"/>
+        /// (heure + jour de semaine définis dans /dashboard/geolocation-rgpd). Pas
+        /// d'erreur 4xx dans ce cas pour ne pas spammer le mobile en boucle de retry
+        /// — on retourne 200 OK avec <c>accepted: false</c> + un motif, le mobile
+        /// arrête juste le heartbeat jusqu'au prochain pointage.
+        ///
+        /// Gating commercial : <see cref="Tenancy.PlanFeatures.Geolocation"/> — Standard +
+        /// Business uniquement. Starter ne peut pas tracer ses salariés.
+        /// </summary>
+        public sealed record LiveLocationRequest(
+            string Soccod,
+            string Empcod,
+            decimal Lat,
+            decimal Lon,
+            int? Acc,
+            string? SessionId,
+            int? BatteryLevel
+        );
+
+        [HttpPost("live-location")]
+        [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.Geolocation))]
+        public async Task<IActionResult> PostLiveLocation([FromBody] LiveLocationRequest req, CancellationToken ct)
+        {
+            if (req is null) return BadRequest(new { message = "Body manquant." });
+            if (string.IsNullOrWhiteSpace(req.Soccod) || string.IsNullOrWhiteSpace(req.Empcod))
+                return BadRequest(new { message = "soccod et empcod requis." });
+            // Garde-fou coordonnées valides — un mobile qui renvoie 0,0 (cas Default Location
+            // sur certains émulateurs) ne doit pas polluer la table.
+            if (req.Lat == 0m && req.Lon == 0m)
+                return BadRequest(new { message = "Coordonnées 0,0 refusées (capture invalide)." });
+            if (req.Lat < -90m || req.Lat > 90m || req.Lon < -180m || req.Lon > 180m)
+                return BadRequest(new { message = "Coordonnées hors plage WGS84." });
+
+            // Le claim NameIdentifier doit correspondre à l'empcod du body — un salarié
+            // ne peut POSTer la position d'un collègue (même au sein de son propre tenant).
+            // Aligné avec le check de PostMobile / MarkPresence pour les pointages.
+            var caller = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return Unauthorized();
+            // L'empcod côté backend = Uticod côté mobile (cf. JwtAuthService → claim sub).
+            // Tolérance casse pour éviter les faux négatifs sur empcod stocké en majuscules.
+            if (!string.Equals(caller, req.Empcod, StringComparison.OrdinalIgnoreCase))
+                return Forbid();
+
+            // Vérif fenêtre RGPD : la politique tenant peut interdire la capture en dehors
+            // de certaines plages horaires (ex. 06:00→22:00 lundi-vendredi). Hors fenêtre
+            // on retourne 200 + accepted=false plutôt qu'un 4xx pour que le mobile sache
+            // arrêter ses heartbeats sans considérer ça comme une erreur réseau.
+            var policy = await _db.Set<GeolocationPolicy>().FirstOrDefaultAsync(ct);
+            if (policy != null && !policy.IsWithinWindow(DateTime.UtcNow))
+            {
+                _logger?.LogDebug("LivePosition refusée hors fenêtre RGPD (soccod={Soccod} emp={Emp})", req.Soccod, req.Empcod);
+                return Ok(new { accepted = false, reason = "outside_window" });
+            }
+
+            // Upsert : on cherche la ligne existante pour (Soccod, Empcod), sinon on l'insère.
+            // PostgreSQL aurait permis ON CONFLICT DO UPDATE, mais EF Core ne le supporte pas
+            // nativement en cross-provider — on fait la branche manuelle, c'est suffisant
+            // pour un volume de heartbeats faible (1 salarié = 1 UPDATE/min).
+            var existing = await _db.LivePositions
+                .FirstOrDefaultAsync(p => p.Soccod == req.Soccod && p.Empcod == req.Empcod, ct);
+            var now = DateTime.UtcNow;
+            if (existing is null)
+            {
+                _db.LivePositions.Add(new LivePosition
+                {
+                    Soccod = req.Soccod,
+                    Empcod = req.Empcod,
+                    Lat = req.Lat,
+                    Lon = req.Lon,
+                    Acc = req.Acc,
+                    UpdatedAt = now,
+                    SessionId = req.SessionId,
+                    BatteryLevel = req.BatteryLevel,
+                });
+            }
+            else
+            {
+                existing.Lat = req.Lat;
+                existing.Lon = req.Lon;
+                existing.Acc = req.Acc;
+                existing.UpdatedAt = now;
+                existing.SessionId = req.SessionId;
+                existing.BatteryLevel = req.BatteryLevel;
+            }
+            await _db.SaveChangesAsync(ct);
+            return Ok(new { accepted = true });
+        }
+
+        /// <summary>
+        /// Lecture admin/manager des positions live : retourne la liste des salariés
+        /// dont la dernière position est plus récente que <paramref name="maxAgeMinutes"/>
+        /// (défaut 5 min). Au-delà, le salarié est considéré comme « offline » et n'est
+        /// pas remonté — la purge LivePositionRetentionHostedService nettoyera la ligne
+        /// au-delà de 30 min d'inactivité.
+        ///
+        /// La réponse contient le libellé employé et l'âge en secondes pour que le frontend
+        /// puisse coder vert/orange/gris les marqueurs sans recalculer l'horloge.
+        /// </summary>
+        [HttpGet("live-positions")]
+        [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.Geolocation))]
+        public async Task<IActionResult> GetLivePositions(
+            [FromQuery] string soccod,
+            [FromQuery] int maxAgeMinutes = 5,
+            CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                return BadRequest(new { message = "Société requise." });
+
+            // Admin/manager only — un employé ne voit pas les positions live des collègues.
+            var caller = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return Unauthorized();
+            var canSee = await _db.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == caller)
+                .Select(u => u.Utiadm == "1"
+                          || PermissionCatalog.IsAdminRole(u.Utirole)
+                          || u.Utirole == PermissionCatalog.Roles.Manager)
+                .FirstOrDefaultAsync(ct);
+            if (!canSee) return Forbid();
+
+            // Clamp maxAgeMinutes : pas en-dessous de 1 (sinon résultats trop vides) ni
+            // au-dessus de 60 (au-delà la valeur n'a plus de sens — la purge supprime à 30).
+            if (maxAgeMinutes < 1) maxAgeMinutes = 1;
+            if (maxAgeMinutes > 60) maxAgeMinutes = 60;
+            var threshold = DateTime.UtcNow.AddMinutes(-maxAgeMinutes);
+
+            var now = DateTime.UtcNow;
+            var rows = await (from p in _db.LivePositions.AsNoTracking()
+                              where p.Soccod == soccod && p.UpdatedAt >= threshold
+                              join e in _db.Employes.AsNoTracking()
+                                   on new { p.Soccod, p.Empcod } equals new { e.Soccod, e.Empcod } into je
+                              from emp in je.DefaultIfEmpty()
+                              orderby p.UpdatedAt descending
+                              select new
+                              {
+                                  empcod = p.Empcod,
+                                  emplib = emp != null ? emp.Emplib : null,
+                                  sitcod = emp != null ? emp.Sitcod : null,
+                                  lat = p.Lat,
+                                  lon = p.Lon,
+                                  acc = p.Acc,
+                                  updatedAt = p.UpdatedAt,
+                                  ageSeconds = (int)(now - p.UpdatedAt).TotalSeconds,
+                                  sessionId = p.SessionId,
+                                  batteryLevel = p.BatteryLevel,
+                              })
+                              .ToListAsync(ct);
+            return Ok(rows);
+        }
+
         [HttpPut("optimiserPointage/{soccod}/{empmat}/{dateDeb}/{dateFin}")]
         [CanUpdateEtatPeriodique] // S4 : modifier le pointage = permission "modify" sur état périodique.
         public async Task OptimizePointage(string soccod,string empMat,DateTime dateDeb,DateTime dateFin)

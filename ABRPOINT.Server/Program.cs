@@ -334,6 +334,10 @@ builder.Services.AddHostedService<ABRPOINT.Server.Services.DataRetentionHostedSe
 // RGPD Art. 5.1.e + clause 13.3 contrat éditeur : anonymisation puis suppression
 // des pointages bruts selon la politique configurée par le client tenant via UI.
 builder.Services.AddHostedService<ABRPOINT.Server.Services.PresenceRetentionHostedService>();
+// RGPD Art. 5.1.e — purge fréquente (toutes les 5 min) de la table live_position
+// (positions GPS heartbeat). 30 min de rétention max — donnée volatile, l'historique
+// au moment du pointage reste dans presence.{prelat,prelon}.
+builder.Services.AddHostedService<ABRPOINT.Server.Services.LivePositionRetentionHostedService>();
 // Scoped : le validateur lit les sites du tenant courant via ApplicationDbContext (Scoped).
 builder.Services.AddScoped<ABRPOINT.Server.Services.IGeoZoneValidator, ABRPOINT.Server.Services.GeoZoneValidator>();
 
