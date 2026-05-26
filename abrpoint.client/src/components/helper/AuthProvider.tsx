@@ -41,6 +41,15 @@ interface AuthContextType {
   // Matrice fonctionnelle envoyée par le backend (cf. PlanCatalog.cs). En essai, les flags
   // sont forcés à true côté serveur pour que l'utilisateur teste l'intégralité de la solution.
   planFeatures: PlanFeatures | null;
+  /**
+   * Addons EXPLICITEMENT souscrits par le tenant en plus de son pack (cf. Tenant.Addons,
+   * signupController.NormalizeAddons). Les clés correspondent à ValidAddonKeys côté backend
+   * (`aiAssistantRh`, `iaDocumentaireAvancee`, `signatureElectronique`, `apiAvancee`,
+   * `supportPrioritaire`). Utilisé par MonAbonnementPage pour distinguer "inclus dans le
+   * pack" vs "module additionnel". Les fonctionnalités correspondantes sont déjà fusionnées
+   * dans `planFeatures` côté backend — cette liste est juste un détail de souscription.
+   */
+  addons: string[];
   authReady: boolean;
   permissions: RolePermission[];
   hasPermission: (module: string, action: 'consult' | 'add' | 'modify' | 'delete') => boolean;
@@ -102,6 +111,7 @@ const AuthContext = createContext<AuthContextType>({
   planCode: null,
   planLimits: null,
   planFeatures: null,
+  addons: [],
   authReady: false,
   permissions: [],
   hasPermission: () => false,
@@ -152,6 +162,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       overageRatePerEmployee?: number;
     } | null,
     planFeatures: null as PlanFeatures | null,
+    addons: [] as string[],
     permissions: [] as RolePermission[],
   });
 
@@ -188,7 +199,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isAdmin: false, isEmp: false, isManager: false,
         sercod: null, isTrialing: false, trialEndsAt: null,
         trialDaysRemaining: null, planCode: null,
-        planLimits: null, planFeatures: null, permissions: [],
+        planLimits: null, planFeatures: null, addons: [], permissions: [],
         emailVerified: false, utimail: null,
       }));
       setAuthReady(true);
@@ -227,6 +238,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         planCode: response.data.planCode ?? null,
         planLimits: response.data.planLimits ?? null,
         planFeatures: response.data.planFeatures ?? null,
+        addons: Array.isArray(response.data.addons) ? response.data.addons : [],
       }));
 
       // Persist société/site/userName dans sessionStorage : le dashboard et les autres pages
@@ -277,6 +289,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         planCode: null,
         planLimits: null,
         planFeatures: null,
+        addons: [],
         permissions: [],
       }));
     } finally {
@@ -345,6 +358,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       planCode: null,
       planLimits: null,
       planFeatures: null,
+      addons: [],
       permissions: [],
     });
   }, []);

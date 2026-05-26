@@ -120,4 +120,28 @@ public class Tenant
     /// la jauge "X Go / Y Go — dernière mesure il y a N minutes".
     /// </summary>
     public DateTime? StorageUsageCheckedAt { get; set; }
+
+    /// <summary>
+    /// Modules optionnels souscrits (ajoutés au-delà des features incluses dans
+    /// <see cref="PlanCode"/>). Liste de clés en CSV, ex.
+    /// <c>"aiAssistantRh,signatureElectronique,apiAvancee"</c>.
+    /// Valeurs valides : aiAssistantRh, iaDocumentaireAvancee, signatureElectronique,
+    /// apiAvancee, supportPrioritaire (cf. AddonKey côté frontend PlanPicker).
+    /// Mergé avec PlanFeatures dans <see cref="PlanCatalog.GetEffectiveFeatures"/>
+    /// pour produire les features effectives renvoyées à /me.
+    /// Null = pas d'addons souscrits.
+    /// </summary>
+    [MaxLength(200)]
+    public string? Addons { get; set; }
+
+    /// <summary>
+    /// Date d'envoi du rappel "renouvellement abonnement imminent" (J-7 par défaut)
+    /// aux admins du tenant. Null = jamais envoyé pour la période en cours. Sert
+    /// d'anti-doublon pour la sweep horaire — on n'envoie le rappel qu'une fois par
+    /// période. Reset implicite à chaque nouvelle période (webhook
+    /// customer.subscription.updated met à jour CurrentPeriodEndsAt → la nouvelle
+    /// fenêtre J-7 sera distincte, donc TrialReminderSentAt redevient < new window).
+    /// Comparé à <see cref="CurrentPeriodEndsAt"/>.
+    /// </summary>
+    public DateTime? SubscriptionRenewalReminderSentAt { get; set; }
 }

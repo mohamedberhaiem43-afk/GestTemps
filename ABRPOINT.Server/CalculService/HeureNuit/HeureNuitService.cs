@@ -35,12 +35,29 @@ namespace ABRPOINT.Server.CalculService.HeureNuit
                     (presence.Preentamidiup, presence.Presortamidiup)
                 };
 
-                 // Si la présence est de jour, ne pas compter les heures de nuit
+                 // Si la présence est de jour, ne pas compter les heures de nuit.
+                 // ⚠ Une sortie strictement < nuitDebut peut être :
+                 //   a) une vraie sortie de jour (ex: 17:00 vs nuitDebut=20:00) → on saute
+                 //   b) une sortie qui a franchi minuit (ex: ent=23:00, sort=01:00) → c'est
+                 //      bien une sortie de nuit, il faut comptabiliser. Le check naïf
+                 //      `sortieMidi < nuitDebut` traitait 01:00 < 20:00 comme cas (a) et
+                 //      retournait 0 → H.Nuits absentes sur les pointages overnight.
                 if (parametreNuit?.PasCompterNuitSiSortieJour == 1)
                 {
-                    if (presence.Presortmatup != null && TimeSpan.TryParse(presence.Presortmatup, out var sortieMatin) && sortieMatin < nuitDebut)
+                    static bool IsDayExit(string? entStr, string? sortStr, TimeSpan nuitDebut)
+                    {
+                        if (string.IsNullOrEmpty(sortStr) || !TimeSpan.TryParse(sortStr, out var sort))
+                            return false;
+                        // Si la sortie est antérieure à l'entrée, c'est qu'on franchit minuit
+                        // → la sortie appartient au lendemain, ce n'est pas une sortie de jour.
+                        if (!string.IsNullOrEmpty(entStr) && TimeSpan.TryParse(entStr, out var ent) && sort < ent)
+                            return false;
+                        return sort < nuitDebut;
+                    }
+
+                    if (IsDayExit(presence.Preentmatup, presence.Presortmatup, nuitDebut.Value))
                         return 0;
-                    if (presence.Presortamidiup != null && TimeSpan.TryParse(presence.Presortamidiup, out var sortieMidi) && sortieMidi < nuitDebut)
+                    if (IsDayExit(presence.Preentamidiup, presence.Presortamidiup, nuitDebut.Value))
                         return 0;
                 }
 

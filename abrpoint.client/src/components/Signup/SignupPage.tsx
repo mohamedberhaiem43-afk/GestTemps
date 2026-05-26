@@ -517,6 +517,12 @@ export default function SignupPage() {
         // pack dès la première seconde de l'essai.
         planCode: pickerPlan,
         billingCycle: pickerCycle,
+        // 2026-05-26 — Addons cochés dans le PlanPicker sont désormais persistés
+        // sur Tenant.Addons côté backend. Combinés avec PlanFeatures dans
+        // PlanCatalog.GetEffectiveFeatures pour débloquer les modules dès la 1ʳᵉ
+        // seconde de l'essai (ex. Starter + signatureElectronique → ElectronicSignature=true
+        // dans /me sans changer de pack).
+        addons: pickerAddons,
         requiresPayment,
         captchaChallengeId,
         captchaAnswer: captchaAnswer === '' ? null : Number(captchaAnswer),

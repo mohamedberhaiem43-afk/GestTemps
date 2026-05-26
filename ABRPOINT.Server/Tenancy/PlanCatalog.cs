@@ -348,4 +348,69 @@ public static class PlanCatalog
         if (plan.MaxEmployees is not int maxCap) return false;
         return currentActiveCount >= maxCap;
     }
+
+    /// <summary>
+    /// Clés d'addons valides (cf. PlanPicker.tsx côté frontend). Toute clé hors de
+    /// cette liste est silencieusement ignorée à l'agrégation — protège contre les
+    /// chaînes parasites stockées en base (saisie manuelle, ancien addon retiré).
+    /// </summary>
+    public static readonly IReadOnlySet<string> ValidAddonKeys = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase)
+    {
+        "aiAssistantRh",
+        "iaDocumentaireAvancee",
+        "signatureElectronique",
+        "apiAvancee",
+        "supportPrioritaire",
+    };
+
+    /// <summary>
+    /// Parse la chaîne CSV des addons souscrits (cf. <see cref="Tenant.Addons"/>) en
+    /// HashSet de clés valides. Tolère les espaces et le casing. Retourne un set vide
+    /// si la chaîne est null/vide.
+    /// </summary>
+    public static HashSet<string> ParseAddons(string? csv)
+    {
+        var result = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(csv)) return result;
+        foreach (var raw in csv.Split(new[] { ',', ';' }, System.StringSplitOptions.RemoveEmptyEntries))
+        {
+            var k = raw.Trim();
+            if (ValidAddonKeys.Contains(k)) result.Add(k);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Calcule les <see cref="PlanFeatures"/> EFFECTIVES pour un tenant en combinant
+    /// les features incluses dans son <paramref name="planCode"/> avec les addons
+    /// souscrits (<paramref name="addonsCsv"/>). Mapping addon → flag :
+    /// <list type="bullet">
+    /// <item><c>aiAssistantRh</c>          → <c>RagAi = true</c></item>
+    /// <item><c>iaDocumentaireAvancee</c>  → <c>RagAi = true</c></item>
+    /// <item><c>signatureElectronique</c>  → <c>ElectronicSignature = true</c></item>
+    /// </list>
+    /// <c>apiAvancee</c> et <c>supportPrioritaire</c> n'ont pas de flag équivalent
+    /// dans <see cref="PlanFeatures"/> aujourd'hui — ils restent traçables via
+    /// <see cref="Tenant.Addons"/> pour la facturation Stripe mais ne débloquent
+    /// rien fonctionnellement dans l'UI (à brancher dès qu'un module API publique
+    /// ou un canal support dédié sera implémenté).
+    /// Retourne le record PlanFeatures à passer à <c>/me</c>.
+    /// </summary>
+    public static PlanFeatures GetEffectiveFeatures(string? planCode, string? addonsCsv)
+    {
+        var basePlan = GetPlan(planCode) ?? Starter;
+        var feat = basePlan.Features;
+        var addons = ParseAddons(addonsCsv);
+        if (addons.Count == 0) return feat;
+
+        // OR-merge : on ne RETIRE jamais une feature plan (les addons ne servent qu'à
+        // débloquer en plus). Le with-expression record copy garantit l'immutabilité.
+        bool ragAi = feat.RagAi
+            || addons.Contains("aiAssistantRh")
+            || addons.Contains("iaDocumentaireAvancee");
+        bool eSign = feat.ElectronicSignature
+            || addons.Contains("signatureElectronique");
+
+        return feat with { RagAi = ragAi, ElectronicSignature = eSign };
+    }
 }

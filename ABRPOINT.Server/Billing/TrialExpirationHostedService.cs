@@ -41,7 +41,14 @@ public sealed class TrialExpirationHostedService : BackgroundService
                     try { await billing.SendTrialExpiryRemindersAsync(daysBeforeEnd: 10, stoppingToken); }
                     catch (Exception remEx) { _log.LogWarning(remEx, "Trial reminder sweep a échoué (continu avec expiration sweep)."); }
 
-                    // 2) Bascule des essais expirés en PendingPayment.
+                    // 2) Rappel J-7 renouvellement abonnement payant (best-effort). Distinct
+                    //    du J-10 essai : ici on cible les tenants déjà Active dont la période
+                    //    Stripe arrive à terme. But : leur permettre de mettre à jour leur
+                    //    moyen de paiement ou résilier avant prélèvement automatique.
+                    try { await billing.SendSubscriptionRenewalRemindersAsync(daysBeforeEnd: 7, stoppingToken); }
+                    catch (Exception renEx) { _log.LogWarning(renEx, "Subscription renewal reminder sweep a échoué."); }
+
+                    // 3) Bascule des essais expirés en PendingPayment.
                     await billing.ProcessTrialExpirationsAsync(stoppingToken);
                 }
             }

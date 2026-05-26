@@ -980,6 +980,25 @@ namespace ABRPOINT.Server.Repository
                             }
                         }
 
+                        // Idem pour Tothnuit : la valeur en base peut avoir été calculée avant
+                        // la configuration actuelle des heures de nuit (paramètre "nuit à partir
+                        // de 20h" activé après les pointages, par exemple). On recalcule au vol
+                        // depuis les pointages réels pour rester cohérent avec ce que l'admin
+                        // voit dans le paramétrage — comme c'est déjà fait dans UpdateAsync.
+                        try
+                        {
+                            float? heuresNuit = await _heureNuitService.CalculateHeureNuit(presence);
+                            if (heuresNuit.HasValue)
+                            {
+                                var nuitTs = TimeSpan.FromHours(heuresNuit.Value);
+                                presence.Tothnuit = $"{(int)nuitTs.TotalHours:D2}:{nuitTs.Minutes:D2}";
+                            }
+                        }
+                        catch
+                        {
+                            // Recalcul best-effort : on garde la valeur DB en cas d'erreur.
+                        }
+
                         // 🔴 CAS JOUR FÉRIÉ
                         if (ferier != null)
                         {
@@ -1536,24 +1555,34 @@ namespace ABRPOINT.Server.Repository
             try
             {
 
-                // Parse the string inputs to TimeSpan or DateTime before performing subtraction  
+                // Parse the string inputs to TimeSpan or DateTime before performing subtraction
                 TimeSpan hours1 = TimeSpan.Zero;
                 TimeSpan hours2 = TimeSpan.Zero;
                 TimeSpan hours3 = TimeSpan.Zero;
-                if (!string.IsNullOrEmpty(ent1) && !string.IsNullOrEmpty(sort1))
+
+                // Helper : durée entre une entrée et une sortie en tolérant le franchissement
+                // de minuit (sort < ent → on ajoute 24h). Sans cette normalisation, un poste
+                // de nuit type 22:00→06:00 ou un pointage 23:00→01:00 produisait une durée
+                // négative, qui en s'additionnant aux autres périodes faisait passer le total
+                // sous zéro (clampé à 0 plus bas) → "Total Travaillé 00:02" alors que la
+                // personne a effectivement travaillé 15h, et cascade sur H.Absences (jour
+                // entier marqué absent) et H.Suppl. Mêmes règles que HeureNuitService.
+                static TimeSpan Diff(string entStr, string sortStr)
                 {
-                    hours1 = DateTime.Parse(sort1).TimeOfDay - DateTime.Parse(ent1).TimeOfDay;
+                    var ent = DateTime.Parse(entStr).TimeOfDay;
+                    var sort = DateTime.Parse(sortStr).TimeOfDay;
+                    if (sort < ent) sort = sort.Add(TimeSpan.FromDays(1));
+                    return sort - ent;
                 }
+
+                if (!string.IsNullOrEmpty(ent1) && !string.IsNullOrEmpty(sort1))
+                    hours1 = Diff(ent1, sort1);
 
                 if (!string.IsNullOrEmpty(ent2) && !string.IsNullOrEmpty(sort2))
-                {
-                    hours2 = DateTime.Parse(sort2).TimeOfDay - DateTime.Parse(ent2).TimeOfDay;
-                }
+                    hours2 = Diff(ent2, sort2);
 
                 if (!string.IsNullOrEmpty(ent3) && !string.IsNullOrEmpty(sort3))
-                {
-                    hours3 = DateTime.Parse(sort3).TimeOfDay - DateTime.Parse(ent3).TimeOfDay;
-                }
+                    hours3 = Diff(ent3, sort3);
                 // En État Périodique, le "Total Travaillé" = temps réellement passé entre
                 // les pointages (matin + après-midi + heures supp). On NE DÉDUIT PLUS la
                 // pause-déjeuner :

@@ -318,11 +318,11 @@ export default function HomePage() {
           <div className="promo-launch-grid">
             <div className="promo-launch-left">
               <h2 className="promo-launch-title">
-                Conditions tarifaires <span className="promo-launch-accent">privilégiées</span><br />
-                réservées aux <span className="promo-launch-num">10</span> premières entreprises partenaires.
+                Les <span className="promo-launch-num">10</span> premières entreprises<br />
+                profitent de l'offre <span className="promo-launch-accent">À VIE !</span><span className="promo-launch-sparkle" aria-hidden="true">✨</span>
               </h2>
               <p className="promo-launch-sub">
-                <span className="promo-launch-sub-hl">1 mois offert</span> • activation immédiate • sans carte bancaire requise.
+                Une <span className="promo-launch-sub-hl">opportunité unique</span> pour simplifier votre gestion RH et gagner du temps.
               </p>
             </div>
 

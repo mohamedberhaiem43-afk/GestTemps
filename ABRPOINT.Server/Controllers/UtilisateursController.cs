@@ -850,7 +850,22 @@ namespace GestionDesTickets.Server.Controllers
             // Cohérent avec la promesse "votre plan = vos modules" et évite l'effet
             // falaise au paiement (modules qui disparaissent brutalement). Fallback Premium
             // uniquement si le tenant n'a pas de plan défini (cas legacy).
-            var effectiveFeatures = planDef?.Features ?? ABRPOINT.Server.Tenancy.PlanCatalog.Premium.Features;
+            //
+            // 2026-05-26 — On combine désormais les features du plan AVEC les addons
+            // souscrits (Tenant.Addons, ex. "signatureElectronique,aiAssistantRh"). Le
+            // helper GetEffectiveFeatures fait l'OR-merge : un Starter ayant souscrit
+            // l'addon Signature obtient ElectronicSignature=true sans changer de pack.
+            // Si tenant null (cas legacy), on retombe sur Premium pour ne pas casser.
+            var effectiveFeatures = tenant != null
+                ? ABRPOINT.Server.Tenancy.PlanCatalog.GetEffectiveFeatures(tenant.PlanCode, tenant.Addons)
+                : ABRPOINT.Server.Tenancy.PlanCatalog.Premium.Features;
+
+            // Liste brute des addons EXPLICITEMENT souscrits par le tenant (ceux qui
+            // s'ajoutent au-delà des modules natifs du pack — cf. NormalizeAddons côté
+            // signup qui retire déjà les doublons pack/addon). Exposé en plus des
+            // planFeatures fusionnées pour permettre à MonAbonnementPage de
+            // distinguer "module inclus dans le pack" vs "module additionnel souscrit".
+            var subscribedAddons = ABRPOINT.Server.Tenancy.PlanCatalog.ParseAddons(tenant?.Addons).ToArray();
 
             return Ok(new
             {
@@ -887,6 +902,7 @@ namespace GestionDesTickets.Server.Controllers
                     overageRatePerEmployee = limits.OverageRatePerEmployee,
                 },
                 planFeatures = effectiveFeatures,
+                addons = subscribedAddons,
                 permissions = user.Role?.Permissions ?? new List<RolePermission>()
             });
         }
@@ -950,7 +966,65 @@ namespace GestionDesTickets.Server.Controllers
             user.UtiEmailVerifAttempts = 0;
             await _dbContext.SaveChangesAsync(ct);
             _logger?.LogInformation("Email vérifié pour {Uticod} ({Email})", user.Uticod, user.Utimail);
+
+            // Mail de confirmation « compte activé » envoyé après validation du code OTP.
+            // Distinct du mail OTP/bienvenue émis au signup : ici on annonce que le compte
+            // est PLEINEMENT actif. Best-effort — un échec SMTP ne doit pas casser le flow
+            // de vérification (l'utilisateur est déjà passé en "1" en DB).
+            try
+            {
+                await SendAccountActivatedEmailAsync(user);
+            }
+            catch (Exception emailEx)
+            {
+                _logger?.LogWarning(emailEx, "Échec envoi email de confirmation activation pour {Uticod}", user.Uticod);
+            }
+
             return Ok(new { verified = true });
+        }
+
+        /// <summary>
+        /// Envoie le mail « Votre compte est activé » à l'utilisateur juste après
+        /// validation du code OTP. Best-effort (catch dans l'appelant). Contient un
+        /// récap rapide + un lien vers le dashboard pour démarrer l'onboarding.
+        /// </summary>
+        private async Task SendAccountActivatedEmailAsync(Utilisateur user)
+        {
+            if (_emailService is null || string.IsNullOrWhiteSpace(user.Utimail)) return;
+
+            var displayName = !string.IsNullOrWhiteSpace(user.Utiprn) || !string.IsNullOrWhiteSpace(user.Utinom)
+                ? $"{user.Utiprn} {user.Utinom}".Trim()
+                : user.Uticod;
+            var brand = ABRPOINT.Server.Services.EmailTemplates.BrandName;
+            var subject = $"Votre compte {brand} est activé";
+
+            var inner = $@"
+                <p style='font-size:15px;color:#0f172a;margin:0 0 12px;'>Bonjour {System.Net.WebUtility.HtmlEncode(displayName)},</p>
+                <p style='font-size:14px;color:#334155;line-height:1.55;margin:0 0 16px;'>
+                    Votre adresse email vient d'être validée. Bienvenue officiellement dans <strong>{brand}</strong> —
+                    votre compte est désormais actif et vous bénéficiez de l'intégralité de votre période d'essai de 30 jours.
+                </p>
+                {ABRPOINT.Server.Services.EmailTemplates.StatusBanner("Compte activé avec succès.", ABRPOINT.Server.Services.EmailTemplates.StatusKind.Success)}
+                <p style='font-size:14px;color:#0f172a;margin:18px 0 8px;font-weight:700;'>Prochaines étapes recommandées</p>
+                <ul style='margin:0 0 14px;padding-left:18px;color:#334155;font-size:13.5px;line-height:1.65;'>
+                    <li>Paramétrer votre société et vos sites depuis le menu <em>Données de base</em>.</li>
+                    <li>Importer ou créer vos collaborateurs (l'app mobile est immédiatement disponible).</li>
+                    <li>Configurer vos postes de travail puis les affecter à une classe horaire.</li>
+                    <li>Activer la pointeuse de votre choix (web, mobile, badgeuse physique).</li>
+                </ul>
+                <div style='text-align:center;margin:18px 0 8px;'>
+                    {ABRPOINT.Server.Services.EmailTemplates.Button("Accéder à mon espace", "/dashboard")}
+                </div>
+                <p style='font-size:12px;color:#64748b;line-height:1.5;margin:16px 0 0;'>
+                    Une question ? Répondez à cet email — notre équipe vous accompagne pendant toute la durée de l'essai.
+                </p>";
+
+            var body = ABRPOINT.Server.Services.EmailTemplates.Wrap(
+                "Compte activé",
+                "Votre adresse email a été vérifiée — votre espace est désormais pleinement opérationnel.",
+                inner);
+
+            await _emailService.SendEmailAsync(user.Utimail, subject, body);
         }
 
         /// <summary>

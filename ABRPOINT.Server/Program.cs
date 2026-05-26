@@ -627,6 +627,11 @@ CREATE INDEX IF NOT EXISTS ""IX_StripeWebhookSeen_ProcessedAt"" ON ""StripeWebho
                 await masterDb.Database.ExecuteSqlRawAsync(@"
 ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""StorageUsedMb""        BIGINT    NOT NULL DEFAULT 0;
 ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""StorageUsageCheckedAt"" TIMESTAMP NULL;");
+                // Addons souscrits (CSV) + anti-dup rappel renouvellement J-7 (2026-05).
+                // Idempotents — safe à déployer sur master existante.
+                await masterDb.Database.ExecuteSqlRawAsync(@"
+ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""Addons""                              VARCHAR(200) NULL;
+ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""SubscriptionRenewalReminderSentAt""   TIMESTAMP    NULL;");
                 startupLogger.LogInformation("Master DB prête (EnsureCreated).");
             }
         }

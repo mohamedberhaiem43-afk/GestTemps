@@ -128,6 +128,175 @@ public sealed class StripeBillingService : IBillingService
     public async Task SuspendAsync(string stripeCustomerId, CancellationToken ct = default)
         => await UpdateStatusByCustomerIdAsync(stripeCustomerId, "Suspended", ct);
 
+    public async Task SendSubscriptionRenewalRemindersAsync(int daysBeforeEnd = 7, CancellationToken ct = default)
+    {
+        // Cherche les tenants Active (i.e. abonnement payant en cours) dont la fin de
+        // période de facturation Stripe (CurrentPeriodEndsAt, alimenté par le webhook
+        // customer.subscription.updated) tombe dans [J-daysBeforeEnd-1 .. J-daysBeforeEnd]
+        // jours à partir de maintenant. Skip ceux qui ont déjà demandé la résiliation
+        // (CancelAtPeriodEnd=true) — leur envoyer un rappel "paiement imminent" serait
+        // contre-productif.
+        //
+        // Anti-doublon par CYCLE : on filtre les tenants dont SubscriptionRenewalReminderSentAt
+        // est null OU clairement antérieur à la période courante. La règle "antérieur"
+        // = sent < (CurrentPeriodEndsAt - 15j) capture le cas où le rappel a été envoyé
+        // au cycle précédent (la période courante est nouvelle).
+        var now = DateTime.UtcNow;
+        var windowStart = now.AddDays(daysBeforeEnd - 1);
+        var windowEnd = now.AddDays(daysBeforeEnd);
+
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var candidates = await master.Tenants
+            .Where(t => t.Status == "Active"
+                        && t.CancelAtPeriodEnd != true
+                        && t.CurrentPeriodEndsAt != null
+                        && t.CurrentPeriodEndsAt >= windowStart
+                        && t.CurrentPeriodEndsAt <= windowEnd
+                        && (t.SubscriptionRenewalReminderSentAt == null
+                            || t.SubscriptionRenewalReminderSentAt < t.CurrentPeriodEndsAt!.Value.AddDays(-15)))
+            .ToListAsync(ct);
+
+        if (candidates.Count == 0) return;
+
+        foreach (var tenant in candidates)
+        {
+            try
+            {
+                await SendRenewalReminderForOneTenantAsync(tenant, daysBeforeEnd, ct);
+                tenant.SubscriptionRenewalReminderSentAt = DateTime.UtcNow;
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Subscription renewal reminder failed for tenant {Slug}.", tenant.Slug);
+            }
+        }
+        await master.SaveChangesAsync(ct);
+        _log.LogInformation("SendSubscriptionRenewalReminders : {Count} tenant(s) notifié(s) (J-{Days}).", candidates.Count, daysBeforeEnd);
+    }
+
+    private async Task SendRenewalReminderForOneTenantAsync(Tenant tenant, int daysBeforeEnd, CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var current = scope.ServiceProvider.GetService<ICurrentTenant>();
+        if (current is null)
+        {
+            _log.LogWarning("ICurrentTenant indisponible : renewal reminder ignoré pour {Slug}.", tenant.Slug);
+            return;
+        }
+        current.Set(tenant);
+
+        var daysLabel = daysBeforeEnd == 1 ? "1 jour" : $"{daysBeforeEnd} jours";
+        var title = "💳 Renouvellement de votre abonnement imminent";
+        var body = $"Votre abonnement Concorde Workforce sera automatiquement reconduit dans {daysLabel}. " +
+                   "Vérifiez que votre moyen de paiement est à jour pour éviter toute interruption.";
+        var payload = new
+        {
+            type = "subscription_renewal",
+            daysRemaining = daysBeforeEnd,
+            currentPeriodEndsAt = tenant.CurrentPeriodEndsAt,
+            planCode = tenant.PlanCode,
+        };
+
+        var notify = scope.ServiceProvider.GetService<IUserNotificationService>();
+        if (notify is not null)
+        {
+            await notify.NotifyAdminsAsync(title, body, payload, ct);
+            await notify.NotifyManagersAsync(title, body, payload, ct);
+        }
+
+        try
+        {
+            await SendRenewalReminderEmailAsync(scope, tenant, daysBeforeEnd, ct);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Envoi email rappel renouvellement échoué pour {Slug} (best-effort).", tenant.Slug);
+        }
+    }
+
+    private async Task SendRenewalReminderEmailAsync(IServiceScope scope, Tenant tenant, int daysBeforeEnd, CancellationToken ct)
+    {
+        var email = scope.ServiceProvider.GetService<Interfaces.IEmailService>();
+        if (email is null) return;
+
+        // Collecte recipients : même logique que SendTrialReminderEmailAsync.
+        var recipients = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(tenant.AdminEmail))
+            recipients.Add(tenant.AdminEmail.Trim());
+
+        try
+        {
+            var db = scope.ServiceProvider.GetService<Data.ApplicationDbContext>();
+            if (db is not null)
+            {
+                var adminCode = ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Administrator;
+                var managerCode = ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Manager;
+                var staffEmails = await db.Utilisateurs.AsNoTracking()
+                    .Where(u => !string.IsNullOrEmpty(u.Utimail)
+                                && (u.Utiactif == null || (u.Utiactif != "0" && u.Utiactif != "Non"))
+                                && (u.Utiadm == "1"
+                                    || u.Utirole == adminCode
+                                    || u.Utirole == managerCode
+                                    || (u.Utirole != null && EF.Functions.ILike(u.Utirole, "%manager%"))))
+                    .Select(u => u.Utimail!)
+                    .ToListAsync(ct);
+                foreach (var e in staffEmails)
+                    if (!string.IsNullOrWhiteSpace(e)) recipients.Add(e.Trim());
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Lecture emails admin/manager DB tenant échouée pour {Slug}.", tenant.Slug);
+        }
+
+        if (recipients.Count == 0)
+        {
+            _log.LogInformation("Aucun email admin/manager trouvé pour {Slug} — rappel renouvellement non envoyé.", tenant.Slug);
+            return;
+        }
+
+        var endDateLabel = tenant.CurrentPeriodEndsAt?.ToString("dd MMMM yyyy",
+            new System.Globalization.CultureInfo("fr-FR")) ?? "(date inconnue)";
+        var subject = $"💳 Votre abonnement Concorde Workforce sera reconduit dans {daysBeforeEnd} jours";
+        var bodyHtml = $@"<html><body style=""font-family:Segoe UI,Helvetica,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:600px;margin:0 auto;padding:24px"">
+<h2 style=""color:#0040a1;margin:0 0 16px"">Bonjour,</h2>
+<p>Votre abonnement <strong>Concorde Workforce</strong> sera automatiquement reconduit dans
+<strong style=""color:#0040a1"">{daysBeforeEnd} jours</strong> (échéance le <strong>{endDateLabel}</strong>).</p>
+<p>Pour que la reconduction se passe sans encombre, assurez-vous que votre moyen de paiement
+est valide et que la limite carte est suffisante. En cas de défaillance, votre compte basculera
+en <strong>PastDue</strong> et l'accès sera suspendu jusqu'à régularisation.</p>
+<p style=""text-align:center;margin:24px 0"">
+  <a href=""https://concorde-work-force.com/dashboard/mon-abonnement""
+     style=""background:#0040a1;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;display:inline-block"">
+    Gérer mon abonnement
+  </a>
+</p>
+<p style=""background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px;color:#1e3a8a;font-size:14px"">
+  <strong>Vous ne souhaitez plus continuer ?</strong> Vous pouvez résilier depuis votre espace
+  <em>Mon abonnement</em> avant la date d'échéance — l'accès reste actif jusqu'à la fin de la
+  période en cours, aucun nouveau prélèvement ne sera effectué.
+</p>
+<p style=""color:#475569;font-size:14px"">Pack actuel : <strong>{System.Net.WebUtility.HtmlEncode(tenant.PlanCode ?? "—")}</strong> ·
+Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—")}</strong></p>
+<p style=""color:#94a3b8;font-size:12px;border-top:1px solid #e2e8f0;padding-top:16px;margin-top:24px"">
+  Email automatique envoyé par Concorde Workforce. Pour toute question, répondez à cet email
+  ou contactez le support.
+</p>
+</body></html>";
+
+        foreach (var recipient in recipients)
+        {
+            try
+            {
+                await email.SendEmailAsync(recipient, subject, bodyHtml);
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Envoi renewal reminder à {Recipient} échoué pour {Slug}.", recipient, tenant.Slug);
+            }
+        }
+    }
+
     public async Task SendTrialExpiryRemindersAsync(int daysBeforeEnd = 4, CancellationToken ct = default)
     {
         // Cherche les tenants Trialing dont la fin d'essai tombe dans une fenêtre

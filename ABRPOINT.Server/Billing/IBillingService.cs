@@ -39,6 +39,18 @@ public interface IBillingService
     Task SendTrialExpiryRemindersAsync(int daysBeforeEnd = 4, CancellationToken ct = default);
 
     /// <summary>
+    /// Cron : notifie admins + managers des tenants Active dont la PÉRIODE DE FACTURATION
+    /// Stripe courante (<see cref="Tenant.CurrentPeriodEndsAt"/>) expire dans
+    /// <paramref name="daysBeforeEnd"/> jours, pour leur rappeler que le paiement sera
+    /// automatiquement reconduit et leur permettre d'anticiper une éventuelle annulation
+    /// ou MAJ de moyen de paiement. Idempotent par cycle de facturation — anti-doublon
+    /// via <see cref="Tenant.SubscriptionRenewalReminderSentAt"/> : on n'envoie qu'une
+    /// fois par période. Skip les tenants avec <c>CancelAtPeriodEnd=true</c> (qui ont
+    /// déjà choisi de ne pas renouveler — pas besoin de leur rappeler de payer).
+    /// </summary>
+    Task SendSubscriptionRenewalRemindersAsync(int daysBeforeEnd = 7, CancellationToken ct = default);
+
+    /// <summary>
     /// Résilie l'abonnement Stripe du tenant. Si <paramref name="immediate"/> est true,
     /// la subscription est annulée immédiatement (Stripe SubscriptionService.CancelAsync)
     /// et Tenant.Status bascule en "Cancelled". Sinon (résiliation planifiée), on met

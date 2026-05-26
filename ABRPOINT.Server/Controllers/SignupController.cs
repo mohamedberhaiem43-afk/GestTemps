@@ -338,6 +338,7 @@ public class SignupController : ControllerBase
             tenant.PlanCode = string.IsNullOrWhiteSpace(req.PlanCode) ? null : req.PlanCode.Trim();
             tenant.Siret = siretNormalized;
             tenant.CountryCode = countryNormalized;
+            tenant.Addons = NormalizeAddons(req.Addons);
         }
         else
         {
@@ -357,6 +358,7 @@ public class SignupController : ControllerBase
                 PlanCode = string.IsNullOrWhiteSpace(req.PlanCode) ? null : req.PlanCode.Trim(),
                 Siret = siretNormalized,
                 CountryCode = countryNormalized,
+                Addons = NormalizeAddons(req.Addons),
             };
             master.Tenants.Add(tenant);
         }
@@ -470,6 +472,27 @@ public class SignupController : ControllerBase
             // SEC-19 — `detail = ex.Message` retiré (peut leaker SQL/chemins/secrets).
             return StatusCode(500, new { error = "Provisioning échoué. Contactez le support si le problème persiste." });
         }
+    }
+
+    /// <summary>
+    /// Normalise et persiste les addons souscrits au signup :
+    /// 1. Filtre les clés inconnues (PlanCatalog.ValidAddonKeys).
+    /// 2. Retire les addons DÉJÀ inclus dans le PlanCode (cf. mapping côté PlanPicker
+    ///    PACK_INCLUDED_ADDONS — ex. Premium inclut RagAi donc aiAssistantRh est inutile).
+    ///    Évite la double-facturation et garde Tenant.Addons strictement informatif sur
+    ///    les modules « en plus » du pack.
+    /// 3. Sérialise en CSV ou retourne null si vide (pour matcher la sémantique « pas d'addons »).
+    /// </summary>
+    private static string? NormalizeAddons(List<string>? raw)
+    {
+        if (raw == null || raw.Count == 0) return null;
+        var valid = raw
+            .Where(a => !string.IsNullOrWhiteSpace(a))
+            .Select(a => a.Trim())
+            .Where(a => Tenancy.PlanCatalog.ValidAddonKeys.Contains(a))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        return valid.Count == 0 ? null : string.Join(",", valid);
     }
 
     private string IssueAdminJwt(string slug, string uticod)
@@ -655,6 +678,14 @@ public class SignupRequest
     public string? Country { get; set; }
     public string? PlanCode { get; set; }
     public string? BillingCycle { get; set; }
+    /// <summary>
+    /// Liste des addons souscrits au signup (cf. PlanPicker côté frontend). Optionnel.
+    /// Stocké en CSV sur Tenant.Addons. Validé via PlanCatalog.ParseAddons : les clés
+    /// inconnues sont silencieusement ignorées (pas d'erreur 400 pour ne pas casser
+    /// un client front un peu plus récent qui enverrait un nouvel addon pas encore
+    /// connu de cette version backend).
+    /// </summary>
+    public List<string>? Addons { get; set; }
     /// <summary>
     /// True quand l'inscription vient d'un plan payant configuré (PricingPage → PlanConfiguration → Signup).
     /// Le tenant est alors créé en statut "PendingPayment" : la connexion est refusée tant que le

@@ -8,12 +8,58 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import CancelIcon from '@mui/icons-material/CancelOutlined';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ExtensionIcon from '@mui/icons-material/Extension';
 import { useNavigate } from 'react-router-dom';
 import apiInstance from '../API/apiInstance';
-import { useAuth } from '../helper/AuthProvider';
+import { useAuth, type PlanFeatures } from '../helper/AuthProvider';
 import ChangePlanModal from './ChangePlanModal';
 import DevisPackDialog from './DevisPackDialog';
 import StorageUsageCard from './StorageUsageCard';
+
+/**
+ * Libellés user-friendly des feature flags PlanFeatures (cf. PlanCatalog côté backend).
+ * Seules les features "fonctionnelles" (modules métier) apparaissent ici — les flags
+ * de sécurité technique transparents pour l'utilisateur (deviceTrustEnforced,
+ * screenshotProtection, certificatePinning) sont volontairement omis : ils sont
+ * actifs en arrière-plan sur Premium et n'apportent rien à les afficher comme
+ * "modules débloqués".
+ */
+const FEATURE_LABELS: Partial<Record<keyof PlanFeatures, { label: string; icon: string }>> = {
+  mobileApp: { label: 'Application mobile', icon: '📱' },
+  geolocation: { label: 'Géolocalisation des pointages', icon: '📍' },
+  digitalVault: { label: 'Coffre-fort numérique', icon: '🗄️' },
+  electronicSignature: { label: 'Signature électronique', icon: '✍️' },
+  multiSite: { label: 'Multi-site', icon: '🏢' },
+  multiSociete: { label: 'Multi-société', icon: '🏛️' },
+  advancedDashboards: { label: 'Tableaux de bord avancés', icon: '📊' },
+  ragAi: { label: 'Assistant IA RH', icon: '🤖' },
+  advancedAuditLogs: { label: 'Journaux d\'audit avancés', icon: '🔍' },
+  customBranding: { label: 'Personnalisation de marque', icon: '🎨' },
+  missions: { label: 'Gestion des missions', icon: '🗺️' },
+  compensationDays: { label: 'Jours de compensation', icon: '⏳' },
+  generalLeave: { label: 'Congés généraux', icon: '🏖️' },
+  generalExit: { label: 'Autorisations de sortie générales', icon: '🚪' },
+  leaveManagement: { label: 'Workflow congés', icon: '🌴' },
+  authorizationManagement: { label: 'Workflow autorisations', icon: '📋' },
+  expenseReports: { label: 'Notes de frais', icon: '🧾' },
+  breastfeedingManagement: { label: 'Gestion allaitement', icon: '🍼' },
+  contractManagement: { label: 'Gestion des contrats', icon: '📄' },
+  documentScanOcr: { label: 'Scan OCR pièces d\'identité', icon: '📷' },
+  bulkImport: { label: 'Import Excel en masse', icon: '⬆️' },
+};
+
+/**
+ * Catalogue des addons valides côté backend (PlanCatalog.ValidAddonKeys).
+ * Source unique : libellés alignés sur PlanConfigurationPage.ADDON_CATALOG.
+ */
+const ADDON_LABELS: Record<string, { label: string; description: string }> = {
+  aiAssistantRh: { label: 'Assistant RH IA', description: 'Aide à la rédaction, recherche multi-sources, automatisations RH.' },
+  iaDocumentaireAvancee: { label: 'IA documentaire avancée', description: 'Recherche RAG, embeddings vectoriels sur vos archives.' },
+  signatureElectronique: { label: 'Signature électronique avancée', description: 'Parapheur multi-signataires, archivage légal eIDAS.' },
+  apiAvancee: { label: 'API avancée', description: 'Accès programmatique étendu pour intégration SIRH/paie/ERP.' },
+  supportPrioritaire: { label: 'Support prioritaire étendu', description: 'Réponse <2h ouvrées, hotline dédiée, account manager.' },
+};
 
 type PlanKey = 'Starter' | 'Standard' | 'Premium';
 type Cycle = 'monthly' | 'annual';
@@ -73,8 +119,16 @@ const TRIAL_DURATION_DAYS = 30;
 
 export default function MonAbonnementPage() {
   const navigate = useNavigate();
-  const { isAdmin, isManager, refreshAuth, userName, isTrialing, trialDaysRemaining } = useAuth();
+  const { isAdmin, isManager, refreshAuth, userName, isTrialing, trialDaysRemaining, planCode, planFeatures, addons } = useAuth();
   const canManage = isAdmin || isManager;
+
+  // Liste des features TRUE à afficher comme "modules débloqués" dans la carte récap.
+  // Filtrée sur FEATURE_LABELS pour exclure les flags techniques non user-facing
+  // (deviceTrustEnforced & co.) et garantir un libellé propre pour chacune.
+  const activeFeatureKeys = (Object.keys(FEATURE_LABELS) as (keyof PlanFeatures)[])
+    .filter((k) => Boolean(planFeatures?.[k]));
+  // Addons reconnus du catalogue (filtre défensif contre des valeurs serveur inattendues).
+  const subscribedAddons = (addons ?? []).filter((a) => ADDON_LABELS[a] != null);
   // Prénom uniquement pour personnaliser le bandeau trial (« Mohamed, il vous reste… »).
   // userName est « Prénom Nom » concaténé côté serveur (Utiprn + Utinom).
   const firstName = (userName ?? '').trim().split(/\s+/)[0] || null;
@@ -485,6 +539,119 @@ export default function MonAbonnementPage() {
           )}
         </Stack>
       </Paper>
+
+      {/* ─── Modules actifs ────────────────────────────────────────────────────
+          Récapitulatif des fonctionnalités débloquées par le pack ET par les
+          addons souscrits au signup (cf. Tenant.Addons CSV). Source de vérité :
+          /me → planFeatures (flags fusionnés via GetEffectiveFeatures) + addons
+          (liste brute des modules souscrits en plus du pack). Les deux sont
+          affichés distinctement pour que l'admin voie ce qui vient du pack vs
+          ce qui a été activé en plus à la souscription.
+      */}
+      {planFeatures && (
+        <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: '20px', border: '1px solid #e2e8f0', mb: 3 }}>
+          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
+            <Box sx={{
+              width: 48, height: 48, borderRadius: '12px', bgcolor: '#eef2f8',
+              color: '#0040a1', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <CheckCircleIcon />
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Vos modules actifs
+              </Typography>
+              <Typography sx={{ fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
+                {activeFeatureKeys.length} fonctionnalité{activeFeatureKeys.length > 1 ? 's' : ''} débloquée{activeFeatureKeys.length > 1 ? 's' : ''}
+                {subscribedAddons.length > 0 && (
+                  <Typography component="span" sx={{ fontSize: 13, fontWeight: 600, color: '#7c3aed', ml: 1 }}>
+                    · {subscribedAddons.length} module{subscribedAddons.length > 1 ? 's' : ''} additionnel{subscribedAddons.length > 1 ? 's' : ''}
+                  </Typography>
+                )}
+              </Typography>
+            </Box>
+          </Stack>
+
+          {/* Bloc "Inclus dans votre pack" — affiche toutes les features actives, qu'elles
+              viennent du pack ou d'un addon (les flags sont déjà mergés côté backend via
+              GetEffectiveFeatures). C'est la vue "ce à quoi j'ai accès aujourd'hui". */}
+          <Box sx={{ mb: subscribedAddons.length > 0 ? 3 : 0 }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1.5 }}>
+              Inclus dans votre pack{planCode ? ` ${planCode === 'Premium' ? 'Business' : planCode}` : ''}
+            </Typography>
+            {activeFeatureKeys.length === 0 ? (
+              <Typography sx={{ fontSize: 13, color: '#94a3b8' }}>
+                Aucun module n'est encore activé. Choisissez un pack pour débloquer les fonctionnalités.
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {activeFeatureKeys.map((k) => {
+                  const meta = FEATURE_LABELS[k]!;
+                  return (
+                    <Chip
+                      key={k}
+                      label={`${meta.icon} ${meta.label}`}
+                      sx={{
+                        bgcolor: '#eff6ff', color: '#1e40af', fontWeight: 600,
+                        borderRadius: '10px', border: '1px solid #bfdbfe',
+                        '& .MuiChip-label': { px: 1.5 },
+                      }}
+                    />
+                  );
+                })}
+              </Box>
+            )}
+          </Box>
+
+          {/* Bloc "Modules additionnels" — affiché uniquement si le tenant a souscrit
+              des addons en plus du pack (cf. Tenant.Addons CSV). Distinction visuelle
+              en violet pour ne pas confondre avec les modules natifs du pack. */}
+          {subscribedAddons.length > 0 && (
+            <Box>
+              <Divider sx={{ mb: 2.5 }} />
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                <ExtensionIcon sx={{ fontSize: 18, color: '#7c3aed' }} />
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#7c3aed' }}>
+                  Modules additionnels souscrits à l'inscription
+                </Typography>
+              </Stack>
+              <Stack spacing={1.5}>
+                {subscribedAddons.map((a) => {
+                  const meta = ADDON_LABELS[a];
+                  return (
+                    <Box
+                      key={a}
+                      sx={{
+                        p: 1.75, bgcolor: '#faf5ff', borderRadius: '12px',
+                        border: '1px solid #e9d5ff',
+                      }}
+                    >
+                      <Typography sx={{ fontWeight: 700, color: '#6d28d9', fontSize: 14 }}>
+                        {meta.label}
+                      </Typography>
+                      <Typography sx={{ fontSize: 12.5, color: '#7c3aed', mt: 0.25, lineHeight: 1.45 }}>
+                        {meta.description}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Stack>
+            </Box>
+          )}
+
+          {canManage && (
+            <Box sx={{ mt: 3, pt: 2, borderTop: '1px dashed #e2e8f0' }}>
+              <Button
+                variant="text"
+                onClick={() => setChangePlanOpen(true)}
+                sx={{ textTransform: 'none', fontWeight: 700, color: '#0040a1', p: 0 }}
+              >
+                Changer de pack ou ajouter des modules →
+              </Button>
+            </Box>
+          )}
+        </Paper>
+      )}
 
       <StorageUsageCard onUpgradeClick={() => setChangePlanOpen(true)} />
 
