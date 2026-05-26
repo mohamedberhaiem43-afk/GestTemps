@@ -494,19 +494,25 @@ export default function PresenceHistoryScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* CTA principal sous le calendrier — ouvre l'écran unifié de création
-            de demande (cf. maquette transmise par le produit le 2026-05-22).
-            On passe la date sélectionnée dans la grille en route param pour
-            la préremplir côté formulaire et éviter à l'utilisateur de
-            re-saisir le jour qu'il vient de tapoter. */}
-        <TouchableOpacity
-          style={styles.addRequestBtn}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate('AddRequest', { presetDate: formatYMD(selectedDate) })}
-        >
-          <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#fff" />
-          <Text style={styles.addRequestBtnText}>Ajouter une demande</Text>
-        </TouchableOpacity>
+        {/* CTA « Ajouter une demande » MASQUÉ temporairement (demande produit
+            2026-05-26) : le bouton noir full-width sous le calendrier ouvrait
+            l'écran unifié AddRequestScreen, mais le produit préfère canaliser
+            l'utilisateur vers des écrans dédiés (DemandeAbsenceScreen,
+            LeaveRequestScreen, etc.) accessibles depuis les tuiles HomeScreen.
+            Pour les heures supp, une tuile dédiée "Heures supp" a été ajoutée
+            sur HomeScreen (presetType=heuressup vers AddRequestScreen).
+            On garde le bloc JSX en commentaire JSX pour réactivation triviale
+            si la décision est revue. NE PAS supprimer sans concertation. */}
+        {false && (
+          <TouchableOpacity
+            style={styles.addRequestBtn}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('AddRequest', { presetDate: formatYMD(selectedDate) })}
+          >
+            <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#fff" />
+            <Text style={styles.addRequestBtnText}>Ajouter une demande</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Stats mensuelles */}
         <View style={styles.statsRow}>

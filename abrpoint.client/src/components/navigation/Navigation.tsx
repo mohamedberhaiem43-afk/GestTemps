@@ -493,6 +493,13 @@ const useNavigationItems = (): NavGroup[] => {
         ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.geolocationPolicy', 'Géolocalisation RGPD'), href: '/dashboard/geolocation-rgpd', icon: Shield }] : []),
         { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
         { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
+        // 2026-05-26 — Entrée "API & Intégrations" visible UNIQUEMENT quand l'addon
+        // apiAvancee a été souscrit (cf. PlanCatalog.GetEffectiveFeatures qui mappe
+        // l'addon vers PlanFeatures.ApiAccess). Pointe vers /dashboard/mon-abonnement
+        // tant qu'une page dédiée de gestion des clés API n'est pas prête —
+        // l'utilisateur y voit la souscription confirmée dans la section "Modules
+        // additionnels". À remplacer par /dashboard/api-keys quand la page existera.
+        ...(planAllows('apiAccess') ? [{ label: t('navigation.apiIntegrations', 'API & Intégrations'), href: '/dashboard/mon-abonnement', icon: KeyRound }] : []),
         // Lien Chatbot retiré du sidebar : l'assistant reste accessible via le bouton flottant
         // en bas à droite, présent globalement sur le dashboard. Pas besoin d'un menu dédié.
         // L'entrée Tarification est volontairement absente du sidebar : la page est servie
@@ -944,7 +951,20 @@ function DashboardLayoutAccount(_props: DemoProps) {
   // Pour le rendu (tabs, breadcrumb, switch de la page courante), on raisonne toujours sur la
   // forme canonique avec /dashboard/ préfixée : la nav config et les case '/dashboard/X' du
   // switch restent inchangées. La barre d'URL, elle, montre la version courte.
-  const PUBLIC_PATHS = ['/', '/about', '/login', '/signup', '/plan-configuration', '/payment', '/contact-sales', '/download'];
+  //
+  // ⚠ Toute route DÉFINIE AU NIVEAU RACINE dans le switch de DemoPageContent (pas sous
+  // /dashboard/) DOIT figurer ici, sinon canonicalPathname la préfixe à tort en
+  // /dashboard/<route> → le switch tombe sur `default: DashboardModernSync` et l'écran
+  // public bascule sur le dashboard. C'était le bug observé sur /verify-email : après
+  // signup, l'utilisateur était navigué vers /verify-email mais le dashboard
+  // s'affichait à la place (le cookie JWT venait d'être posé → DashboardModernSync
+  // rendu, donnant l'impression que la vérification email était "court-circuitée").
+  // Maintenir cette liste synchronisée avec les `case '/...'` racine du switch ci-dessus.
+  const PUBLIC_PATHS = [
+    '/', '/about', '/login', '/signup', '/verify-email',
+    '/plan-configuration', '/payment', '/contact-sales', '/download',
+    '/confidentialite', '/cgu',
+  ];
   const canonicalPathname = (pathname === '/dashboard' || pathname.startsWith('/dashboard/') || PUBLIC_PATHS.includes(pathname))
     ? pathname
     : `/dashboard${pathname}`;
@@ -1119,7 +1139,15 @@ function DashboardLayoutAccount(_props: DemoProps) {
   }, [authReady]);
 
   const footerItems: FooterItem[] = [
-    { label: t('navigation.support'), href: '/dashboard/support', icon: LifeBuoy },
+    // 2026-05-26 — Le libellé Support est suffixé "★ Prioritaire" quand l'addon
+    // supportPrioritaire est souscrit (PlanCatalog.GetEffectiveFeatures →
+    // PlanFeatures.PrioritySupport). Visibilité immédiate pour l'utilisateur
+    // que son addon est actif. La page SupportPage doit afficher en plus le
+    // canal de contact dédié (account manager, hotline) — voir SupportPage.tsx.
+    { label: planAllows('prioritySupport')
+        ? `${t('navigation.support')} ★ ${t('navigation.priorityBadge', 'Prioritaire')}`
+        : t('navigation.support'),
+      href: '/dashboard/support', icon: LifeBuoy },
     // « Mon abonnement » a quitté le footer le 2026-05-19 : il est désormais regroupé
     // avec « Factures Concorde » sous le groupe Paiement de la nav principale (réservé
     // Admin/Manager). Voir allGroups plus haut.

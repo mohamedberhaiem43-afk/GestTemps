@@ -96,7 +96,19 @@ public sealed record PlanFeatures(
     bool BreastfeedingManagement,
     bool ContractManagement,
     bool DocumentScanOcr,
-    bool BulkImport);
+    bool BulkImport,
+    // 2026-05-26 — Addon-only flags : aucun pack ne les active par défaut,
+    // ils se débloquent UNIQUEMENT via les addons souscrits au signup
+    // (apiAvancee → ApiAccess, supportPrioritaire → PrioritySupport).
+    // Avant cette extension, ces deux addons étaient validés et facturés mais
+    // restaient invisibles côté UI — le client payait pour rien de tangible.
+    // ApiAccess         = sidebar "API & Intégrations" + endpoints d'API publique
+    //                     (à implémenter par lots — pour l'instant juste la
+    //                     visibilité du module pour signaler la souscription).
+    // PrioritySupport   = badge "Prioritaire" sur le menu Support + canal de
+    //                     contact dédié affiché dans SupportPage.
+    bool ApiAccess,
+    bool PrioritySupport);
 
 /// <summary>
 /// Catalogue des plans commerciaux (Starter / Standard / Premium) et des
@@ -171,7 +183,10 @@ public static class PlanCatalog
             BreastfeedingManagement: false,
             ContractManagement: false,
             DocumentScanOcr: false,
-            BulkImport: false));
+            BulkImport: false,
+            // Addon-only — aucun pack ne les inclut, débloqués via addons souscrits.
+            ApiAccess: false,
+            PrioritySupport: false));
 
     public static readonly PlanDefinition Standard = new(
         Code: StandardCode,
@@ -225,7 +240,10 @@ public static class PlanCatalog
             BreastfeedingManagement: true,
             ContractManagement: true,
             DocumentScanOcr: true,
-            BulkImport: true));
+            BulkImport: true,
+            // Addon-only sur Standard (le tenant peut les ajouter explicitement).
+            ApiAccess: false,
+            PrioritySupport: false));
 
     public static readonly PlanDefinition Premium = new(
         Code: PremiumCode,
@@ -275,7 +293,11 @@ public static class PlanCatalog
             BreastfeedingManagement: true,
             ContractManagement: true,
             DocumentScanOcr: true,
-            BulkImport: true));
+            BulkImport: true,
+            // Addon-only sur Premium aussi (le client doit explicitement souscrire,
+            // c'est un service supplémentaire facturé en plus du pack).
+            ApiAccess: false,
+            PrioritySupport: false));
 
     /// <summary>Retourne la définition pour un code donné, ou null si inconnu.</summary>
     public static PlanDefinition? GetPlan(string? rawCode)
@@ -387,14 +409,18 @@ public static class PlanCatalog
     /// <list type="bullet">
     /// <item><c>aiAssistantRh</c>          → <c>RagAi = true</c></item>
     /// <item><c>iaDocumentaireAvancee</c>  → <c>RagAi = true</c></item>
-    /// <item><c>signatureElectronique</c>  → <c>ElectronicSignature = true</c></item>
+    /// <item><c>signatureElectronique</c>  → <c>ElectronicSignature = true</c> ET <c>DigitalVault = true</c>
+    ///   (cascade obligatoire : on ne peut pas signer sans coffre-fort pour stocker
+    ///   les documents signés. Sans ce cascade, un client Starter qui souscrivait
+    ///   signatureElectronique payait l'addon mais ne voyait rien apparaître dans
+    ///   son espace — l'entrée sidebar "Coffre-fort" reste gatée par DigitalVault
+    ///   qui restait false sur Starter.)</item>
+    /// <item><c>apiAvancee</c>             → <c>ApiAccess = true</c></item>
+    /// <item><c>supportPrioritaire</c>     → <c>PrioritySupport = true</c></item>
     /// </list>
-    /// <c>apiAvancee</c> et <c>supportPrioritaire</c> n'ont pas de flag équivalent
-    /// dans <see cref="PlanFeatures"/> aujourd'hui — ils restent traçables via
-    /// <see cref="Tenant.Addons"/> pour la facturation Stripe mais ne débloquent
-    /// rien fonctionnellement dans l'UI (à brancher dès qu'un module API publique
-    /// ou un canal support dédié sera implémenté).
-    /// Retourne le record PlanFeatures à passer à <c>/me</c>.
+    /// Tous les addons reconnus ont désormais un flag fonctionnel : la garantie produit
+    /// est qu'un client qui paie un module optionnel le voit se matérialiser dans son
+    /// espace (sidebar / badge). Retourne le record PlanFeatures à passer à <c>/me</c>.
     /// </summary>
     public static PlanFeatures GetEffectiveFeatures(string? planCode, string? addonsCsv)
     {
@@ -408,9 +434,25 @@ public static class PlanCatalog
         bool ragAi = feat.RagAi
             || addons.Contains("aiAssistantRh")
             || addons.Contains("iaDocumentaireAvancee");
-        bool eSign = feat.ElectronicSignature
-            || addons.Contains("signatureElectronique");
 
-        return feat with { RagAi = ragAi, ElectronicSignature = eSign };
+        bool hasSignAddon = addons.Contains("signatureElectronique");
+        bool eSign = feat.ElectronicSignature || hasSignAddon;
+        // Cascade : la signature électronique exige un coffre-fort pour héberger les
+        // documents signés (cf. VaultController.Sign endpoint qui combine DigitalVault +
+        // ElectronicSignature côté [RequirePlanFeature]). Si on n'active pas DigitalVault
+        // en même temps, le bouton "Signer" reste injoignable sur Starter → addon mort.
+        bool digitalVault = feat.DigitalVault || hasSignAddon;
+
+        bool apiAccess = feat.ApiAccess || addons.Contains("apiAvancee");
+        bool prioritySupport = feat.PrioritySupport || addons.Contains("supportPrioritaire");
+
+        return feat with
+        {
+            RagAi = ragAi,
+            ElectronicSignature = eSign,
+            DigitalVault = digitalVault,
+            ApiAccess = apiAccess,
+            PrioritySupport = prioritySupport,
+        };
     }
 }

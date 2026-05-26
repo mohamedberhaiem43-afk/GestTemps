@@ -460,6 +460,22 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.quickLabel}>Frais</Text>
           </TouchableOpacity>
 
+          {/* Heures supp — remplace l'entrée par le bouton noir "Ajouter une
+              demande" de PresenceHistoryScreen (masqué depuis 2026-05-26 sur
+              décision produit). Ouvre AddRequestScreen avec le type pré-sélectionné
+              sur "heuressup" pour que l'utilisateur arrive directement sur le
+              formulaire heures supp (durée + heure de début depuis l'horaire). */}
+          <TouchableOpacity
+            style={styles.quickAction}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('AddRequest', { presetType: 'heuressup' })}
+          >
+            <View style={[styles.quickIconBox, { backgroundColor: '#fde68a' }]}>
+              <MaterialCommunityIcons name="clock-plus-outline" size={22} color="#92400e" />
+            </View>
+            <Text style={styles.quickLabel}>Heures supp</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.quickAction}
             activeOpacity={0.8}

@@ -18,7 +18,11 @@ type PlanKey = 'Starter' | 'Standard' | 'Premium';
 
 // Plan minimal qui inclut chaque feature. Doit rester aligné avec
 // ABRPOINT.Server.Tenancy.PlanCatalog (matrice features × plan).
-const MINIMUM_PLAN_FOR_FEATURE: Record<keyof PlanFeatures, PlanKey> = {
+// `null` = feature DISPONIBLE UNIQUEMENT VIA ADDON (aucun pack ne l'inclut nativement).
+// Pour ces features, suggérer un upgrade de plan est inutile : il faut souscrire
+// l'addon depuis /mon-abonnement. La page d'upgrade gère ce cas en redirigeant
+// vers MonAbonnementPage section addons plutôt que vers la grille tarifaire.
+const MINIMUM_PLAN_FOR_FEATURE: Record<keyof PlanFeatures, PlanKey | null> = {
   mobileApp: 'Standard',
   geolocation: 'Standard',
   digitalVault: 'Standard',
@@ -45,6 +49,11 @@ const MINIMUM_PLAN_FOR_FEATURE: Record<keyof PlanFeatures, PlanKey> = {
   contractManagement: 'Standard',
   documentScanOcr: 'Standard',
   bulkImport: 'Standard',
+  // Addon-only (2026-05-26) — aucun pack ne les inclut, débloqués uniquement
+  // par souscription d'addon (apiAvancee / supportPrioritaire). Voir
+  // PlanCatalog.GetEffectiveFeatures pour le mapping addon → flag.
+  apiAccess: null,
+  prioritySupport: null,
 };
 
 // Le backend renvoie la feature en PascalCase (cf. RequirePlanFeatureAttribute) ; on
@@ -101,7 +110,11 @@ export default function PlanUpgradePage() {
   // Plan minimal qui débloque la feature. Si on n'a pas le mapping (feature inconnue
   // ou state.feature absent), on retombe sur Standard — c'est le plan qui ouvre la
   // majorité des modules, donc une recommandation par défaut raisonnable.
-  const recommendedPlan: PlanKey = camelKey ? MINIMUM_PLAN_FOR_FEATURE[camelKey] : 'Standard';
+  // Si le mapping vaut null (feature addon-only — apiAccess/prioritySupport), aucun
+  // upgrade de pack ne la débloque ; on retombe sur Standard par défaut mais l'utilisateur
+  // devra souscrire l'addon depuis /mon-abonnement (à terme l'UX de cette page pourra
+  // détecter ce cas et orienter directement vers la section addons).
+  const recommendedPlan: PlanKey = (camelKey && MINIMUM_PLAN_FOR_FEATURE[camelKey]) ?? 'Standard';
 
   const handleDirectUpgrade = () => {
     // On passe le plan recommandé via location.state ; PlanConfigurationPage lit

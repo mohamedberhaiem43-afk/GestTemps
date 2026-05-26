@@ -89,6 +89,11 @@ export interface PlanFeatures {
   contractManagement: boolean;        // Gestion des contrats (ContratsController)
   documentScanOcr: boolean;           // Scan OCR de pièces d'identité (DocumentScanController)
   bulkImport: boolean;                // Import Excel en masse de toutes les données de base (BulkImportController)
+  // 2026-05-26 — Flags addon-only (jamais inclus nativement dans un pack) :
+  // apiAccess         = débloqué par l'addon apiAvancee → sidebar "API & Intégrations".
+  // prioritySupport   = débloqué par l'addon supportPrioritaire → badge "Prioritaire" sur menu Support.
+  apiAccess: boolean;
+  prioritySupport: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
