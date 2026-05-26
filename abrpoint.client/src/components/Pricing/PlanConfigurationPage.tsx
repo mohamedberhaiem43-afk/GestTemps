@@ -621,22 +621,35 @@ const PlanConfigurationPage: React.FC = () => {
                   {selectedAddonEntries.filter(a => a.def.billing === 'monthly').length > 0 && (
                     <div className="pt-3 border-t border-surface-container-high space-y-3">
                       <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Modules optionnels (récurrents)</div>
-                      {selectedAddonEntries.filter(a => a.def.billing === 'monthly').map(({ key, qty, def }) => (
-                        <div key={key} className="flex justify-between items-center text-sm">
-                          <span className="text-on-surface font-bold">
-                            {def.displayName}
-                            {def.hasQuantity && (
-                              <span className="text-outline font-medium"> · {qty} {def.stepperUnitLabel ?? ''}</span>
-                            )}
-                          </span>
-                          <span className="font-black text-on-surface">
-                            + {formatPrice(def.unitPriceEur * qty)} € / mois
-                          </span>
-                        </div>
-                      ))}
+                      {/* En cycle annuel, on affiche le prix DES MODULES sur 12 mois (× 12)
+                          pour cohérence avec le total annuel affiché plus bas. Le suffixe
+                          bascule "/mois" → "/an" en conséquence. Le coût réel reste mensuel
+                          côté Stripe (cf. ADDON_CATALOG.billing='monthly') ; c'est purement
+                          un alignement d'affichage demandé par l'utilisateur (2026-05-26)
+                          pour comparer dans la même unité que le total annuel. */}
+                      {selectedAddonEntries.filter(a => a.def.billing === 'monthly').map(({ key, qty, def }) => {
+                        const cycleMultiplier = billingCycle === 'annual' ? 12 : 1;
+                        const periodLabel = billingCycle === 'annual' ? '/ an' : '/ mois';
+                        return (
+                          <div key={key} className="flex justify-between items-center text-sm">
+                            <span className="text-on-surface font-bold">
+                              {def.displayName}
+                              {def.hasQuantity && (
+                                <span className="text-outline font-medium"> · {qty} {def.stepperUnitLabel ?? ''}</span>
+                              )}
+                            </span>
+                            <span className="font-black text-on-surface">
+                              + {formatPrice(def.unitPriceEur * qty * cycleMultiplier)} € {periodLabel}
+                            </span>
+                          </div>
+                        );
+                      })}
                       <div className="flex justify-between items-center text-sm pt-1">
                         <span className="text-outline font-bold">Sous-total modules</span>
-                        <span className="font-black text-primary">+ {formatPrice(addonsMonthlyTotal)} € / mois</span>
+                        <span className="font-black text-primary">
+                          + {formatPrice(addonsMonthlyTotal * (billingCycle === 'annual' ? 12 : 1))} €
+                          {' '}{billingCycle === 'annual' ? '/ an' : '/ mois'}
+                        </span>
                       </div>
                     </div>
                   )}

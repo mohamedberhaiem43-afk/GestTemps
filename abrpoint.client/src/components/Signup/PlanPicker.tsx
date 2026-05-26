@@ -340,13 +340,28 @@ export default function PlanPicker({
                     </Typography>
                   </Box>
                   <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                    {/* Affichage du prix selon le cycle :
+                        - mensuel : "+19€ /mois"
+                        - annuel  : "+228€ /an" (= 19 × 12), avec rappel discret "(19€/mois)"
+                        L'addon est facturé MENSUELLEMENT (cf. ADDON_CATALOG.billing='monthly')
+                        mais quand l'engagement plan est annuel, on totalise sur 12 mois pour
+                        que l'utilisateur compare correctement avec le total plan annuel
+                        affiché juste en dessous. */}
                     <Typography sx={{
                       fontWeight: 800, fontSize: 13,
                       color: included ? '#94a3b8' : '#0040a1',
                       textDecoration: included ? 'line-through' : 'none',
                     }}>
-                      +{addon.priceMonthly}€<Typography component="span" sx={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}> /mois</Typography>
+                      +{selectedCycle === 'annual' ? addon.priceMonthly * 12 : addon.priceMonthly}€
+                      <Typography component="span" sx={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
+                        {' '}{selectedCycle === 'annual' ? '/an' : '/mois'}
+                      </Typography>
                     </Typography>
+                    {selectedCycle === 'annual' && !included && (
+                      <Typography sx={{ fontSize: 10.5, color: '#94a3b8', fontWeight: 500, mt: 0.25 }}>
+                        ({addon.priceMonthly}€/mois × 12)
+                      </Typography>
+                    )}
                   </Box>
                   <Switch
                     checked={checked}

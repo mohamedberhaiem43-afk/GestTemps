@@ -16,9 +16,16 @@ import React from 'react';
  * fade ne saute pas (chaque mount redémarre l'animation à 0).
  */
 
+// ⚠ Animation OPACITY-ONLY (pas de transform) — choix imposé par un piège CSS :
+// dès qu'un wrapper a `transform` (même translateY(0)) OU `will-change: transform`,
+// il devient un nouveau "containing block" pour ses descendants `position: fixed`.
+// La nav fixée de HomePage (.hp-nav, top:0 + position:fixed) cessait alors d'être
+// ancrée au viewport et se faisait scroller avec le contenu (signalé par l'utilisateur
+// 2026-05-26 : "le menu ne reste pas fixé après scroll"). En supprimant le translateY
+// + le willChange:transform, on garde un fade discret sans casser les fixed descendants.
 const pageIn = keyframes`
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 `;
 
 interface PageFadeProps {
@@ -32,10 +39,8 @@ export default function PageFade({ routeKey, children }: PageFadeProps) {
       key={routeKey}
       sx={{
         animation: `${pageIn} 220ms cubic-bezier(0.22, 0.61, 0.36, 1) both`,
-        // Hint navigateur : pendant l'animation seulement, le compositeur sait
-        // que opacity + transform peuvent changer. Évite des reflows sur les
-        // grandes pages (annuaire 500 lignes).
-        willChange: 'opacity, transform',
+        // willChange: 'opacity' uniquement — pas de 'transform' (cf. note ci-dessus).
+        willChange: 'opacity',
       }}
     >
       {children}

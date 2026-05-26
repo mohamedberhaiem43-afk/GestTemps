@@ -51,15 +51,19 @@ const FEATURE_LABELS: Partial<Record<keyof PlanFeatures, { label: string; icon: 
 
 /**
  * Catalogue des addons valides côté backend (PlanCatalog.ValidAddonKeys).
- * Source unique : libellés alignés sur PlanConfigurationPage.ADDON_CATALOG.
+ * Source unique : libellés + prix alignés sur PlanConfigurationPage.ADDON_CATALOG.
+ * Prix exprimés en €/mois HT (cf. ADDON_CATALOG.unitPriceEur).
  */
-const ADDON_LABELS: Record<string, { label: string; description: string }> = {
-  aiAssistantRh: { label: 'Assistant RH IA', description: 'Aide à la rédaction, recherche multi-sources, automatisations RH.' },
-  iaDocumentaireAvancee: { label: 'IA documentaire avancée', description: 'Recherche RAG, embeddings vectoriels sur vos archives.' },
-  signatureElectronique: { label: 'Signature électronique avancée', description: 'Parapheur multi-signataires, archivage légal eIDAS.' },
-  apiAvancee: { label: 'API avancée', description: 'Accès programmatique étendu pour intégration SIRH/paie/ERP.' },
-  supportPrioritaire: { label: 'Support prioritaire étendu', description: 'Réponse <2h ouvrées, hotline dédiée, account manager.' },
+const ADDON_LABELS: Record<string, { label: string; description: string; priceMonthlyEur: number }> = {
+  aiAssistantRh: { label: 'Assistant RH IA', description: 'Aide à la rédaction, recherche multi-sources, automatisations RH.', priceMonthlyEur: 49 },
+  iaDocumentaireAvancee: { label: 'IA documentaire avancée', description: 'Recherche RAG, embeddings vectoriels sur vos archives.', priceMonthlyEur: 149 },
+  signatureElectronique: { label: 'Signature électronique avancée', description: 'Parapheur multi-signataires, archivage légal eIDAS.', priceMonthlyEur: 19 },
+  apiAvancee: { label: 'API avancée', description: 'Accès programmatique étendu pour intégration SIRH/paie/ERP.', priceMonthlyEur: 79 },
+  supportPrioritaire: { label: 'Support prioritaire étendu', description: 'Réponse <2h ouvrées, hotline dédiée, account manager.', priceMonthlyEur: 49 },
 };
+const ADDON_KEYS: ReadonlyArray<keyof typeof ADDON_LABELS> = [
+  'aiAssistantRh', 'iaDocumentaireAvancee', 'signatureElectronique', 'apiAvancee', 'supportPrioritaire',
+];
 
 type PlanKey = 'Starter' | 'Standard' | 'Premium';
 type Cycle = 'monthly' | 'annual';
@@ -158,6 +162,45 @@ export default function MonAbonnementPage() {
   // qui est aussi appelé par le widget de quota stockage côté topbar.
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodInfo | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
+
+  // Dialog "Gérer mes modules optionnels" : ouvert depuis la carte "Vos modules actifs".
+  // Le brouillon contient la sélection en cours avant validation — sans toucher au state
+  // global tant que l'admin n'a pas confirmé via le bouton "Enregistrer".
+  const [addonsDialogOpen, setAddonsDialogOpen] = useState(false);
+  const [addonsDraft, setAddonsDraft] = useState<string[]>([]);
+  const [addonsSubmitting, setAddonsSubmitting] = useState(false);
+  const [addonsError, setAddonsError] = useState<string | null>(null);
+  const toggleAddonInDraft = (key: string) => {
+    setAddonsDraft((cur) => cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]);
+  };
+  const openAddonsDialog = () => {
+    setAddonsDraft(subscribedAddons);
+    setAddonsError(null);
+    setAddonsDialogOpen(true);
+  };
+  const saveAddons = async () => {
+    setAddonsSubmitting(true);
+    setAddonsError(null);
+    try {
+      await apiInstance.put('/billing/addons', { addons: addonsDraft });
+      // refreshAuth → /me recharge planFeatures (avec les flags fusionnés) ET addons,
+      // ce qui réactualise la sidebar (via Navigation/planAllows) et la carte de récap.
+      await refreshAuth();
+      setAddonsDialogOpen(false);
+      setSuccessMsg('Modules mis à jour. La sidebar se rafraîchit avec vos nouveaux accès.');
+    } catch (e: any) {
+      setAddonsError(e?.response?.data?.error || 'Impossible de mettre à jour les modules. Réessayez.');
+    } finally {
+      setAddonsSubmitting(false);
+    }
+  };
+  // Récap chiffré pour le total en pied du dialog. Les addons sont facturés mensuellement
+  // côté Stripe ; quand le tenant a un engagement annuel, on affiche aussi le total × 12
+  // (cohérent avec la demande utilisateur 2026-05-26 "× 12 sur plan annuel").
+  // billingCycle n'est pas exposé en /me — on tombe sur 'monthly' par défaut faute de mieux.
+  // Pour ne pas bloquer ce fix sur une refacto plus large, on lit l'info via SubscriptionInfo
+  // si elle est étendue plus tard ; pour l'instant on affiche les deux totaux côte à côte.
+  const draftMonthlyTotal = addonsDraft.reduce((sum, k) => sum + (ADDON_LABELS[k]?.priceMonthlyEur ?? 0), 0);
 
   const fetchInfo = async (opts: { silent?: boolean } = {}): Promise<SubscriptionInfo | null> => {
     if (!opts.silent) setLoading(true);
@@ -640,13 +683,21 @@ export default function MonAbonnementPage() {
           )}
 
           {canManage && (
-            <Box sx={{ mt: 3, pt: 2, borderTop: '1px dashed #e2e8f0' }}>
+            <Box sx={{ mt: 3, pt: 2, borderTop: '1px dashed #e2e8f0', display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+              <Button
+                variant="contained"
+                onClick={openAddonsDialog}
+                startIcon={<ExtensionIcon />}
+                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px', bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' } }}
+              >
+                Gérer mes modules optionnels
+              </Button>
               <Button
                 variant="text"
                 onClick={() => setChangePlanOpen(true)}
-                sx={{ textTransform: 'none', fontWeight: 700, color: '#0040a1', p: 0 }}
+                sx={{ textTransform: 'none', fontWeight: 700, color: '#0040a1' }}
               >
-                Changer de pack ou ajouter des modules →
+                Changer de pack →
               </Button>
             </Box>
           )}
@@ -888,6 +939,128 @@ export default function MonAbonnementPage() {
         plan={devisDialog?.plan ?? null}
         cycle={devisDialog?.cycle ?? 'monthly'}
       />
+
+      {/* ─── Dialog "Gérer mes modules optionnels" ───────────────────────────
+          Permet à l'admin de cocher/décocher les addons disponibles. Au save :
+          PUT /billing/addons → backend met à jour Tenant.Addons → refreshAuth
+          recharge planFeatures (fusion pack+addons via GetEffectiveFeatures).
+          La sidebar reflète immédiatement les nouveaux accès (Navigation utilise
+          planAllows qui lit le contexte useAuth fraîchement rafraîchi).
+          ⚠ Pas de sync Stripe pour l'instant — cf. BillingController.UpdateAddons.
+      */}
+      <Dialog
+        open={addonsDialogOpen}
+        onClose={() => !addonsSubmitting && setAddonsDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '16px' } }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
+          <ExtensionIcon sx={{ color: '#7c3aed' }} />
+          <Typography component="span" sx={{ fontSize: 18, fontWeight: 800 }}>
+            Gérer mes modules optionnels
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 0 }}>
+          {addonsError && (
+            <Alert severity="error" sx={{ m: 2, borderRadius: '10px' }} onClose={() => setAddonsError(null)}>
+              {addonsError}
+            </Alert>
+          )}
+          <Typography sx={{ px: 3, pt: 2, pb: 1, fontSize: 13, color: '#64748b' }}>
+            Cochez les modules que vous souhaitez activer. Les fonctionnalités correspondantes
+            apparaissent immédiatement dans la sidebar après validation. La facturation Stripe
+            n'est pas modifiée tant qu'un SKU dédié n'est pas configuré — vous activez d'abord
+            l'accès, votre commercial peut ensuite ajuster votre facture si besoin.
+          </Typography>
+          <Stack divider={<Divider />}>
+            {ADDON_KEYS.map((key) => {
+              const meta = ADDON_LABELS[key];
+              const checked = addonsDraft.includes(key);
+              return (
+                <Stack
+                  key={key}
+                  direction="row"
+                  alignItems="center"
+                  spacing={2}
+                  sx={{
+                    px: 3, py: 2,
+                    bgcolor: checked ? '#faf5ff' : 'transparent',
+                    transition: 'background-color 0.15s',
+                  }}
+                >
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: 14 }}>
+                      {meta.label}
+                    </Typography>
+                    <Typography sx={{ fontSize: 12, color: '#64748b', lineHeight: 1.45, mt: 0.25 }}>
+                      {meta.description}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                    <Typography sx={{ fontWeight: 800, color: '#7c3aed', fontSize: 14 }}>
+                      +{meta.priceMonthlyEur}€
+                      <Typography component="span" sx={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
+                        {' '}/mois
+                      </Typography>
+                    </Typography>
+                    <Typography sx={{ fontSize: 10.5, color: '#94a3b8' }}>
+                      ({meta.priceMonthlyEur * 12}€/an)
+                    </Typography>
+                  </Box>
+                  <Chip
+                    label={checked ? 'Activé' : 'Désactivé'}
+                    onClick={() => toggleAddonInDraft(key)}
+                    sx={{
+                      cursor: 'pointer', fontWeight: 700, minWidth: 90,
+                      bgcolor: checked ? '#7c3aed' : '#e2e8f0',
+                      color: checked ? '#fff' : '#64748b',
+                      '&:hover': { bgcolor: checked ? '#6d28d9' : '#cbd5e1' },
+                    }}
+                  />
+                </Stack>
+              );
+            })}
+          </Stack>
+          {addonsDraft.length > 0 && (
+            <Box sx={{ px: 3, py: 2, bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
+                  Total estimé modules
+                </Typography>
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography sx={{ fontWeight: 800, color: '#7c3aed', fontSize: 16 }}>
+                    +{draftMonthlyTotal}€ /mois
+                  </Typography>
+                  <Typography sx={{ fontSize: 11, color: '#94a3b8' }}>
+                    ou {draftMonthlyTotal * 12}€ /an (× 12)
+                  </Typography>
+                </Box>
+              </Stack>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            onClick={() => setAddonsDialogOpen(false)}
+            disabled={addonsSubmitting}
+            sx={{ textTransform: 'none', fontWeight: 700 }}
+          >
+            Annuler
+          </Button>
+          <Button
+            variant="contained"
+            onClick={saveAddons}
+            disabled={addonsSubmitting}
+            sx={{
+              textTransform: 'none', fontWeight: 700, borderRadius: '10px',
+              bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' },
+            }}
+          >
+            {addonsSubmitting ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Enregistrer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

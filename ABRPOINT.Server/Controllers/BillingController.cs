@@ -938,6 +938,63 @@ public class BillingController : ControllerBase
     public sealed record PortalSessionRequest(string? ReturnUrl);
 
     /// <summary>
+    /// Met à jour la liste des addons souscrits par le tenant courant (cf. Tenant.Addons).
+    /// Permet à l'admin de souscrire/désouscrire des modules optionnels APRÈS le signup
+    /// initial, sans repasser par un nouveau parcours Stripe Checkout. Le payload est
+    /// une liste de clés d'addons (cf. <see cref="PlanCatalog.ValidAddonKeys"/>) ; toute
+    /// clé inconnue est silencieusement ignorée. Les addons valides sont sérialisés en
+    /// CSV dédupliqué et persistés sur le Tenant.
+    ///
+    /// IMPORTANT — pas de sync Stripe pour l'instant :
+    /// Les SKU Stripe par addon (price_addon_signature, price_addon_api…) ne sont pas
+    /// encore configurés côté Stripe Dashboard. Cet endpoint active donc UNIQUEMENT la
+    /// dimension fonctionnelle (Tenant.Addons → /me planFeatures via GetEffectiveFeatures
+    /// → sidebar + endpoints gated par RequirePlanFeature). La facturation Stripe reste au
+    /// tarif du pack seul. À brancher avec Subscription items quand les SKU existeront.
+    /// Auth : admin OU manager du tenant courant (mêmes pré-requis que /billing/cancel
+    /// et /billing/change-plan).
+    /// </summary>
+    [HttpPut("addons")]
+    public async Task<IActionResult> UpdateAddons([FromBody] UpdateAddonsRequest req, CancellationToken ct)
+    {
+        if (!await CallerIsAdminOrManagerAsync()) return Forbid();
+
+        var slug = _currentTenant.Current?.Slug;
+        if (string.IsNullOrEmpty(slug))
+            return BadRequest(new { error = "Tenant non résolu." });
+
+        // Normalisation : filtre les clés invalides + dédupe + ordre stable (alphabétique
+        // pour faciliter les comparaisons côté audit). Si la liste finale est vide → null
+        // pour matcher la sémantique « pas d'addons » utilisée par GetEffectiveFeatures.
+        var requested = (req?.Addons ?? new List<string>())
+            .Where(a => !string.IsNullOrWhiteSpace(a))
+            .Select(a => a.Trim())
+            .Where(a => Tenancy.PlanCatalog.ValidAddonKeys.Contains(a))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(a => a, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var addonsCsv = requested.Count == 0 ? null : string.Join(",", requested);
+
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var tenant = await master.Tenants.FirstOrDefaultAsync(t => t.Slug == slug, ct);
+        if (tenant is null)
+            return NotFound(new { error = "Tenant introuvable." });
+
+        tenant.Addons = addonsCsv;
+        await master.SaveChangesAsync(ct);
+
+        // Invalider le cache tenant pour que le prochain /me lise la nouvelle valeur
+        // d'addons (sinon le user devrait attendre l'expiration TTL côté ITenantStore).
+        _tenantStore.Invalidate(slug);
+
+        _log.LogInformation("Tenant {Slug} addons mis à jour → [{Addons}]", slug, addonsCsv ?? "(none)");
+
+        return Ok(new { addons = requested.ToArray() });
+    }
+
+    public sealed record UpdateAddonsRequest(List<string>? Addons);
+
+    /// <summary>
     /// Vérifie en base que l'appelant est admin (Utiadm=1 ou rôle "Administrator") ou
     /// manager (rôle dont le nom contient "manager"). Évite de dépendre du claim "role"
     /// du JWT, qui n'est pas peuplé dans ce projet (cf. JwtAuthService).
