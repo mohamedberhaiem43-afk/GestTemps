@@ -689,15 +689,34 @@ namespace ABRPOINT.Server.Controllers
                         ? doc.Empcod
                         : request.SignerName;
 
-                    var stampedPath = PdfSignatureStamper.Stamp(
-                        sourcePdf,
-                        request.SignatureData,
-                        new PdfSignatureStamper.StampOptions(
-                            SignerName: signerLabel,
-                            SignedAtUtc: signedAt,
-                            CertificateId: certificateId,
-                            Mention: request.Mention,
-                            Location: request.Location));
+                    var stampOptions = new PdfSignatureStamper.StampOptions(
+                        SignerName: signerLabel,
+                        SignedAtUtc: signedAt,
+                        CertificateId: certificateId,
+                        Mention: request.Mention,
+                        Location: request.Location);
+
+                    // Priorité 1 : Option A — remplacement inline du placeholder
+                    // [Signature_Collaborateur] par l'image de signature à sa position
+                    // exacte dans le PDF. Donne un rendu "vraie intégration" (la
+                    // signature apparaît dans la cellule de signature du contrat,
+                    // pas dans une boîte décorative en bas).
+                    // StampInline retourne null si :
+                    //  • Le PDF ne contient pas le placeholder (PDF uploadé brut)
+                    //  • La signature est une phrase typée (pas une image raster)
+                    //  • PdfPig échoue à extraire le texte (PDF chiffré / XFA)
+                    var stampedPath = PdfSignatureStamper.StampInline(
+                        sourcePdf, request.SignatureData, stampOptions);
+
+                    // Fallback : boîte décorative 70×35mm en bas à droite de la
+                    // dernière page. Garantit qu'un PDF arbitraire (uploadé sans
+                    // placeholder) reste signable, au prix d'un rendu visuellement
+                    // détaché du contenu.
+                    if (string.IsNullOrEmpty(stampedPath))
+                    {
+                        stampedPath = PdfSignatureStamper.Stamp(
+                            sourcePdf, request.SignatureData, stampOptions);
+                    }
 
                     if (!string.IsNullOrEmpty(stampedPath))
                     {

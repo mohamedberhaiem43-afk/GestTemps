@@ -323,9 +323,65 @@ public class AuthLookupController : ControllerBase
     ///   3) Génère un code de reset à 6 chiffres et envoie un email de récupération.
     ///   4) Affiche une page HTML de confirmation.
     /// </summary>
+    /// <summary>
+    /// Étape 1/2 du flux "Ce n'était pas moi". GET utilisé par le clic depuis l'email.
+    /// N'EXÉCUTE PAS la révocation : affiche une page de confirmation avec un bouton
+    /// qui déclenche le POST /api/auth/revoke-suspicious-login.
+    ///
+    /// ⚠ Pourquoi cette refonte 2026-05-27 ? Avant, ce GET exécutait directement la
+    /// révocation et appelait MarkConsumed(token). Or Gmail/Outlook PREFETCHENT les
+    /// liens des emails entrants pour scanner les malwares — ce prefetch consommait
+    /// le token avant même que l'utilisateur n'ait cliqué. Résultat : 100% des clics
+    /// réels tombaient sur "Lien invalide ou expiré" parce que le bot anti-spam avait
+    /// déjà brûlé le single-use. Le pattern web standard pour les actions destructives
+    /// déclenchées depuis un email est de toujours passer par une page intermédiaire
+    /// avec confirmation explicite POST.
+    /// </summary>
     [HttpGet("revoke-suspicious-login")]
     [EnableRateLimiting("auth-recovery")]
-    public async Task<IActionResult> RevokeSuspiciousLogin([FromQuery] string? t, [FromQuery] string? slug, CancellationToken ct)
+    public IActionResult RevokeSuspiciousLoginConfirm([FromQuery] string? t, [FromQuery] string? slug)
+    {
+        // Validation FORMAT seulement (signature + TTL + non-consommé). On ne fait
+        // PAS de MarkConsumed ici — un éventuel prefetch ne brûle plus le token.
+        if (!_suspiciousTokens.TryValidate(t, out var tokenSlug, out _))
+            return RenderHtmlPage("Lien invalide ou expiré",
+                "Ce lien de révocation n'est pas valide. Il a peut-être déjà été utilisé, ou il a expiré (validité 7 jours).",
+                isError: true);
+
+        if (!string.Equals(tokenSlug, (slug ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase))
+            return RenderHtmlPage("Lien invalide ou expiré",
+                "Ce lien de révocation n'est pas valide.",
+                isError: true);
+
+        // Page de confirmation avec POST vers RevokeSuspiciousLoginExecute. Le token
+        // reste valide tant que l'utilisateur n'a pas cliqué sur "Confirmer".
+        var safeToken = WebUtility.HtmlEncode(t!);
+        var safeSlug = WebUtility.HtmlEncode(slug ?? string.Empty);
+        var confirmBody = $@"<p>Vous vous apprêtez à :</p>
+<ul style=""margin: 12px 0 18px; padding-left: 22px;"">
+  <li>Déconnecter immédiatement toutes les sessions actives de votre compte ;</li>
+  <li>Recevoir un email de récupération avec un code à 6 chiffres ;</li>
+  <li>Bloquer le device suspect signalé dans l'email d'alerte.</li>
+</ul>
+<form method=""POST"" action=""/api/auth/revoke-suspicious-login"" style=""text-align: center; margin-top: 24px;"">
+  <input type=""hidden"" name=""t"" value=""{safeToken}"" />
+  <input type=""hidden"" name=""slug"" value=""{safeSlug}"" />
+  <button type=""submit"" style=""background: #dc2626; color: #fff; border: none; padding: 14px 28px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer;"">⚠ Confirmer la révocation</button>
+  <p style=""font-size: 12px; color: #64748b; margin-top: 14px;"">Cette action est irréversible. Le bouton n'apparaît qu'après votre clic explicite — les bots de prévisualisation des emails (Gmail / Outlook) ne déclenchent pas la révocation.</p>
+</form>";
+        return RenderHtmlPage("Confirmer la révocation", confirmBody, isError: false);
+    }
+
+    /// <summary>
+    /// Étape 2/2 du flux "Ce n'était pas moi". Action effective : révoque les sessions,
+    /// génère un code de récupération, envoie l'email. Marque le token consommé en fin
+    /// pour empêcher la réutilisation (single-use). Reçoit le token via form-data POST,
+    /// pas query string, pour ne pas apparaître dans les logs d'accès / referers.
+    /// </summary>
+    [HttpPost("revoke-suspicious-login")]
+    [EnableRateLimiting("auth-recovery")]
+    [Microsoft.AspNetCore.Mvc.IgnoreAntiforgeryToken]
+    public async Task<IActionResult> RevokeSuspiciousLogin([FromForm] string? t, [FromForm] string? slug, CancellationToken ct)
     {
         // Validation token. On retourne TOUJOURS une page HTML pour ne pas casser
         // l'expérience email (l'utilisateur a cliqué depuis sa boîte mail, il ne devrait
@@ -336,8 +392,8 @@ public class AuthLookupController : ControllerBase
                 "Ce lien de révocation n'est pas valide. Il a peut-être déjà été utilisé, ou il a expiré (validité 7 jours).",
                 isError: true);
 
-        // Le slug fourni en query string DOIT correspondre à celui signé dans le token —
-        // empêche un attaquant qui aurait un token valide pour le tenant A de viser le tenant B.
+        // Le slug fourni DOIT correspondre à celui signé dans le token — empêche un
+        // attaquant qui aurait un token valide pour le tenant A de viser le tenant B.
         if (!string.Equals(tokenSlug, (slug ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase))
             return RenderHtmlPage("Lien invalide ou expiré",
                 "Ce lien de révocation n'est pas valide.",

@@ -3,6 +3,9 @@ using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
 using System.Globalization;
 using System.Text.RegularExpressions;
+// Alias explicite : sans ça, `PdfDocument` est ambigu entre PdfSharp.Pdf.PdfDocument
+// (utilisé en édition Modify) et UglyToad.PdfPig.PdfDocument (utilisé en lecture).
+using PigDoc = UglyToad.PdfPig.PdfDocument;
 
 namespace ABRPOINT.Server.Helpers
 {
@@ -11,8 +14,17 @@ namespace ABRPOINT.Server.Helpers
     /// dans le PDF source. Le document signé est écrit sous un nouveau nom — on
     /// ne touche jamais à l'original (audit / preuve).
     ///
-    /// Le tampon est ancré en bas à droite de la dernière page pour rester
-    /// lisible quel que soit le contenu du PDF source.
+    /// Deux modes :
+    ///   • <see cref="StampInline"/> : remplace un placeholder textuel
+    ///     (ex. <c>[Signature_Collaborateur]</c>) PAR la signature, à la position
+    ///     exacte du placeholder dans le PDF. Donne un rendu "vraie intégration"
+    ///     (mode Option A — Visuelle).
+    ///   • <see cref="Stamp"/> : ajoute une boîte 70×35mm en bas à droite de la
+    ///     dernière page (mode fallback historique, utilisé quand aucun placeholder
+    ///     n'est trouvé dans le PDF).
+    ///
+    /// <see cref="VaultController.SignDocument"/> appelle <see cref="StampInline"/>
+    /// en priorité, puis retombe sur <see cref="Stamp"/> en cas d'échec.
     /// </summary>
     public static class PdfSignatureStamper
     {
@@ -124,6 +136,142 @@ namespace ABRPOINT.Server.Helpers
                 // PDF non modifiable (XFA, encryption, format inconnu). On rend la main
                 // à l'appelant pour qu'il conserve le fichier original + la signature
                 // stockée séparément.
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Mode "inline" : cherche le placeholder texte (par défaut
+        /// <c>[Signature_Collaborateur]</c>) dans le PDF, masque le texte
+        /// existant par un rectangle blanc, et dessine l'image de signature
+        /// à sa place — la signature apparaît DIRECTEMENT dans le contrat
+        /// au lieu d'une boîte décorative en bas. Retourne le chemin du
+        /// PDF signé, ou <c>null</c> si :
+        ///   • Le PDF ne contient pas le placeholder
+        ///   • PdfPig ou PdfSharp échouent à lire/écrire le fichier
+        ///   • La signature n'est pas une image raster (mention phrase typée)
+        ///
+        /// L'appelant DOIT prévoir un fallback (<see cref="Stamp"/> ou stockage
+        /// séparé) quand <c>null</c> est retourné.
+        /// </summary>
+        public static string? StampInline(string sourcePdfPath, string? signatureBase64, StampOptions options, string placeholder = "[Signature_Collaborateur]")
+        {
+            if (!File.Exists(sourcePdfPath)) return null;
+            if (!string.Equals(Path.GetExtension(sourcePdfPath), ".pdf", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var imagePngBytes = ExtractPngBytes(signatureBase64);
+            // Sans image raster, on ne peut pas remplacer inline (la mention typée n'a
+            // pas de boîte dédiée → on laisse le caller retomber sur Stamp() classique).
+            if (imagePngBytes == null) return null;
+
+            // 1️⃣ PdfPig — repère les positions du placeholder dans le document.
+            // PdfPig est read-only mais expose les coordonnées exactes des mots dans
+            // le système d'origine bas-gauche du PDF (PDF natif). On collecte la liste
+            // des occurrences pour les traiter en une seule passe d'édition ensuite.
+            var positions = new List<(int pageIndex, double left, double top, double width, double height, double pageHeight)>();
+            try
+            {
+                using var pig = PigDoc.Open(sourcePdfPath);
+                for (int p = 0; p < pig.NumberOfPages; p++)
+                {
+                    var page = pig.GetPage(p + 1);
+                    foreach (var word in page.GetWords())
+                    {
+                        // Le placeholder peut être un seul "mot" tokenisé par PdfPig
+                        // (typiquement quand l'export HTML→PDF DinkToPdf l'a inséré
+                        // tel quel). Si la tokenisation l'a fragmenté en plusieurs
+                        // mots, on rate la détection — auquel cas StampInline retourne
+                        // null et le caller fallback sur Stamp() classique.
+                        if (!string.Equals(word.Text.Trim(), placeholder, StringComparison.Ordinal))
+                            continue;
+                        var bb = word.BoundingBox;
+                        positions.Add((
+                            pageIndex: p,
+                            left: bb.Left,
+                            top: bb.Top,       // top edge en coords PDF (origine bas-gauche)
+                            width: bb.Width,
+                            height: bb.Height,
+                            pageHeight: page.Height
+                        ));
+                    }
+                }
+            }
+            catch
+            {
+                // PDF corrompu / chiffré / format inconnu — on laisse fallback.
+                return null;
+            }
+
+            if (positions.Count == 0) return null;
+
+            // 2️⃣ PdfSharp — édition. On ouvre en mode Modify pour append du contenu
+            // graphique sur les pages existantes. La conversion de système de coords
+            // se fait page par page : PdfPig (origine bas-gauche, y croît vers haut)
+            // → PdfSharp (origine haut-gauche, y croît vers bas).
+            try
+            {
+                using var input = new FileStream(sourcePdfPath, FileMode.Open, FileAccess.Read);
+                using var pdf = PdfReader.Open(input, PdfDocumentOpenMode.Modify);
+
+                using var imgStream = new MemoryStream(imagePngBytes);
+                using var img = XImage.FromStream(imgStream);
+                double imgRatio = (double)img.PixelWidth / img.PixelHeight;
+
+                foreach (var pos in positions)
+                {
+                    if (pos.pageIndex >= pdf.PageCount) continue;
+                    var page = pdf.Pages[pos.pageIndex];
+                    using var gfx = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Append);
+
+                    // Conversion coords : PdfPig.Top = haut du mot depuis le bas de page.
+                    // PdfSharp veut y depuis le haut de page → y_sharp = pageHeight - pdfPigTop.
+                    double sharpY = pos.pageHeight - pos.top;
+                    double sharpX = pos.left;
+
+                    // On élargit légèrement la zone à blanchir pour absorber un
+                    // éventuel décalage de bounding box (chasse italique, padding
+                    // de l'extracteur). 2pt de marge suffisent en pratique.
+                    const double padding = 2;
+                    gfx.DrawRectangle(XBrushes.White,
+                        sharpX - padding, sharpY - padding,
+                        pos.width + 2 * padding, pos.height + 2 * padding);
+
+                    // Boîte cible pour la signature : on garde la position du
+                    // placeholder en LARGEUR, et on étend la HAUTEUR vers le bas
+                    // (sharpY + height) pour que la signature soit visible —
+                    // un placeholder de texte fait ~12pt de haut, trop petit pour
+                    // une vraie signature manuscrite. On vise ~50pt (environ 17mm).
+                    const double signatureHeight = 50;
+                    double drawW = pos.width;
+                    double drawH = drawW / imgRatio;
+                    if (drawH > signatureHeight) { drawH = signatureHeight; drawW = drawH * imgRatio; }
+                    // Centre horizontalement dans la zone du placeholder, ancre
+                    // verticalement sur la baseline du texte d'origine.
+                    double drawX = sharpX + (pos.width - drawW) / 2;
+                    double drawY = sharpY - drawH + pos.height; // bord bas aligné avec baseline placeholder
+
+                    gfx.DrawImage(img, drawX, drawY, drawW, drawH);
+
+                    // Petite mention "Signé électroniquement" sous la signature pour
+                    // matérialiser la nature numérique (cohérence avec l'autre cellule
+                    // du tableau qui affiche "Signé numériquement").
+                    var captionFont = new XFont("Helvetica", 6, XFontStyleEx.Italic);
+                    var captionBrush = new XSolidBrush(XColor.FromArgb(80, 80, 80));
+                    gfx.DrawString("Signé électroniquement le " + options.SignedAtUtc.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture),
+                        captionFont, captionBrush,
+                        new XRect(sharpX, drawY + drawH + 1, pos.width, 10),
+                        XStringFormats.TopCenter);
+                }
+
+                var dir = Path.GetDirectoryName(sourcePdfPath)!;
+                var name = Path.GetFileNameWithoutExtension(sourcePdfPath);
+                var signedPath = Path.Combine(dir, "signed_" + name + ".pdf");
+                pdf.Save(signedPath);
+                return signedPath;
+            }
+            catch
+            {
                 return null;
             }
         }
