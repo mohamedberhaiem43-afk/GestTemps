@@ -212,7 +212,10 @@ namespace ABRPOINT.Server.Repository
                         etatAbsence = new EtatAbsence
                         {
                             Empcod = sanction.Empcod,
-                            Empmat = employe.Empmat,
+                            // Fallback Empcod si Empmat absent côté fiche employé (legacy ou import partiel).
+                            // Sinon la colonne « Matricule » de l'État Absence apparaissait vide pour les
+                            // employés sans matricule explicite, alors qu'un identifiant lisible existe.
+                            Empmat = string.IsNullOrWhiteSpace(employe.Empmat) ? employe.Empcod : employe.Empmat,
                             Emplib = employe.Emplib,
                             Empreg = employe.Empreg,
                             Date = date,
@@ -323,7 +326,10 @@ namespace ABRPOINT.Server.Repository
                         etatAbsence = new EtatAbsence
                         {
                             Empcod = presence.Empcod,
-                            Empmat = employe.Empmat,
+                            // Fallback Empcod si Empmat absent côté fiche employé (legacy ou import partiel).
+                            // Sinon la colonne « Matricule » de l'État Absence apparaissait vide pour les
+                            // employés sans matricule explicite, alors qu'un identifiant lisible existe.
+                            Empmat = string.IsNullOrWhiteSpace(employe.Empmat) ? employe.Empcod : employe.Empmat,
                             Emplib = employe.Emplib,
                             Empreg = employe.Empreg,
                             Date = presence.Predat.Value.Date,
@@ -388,7 +394,10 @@ namespace ABRPOINT.Server.Repository
                         result[key] = new EtatAbsence
                         {
                             Empcod = employe.Empcod,
-                            Empmat = employe.Empmat,
+                            // Fallback Empcod si Empmat absent côté fiche employé (legacy ou import partiel).
+                            // Sinon la colonne « Matricule » de l'État Absence apparaissait vide pour les
+                            // employés sans matricule explicite, alors qu'un identifiant lisible existe.
+                            Empmat = string.IsNullOrWhiteSpace(employe.Empmat) ? employe.Empcod : employe.Empmat,
                             Emplib = employe.Emplib,
                             Empreg = employe.Empreg,
                             Date = date,
@@ -424,7 +433,7 @@ namespace ABRPOINT.Server.Repository
                     result[key] = new EtatAbsence
                     {
                         Empcod = presence.Empcod,
-                        Empmat = employe.Empmat,
+                        Empmat = string.IsNullOrWhiteSpace(employe.Empmat) ? employe.Empcod : employe.Empmat,
                         Emplib = employe.Emplib,
                         Empreg = employe.Empreg,
                         Date = presence.Predat.Value.Date,

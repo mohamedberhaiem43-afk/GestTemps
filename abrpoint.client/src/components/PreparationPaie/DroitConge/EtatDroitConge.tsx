@@ -38,6 +38,13 @@ function EtatDroitConge() {
   const [datedebut, setDatedebut] = useState(() => dayjs().startOf('month').format('YYYY-MM-DD'));
   const [datefin, setDatefin] = useState(() => dayjs().endOf('month').format('YYYY-MM-DD'));
 
+  // 2026-05-28 — Filtre type de congé (Congé payé vs RTT). Le backend
+  // accepte ?typeConge=paye|rtt et bascule entre Abscng=='0' (CP) et
+  // Abscng=='R' (RTT) + utilise Solde.RttJours/RttUtilises pour les droits
+  // en mode RTT. Par défaut on garde « paye » pour ne pas casser l'historique.
+  type LeaveType = 'paye' | 'rtt';
+  const [typeConge, setTypeConge] = useState<LeaveType>('paye');
+
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showEmpDropdown, setShowEmpDropdown] = useState(false);
@@ -54,8 +61,9 @@ function EtatDroitConge() {
   const queryString = useMemo(() => {
     const qp = new URLSearchParams();
     effectiveEmpcods.forEach((code: string) => qp.append("empcods", code));
+    qp.set("typeConge", typeConge);
     return qp.toString();
-  }, [effectiveEmpcods]);
+  }, [effectiveEmpcods, typeConge]);
   const [droitConges, setDroitConges] = useState<DroitConge[]>([]);
 
   // Pagination
@@ -235,6 +243,17 @@ function EtatDroitConge() {
               onChange={(e) => setDatefin(e.target.value)}
             />
           </Box>
+          <Box className="edc-filter-field-narrow">
+            <label className="edc-filter-label">{t('etatDroitConge.filter.leaveType', 'Type de congé')}</label>
+            <select
+              className="edc-filter-input"
+              value={typeConge}
+              onChange={(e) => setTypeConge(e.target.value as LeaveType)}
+            >
+              <option value="paye">{t('etatDroitConge.filter.leaveTypePaid', 'Congé payé')}</option>
+              <option value="rtt">{t('etatDroitConge.filter.leaveTypeRtt', 'RTT')}</option>
+            </select>
+          </Box>
           <button className="edc-search-btn" onClick={handleSearch} disabled={loading}>
             <SearchIcon sx={{ fontSize: 16 }} />
             {t('etatDroitConge.filter.search')}
@@ -345,13 +364,12 @@ function EtatDroitConge() {
                   <th className="edc-th-right edc-th-primary">{t('etatDroitConge.tableSynthesis.headers.totalRight')}</th>
                   <th className="edc-th-right">{t('etatDroitConge.tableSynthesis.headers.consumed')}</th>
                   <th className="edc-th-right">{t('etatDroitConge.tableSynthesis.headers.remaining')}</th>
-                  <th>{t('etatDroitConge.tableSynthesis.headers.status')}</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedData.length === 0 ? (
                   <tr>
-                    <td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
                       {t('etatDroitConge.tableSynthesis.noData')}
                     </td>
                   </tr>
@@ -359,7 +377,6 @@ function EtatDroitConge() {
                   paginatedData.map((item, idx) => {
                     const consumed = Number(item.nbabsences || 0);
                     const remaining = Number(item.droitrestant || 0) - consumed;
-                    const isPending = remaining > 0 && consumed === 0;
                     return (
                       <tr key={idx}>
                         <td className="edc-td-matricule">{item.empmat}</td>
@@ -376,11 +393,6 @@ function EtatDroitConge() {
                         <td className="edc-td-right edc-td-primary">{Number(item.droitrestant || 0).toFixed(2)}</td>
                         <td className="edc-td-right edc-td-amber">{consumed.toFixed(2)}</td>
                         <td className="edc-td-right edc-td-bold">{remaining.toFixed(2)}</td>
-                        <td>
-                          <span className={`edc-status-badge ${isPending ? 'edc-status-pending' : 'edc-status-valid'}`}>
-                            {isPending ? t('etatDroitConge.tableSynthesis.statusPending') : t('etatDroitConge.tableSynthesis.statusValidated')}
-                          </span>
-                        </td>
                       </tr>
                     );
                   })

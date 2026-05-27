@@ -386,7 +386,12 @@
 .ea-table tbody tr:last-child td { border-bottom: none; }
 .ea-table tbody tr:hover { background: #fafbfc; }
 
-.ea-th-right, .ea-td-right { text-align: right; }
+/* 2026-05-27 — Sélecteurs scopés sur `.ea-table` pour battre la spécificité
+   de `.ea-table th` / `.ea-table td` (0,2) qui imposent text-align:left par défaut
+   et écrasaient `.ea-th-right` (0,1). Symptôme : la colonne « Durée Retard »
+   affichait les chips alignées à droite (valeurs en cellule) mais l'en-tête
+   décalé à gauche → désalignement visible. */
+.ea-table th.ea-th-right, .ea-table td.ea-td-right { text-align: right; }
 
 /* Badge d'absence */
 .ea-abs-badge {

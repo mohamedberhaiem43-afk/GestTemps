@@ -516,7 +516,9 @@ function EtatAbsence() {
                   ) : (
                     paginatedData.map((item, idx) => (
                       <tr key={(currentPage - 1) * pageSize + idx}>
-                        <td className="ea-td-matricule">{item.empmat}</td>
+                        {/* Fallback empcod si empmat absent côté employé (legacy
+                            data) — évite la colonne vide signalée par l'utilisateur. */}
+                        <td className="ea-td-matricule">{item.empmat || item.empcod || '—'}</td>
                         <td>
                           <div className="ea-td-name">
                             <div className="ea-td-avatar">{getInitials(item.emplib)}</div>

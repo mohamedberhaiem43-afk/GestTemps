@@ -685,7 +685,16 @@ namespace ABRPOINT.Server.Repository
                         Predat = date,
                         Empcod = p.Empcod,
                         EmpSite = p.Sitcod,
-                        Empmat = p.Empmat,
+                        // Empmat est dupliqué sur la ligne Presence à la pose du pointage,
+                        // mais le champ peut rester vide quand un pointage a été créé
+                        // manuellement (import, ajustement admin) sans copier la matricule
+                        // courante. On préfère la valeur LIVE jointe depuis Employes (à jour
+                        // même si le matricule a été modifié après le pointage), on retombe
+                        // sur p.Empmat puis sur l'Empcod en dernier recours pour ne JAMAIS
+                        // afficher une colonne vide côté UI (cf. État Retard / État Absence).
+                        Empmat = !string.IsNullOrWhiteSpace(item.e?.Empmat) ? item.e!.Empmat
+                                 : !string.IsNullOrWhiteSpace(p.Empmat) ? p.Empmat
+                                 : p.Empcod,
                         Regime = p.Empreg,
                         TotalHeure = p.Tothre,
                         Emplib = item.e?.Emplib ?? "Anonyme",

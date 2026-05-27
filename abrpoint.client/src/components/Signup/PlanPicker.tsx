@@ -74,7 +74,7 @@ const PLANS: PlanDef[] = [
   },
   {
     key: 'Premium',
-    displayName: 'Business',
+    displayName: 'Premium',
     priceMonthly: 449,
     priceAnnualMonthly: 249,
     includedEmployees: 50,

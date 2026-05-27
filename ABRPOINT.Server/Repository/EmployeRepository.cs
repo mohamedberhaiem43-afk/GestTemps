@@ -630,7 +630,12 @@ namespace ABRPOINT.Server.Repository
                 if (!string.IsNullOrEmpty(dircod))
                     query = query.Where(e => e.Dircod == dircod);
 
-                if (!string.IsNullOrEmpty(empreg))
+                // "T" est le sentinel front partagé avec EtatPresence/Retard/Absence
+                // pour signifier « tous régimes » (cf. useEmployeeFilter.ts:48-53).
+                // Sans ce skip, le filtre `Empreg == "T"` ne matchait aucun employé
+                // (Empreg réel est "M" ou "H") → dropdown vide par défaut sur les
+                // 3 écrans États dès qu'un user admin ouvrait la page sans rien filtrer.
+                if (!string.IsNullOrEmpty(empreg) && empreg != "T")
                     query = query.Where(e => e.Empreg == empreg);
 
                 // PERF — Cap dur à 5000 lignes. Sur un tenant ultra-volumineux, le dictionnaire
@@ -785,7 +790,10 @@ namespace ABRPOINT.Server.Repository
                           && e.Sitcod == site
                           && e.Actif == "A"
                           && (string.IsNullOrEmpty(managerSercod) || e.Sercod == managerSercod)
-                          && (string.IsNullOrEmpty(empreg) || e.Empreg == empreg)
+                          // "T" = sentinel front « tous régimes ». Sans le check ici,
+                          // empreg="T" filtrait `e.Empreg == "T"` qui ne match aucun
+                          // employé (régimes réels = "M" mensuel / "H" horaire).
+                          && (string.IsNullOrEmpty(empreg) || empreg == "T" || e.Empreg == empreg)
                           && (string.IsNullOrEmpty(service) || e.Sercod == service)
                           && (empcods == null || empcods.Count == 0 || empcods.Contains(e.Empcod))
                           // ⚠ Filtrer par période d'emploi : un employé embauché en cours de

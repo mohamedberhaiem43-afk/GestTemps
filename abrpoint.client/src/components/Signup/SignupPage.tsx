@@ -5,6 +5,7 @@ import {
   Paper, Stack, InputAdornment, MenuItem,
 } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
+import CategoryIcon from '@mui/icons-material/Category';
 import BadgeIcon from '@mui/icons-material/Badge';
 import PublicIcon from '@mui/icons-material/Public';
 import LinkIcon from '@mui/icons-material/Link';
@@ -167,6 +168,11 @@ export default function SignupPage() {
   // True quand l'auto-fill a déjà été appliqué : permet à l'utilisateur de surcharger
   // le nom proposé sans qu'on l'écrase à chaque re-validation du SIRET.
   const [companyNameAutofilled, setCompanyNameAutofilled] = useState(false);
+  // Secteur d'activité (2026-05-27) : pré-rempli depuis Sirene FR (libellé NAF) ou
+  // BCE BE (libellé NACE) quand l'API renvoie l'info. Pour les autres pays
+  // (MA/SN/TN sans API publique), l'utilisateur saisit manuellement.
+  const [activitySector, setActivitySector] = useState('');
+  const [activitySectorAutofilled, setActivitySectorAutofilled] = useState(false);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -240,6 +246,11 @@ export default function SignupPage() {
     setSiretCompanyName(null);
     setSiretCompanyAddress(null);
     setCompanyNameAutofilled(false);
+    // Reset secteur d'activité aussi : il avait été pré-rempli depuis l'API du
+    // pays précédent. Sinon un libellé NAF français resterait après bascule vers
+    // un autre pays où NAF est étranger.
+    setActivitySector('');
+    setActivitySectorAutofilled(false);
   }, [country]);
 
   // Auto-suggère un slug à partir du nom de société tant que l'utilisateur ne l'a pas modifié.
@@ -368,6 +379,12 @@ export default function SignupPage() {
           if (data.companyName && (!companyName.trim() || !companyNameAutofilled)) {
             setCompanyName(data.companyName);
             setCompanyNameAutofilled(true);
+          }
+          // Auto-fill secteur d'activité : même logique que companyName.
+          // L'utilisateur peut surcharger sans qu'on l'écrase à chaque re-validation.
+          if (data.activitySector && (!activitySector.trim() || !activitySectorAutofilled)) {
+            setActivitySector(String(data.activitySector));
+            setActivitySectorAutofilled(true);
           }
         } else {
           // Mapping des codes serveur vers les statuts locaux pour le helper text.
@@ -507,6 +524,10 @@ export default function SignupPage() {
         companyName: companyName.trim(),
         siret: normalizeSiret(siret),
         country,
+        // 2026-05-27 — Secteur d'activité : pré-rempli depuis Sirene/BCE quand
+        // l'API a renvoyé l'info, sinon saisi manuellement. Null si vide (le
+        // backend NormalizeActivitySector trime + clamp 200 chars).
+        activitySector: activitySector.trim() || null,
         adminFirstName: firstName.trim(),
         adminLastName: lastName.trim(),
         adminEmail: email.trim(),
@@ -752,6 +773,24 @@ export default function SignupPage() {
             onChange={(e) => setCompanyName(e.target.value)}
             InputProps={{ startAdornment: <InputAdornment position="start"><BusinessIcon /></InputAdornment> }}
             helperText="Auto-rempli depuis l'API officielle quand l'identifiant est reconnu."
+          />
+
+          {/* Secteur d'activité — pré-rempli depuis Sirene FR (libellé NAF) / BCE BE
+              (libellé NACE) quand l'API renvoie l'info ; sinon saisie libre. Sert au
+              profilage commercial (segmenter par vertical) et au prompt-engineering
+              de l'assistant IA (réponses adaptées BTP vs cabinet d'audit). */}
+          <TextField
+            fullWidth
+            label="Secteur d'activité"
+            value={activitySector}
+            onChange={(e) => { setActivitySector(e.target.value); setActivitySectorAutofilled(true); }}
+            InputProps={{ startAdornment: <InputAdornment position="start"><CategoryIcon /></InputAdornment> }}
+            placeholder="Ex: Conseil en gestion, BTP, Restauration…"
+            helperText={
+              activitySectorAutofilled && siretStatus === 'available'
+                ? 'Auto-rempli depuis le répertoire officiel — modifiable si besoin.'
+                : 'Optionnel. Aide à personnaliser votre tableau de bord et l\'assistant IA.'
+            }
           />
 
           <Box>

@@ -389,16 +389,22 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<DroitCongeDto> GetDroitCongeAsync(string soccod, string empcod, DateTime? datedebut, DateTime? datefin)
+        public async Task<DroitCongeDto> GetDroitCongeAsync(string soccod, string empcod, DateTime? datedebut, DateTime? datefin, string? typeConge = "paye")
         {
             try
             {
+                // 2026-05-28 — Filtre Abscng selon le type de congé demandé :
+                //  • "paye" (défaut, rétro-compat) → CP (Abscng="0")
+                //  • "rtt" → RTT (Abscng="R") + droits issus de Solde.RttJours/RttUtilises
+                var abscngFilter = string.Equals(typeConge, "rtt", StringComparison.OrdinalIgnoreCase) ? "R" : "0";
+                var isRtt = abscngFilter == "R";
+
                 float? NbCongeRecus = await (
                     from c in _dbContext.Conges
                     join a in _dbContext.Absences on new { c.Soccod, c.Abscod } equals new { a.Soccod, a.Abscod }
                     where c.Soccod == soccod && c.Empcod == empcod &&
                           c.Condep >= datedebut && c.Conret <= datefin &&
-                          a.Abscng == "0"
+                          a.Abscng == abscngFilter
                     select c.Connbjour
                 ).SumAsync();
 
@@ -487,7 +493,7 @@ namespace ABRPOINT.Server.Repository
                     join a in _dbContext.Absences on new { c.Soccod, c.Abscod } equals new { a.Soccod, a.Abscod }
                     where c.Soccod == soccod && c.Empcod == empcod &&
                           c.Condep >= datedebut && c.Conret <= datefin &&
-                          a.Abscng == "0"
+                          a.Abscng == abscngFilter
                     group c by c.Condep!.Value.Month into g
                     select new MonthlyData { Month = g.Key, TotalDays = g.Sum(c => c.Connbjour) }
                 ).ToListAsync();
@@ -501,10 +507,28 @@ namespace ABRPOINT.Server.Repository
                     x => x.TotalDays
                 );
 
+                // Mode RTT : les droits ne viennent pas de Site.Sitconge mais de
+                // Solde.RttJours (droit annuel) / Solde.RttUtilises (déjà pris).
+                // L'ancienneté & solde initial ne s'appliquent pas — le RTT est
+                // un crédit annuel à zéro qui se réinitialise chaque 1er janvier.
+                if (isRtt)
+                {
+                    var rttJours = soldeEntry?.RttJours ?? 0f;
+                    var rttUtilises = soldeEntry?.RttUtilises ?? 0f;
+                    initialSolde = 0f;
+                    accruedRights = rttJours;
+                    jourAncien = 0f;
+                    totalDroit = rttJours;
+                    // Remplace les "absences" (sanctions) par la conso RTT côté
+                    // colonne "Consommé" — beaucoup plus parlant en mode RTT
+                    // que d'afficher les sanctions, qui ne dépendent pas du type.
+                    empsanctions = rttUtilises;
+                }
+
                 DroitCongeDto droitConge = new DroitCongeDto()
                 {
                     Annee = datedebut?.Year.ToString(),
-                    Empmat = empdata?.Empmat,
+                    Empmat = string.IsNullOrWhiteSpace(empdata?.Empmat) ? empcod : empdata!.Empmat,
                     Emplib = empdata?.Emplib,
                     Empemb = empdata?.Empemb,
                     Empreg = empdata?.Empreg,

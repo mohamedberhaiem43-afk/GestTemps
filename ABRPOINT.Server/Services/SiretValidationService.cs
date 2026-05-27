@@ -14,7 +14,11 @@ public sealed record SiretValidationResult(
     string? ErrorCode,
     string? ErrorMessage,
     string? CompanyName,
-    string? CompanyAddress = null);
+    string? CompanyAddress = null,
+    // 2026-05-27 — Secteur d'activité (libellé NAF/NACE), extrait de l'API quand
+    // dispo (FR Sirene = activite_principale.libelle ; BE BCE = activity label).
+    // Null si l'API n'a pas pu fournir l'info ou pays manuel (MA/SN/TN).
+    string? ActivitySector = null);
 
 /// <summary>
 /// Validator multi-pays pour l'identifiant entreprise saisi au signup. Couvre FR (SIRET
@@ -105,7 +109,12 @@ public class SiretValidator : ISiretValidator
             var nom = entreprise.TryGetProperty("nom_complet", out var n) ? n.GetString() :
                       entreprise.TryGetProperty("nom_raison_sociale", out var nr) ? nr.GetString() : null;
             var adresse = TryExtractFrenchAddress(entreprise, siret);
-            return new(true, null, null, nom, adresse);
+            // Secteur d'activité : recherche-entreprises expose `activite_principale`
+            // (libellé NAF déjà traduit, ex: « Conseil pour les affaires »). On le préfère
+            // au code NAF brut pour qu'il soit lisible directement côté UI. Fallback sur
+            // le siège si l'attribut n'est pas posé au niveau entreprise.
+            var sector = TryExtractActivitySector(entreprise, siret);
+            return new(true, null, null, nom, adresse, sector);
         }
         catch (Exception ex)
         {
@@ -139,6 +148,58 @@ public class SiretValidator : ISiretValidator
                 {
                     var addr = ExtractAddressFromEtablissement(et);
                     if (!string.IsNullOrWhiteSpace(addr)) return addr;
+                }
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Récupère le libellé d'activité principale depuis la réponse Sirene
+    /// (recherche-entreprises.api.gouv.fr). On essaie successivement :
+    ///   1. <c>entreprise.activite_principale</c> (libellé global, le plus utile).
+    ///   2. <c>siege.libelle_activite_principale</c> (cas où l'attribut global manque).
+    ///   3. <c>matching_etablissements[siret].libelle_activite_principale</c>.
+    /// Renvoie null si rien d'exploitable — le caller laisse l'admin compléter manuellement.
+    /// </summary>
+    private static string? TryExtractActivitySector(JsonElement entreprise, string siret)
+    {
+        static string? StringOrNull(JsonElement el) =>
+            el.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(el.GetString())
+                ? el.GetString()
+                : null;
+
+        if (entreprise.TryGetProperty("activite_principale", out var ap))
+        {
+            var lib = StringOrNull(ap);
+            if (lib != null) return lib.Trim();
+        }
+        if (entreprise.TryGetProperty("libelle_activite_principale", out var lap))
+        {
+            var lib = StringOrNull(lap);
+            if (lib != null) return lib.Trim();
+        }
+        if (entreprise.TryGetProperty("siege", out var siege))
+        {
+            if (siege.TryGetProperty("libelle_activite_principale", out var lab))
+            {
+                var lib = StringOrNull(lab);
+                if (lib != null) return lib.Trim();
+            }
+        }
+        if (entreprise.TryGetProperty("matching_etablissements", out var matchs)
+            && matchs.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var et in matchs.EnumerateArray())
+            {
+                if (et.TryGetProperty("siret", out var etSiret)
+                    && string.Equals(etSiret.GetString(), siret, StringComparison.Ordinal))
+                {
+                    if (et.TryGetProperty("libelle_activite_principale", out var lab))
+                    {
+                        var lib = StringOrNull(lab);
+                        if (lib != null) return lib.Trim();
+                    }
                 }
             }
         }

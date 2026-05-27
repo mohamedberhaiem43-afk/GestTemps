@@ -138,7 +138,7 @@ namespace ABRPOINT.Server.Controllers
             if (societe == null)
                 return BadRequest("Données invalides.");
 
-            // Plan gating « Custom Branding » : seul Business permet de personnaliser
+            // Plan gating « Custom Branding » : seul Premium permet de personnaliser
             // le logo (champ Socimg) — cf. PlanFeatures.CustomBranding. On ne bloque
             // PAS l'ensemble du Put pour les autres packs (l'admin doit pouvoir éditer
             // l'adresse, le nom, etc.) : on compare l'image soumise à celle en base et
@@ -160,7 +160,7 @@ namespace ABRPOINT.Server.Controllers
                     {
                         code = "plan_feature_locked",
                         feature = "CustomBranding",
-                        message = "La personnalisation du logo est réservée au pack Business. Passez au pack supérieur pour utiliser cette fonctionnalité."
+                        message = "La personnalisation du logo est réservée au pack Premium. Passez au pack supérieur pour utiliser cette fonctionnalité."
                     });
                 }
             }

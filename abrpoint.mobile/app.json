@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Concorde Workly",
-    "slug": "abrpoint-mobile",
+    "slug": "concorde-workly",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -19,11 +19,6 @@
         "backgroundColor": "#0040a1"
       },
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.POST_NOTIFICATIONS",
-        "android.permission.VIBRATE",
-        "android.permission.WAKE_LOCK",
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.POST_NOTIFICATIONS",
@@ -113,7 +108,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "5a33d832-4ea8-45a8-8d03-69639df6e080"
+        "projectId": "acf61435-0682-4f35-a5d2-3811d67e5ed8"
       }
     },
     "runtimeVersion": {

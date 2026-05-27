@@ -38,16 +38,19 @@ public sealed record PlanDefinition(
     int? MaxSites,
     // Quota de stockage par tenant (Mo binaires, 1 Mo = 1 048 576 octets).
     // Grille 2026-05 (cf. tarifs.txt) :
-    //   Starter   10 240 Mo →  10 Go inclus  (max 50 Go avec stockage supplémentaire)
-    //   Standard  51 200 Mo →  50 Go inclus  (max 300 Go avec stockage supplémentaire)
-    //   Business 204 800 Mo → 200 Go inclus  (max 2 To  avec stockage supplémentaire)
+    //   Starter   10 240 Mo →  10 Go inclus
+    //   Standard  51 200 Mo →  50 Go inclus
+    //   Premium  204 800 Mo → 200 Go inclus
     // Mesure = pg_database_size(DbName) + taille du dossier uploads/{slug}/, refresh hourly.
     long StorageQuotaMb,
     // Prix HT du bloc de stockage supplémentaire (29 € / 100 Go sur Starter/Standard,
-    // 49 € / 100 Go sur Business). Marketing : exposé sur la page tarifs et MonAbonnement.
+    // 49 € / 100 Go sur Premium). Marketing : exposé sur la page tarifs et MonAbonnement.
     decimal StorageSupplementBlockEur,
-    // Plafond ABSOLU du stockage (Mo). Au-delà, l'admin doit passer au pack supérieur.
-    long MaxStorageMb,
+    // Plafond ABSOLU du stockage (Mo). 2026-05-27 : null = pas de plafond commercial,
+    // l'admin peut étendre via blocs de stockage supplémentaires autant que nécessaire.
+    // Conservé nullable pour permettre de réintroduire un cap par pack si la stratégie
+    // commerciale change.
+    long? MaxStorageMb,
     PlanFeatures Features);
 
 /// <summary>
@@ -151,7 +154,7 @@ public static class PlanCatalog
         MaxSites: 1,
         StorageQuotaMb: 10L * 1024,   // 10 Go inclus
         StorageSupplementBlockEur: 29m, // +29 € / 100 Go supplémentaires
-        MaxStorageMb: 50L * 1024,     // 50 Go max
+        MaxStorageMb: null,           // 2026-05-27 : plus de plafond, extension illimitée par blocs
         // 2026-05 — repositionnement commercial : le Starter intègre désormais
         // le pointage MOBILE (web était trop restrictif vs concurrence) et la
         // gestion congés / autorisations (essentielle même pour une TPE). Les
@@ -209,7 +212,7 @@ public static class PlanCatalog
         MaxSites: 5,
         StorageQuotaMb: 50L * 1024,   // 50 Go inclus
         StorageSupplementBlockEur: 29m, // +29 € / 100 Go supplémentaires
-        MaxStorageMb: 300L * 1024,    // 300 Go max
+        MaxStorageMb: null,           // 2026-05-27 : plus de plafond, extension illimitée par blocs
         Features: new PlanFeatures(
             MobileApp: true,
             Geolocation: true,
@@ -249,9 +252,10 @@ public static class PlanCatalog
         Code: PremiumCode,
         // Code interne « Premium » conservé pour compat ascendante (price_id Stripe,
         // tenants legacy, références dans EF et Stripe metadata). DisplayName commercial
-        // 2026-05 = « Business » (cf. tarifs.txt). Cohérent avec le naming UI du Home /
-        // PricingPage / ChangePlanModal qui affichent déjà « Business » à l'utilisateur.
-        DisplayName: "Business",
+        // 2026-05-27 = « Premium » (était « Business » jusqu'au 2026-05-26 — décision
+        // commerciale de réaligner le nom commercial sur le code interne). Tout l'UI
+        // (Home / PricingPage / ChangePlanModal / MonAbonnement) lit ce displayName.
+        DisplayName: "Premium",
         // Grille tarifs.txt 2026-05 : 449 €/mois en mensuel, 249 €/mois en annuel
         // (soit 2 988 € HT / an, ~45 % de remise sur l'engagement annuel).
         // 50 salariés inclus (était 30), cap pack 250 (était 200) — alignés sur le
@@ -266,7 +270,7 @@ public static class PlanCatalog
         MaxSites: null,
         StorageQuotaMb: 200L * 1024,  // 200 Go inclus
         StorageSupplementBlockEur: 49m, // +49 € / 100 Go supplémentaires
-        MaxStorageMb: 2048L * 1024,   // 2 To (= 2 048 Go) max
+        MaxStorageMb: null,            // 2026-05-27 : plus de plafond, extension illimitée par blocs
         Features: new PlanFeatures(
             MobileApp: true,
             Geolocation: true,

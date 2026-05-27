@@ -517,8 +517,13 @@ function EtatRetard() {
                   <tr>
                     <th>{t('etats.retard.headers.employee')}</th>
                     <th>{t('etats.retard.headers.date')}</th>
-                    <th>{t('etats.retard.headers.schedule')}</th>
-                    <th>{t('etats.retard.headers.punch')}</th>
+                    {/* 2026-05-27 — Colonnes « Horaire » + « Pointage » fusionnées en
+                        une seule « Arrivée ». Constat utilisateur : les deux colonnes
+                        affichaient des valeurs identiques dès que le retard valait 0
+                        (cas majoritaire), ce qui donnait l'impression d'une redondance.
+                        On affiche maintenant pointage seul si à l'heure, ou
+                        « prévu → réel » si retard détecté. */}
+                    <th>{t('etats.retard.headers.arrival', 'Arrivée')}</th>
                     <th className="ea-th-right">{t('etats.retard.headers.lateDuration')}</th>
                     <th>{t('etats.retard.headers.status')}</th>
                     <th style={{ textAlign: 'right' }}>{t('etats.absence.table.actions')}</th>
@@ -527,20 +532,21 @@ function EtatRetard() {
                 <tbody>
                   {paginated.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="ea-no-data">
+                      <td colSpan={6} className="ea-no-data">
                         {searchTriggered ? t('etats.retard.noData') : t('etats.absence.table.clickSearch')}
                       </td>
                     </tr>
                   ) : (
                     paginated.map((row, idx) => {
                       const absoluteIndex = (currentPage - 1) * pageSize + idx;
-                      // « Horaire » = heure d'arrivée THÉORIQUE (reconstituée
-                      // depuis pointage − retard) ; « Pointage » = heure réelle.
-                      // Cf. useMemo `rows` plus haut pour le calcul.
                       const planned = (row as any).scheduledEntry || DASH;
                       const pointage = row.entree1 || DASH;
                       const justified = Boolean(row.motif && row.motif.trim() && row.motif !== DASH);
                       const totalRet = (row as any).totalRetard || '00:00';
+                      // Affichage « prévu → réel » uniquement quand l'écart est réel ;
+                      // sinon une seule heure (pas de flèche fantôme « 08:00 → 08:00 »).
+                      const isDifferent = planned !== DASH && pointage !== DASH && planned !== pointage;
+                      const isLate = toMinutes(totalRet) > 0;
                       return (
                         <tr key={`${row.empcod}-${row.predat}-${absoluteIndex}`}>
                           <td>
@@ -550,10 +556,19 @@ function EtatRetard() {
                             </div>
                           </td>
                           <td className="ea-td-date">{fmtDate(row.predat)}</td>
-                          <td className="ea-td-text">{planned}</td>
-                          <td className="ea-td-text" style={{ color: '#b91c1c', fontWeight: 700 }}>{pointage}</td>
+                          <td className="ea-td-text">
+                            {isDifferent ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ color: '#475569' }}>{planned}</span>
+                                <span style={{ color: '#94a3b8' }}>→</span>
+                                <span style={{ color: isLate ? '#b91c1c' : '#0f172a', fontWeight: 700 }}>{pointage}</span>
+                              </span>
+                            ) : (
+                              <span style={{ color: '#0f172a', fontWeight: 600 }}>{pointage}</span>
+                            )}
+                          </td>
                           <td className="ea-td-right">
-                            <span className={`ea-abs-badge ${toMinutes(totalRet) > 0 ? 'ea-abs-badge-red' : 'ea-abs-badge-gray'}`}>
+                            <span className={`ea-abs-badge ${isLate ? 'ea-abs-badge-red' : 'ea-abs-badge-gray'}`}>
                               {totalRet}
                             </span>
                           </td>

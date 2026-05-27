@@ -181,7 +181,7 @@ export default function PositionTrackingPage() {
     return (
       <Box sx={{ p: 4 }}>
         <Alert severity="info" sx={{ borderRadius: 2 }}>
-          Le suivi des positions GPS est inclus dans les packs Standard et Business.
+          Le suivi des positions GPS est inclus dans les packs Standard et Premium.
           Votre pack actuel ne couvre pas cette fonctionnalité.
         </Alert>
       </Box>

@@ -184,7 +184,16 @@ public class SignupController : ControllerBase
         if (alreadyUsed)
             return Ok(new { available = false, reason = "siret_already_used", message = "Un compte existe déjà pour ce numéro d'entreprise. Connectez-vous depuis l'écran de login pour y accéder." });
 
-        return Ok(new { available = true, companyName = validation.CompanyName, companyAddress = validation.CompanyAddress });
+        return Ok(new
+        {
+            available = true,
+            companyName = validation.CompanyName,
+            companyAddress = validation.CompanyAddress,
+            // 2026-05-27 — Exposé au frontend pour pré-remplir le champ
+            // « Secteur d'activité » du formulaire signup quand l'API Sirene/BCE
+            // a pu fournir l'info. Le champ reste éditable côté UI.
+            activitySector = validation.ActivitySector,
+        });
     }
 
     [HttpPost]
@@ -345,6 +354,10 @@ public class SignupController : ControllerBase
             tenant.Siret = siretNormalized;
             tenant.CountryCode = countryNormalized;
             tenant.Addons = NormalizeAddons(req.Addons);
+            // ActivitySector (2026-05-27) : libellé libre fourni par le client (pré-rempli
+            // depuis Sirene/BCE côté UI ou saisi manuellement). On trim et clamp à 200
+            // chars en silence pour ne jamais faire échouer un signup à cause de ce champ.
+            tenant.ActivitySector = NormalizeActivitySector(req.ActivitySector);
         }
         else
         {
@@ -365,6 +378,7 @@ public class SignupController : ControllerBase
                 Siret = siretNormalized,
                 CountryCode = countryNormalized,
                 Addons = NormalizeAddons(req.Addons),
+                ActivitySector = NormalizeActivitySector(req.ActivitySector),
             };
             master.Tenants.Add(tenant);
         }
@@ -508,6 +522,20 @@ public class SignupController : ControllerBase
         return valid.Count == 0 ? null : string.Join(",", valid);
     }
 
+    /// <summary>
+    /// Nettoie le secteur d'activité saisi au signup : trim, retire les retours
+    /// chariot (anti-injection email/HTML basique vu qu'on l'affiche tel quel
+    /// dans la notif interne), clamp à 200 chars (max du champ DB). Retourne
+    /// null si vide après nettoyage.
+    /// </summary>
+    private static string? NormalizeActivitySector(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        var clean = raw.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        if (clean.Length > 200) clean = clean.Substring(0, 200);
+        return string.IsNullOrEmpty(clean) ? null : clean;
+    }
+
     private string IssueAdminJwt(string slug, string uticod)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_cfg["Jwt:Key"]!));
@@ -569,8 +597,7 @@ public class SignupController : ControllerBase
             var downloadUrl = $"https://{rootDomain}/download";
 
             var planLabel = string.IsNullOrWhiteSpace(req.PlanCode) ? "Essai 30 jours"
-                : (req.PlanCode.Trim() == "Premium" ? "Business"
-                   : char.ToUpper(req.PlanCode.Trim()[0]) + req.PlanCode.Trim()[1..].ToLower());
+                : char.ToUpper(req.PlanCode.Trim()[0]) + req.PlanCode.Trim()[1..].ToLower();
             var cycleLabel = (req.BillingCycle ?? "").Trim().ToLowerInvariant() switch
             {
                 "annual" => "Engagement annuel",
@@ -767,6 +794,12 @@ public class SignupRequest
     /// Défaut FR si absent (rétro-compat). Détermine le format attendu pour Siret.
     /// </summary>
     public string? Country { get; set; }
+    /// <summary>
+    /// Secteur d'activité (libellé libre, max 200 chars). Pré-rempli au signup
+    /// depuis l'API Sirene/BCE quand disponible (FR/BE), saisi manuellement
+    /// sinon. Optionnel — un signup sans secteur reste valide.
+    /// </summary>
+    public string? ActivitySector { get; set; }
     public string? PlanCode { get; set; }
     public string? BillingCycle { get; set; }
     /// <summary>

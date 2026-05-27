@@ -14,6 +14,7 @@
     </PostgresDataConnection>
     <Parameter Name="empcod" DataType="System.String"/>
     <Parameter Name="soccod" DataType="System.String"/>
+    <Parameter Name="concod" DataType="System.String"/>
   </Dictionary>
   <ReportPage Name="Page1" Watermark.Enabled="true">
     <ReportTitleBand Name="ReportTitle1" Width="718.2" Height="1000">

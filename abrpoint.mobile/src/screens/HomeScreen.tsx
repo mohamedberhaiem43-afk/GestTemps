@@ -51,7 +51,7 @@ interface VaultDoc {
 }
 
 export default function HomeScreen({ navigation }: any) {
-  const { user, logout, isEmployee, isAdmin, isManager } = useAuth();
+  const { user, logout, isEmployee, isAdmin, isManager, planAllows } = useAuth();
   const tabBarPadding = useTabBarPadding();
   const [todayStatus, setTodayStatus] = useState<TodayStatus>({ hasEntry: false, hasExit: false });
   const [kpiSummary, setKpiSummary] = useState<KPISummary | null>(null);
@@ -426,113 +426,134 @@ export default function HomeScreen({ navigation }: any) {
           </Text>
         </View>
 
-        {/* Quick Actions */}
+        {/* Quick Actions — chaque entrée est conditionnée à la feature du
+            pack (alignement avec la sidebar web cf. Navigation.tsx). Les
+            modules non inclus dans le pack du tenant disparaissent
+            silencieusement de la home pour éviter d'inviter l'utilisateur
+            à un workflow qui se solderait par un 402 côté serveur. */}
         <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={styles.quickAction}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('LeaveRequest')}
-          >
-            <View style={[styles.quickIconBox, { backgroundColor: '#dae2ff' }]}>
-              <MaterialCommunityIcons name="calendar-plus" size={22} color={COLORS.primary} />
-            </View>
-            <Text style={styles.quickLabel}>Congé</Text>
-          </TouchableOpacity>
+          {planAllows('leaveManagement') && (
+            <TouchableOpacity
+              style={styles.quickAction}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('LeaveRequest')}
+            >
+              <View style={[styles.quickIconBox, { backgroundColor: '#dae2ff' }]}>
+                <MaterialCommunityIcons name="calendar-plus" size={22} color={COLORS.primary} />
+              </View>
+              <Text style={styles.quickLabel}>Congé</Text>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity
-            style={styles.quickAction}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('DemandeAutorisation')}
-          >
-            <View style={[styles.quickIconBox, { backgroundColor: '#d1fadf' }]}>
-              <MaterialCommunityIcons name="exit-run" size={22} color={COLORS.tertiary} />
-            </View>
-            <Text style={styles.quickLabel}>Sortie</Text>
-          </TouchableOpacity>
+          {planAllows('authorizationManagement') && (
+            <TouchableOpacity
+              style={styles.quickAction}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('DemandeAutorisation')}
+            >
+              <View style={[styles.quickIconBox, { backgroundColor: '#d1fadf' }]}>
+                <MaterialCommunityIcons name="exit-run" size={22} color={COLORS.tertiary} />
+              </View>
+              <Text style={styles.quickLabel}>Sortie</Text>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity
-            style={styles.quickAction}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('Teletravail')}
-          >
-            <View style={[styles.quickIconBox, { backgroundColor: '#fce7f3' }]}>
-              <MaterialCommunityIcons name="home-account" size={22} color="#9d174d" />
-            </View>
-            <Text style={styles.quickLabel}>Télétravail</Text>
-          </TouchableOpacity>
+          {planAllows('leaveManagement') && (
+            <TouchableOpacity
+              style={styles.quickAction}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('Teletravail')}
+            >
+              <View style={[styles.quickIconBox, { backgroundColor: '#fce7f3' }]}>
+                <MaterialCommunityIcons name="home-account" size={22} color="#9d174d" />
+              </View>
+              <Text style={styles.quickLabel}>Télétravail</Text>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity
-            style={styles.quickAction}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('DemandeAbsence')}
-          >
-            <View style={[styles.quickIconBox, { backgroundColor: '#ffe4e6' }]}>
-              <MaterialCommunityIcons name="hospital-box" size={22} color="#be123c" />
-            </View>
-            <Text style={styles.quickLabel}>Absence</Text>
-          </TouchableOpacity>
+          {planAllows('leaveManagement') && (
+            <TouchableOpacity
+              style={styles.quickAction}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('DemandeAbsence')}
+            >
+              <View style={[styles.quickIconBox, { backgroundColor: '#ffe4e6' }]}>
+                <MaterialCommunityIcons name="hospital-box" size={22} color="#be123c" />
+              </View>
+              <Text style={styles.quickLabel}>Absence</Text>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity
-            style={styles.quickAction}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('Expense')}
-          >
-            <View style={[styles.quickIconBox, { backgroundColor: '#fff1c2' }]}>
-              <MaterialCommunityIcons name="receipt" size={22} color="#92400e" />
-            </View>
-            <Text style={styles.quickLabel}>Frais</Text>
-          </TouchableOpacity>
+          {planAllows('expenseReports') && (
+            <TouchableOpacity
+              style={styles.quickAction}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('Expense')}
+            >
+              <View style={[styles.quickIconBox, { backgroundColor: '#fff1c2' }]}>
+                <MaterialCommunityIcons name="receipt" size={22} color="#92400e" />
+              </View>
+              <Text style={styles.quickLabel}>Frais</Text>
+            </TouchableOpacity>
+          )}
 
-          {/* Heures supp — remplace l'entrée par le bouton noir "Ajouter une
-              demande" de PresenceHistoryScreen (masqué depuis 2026-05-26 sur
-              décision produit). Ouvre AddRequestScreen avec le type pré-sélectionné
-              sur "heuressup" pour que l'utilisateur arrive directement sur le
-              formulaire heures supp (durée + heure de début depuis l'horaire). */}
-          <TouchableOpacity
-            style={styles.quickAction}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('AddRequest', { presetType: 'heuressup' })}
-          >
-            <View style={[styles.quickIconBox, { backgroundColor: '#fde68a' }]}>
-              <MaterialCommunityIcons name="clock-plus-outline" size={22} color="#92400e" />
-            </View>
-            <Text style={styles.quickLabel}>Heures supp</Text>
-          </TouchableOpacity>
+          {/* Heures supp — passe par le flux authorizationManagement (l'employé
+              soumet une demande via AutorisersController.PostMyAuthorization
+              avec préfixe [HEURES SUP] dans le motif). */}
+          {planAllows('authorizationManagement') && (
+            <TouchableOpacity
+              style={styles.quickAction}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('AddRequest', { presetType: 'heuressup' })}
+            >
+              <View style={[styles.quickIconBox, { backgroundColor: '#fde68a' }]}>
+                <MaterialCommunityIcons name="clock-plus-outline" size={22} color="#92400e" />
+              </View>
+              <Text style={styles.quickLabel}>Heures supp</Text>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity
-            style={styles.quickAction}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('Missions')}
-          >
-            <View style={[styles.quickIconBox, { backgroundColor: '#ede9fe' }]}>
-              <MaterialCommunityIcons name="briefcase-outline" size={22} color="#6d28d9" />
-            </View>
-            <Text style={styles.quickLabel}>Missions</Text>
-          </TouchableOpacity>
+          {planAllows('missions') && (
+            <TouchableOpacity
+              style={styles.quickAction}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('Missions')}
+            >
+              <View style={[styles.quickIconBox, { backgroundColor: '#ede9fe' }]}>
+                <MaterialCommunityIcons name="briefcase-outline" size={22} color="#6d28d9" />
+              </View>
+              <Text style={styles.quickLabel}>Missions</Text>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity
-            style={styles.quickAction}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('DigitalVault')}
-          >
-            <View style={[styles.quickIconBox, { backgroundColor: '#fde2e7' }]}>
-              <MaterialCommunityIcons name="folder-lock" size={22} color={COLORS.error} />
-            </View>
-            <Text style={styles.quickLabel}>Coffre</Text>
-          </TouchableOpacity>
+          {planAllows('digitalVault') && (
+            <TouchableOpacity
+              style={styles.quickAction}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('DigitalVault')}
+            >
+              <View style={[styles.quickIconBox, { backgroundColor: '#fde2e7' }]}>
+                <MaterialCommunityIcons name="folder-lock" size={22} color={COLORS.error} />
+              </View>
+              <Text style={styles.quickLabel}>Coffre</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Raccourci direct "Bulletin de paie" : ouvre le coffre déjà filtré
-               sur la catégorie 'bulletin' (équivalent du `#payslips` du web). */}
-          <TouchableOpacity
-            style={styles.quickAction}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('DigitalVault', { category: 'bulletin' })}
-          >
-            <View style={[styles.quickIconBox, { backgroundColor: '#fef3c7' }]}>
-              <MaterialCommunityIcons name="cash-multiple" size={22} color="#92400e" />
-            </View>
-            <Text style={styles.quickLabel}>Bulletin</Text>
-          </TouchableOpacity>
+               sur la catégorie 'bulletin' (équivalent du `#payslips` du web).
+               Gated sur digitalVault — sans coffre numérique, pas de bulletins. */}
+          {planAllows('digitalVault') && (
+            <TouchableOpacity
+              style={styles.quickAction}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('DigitalVault', { category: 'bulletin' })}
+            >
+              <View style={[styles.quickIconBox, { backgroundColor: '#fef3c7' }]}>
+                <MaterialCommunityIcons name="cash-multiple" size={22} color="#92400e" />
+              </View>
+              <Text style={styles.quickLabel}>Bulletin</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.quickAction}
@@ -641,16 +662,20 @@ export default function HomeScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* Vault Preview */}
+        {/* Vault Preview — entièrement gated sur digitalVault (pas seulement
+            les actions à l'intérieur). Sur un pack Starter qui n'inclut pas
+            le coffre, on retire la section pour ne pas afficher un placeholder
+            vide ou des documents factices. */}
+        {planAllows('digitalVault') && (
         <View style={styles.vaultSection}>
           <View style={styles.vaultHeader}>
             <MaterialCommunityIcons name="folder-account-outline" size={18} color={COLORS.onSurface} />
             <Text style={styles.vaultTitle}>Coffre-fort récent</Text>
           </View>
-          
+
           {recentDocs.map((doc) => (
-            <TouchableOpacity 
-              key={doc.id} 
+            <TouchableOpacity
+              key={doc.id}
               style={styles.vaultItem}
               onPress={() => navigation.navigate('DigitalVault')}
             >
@@ -665,9 +690,14 @@ export default function HomeScreen({ navigation }: any) {
             </TouchableOpacity>
           ))}
         </View>
+        )}
       </ScrollView>
 
-      {/* FAB Assistant RH (chat RAG sur les documents juridiques du tenant) */}
+      {/* FAB Assistant RH (chat RAG sur les documents juridiques du tenant) — gated
+          sur ragAi. Sans cette feature, le FAB disparaît et l'écran ChatRag reste
+          inaccessible (les endpoints /Chat-Rag sont déjà 402 côté backend via
+          [RequirePlanFeature(nameof(PlanFeatures.RagAi))]). */}
+      {planAllows('ragAi') && (
       <TouchableOpacity
         style={[styles.ragFab, { bottom: tabBarPadding - 8 }]}
         onPress={() => navigation.navigate('ChatRag')}
@@ -682,6 +712,7 @@ export default function HomeScreen({ navigation }: any) {
           <MaterialCommunityIcons name="scale-balance" size={26} color="#fff" />
         </LinearGradient>
       </TouchableOpacity>
+      )}
 
       <BottomTabBar active="home" navigation={navigation} />
 

@@ -56,7 +56,9 @@ interface PlanCatalogEntry {
   includedAdmins: number | null;
   overageRatePerEmployeeEur: number;
   storageQuotaMb: number;
-  maxStorageMb: number;
+  // null depuis 2026-05-27 : plus de plafond commercial sur le stockage.
+  // L'admin peut acheter des blocs de stockage supplémentaires sans limite.
+  maxStorageMb: number | null;
   storageSupplementBlockEur: number;
 }
 
@@ -88,7 +90,7 @@ const PLAN_META: Record<PlanKey, {
 }> = {
   // baseEur = prix d'engagement ANNUEL (équivalent mensuel) — c'est le « dès »
   // affiché sur les cartes, le plus bas affiché à l'utilisateur. Aligné avec
-  // tarifs.txt 2026-05 : Starter 69 €, Standard 119 €, Business 249 €.
+  // tarifs.txt 2026-05 : Starter 69 €, Standard 119 €, Premium 249 €.
   Starter: {
     label: 'Starter',
     tagline: 'Pour démarrer la digitalisation RH d\'une petite équipe — pointage web & mobile, congés et fiches employés.',
@@ -123,9 +125,10 @@ const PLAN_META: Record<PlanKey, {
     ],
     popular: true,
   },
-  // Code interne « Premium » conservé pour compat Stripe ; libellé commercial = Business.
+  // Code interne « Premium » conservé pour compat Stripe ; libellé commercial réaligné
+  // sur « Premium » depuis 2026-05-27 (était « Business »).
   Premium: {
-    label: 'Business',
+    label: 'Premium',
     tagline: 'Multi-filiales, assistant IA et sécurité avancée pour les grands comptes.',
     baseEur: 249,
     rank: 3,

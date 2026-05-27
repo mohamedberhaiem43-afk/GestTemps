@@ -17,11 +17,13 @@ namespace ABRPOINT.Server.Controllers
         private readonly IAbscenceRepository _absenceRepository;
         private readonly IReportsGenerationService _reportsGenerationService;
         private readonly ApplicationDbContext _db;
-        public AbsencesController(IAbscenceRepository absenceRepository, IReportsGenerationService reportsGenerationService, ApplicationDbContext db)
+        private readonly ILogger<AbsencesController>? _logger;
+        public AbsencesController(IAbscenceRepository absenceRepository, IReportsGenerationService reportsGenerationService, ApplicationDbContext db, ILogger<AbsencesController>? logger = null)
         {
             _absenceRepository = absenceRepository;
             _reportsGenerationService = reportsGenerationService;
             _db = db;
+            _logger = logger;
         }
 
 
@@ -50,16 +52,27 @@ namespace ABRPOINT.Server.Controllers
         public IActionResult GetAbsenceReport(string soccod,string empcod,string concod)
         {
             if (string.IsNullOrWhiteSpace(soccod))
-                return BadRequest(new {Message = "code sociÃ©tÃ© est obligatoire"});
+                return BadRequest(new {Message = "code societe est obligatoire"});
+            if (string.IsNullOrWhiteSpace(empcod))
+                return BadRequest(new { Message = "code employe est obligatoire" });
+            if (string.IsNullOrWhiteSpace(concod))
+                return BadRequest(new { Message = "code sanction est obligatoire" });
             try
             {
-
                 byte[] pdfBytes = _reportsGenerationService.GenerateAbsenceReport(soccod, empcod, concod);
                 return File(pdfBytes, "application/pdf", "Absence.pdf");
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Erreur lors de rÃ©cupÃ©rer des contrats", details = "Erreur interne. Consultez les logs serveur pour le détail." });
+                // 2026-05-27 — Avant : 500 muet, impossible de diagnostiquer.
+                // Maintenant : log structuré pour pouvoir reproduire à partir des logs.
+                // Cause historique typique : FastReport SetParameterValue("concod") sur
+                // un FRX dont le Dictionary ne déclarait pas le paramètre concod (fixé
+                // dans Reports/Absence.frx 2026-05-27).
+                _logger?.LogError(ex,
+                    "Echec GenerateAbsenceReport soccod={Soccod} empcod={Empcod} concod={Concod}",
+                    soccod, empcod, concod);
+                return StatusCode(500, new { message = "Erreur lors de la generation du rapport d'absence", details = "Erreur interne. Consultez les logs serveur pour le detail." });
             }
         }
         [HttpGet("get-autorisations-libs/{soccod}")]

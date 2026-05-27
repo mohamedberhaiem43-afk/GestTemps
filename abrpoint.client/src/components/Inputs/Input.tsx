@@ -1,8 +1,5 @@
-import { InputLabel, Input } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs, { Dayjs } from "dayjs";
+import { InputLabel, Input, TextField, Box, Typography } from "@mui/material";
+import dayjs from "dayjs";
 import "dayjs/locale/fr";
 
 interface InputComponentProps {
@@ -26,56 +23,64 @@ export default function InputComponent({
   readOnly = false,
   required = false
 }: InputComponentProps): JSX.Element {
-  // Pour le type "date", on remplace l'input HTML natif (qui n'offre pas de
-  // dropdown année et est lent à dérouler) par MUI X DatePicker. Le picker
-  // affiche une vue année navigable + saisie manuelle au format DD/MM/YYYY.
-  // L'API en sortie reste identique (string ISO YYYY-MM-DD) pour ne pas
-  // casser les 15 composants qui consomment InputComponent.
+  // 2026-05-27 — Refonte du rendu type="date" :
+  //   AVANT : MUI X DatePicker avec dropdown année + locale fr. UX moins
+  //   cohérente avec le reste de l'app (notamment SaisieContratModern qui
+  //   utilise un <input type="date"> natif). Le label « shrink » au-dessus +
+  //   le standalone TextField faisait ressembler les champs DOB à des
+  //   formulaires legacy, là où la grille contrat avait un look moderne
+  //   pill-shaped gris-clair.
+  //   APRÈS : on s'aligne sur la grille contrat — <TextField type="date">
+  //   avec fond gris clair (#f2f4f6) + radius 8px + label uppercase compact
+  //   au-dessus. Plus de dépendance directe à @mui/x-date-pickers ici (les
+  //   appelants qui veulent encore un DatePicker complet peuvent l'importer
+  //   directement). Sortie iso "YYYY-MM-DD" identique → 0 breaking change
+  //   pour les consommateurs (handleChange déjà câblé sur cet ISO).
   if (type === "date") {
-    const parsed: Dayjs | null = value
-      ? (typeof value === "string" ? dayjs(value) : dayjs(value))
-      : null;
-    const valid = parsed && parsed.isValid() ? parsed : null;
-
-    const emitChange = (next: Dayjs | null) => {
-      const iso = next && next.isValid() ? next.format("YYYY-MM-DD") : "";
-      if (onChange) {
-        // Émule l'event d'un input natif pour les callers qui s'attendent à ChangeEvent.
-        onChange({ target: { name, value: iso } } as unknown as React.ChangeEvent<HTMLInputElement>);
-      } else if (setValue) {
-        setValue(iso);
-      }
-    };
+    // Normalisation valeur : accepte string ISO, Date, Dayjs ou null. Le
+    // <input type="date"> exige strict "YYYY-MM-DD" sinon il reste vide.
+    let isoValue = "";
+    if (value) {
+      const d = typeof value === "string" ? dayjs(value) : dayjs(value);
+      if (d.isValid()) isoValue = d.format("YYYY-MM-DD");
+    }
 
     return (
-      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
-        <InputLabel shrink>{label}</InputLabel>
-        <DatePicker
-          value={valid}
-          onChange={emitChange}
-          format="DD/MM/YYYY"
-          // Active la vue année (dropdown des années) en plus de mois/jour.
-          views={["year", "month", "day"]}
-          openTo="day"
-          // Plage très large : 50 ans en arrière, 5 ans en avant. Couvre le
-          // recrutement (ancienneté) et la planification de contrats CDD.
-          minDate={dayjs().subtract(50, "year")}
-          maxDate={dayjs().add(5, "year")}
-          disabled={readOnly}
-          slotProps={{
-            textField: {
-              size: "small",
-              variant: "standard",
-              required,
-              fullWidth: true,
-              name,
-              InputProps: { readOnly },
-            },
-            // Header du picker mois+année cliquables (passe en vue année d'un clic).
-            calendarHeader: { format: "MMMM YYYY" },
+      <Box sx={{ width: "100%" }}>
+        <Typography
+          sx={{
+            fontSize: "10px",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+            color: "#515f74",
+            mb: 0.5,
+          }}
+        >
+          {label}{required ? " *" : ""}
+        </Typography>
+        <TextField
+          type="date"
+          size="small"
+          fullWidth
+          required={required}
+          name={name}
+          value={isoValue}
+          onChange={(e) => {
+            const next = e.target.value; // déjà ISO YYYY-MM-DD côté natif
+            if (onChange) onChange(e as React.ChangeEvent<HTMLInputElement>);
+            else if (setValue) setValue(next);
+          }}
+          InputProps={{ readOnly }}
+          sx={{
+            backgroundColor: "#f2f4f6",
+            borderRadius: "8px",
+            "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+            "&:hover": { backgroundColor: "#ffffff" },
+            "& .Mui-focused": { backgroundColor: "#ffffff" },
           }}
         />
-      </LocalizationProvider>
+      </Box>
     );
   }
 

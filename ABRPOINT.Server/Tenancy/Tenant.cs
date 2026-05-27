@@ -50,6 +50,18 @@ public class Tenant
     [MaxLength(2)]
     public string? CountryCode { get; set; }
 
+    /// <summary>
+    /// Secteur d'activité de l'entreprise (libellé libre, ex: « Conseil pour les
+    /// affaires et autres conseils de gestion »). Pour les pays disposant d'une API
+    /// publique de répertoire (FR Sirene, BE BCE), le champ est pré-rempli au signup
+    /// avec l'activité principale renvoyée par l'API. Le tenant peut le surcharger
+    /// manuellement. Sert au profilage commercial (segmenter les comm/onboarding par
+    /// vertical métier) et au routing IA (prompts adaptés à un BTP vs un cabinet
+    /// d'audit). Optionnel — un signup ancien sans ce champ reste valide.
+    /// </summary>
+    [MaxLength(200)]
+    public string? ActivitySector { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? TrialEndsAt { get; set; }

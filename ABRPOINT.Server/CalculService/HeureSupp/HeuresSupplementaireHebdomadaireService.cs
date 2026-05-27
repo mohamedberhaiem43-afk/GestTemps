@@ -238,12 +238,25 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             // respectant la règle de répartition (tranche1 jusqu'à son seuil, le
             // reste en tranche2).
             //
+            // 2026-05-28 — Double plafonnement supplémentaire : une demande approuvée
+            // ne peut JAMAIS faire dépasser le total réellement constaté côté
+            // pointage (HreSupCalcule = Tothre − NbhCalendSem, clampé à 0).
+            // Sans ce cap, un manager qui valide « 8h » alors que l'employé a
+            // travaillé 35h pile (= 0 h.supp factuelles) verrait 8h apparaître
+            // dans Pointage du mois, ce qui rend la paie incohérente avec la
+            // feuille de présence. Règle métier : l'approbation est une CONDITION
+            // NÉCESSAIRE mais non suffisante — il faut AUSSI un dépassement
+            // hebdomadaire effectif au-delà des heures calendrier de la société.
+            //
             // ⚠ Tothre n'est PAS ajusté : il représente le total d'heures physiquement
             // pointées (gross), pas le total payable. Le découplage gross/net est
             // exactement ce que le workflow de validation matérialise.
-            result.HreSupSemaine = approved;
-            result.HeuresSupTranche1 = (float?)Math.Min(approved, tranche1 ?? 0f);
-            var remaining = approved - (result.HeuresSupTranche1 ?? 0f);
+            var rawExcess = Math.Max(0f, result.HreSupCalcule ?? 0f);
+            var payable = (float)Math.Min(approved, rawExcess);
+
+            result.HreSupSemaine = payable;
+            result.HeuresSupTranche1 = (float?)Math.Min(payable, tranche1 ?? 0f);
+            var remaining = payable - (result.HeuresSupTranche1 ?? 0f);
             result.HeuresSupTranche2 = (float?)Math.Min(remaining, tranche2 ?? 0f);
         }
 

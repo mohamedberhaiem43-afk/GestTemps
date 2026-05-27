@@ -636,6 +636,11 @@ ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""StorageUsageCheckedAt"" TIMES
                 await masterDb.Database.ExecuteSqlRawAsync(@"
 ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""Addons""                              VARCHAR(200) NULL;
 ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""SubscriptionRenewalReminderSentAt""   TIMESTAMP    NULL;");
+                // Secteur d'activité (2026-05-27) : libellé libre pré-rempli depuis
+                // l'API Sirene/BCE quand disponible, sinon saisi manuellement par
+                // l'admin au signup. Nullable pour rétro-compat tenants existants.
+                await masterDb.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE \"Tenants\" ADD COLUMN IF NOT EXISTS \"ActivitySector\" VARCHAR(200) NULL;");
                 startupLogger.LogInformation("Master DB prête (EnsureCreated).");
             }
         }

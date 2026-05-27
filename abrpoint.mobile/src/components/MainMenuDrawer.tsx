@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, Alert } fr
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../config/env';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, PlanFeatures } from '../contexts/AuthContext';
 
 interface Props {
   visible: boolean;
@@ -17,31 +17,38 @@ interface MenuItem {
   route?: string;
   action?: 'logout';
   managerOnly?: boolean;
+  /** Si défini, l'entrée disparaît quand la feature n'est pas active sur le pack. */
+  requires?: keyof PlanFeatures;
   color?: string;
 }
 
+// 2026-05-27 — chaque entrée du drawer porte un flag `requires` pour matcher
+// l'écran sur le bon module pack. Sans ça, un user Starter voyait des entrées
+// (Missions, Coffre, Frais, Assistant juridique…) qui menaient à des écrans
+// renvoyés 402 par le backend → confusion. Maintenant l'entrée disparaît
+// silencieusement quand le tenant n'a pas la feature.
 const MENU: MenuItem[] = [
   { icon: 'view-dashboard-outline',  label: 'Accueil',                route: 'Home' },
   { icon: 'account-circle-outline',  label: 'Mon profil',             route: 'Profile' },
   { icon: 'bell-outline',            label: 'Notifications',          route: 'Notifications' },
   { icon: 'cog-outline',             label: 'Préférences notifications', route: 'NotificationPreferences' },
-  { icon: 'calendar-month-outline',  label: 'Mes congés',             route: 'LeaveRequest' },
-  { icon: 'exit-run',                label: 'Autorisations sortie',   route: 'DemandeAutorisation' },
-  { icon: 'receipt',                 label: 'Notes de frais',         route: 'Expense' },
-  { icon: 'briefcase-outline',       label: 'Missions',               route: 'Missions' },
+  { icon: 'calendar-month-outline',  label: 'Mes congés',             route: 'LeaveRequest',         requires: 'leaveManagement' },
+  { icon: 'exit-run',                label: 'Autorisations sortie',   route: 'DemandeAutorisation',  requires: 'authorizationManagement' },
+  { icon: 'receipt',                 label: 'Notes de frais',         route: 'Expense',              requires: 'expenseReports' },
+  { icon: 'briefcase-outline',       label: 'Missions',               route: 'Missions',             requires: 'missions' },
   { icon: 'history',                 label: 'Historique pointage',    route: 'PresenceHistory' },
   { icon: 'calendar-clock-outline',  label: 'Mon planning',           route: 'Schedule' },
-  { icon: 'folder-lock',             label: 'Coffre-fort',            route: 'DigitalVault' },
-  { icon: 'cash-multiple',           label: 'Bulletins de paie',      route: 'DigitalVault' },
+  { icon: 'folder-lock',             label: 'Coffre-fort',            route: 'DigitalVault',         requires: 'digitalVault' },
+  { icon: 'cash-multiple',           label: 'Bulletins de paie',      route: 'DigitalVault',         requires: 'digitalVault' },
   { icon: 'calendar-star',           label: 'Jours fériés',           route: 'Holidays' },
-  { icon: 'scale-balance',           label: 'Assistant juridique',    route: 'ChatRag' },
-  { icon: 'view-dashboard',          label: 'Tableau de bord équipe', route: 'ManagerDashboard', managerOnly: true },
-  { icon: 'calendar-check-outline',  label: 'Valider congés',         route: 'LeaveApproval', managerOnly: true },
-  { icon: 'exit-run',                label: 'Valider autorisations',  route: 'AuthorizationApproval', managerOnly: true },
-  { icon: 'receipt-text-check-outline', label: 'Valider notes de frais', route: 'ExpenseApproval', managerOnly: true },
-  { icon: 'briefcase-check-outline', label: 'Valider missions',       route: 'MissionApproval', managerOnly: true },
-  { icon: 'account-group-outline',   label: 'Mes collaborateurs',     route: 'EmployeeList', managerOnly: true },
-  { icon: 'calendar-today',          label: 'Pointage du jour',       route: 'DailyPointage', managerOnly: true },
+  { icon: 'scale-balance',           label: 'Assistant juridique',    route: 'ChatRag',              requires: 'ragAi' },
+  { icon: 'view-dashboard',          label: 'Tableau de bord équipe', route: 'ManagerDashboard',     managerOnly: true, requires: 'advancedDashboards' },
+  { icon: 'calendar-check-outline',  label: 'Valider congés',         route: 'LeaveApproval',        managerOnly: true, requires: 'leaveManagement' },
+  { icon: 'exit-run',                label: 'Valider autorisations',  route: 'AuthorizationApproval',managerOnly: true, requires: 'authorizationManagement' },
+  { icon: 'receipt-text-check-outline', label: 'Valider notes de frais', route: 'ExpenseApproval',  managerOnly: true, requires: 'expenseReports' },
+  { icon: 'briefcase-check-outline', label: 'Valider missions',       route: 'MissionApproval',      managerOnly: true, requires: 'missions' },
+  { icon: 'account-group-outline',   label: 'Mes collaborateurs',     route: 'EmployeeList',         managerOnly: true },
+  { icon: 'calendar-today',          label: 'Pointage du jour',       route: 'DailyPointage',        managerOnly: true },
 ];
 
 const LOGOUT_ITEM: MenuItem = { icon: 'logout', label: 'Déconnexion', action: 'logout', color: COLORS.error };
@@ -55,7 +62,7 @@ const LOGOUT_ITEM: MenuItem = { icon: 'logout', label: 'Déconnexion', action: '
  */
 export default function MainMenuDrawer({ visible, onClose, navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { user, isAdmin, isManager, logout } = useAuth();
+  const { user, isAdmin, isManager, logout, planAllows } = useAuth();
 
   const onItemPress = (item: MenuItem) => {
     onClose();
@@ -76,7 +83,11 @@ export default function MainMenuDrawer({ visible, onClose, navigation }: Props) 
     }
   };
 
-  const visibleItems = MENU.filter(it => !it.managerOnly || isAdmin || isManager);
+  const visibleItems = MENU.filter(it => {
+    if (it.managerOnly && !isAdmin && !isManager) return false;
+    if (it.requires && !planAllows(it.requires)) return false;
+    return true;
+  });
   const initials = (user?.utilib || '?').split(' ').map((p: string) => p[0]).slice(0, 2).join('').toUpperCase();
 
   return (

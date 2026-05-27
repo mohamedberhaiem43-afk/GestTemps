@@ -81,10 +81,12 @@ interface PlanInfo {
   flatPriceMonthlyEur: number;
   flatPriceAnnualMonthlyEur: number;
   includedEmployees: number;
-  includedAdmins: number | null;       // null = illimité (Business)
+  includedAdmins: number | null;       // null = illimité (Premium)
   overageRatePerEmployeeEur: number;
   storageQuotaMb: number;
-  maxStorageMb: number;
+  // 2026-05-27 : plus de plafond commercial sur le stockage (null = illimité).
+  // L'admin peut étendre par blocs supplémentaires (storageSupplementBlockEur).
+  maxStorageMb: number | null;
   storageSupplementBlockEur: number;
 }
 
@@ -849,7 +851,7 @@ export default function MonAbonnementPage() {
               GetEffectiveFeatures). C'est la vue "ce à quoi j'ai accès aujourd'hui". */}
           <Box sx={{ mb: subscribedAddons.length > 0 ? 3 : 0 }}>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1.5 }}>
-              Inclus dans votre pack{planCode ? ` ${planCode === 'Premium' ? 'Business' : planCode}` : ''}
+              Inclus dans votre pack{planCode ? ` ${planCode}` : ''}
             </Typography>
             {activeFeatureKeys.length === 0 ? (
               <Typography sx={{ fontSize: 13, color: '#94a3b8' }}>

@@ -23,6 +23,7 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 import { DateMoisPointageRangeProvider, useDateMoisPointageRange } from './FilterPointageMoisContext';
 import useGetPointageMois from '../../../hooks/pointagemoisHooks/useGetPointageMois';
 import useGetRubriquesPaire from '../../../hooks/rubriqueHooks/useGetRubriquePaire';
@@ -200,7 +201,8 @@ function PointageDuMoisContent() {
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [showEmpDropdown, setShowEmpDropdown] = useState(false);
   const [treatedAlerts, setTreatedAlerts] = useState<Record<string, 'traite' | 'ignore'>>({});
-  const [alertFilter, setAlertFilter] = useState<'all' | 'retard' | 'absnj'>('all');
+  const [alertFilter, setAlertFilter] = useState<'all' | 'retard' | 'absnj' | 'hs_pending'>('all');
+  const navigate = useNavigate();
   const [showGuide, setShowGuide] = useState(false);
   // Recherche locale dans le dropdown employés (utile dès 20+ employés).
   const [empSearch, setEmpSearch] = useState('');
@@ -245,7 +247,7 @@ function PointageDuMoisContent() {
   // ── Alerts data ──
   const alertsData = useMemo(() => {
     const alerts: {
-      id: string; type: 'retard' | 'absnj'; empCode: string; empLib: string; empMat: string;
+      id: string; type: 'retard' | 'absnj' | 'hs_pending'; empCode: string; empLib: string; empMat: string;
       weekIdx: number; value: number; label: string; severity: 'warn' | 'err';
     }[] = [];
     pointageMois.forEach(emp => {
@@ -268,6 +270,20 @@ function PointageDuMoisContent() {
             severity: 'err',
           });
         }
+        // 2026-05-28 — Heures sup à valider : la semaine porte au moins une
+        // demande [HEURES SUP] en attente. Sans cette alerte, le préparateur
+        // paie devait visiter manuellement /validation-heures-sup pour les
+        // détecter — d'où des paies clôturées avec des demandes oubliées.
+        const pendingHs = r.hreSupEnAttente ?? 0;
+        if (pendingHs > 0) {
+          alerts.push({
+            id: `${emp.empCode}-hspending-S${idx + 1}`,
+            type: 'hs_pending', empCode: emp.empCode, empLib: emp.empLib, empMat: emp.empMat,
+            weekIdx: idx + 1, value: pendingHs,
+            label: t('pointageMois.alerts.hsPendingLabel', { value: pendingHs.toFixed(2), week: idx + 1 }),
+            severity: 'warn',
+          });
+        }
       });
     });
     return alerts;
@@ -276,6 +292,12 @@ function PointageDuMoisContent() {
   const filteredAlerts = useMemo(() =>
     alertFilter === 'all' ? alertsData : alertsData.filter(a => a.type === alertFilter),
     [alertsData, alertFilter]);
+
+  // Compte de semaines × employés ayant au moins une demande h.supp en attente,
+  // utilisé pour la carte alertes en page (et le filtre du dialogue).
+  const hsPendingCount = useMemo(() =>
+    pointageMois.filter(e => e.heuresSupplementairesResultats?.some(r => (r.hreSupEnAttente ?? 0) > 0)).length,
+    [pointageMois]);
 
   const treatedCount = Object.keys(treatedAlerts).filter(k => treatedAlerts[k] === 'traite').length;
   const ignoredCount = Object.keys(treatedAlerts).filter(k => treatedAlerts[k] === 'ignore').length;
@@ -1104,6 +1126,15 @@ function PointageDuMoisContent() {
                     </Box>
                   </Box>
                 )}
+                {hsPendingCount > 0 && (
+                  <Box className="pdm-alert-item pdm-alert-item--warn">
+                    <Box className="pdm-alert-icon pdm-alert-icon--warn"><WarningIcon sx={{ color: '#f59e0b', fontSize: 20 }} /></Box>
+                    <Box>
+                      <Typography className="pdm-alert-title">{t('pointageMois.alerts.hsPending', { count: hsPendingCount })}</Typography>
+                      <Typography className="pdm-alert-sub">{t('pointageMois.alerts.hsPendingSub')}</Typography>
+                    </Box>
+                  </Box>
+                )}
               </Box>
               <button className="pdm-alert-btn" onClick={() => { setTreatedAlerts({}); setAlertFilter('all'); setOpenAlertsDialog(true); }}>{t('pointageMois.alerts.treatBtn')}</button>
             </Paper>
@@ -1316,9 +1347,10 @@ function PointageDuMoisContent() {
                 ['all', t('pointageMois.alerts.filterAll')],
                 ['retard', t('pointageMois.alerts.filterDelays')],
                 ['absnj', t('pointageMois.alerts.filterAbsences')],
+                ['hs_pending', t('pointageMois.alerts.filterHsPending', 'Heures sup à valider')],
               ] as const).map(([val, lbl]) => (
                 <Button key={val} size="small"
-                  onClick={() => setAlertFilter(val as 'all' | 'retard' | 'absnj')}
+                  onClick={() => setAlertFilter(val as 'all' | 'retard' | 'absnj' | 'hs_pending')}
                   sx={{
                     fontWeight: 700, fontSize: '12px', textTransform: 'none', borderRadius: '8px',
                     bgcolor: alertFilter === val ? '#0040a1' : 'transparent',
@@ -1409,7 +1441,32 @@ function PointageDuMoisContent() {
                       <Chip label={t('pointageMois.alerts.ignoredBadge')} size="small"
                         sx={{ fontWeight: 700, fontSize: '11px', bgcolor: '#f1f5f9', color: '#94a3b8' }} />
                     ) : (
-                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                        {alert.type === 'hs_pending' && (
+                          // Pour les h.supp en attente, "Traiter" doit ouvrir l'écran
+                          // de validation — le toggle local ne fait pas le job côté
+                          // métier (la demande reste Pending tant que personne ne
+                          // l'a approuvée/rejetée). On marque aussi l'alerte comme
+                          // « traitée » localement pour fermer la boucle UX.
+                          <Tooltip title={t('pointageMois.alerts.openOvertimeApproval', 'Ouvrir l\'écran de validation')}>
+                            <Button
+                              size="small"
+                              onClick={() => {
+                                setTreatedAlerts(prev => ({ ...prev, [alert.id]: 'traite' }));
+                                setOpenAlertsDialog(false);
+                                navigate('/dashboard/validation-heures-sup');
+                              }}
+                              sx={{
+                                fontWeight: 700, fontSize: '11px', textTransform: 'none',
+                                borderRadius: '8px', minWidth: 0, px: 1.2, height: 28,
+                                bgcolor: '#fef3c7', color: '#92400e',
+                                '&:hover': { bgcolor: '#fde68a' },
+                              }}
+                            >
+                              {t('pointageMois.alerts.openOvertimeApprovalBtn', 'Valider')}
+                            </Button>
+                          </Tooltip>
+                        )}
                         <Tooltip title={t('pointageMois.alerts.markTreated')}>
                           <IconButton size="small"
                             onClick={() => setTreatedAlerts(prev => ({ ...prev, [alert.id]: 'traite' }))}

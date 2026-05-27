@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>ABRPOINT.Server.Benchmarks</RootNamespace>
+    <AssemblyName>ABRPOINT.Server.Benchmarks</AssemblyName>
+    <!-- BenchmarkDotNet exige Release pour des mesures fiables : on l'impose ici
+         pour éviter qu'un run accidentel en Debug donne des chiffres trompeurs. -->
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ABRPOINT.Server/ABRPOINT.Server.csproj" />
+  </ItemGroup>
+
+</Project>

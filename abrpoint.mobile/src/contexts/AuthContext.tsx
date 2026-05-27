@@ -6,11 +6,15 @@ import { setupCertificatePinning } from '../services/certificatePinning';
 
 /**
  * Drapeaux fonctionnels actifs pour le tenant courant (mirroir du record
- * PlanFeatures côté backend). Permet aux hooks de sécurité mobile (device trust,
- * screenshot protection) de s'activer uniquement sur les plans qui les incluent
- * (Premium aujourd'hui). Pendant l'essai, le backend renvoie tout à `true`.
+ * PlanFeatures côté backend, cf. ABRPOINT.Server/Tenancy/PlanCatalog.cs).
+ * Permet de masquer les écrans non inclus dans le pack du tenant sur le
+ * mobile (équivalent du planAllows côté web). 2026-05-27 — synchronisation
+ * avec la version web (les flags congé / autorisation / missions / notes
+ * de frais / contrats / OCR / import / addons étaient absents du mobile
+ * donc TOUS les modules étaient visibles, peu importe le pack).
  */
 export interface PlanFeatures {
+  // Sécurité & infra
   mobileApp: boolean;
   geolocation: boolean;
   digitalVault: boolean;
@@ -24,6 +28,23 @@ export interface PlanFeatures {
   deviceTrustEnforced: boolean;
   screenshotProtection: boolean;
   certificatePinning: boolean;
+  // Modules RH avancés (réservés Standard/Premium côté web — même règle ici).
+  missions: boolean;
+  compensationDays: boolean;
+  generalLeave: boolean;
+  generalExit: boolean;
+  // Workflow congé + autorisation (exclus du Starter — pointage simple uniquement).
+  leaveManagement: boolean;
+  authorizationManagement: boolean;
+  // Modules métier (exclus Starter).
+  expenseReports: boolean;
+  breastfeedingManagement: boolean;
+  contractManagement: boolean;
+  documentScanOcr: boolean;
+  bulkImport: boolean;
+  // Addon-only (jamais inclus dans un pack, débloqué par addon souscrit).
+  apiAccess: boolean;
+  prioritySupport: boolean;
 }
 
 interface UserInfo {
@@ -62,6 +83,14 @@ interface AuthContextType {
   isAdmin: boolean;
   isManager: boolean;
   isEmployee: boolean;
+  /**
+   * Helper de gating de feature en miroir du `planAllows` côté web. Renvoie
+   * true si la feature est active sur le pack du tenant courant (ou
+   * en essai gratuit — pendant Trialing, le backend renvoie tous les flags
+   * à true). Pratique pour masquer/désactiver les actions du HomeScreen
+   * sans dupliquer la logique d'appartenance pack ↔ feature côté client.
+   */
+  planAllows: (feature: keyof PlanFeatures) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -193,6 +222,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isManager = !isAdmin && (role === 'manager' || role === 'rh' || role === 'superviseur');
   const isEmployee = user?.isEmp === true;
 
+  // Convention identique au web : si planFeatures n'est pas chargé (premier
+  // render avant /me, ou tenant legacy sans pack défini), on AUTORISE la
+  // feature pour ne pas casser l'UX. Le backend reste l'autorité finale —
+  // un endpoint protégé répondra 402 et l'écran affichera le message d'upgrade.
+  const planAllows = (feature: keyof PlanFeatures): boolean => {
+    const features = user?.planFeatures;
+    if (!features) return true;
+    return Boolean(features[feature]);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -206,6 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin,
         isManager,
         isEmployee,
+        planAllows,
       }}
     >
       {children}

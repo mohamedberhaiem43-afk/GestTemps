@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Box, Typography, Paper, TextField, Select, MenuItem,
   FormControl, Button, Avatar, Chip, IconButton, CircularProgress, Snackbar, Alert,
-  Dialog, DialogTitle, DialogContent, DialogActions,
+  Dialog, DialogTitle, DialogContent, DialogActions, Menu, ListItemIcon, ListItemText, Tooltip,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import EditIcon from '@mui/icons-material/Edit';
@@ -102,36 +102,109 @@ function KpiCard({ label, value, sub, subColor, highlight }: {
 }
 
 // ── Row menu ──────────────────────────────────────────────────────────────────
+// Refonte 2026-05-27 : on bascule du Paper position="fixed" maison vers le MUI <Menu>
+// natif. Anciens problèmes :
+//   • Mauvaise position quand la page était scrollée (fixed sans top/left).
+//   • Items « Renouveler » / « Modifier » paraissaient grisés/inaccessibles à cause
+//     d'un mélange `color: undefined` + fontWeight 500 + icône en slate-500.
+//   • Pas de gestion d'accessibilité clavier (focus/escape) sur le Paper custom.
+// La version <Menu> hérite des comportements natifs + on rend visible chaque item
+// que la permission soit OK ou non — quand l'action est refusée, on disable + tooltip,
+// ce qui empêche le ressenti « le bouton n'existe pas » qui rendait l'UX confuse.
 function RowMenu({ onEdit, onDelete, onRenew, onExport, canModify, canDelete, canAdd }: {
   onEdit: () => void; onDelete: () => void; onRenew: () => void; onExport: () => void;
   canModify: boolean; canDelete: boolean; canAdd: boolean;
 }) {
   const { t } = useTranslation();
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
+  const close = () => setAnchor(null);
+
+  const items: Array<{
+    key: string; label: string; icon: React.ReactNode;
+    onClick: () => void; color: string; enabled: boolean; disabledHint?: string;
+  }> = [
+    {
+      key: 'export', label: t('contrat.exportPdf'),
+      icon: <PictureAsPdfIcon fontSize="small" />, onClick: onExport,
+      color: '#16a34a', enabled: true,
+    },
+    {
+      key: 'renew', label: t('contrat.renew'),
+      icon: <RefreshIcon fontSize="small" />, onClick: onRenew,
+      color: '#0040a1', enabled: canAdd,
+      disabledHint: t('contrat.noAddRight'),
+    },
+    {
+      key: 'edit', label: t('contrat.edit'),
+      icon: <EditIcon fontSize="small" />, onClick: onEdit,
+      color: '#475569', enabled: canModify,
+      disabledHint: t('contrat.noModifyRight'),
+    },
+    {
+      key: 'delete', label: t('contrat.delete'),
+      icon: <DeleteIcon fontSize="small" />, onClick: onDelete,
+      color: '#ef4444', enabled: canDelete,
+      disabledHint: t('contrat.noDeleteRight'),
+    },
+  ];
+
   return (
     <>
-      <IconButton size="small" onClick={e => setAnchor(e.currentTarget)}
-        sx={{ color: '#94a3b8', '&:hover': { backgroundColor: '#f0f5ff', color: '#0040a1' }, borderRadius: '6px' }}>
+      <IconButton
+        size="small"
+        onClick={e => setAnchor(e.currentTarget)}
+        sx={{ color: '#94a3b8', '&:hover': { backgroundColor: '#f0f5ff', color: '#0040a1' }, borderRadius: '6px' }}
+      >
         <MoreVertIcon fontSize="small" />
       </IconButton>
-      {anchor && (
-        <Paper sx={{ position: 'fixed', zIndex: 1300, borderRadius: '10px', boxShadow: '0 8px 24px rgba(15,23,42,0.12)', minWidth: 160, border: '1px solid #edf0f5', mt: 0.5 }}
-          onClick={() => setAnchor(null)}>
-          {[
-            { label: t('contrat.exportPdf'), icon: <PictureAsPdfIcon fontSize="small" />, onClick: onExport, color: '#16a34a' },
-            canAdd && { label: t('contrat.renew'), icon: <RefreshIcon fontSize="small" />, onClick: onRenew, color: '#0040a1' },
-            canModify && { label: t('contrat.edit'), icon: <EditIcon fontSize="small" />, onClick: onEdit },
-            canDelete && { label: t('contrat.delete'), icon: <DeleteIcon fontSize="small" />, onClick: onDelete, color: '#ef4444' },
-          ].filter(Boolean).map((item: any) => (
-            <Box key={item.label} onClick={item.onClick}
-              sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.2, cursor: 'pointer', color: item.color || '#334155',
-                '&:hover': { backgroundColor: item.color ? '#fef2f2' : '#f8faff' } }}>
-              <Box sx={{ color: item.color || '#64748b', display: 'flex' }}>{item.icon}</Box>
-              <Typography sx={{ fontSize: '13px', fontWeight: 500 }}>{item.label}</Typography>
-            </Box>
-          ))}
-        </Paper>
-      )}
+      <Menu
+        anchorEl={anchor}
+        open={Boolean(anchor)}
+        onClose={close}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: '10px',
+              boxShadow: '0 8px 24px rgba(15,23,42,0.12)',
+              border: '1px solid #edf0f5',
+              minWidth: 180,
+              mt: 0.5,
+            },
+          },
+        }}
+      >
+        {items.map(it => {
+          const node = (
+            <MenuItem
+              key={it.key}
+              disabled={!it.enabled}
+              onClick={() => { close(); if (it.enabled) it.onClick(); }}
+              sx={{
+                px: 2, py: 1.1,
+                color: it.color,
+                fontWeight: 600,
+                fontSize: '13px',
+                // Désactivé : on baisse l'opacité MAIS on garde l'élément visible et
+                // tooltipé, pour signaler à l'utilisateur que l'action existe mais
+                // que ses droits l'en empêchent.
+                '&.Mui-disabled': { opacity: 0.45 },
+                '&:hover': it.enabled
+                  ? { backgroundColor: it.key === 'delete' ? '#fef2f2' : '#f8faff' }
+                  : undefined,
+              }}
+            >
+              <ListItemIcon sx={{ color: it.color, minWidth: 32 }}>{it.icon}</ListItemIcon>
+              <ListItemText primary={it.label} primaryTypographyProps={{ sx: { fontWeight: 600, fontSize: '13px' } }} />
+            </MenuItem>
+          );
+          // Tooltip uniquement quand l'item est désactivé — sinon double info-bulle parasite.
+          return !it.enabled && it.disabledHint
+            ? <Tooltip key={it.key} title={it.disabledHint} placement="left"><span>{node}</span></Tooltip>
+            : node;
+        })}
+      </Menu>
     </>
   );
 }
@@ -172,7 +245,11 @@ const GestionContratsModernInner = () => {
   const { data: empLibsRaw = {} } = useGetEmployeesLibs();
   const { data: empLibsDirect } = useGetEmployee();
   const { data: socLibs = {} } = useGetSocLibs();
-  const { data: sitLibs = {} } = useGetSiteLibs();
+  // Le hook accepte un override soccod : on lui passe la société sélectionnée
+  // dans le form si elle existe, sinon on retombe sur la société courante de
+  // l'auth. Sans cet override, changer la société dans le dropdown ne mettait
+  // pas à jour la liste des sites — d'où le ressenti « le SITE est toujours vide
+  // alors qu'un site est enregistré ».
   const { data: fonLibs = {} } = useGetFonctionsLibs();
 
   const contrats: Contrat[] = useMemo(() => {
@@ -194,6 +271,11 @@ const GestionContratsModernInner = () => {
   }, [empLibsRaw, empLibsDirect]);
 
   const [form, setForm] = useState<Contrat>(emptyForm(soccod || ''));
+  // sitLibs chargé en fonction de la société courante DU FORM (override sur le
+  // useAuth.soccod). Permet aux admins multi-sociétés de voir les sites de la
+  // société qu'ils viennent de sélectionner, et corrige le cas mono-société où
+  // la requête initiale avec `null` soccod renvoyait un cache vide non rafraîchi.
+  const { data: sitLibs = {} } = useGetSiteLibs(form.soccod || soccod || null);
   const [mode, setMode] = useState<'add' | 'edit'>('add');
   const [filterType, setFilterType] = useState('all');
   const [searchQ, setSearchQ] = useState('');

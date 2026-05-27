@@ -1,5 +1,5 @@
 import apiInstance from "../../components/API/apiInstance";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../components/helper/AuthProvider";
 
 /**
@@ -19,10 +19,19 @@ import { useAuth } from "../../components/helper/AuthProvider";
  *
  * Maintenant : on passe par `/Sites/get-sitlibs/{soccod}` (toute la société).
  * Si un écran a besoin du filtrage per-user, il faut un hook dédié.
+ *
+ * 2026-05-27 — Param optionnel `overrideSoccod` : permet aux pages multi-sociétés
+ * (ex: SaisieContrat où l'admin choisit la société du contrat dans un dropdown)
+ * de charger les sites de la société SÉLECTIONNÉE, et non de la société courante
+ * de l'auth. Sans cet override, le dropdown SITE restait vide dès que la société
+ * choisie côté form différait de la société de session de l'utilisateur.
+ * Le `initialData: {}` retournait alors un cache « vide » qui ne déclenchait
+ * pas de refetch — l'utilisateur voyait « Aucun site disponible » malgré
+ * l'existence de sites enregistrés sous cette société.
  */
-const useGetSiteLibs = () => {
-  const queryClient = useQueryClient();
-  const { soccod } = useAuth();
+const useGetSiteLibs = (overrideSoccod?: string | null) => {
+  const { soccod: authSoccod } = useAuth();
+  const soccod = overrideSoccod ?? authSoccod;
 
   return useQuery<Record<string,string>>({
     queryKey: ["sitlibs", soccod],
@@ -33,10 +42,12 @@ const useGetSiteLibs = () => {
       );
       return response.data || {};
     },
-    initialData: () => {
-      return queryClient.getQueryData<Record<string,string>>(["sitlibs", soccod]) || {};
-    },
+    // initialData retiré : il pré-remplissait un `{}` traité comme fresh data,
+    // ce qui empêchait l'UI de distinguer « pas encore chargé » de « 0 site ».
+    // En cas de cache hit, react-query renverra directement le cached data
+    // sans cet artifice.
     enabled: !!soccod,
+    placeholderData: (previous) => previous,
   });
 };
 

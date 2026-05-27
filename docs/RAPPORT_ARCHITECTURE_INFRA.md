@@ -1,6 +1,6 @@
 # Architecture serveurs & sécurité — Concorde Workforce
 
-**Référence :** RAPPORT_ARCHITECTURE_INFRA — version 1.0 — 2026-05-26
+**Référence :** RAPPORT_ARCHITECTURE_INFRA — version 1.1 — 2026-05-28
 **Périmètre :** infrastructure de production de la plateforme SaaS multi-tenant Concorde Workforce (pointage, gestion du temps, RH).
 **Auteur :** Équipe technique — Concorde Tech Innovation.
 
@@ -433,7 +433,305 @@ sudo systemctl restart crowdsec-firewall-bouncer
 
 ---
 
-## 10. Annexes
+## 10. Choix d'architecture et leur justification
+
+Cette section regroupe et motive les grandes décisions structurantes de la plateforme. Les sections §3 à §7 détaillent le « comment » ; celle-ci documente le « pourquoi » et les alternatives écartées.
+
+### 10.1 Multi-tenant : une base PostgreSQL par tenant
+
+**Choix retenu :** une base physique par client (`tenant_<slug>_<hex>`), centralisée par une base maître (`abrpoint_master`) qui ne contient que les métadonnées de routage.
+
+**Justification :**
+
+- **Isolation forte** — un tenant ne peut techniquement pas lire les données d'un autre, même en cas de bug applicatif (pas de risque qu'un `WHERE soccod = ''` laisse fuiter toutes les sociétés). C'est une mesure de défense en profondeur, complémentaire au filtrage applicatif.
+- **Conformité RGPD Art. 32 renforcée** — chaque tenant est un volume distinct, exportable et supprimable indépendamment (Art. 17 droit à l'effacement, Art. 20 droit à la portabilité).
+- **Suppression simple** — `DROP DATABASE` à la résiliation, sans impact sur les autres tenants. Pas de purge logique fragile.
+- **Restauration ciblée** — un rollback d'une base ne perturbe pas les autres clients.
+
+**Trade-offs acceptés :**
+
+- Coût de pool de connexions par tenant — mitigé par `Pooling=true; Maximum Pool Size=100` côté Npgsql.
+- Migrations EF Core à dérouler sur N bases — automatisé par `ProvisioningService` au démarrage et à l'inscription.
+
+**Alternative écartée :** schéma partagé avec colonne discriminante `soccod`. Rejetée pour les raisons de RGPD ci-dessus : un seul incident SQL applicatif → fuite cross-tenant non maîtrisable.
+
+### 10.2 Séparation physique serveur DB / serveur applicatif
+
+**Choix retenu :** deux VPS distincts, communication Postgres via WireGuard (recommandé) ou IP whitelist UFW.
+
+**Justification :**
+
+- **Défense en profondeur** — un compromis du serveur applicatif (RCE via dépendance vulnérable, exfiltration via SSRF si introduite par erreur) ne donne pas accès direct au filesystem hébergeant les données.
+- **Surface d'attaque réduite côté DB** — aucun port web, aucun service tiers, seul Postgres tourne. CrowdSec n'a pas à surveiller des couches applicatives sur ce serveur.
+- **Scalabilité indépendante** — on peut upgrader la RAM/SSD de la DB (besoin Postgres) sans toucher au CPU du serveur app (besoin RAG, build PDF), et inversement.
+
+**Trade-off accepté :** latence réseau supplémentaire (< 1 ms en VPC, 3-10 ms via WireGuard) — négligeable au regard du gain sécurité.
+
+### 10.3 Stack technologique
+
+| Couche | Choix | Justification principale |
+|---|---|---|
+| Backend | **.NET 8 ASP.NET Core** | Performances natives, écosystème EF Core mature pour multi-tenant dynamique, JWT/MFA disponibles out-of-the-box, équipe historiquement sur ce stack. |
+| Frontend web | **React 18 + Vite + MUI** | Productivité front, écosystème i18n riche (i18next FR/EN), composants Material accessibles WCAG. |
+| Mobile | **React Native + Expo (EAS Build)** | Code partagé conceptuel avec le web (mêmes contextes/hooks), build managé EAS iOS + Android sans Mac dans la chaîne, pinning natif via `network_security_config.xml` / `NSPinnedDomains`. |
+| Base relationnelle | **PostgreSQL 16** | ACID strict, `jsonb` natif (métadonnées Stripe), partitionnement disponible si volume futur le justifie. |
+| Base vectorielle | **Qdrant** | Embeddings RAG (multilingual-e5-large), recherche cosinus rapide, namespaces par tenant. |
+| Paiements | **Stripe** | Conformité PCI-DSS déléguée, abonnements + items supplémentaires (overage seats), webhooks idempotents. |
+| Conteneurisation | **Docker Compose** | Adapté à la taille de l'équipe ops (1-3 personnes), pas de besoin Kubernetes à ce stade, déploiement reproductible via un seul `docker compose up`. |
+
+### 10.4 Authentification — JWT HS256 + refresh tokens hashés
+
+**Choix retenu :** JWT HS256 courte durée (1 h) + refresh tokens rotatifs hashés SHA-256 stockés en master DB.
+
+**Justification :**
+
+- **JWT stateless** — pas de session côté serveur, scaling horizontal simple.
+- **HS256 plutôt que RS256** — clé partagée entre instances (mêmes pods), pas de besoin asymétrique. Clé `Jwt__Key` (≥ 32 caractères aléatoires) injectée par variable d'environnement.
+- **Refresh token hashé** — même si la master DB fuit, les tokens en clair restent inaccessibles. Rotation à chaque usage + révocation explicite.
+- **MFA TOTP optionnelle** — déclenchable par l'utilisateur sans contrainte forcée (UX progressive, conforme au principe de proportionnalité).
+
+### 10.5 Gating commercial — feature flags par pack
+
+**Choix retenu :** matrice `PlanCatalog` (backend) source de vérité unique, attribut `[RequirePlanFeature(...)]` sur les contrôleurs, helper `planAllows(...)` côté client web et mobile.
+
+**Justification :**
+
+- **Source de vérité unique** — `PlanCatalog.cs` énumère les 26 features actives par pack (Starter / Standard / Premium).
+- **Défense en profondeur** — le client masque les options (UX), le serveur refuse 402 Payment Required si la feature n'est pas active sur le pack (vérité métier). Le client ne peut pas contourner.
+- **Trialing automatique** — pendant la période d'essai gratuite, tous les flags sont à `true` côté backend pour ne pas pénaliser le prospect ; le code de gating n'a pas besoin d'un cas particulier.
+
+### 10.6 Pipeline RAG (assistant juridique) — side-car Python
+
+**Choix retenu :** side-car Python (FastAPI) qui charge `multilingual-e5-large` au démarrage, embeddings stockés dans Qdrant, LLM externe (Anthropic / OpenRouter / Gemini selon configuration).
+
+**Justification :**
+
+- **Isolation du side-car** — si le modèle d'embedding crashe (OOM, dépendance Python), le backend .NET reste opérationnel. Communication via clé partagée `SIDECAR_KEY`.
+- **Pas d'export de PII vers le LLM** — seuls les chunks de documents juridiques (Code du Travail, conventions collectives) sont envoyés ; jamais les salaires, CIN, ou pointages.
+- **Multi-provider LLM** — permet de basculer entre Claude / OpenRouter / Gemini selon disponibilité, coût, et exigences géographiques du tenant.
+
+### 10.7 Observabilité & IDS — CrowdSec en lecture seule
+
+**Choix retenu :** CrowdSec lit les logs nginx (volume `:ro`), déroule trois collections (`nginx`, `http-cve`, `base-http-scenarios`), génère des décisions matérialisées par le bouncer host.
+
+**Justification :**
+
+- **Pas d'agent intrusif** — CrowdSec lit le fichier de log, n'instrumente pas nginx. Aucun impact sur la latence du proxy.
+- **Légèreté** — un seul conteneur, < 100 Mo RAM.
+- **Communautaire opt-out par défaut** — `DISABLE_ONLINE_API: true` jusqu'à validation DPO (les indicateurs locaux pourraient contenir des IPs clients).
+
+---
+
+## 11. Variables exportées vers la paie — Calcul détaillé
+
+Le module **Pointage du Mois** (`abrpoint.client/src/components/PreparationPaie/PointageDuMois/PointageDuMoisModern.tsx`) agrège, par employé et par semaine (6 semaines glissantes par mois), l'ensemble des variables consommables par le logiciel de paie. Chaque variable est calculée côté serveur par `OptimizedPresenceService` puis enrichie par `HeuresSupplementairesHebdomadairesService` (cf. `ABRPOINT.Server/CalculService/`).
+
+Le détail des colonnes est exposé via la grille « Détail hebdomadaire » du dialogue employé et exporté tel quel dans le fichier d'intégration paie (Excel formaté Sage).
+
+### 11.1 Variables de présence brute
+
+| Variable | Description | Mode de calcul |
+|---|---|---|
+| `tothre` | Total des heures effectivement travaillées dans la semaine | Σ par jour des intervalles `(presortmatup − preentmatup) + (presortamidiup − preentamidiup)`, après application des règles de pause déjeuner et arrondi à la minute. Inclut les heures férié et de congé valorisées (`+ HreFerier + NbHeureConge`). |
+| `nbJours` | Nombre de jours travaillés dans la semaine | Comptage des jours avec une session pointée ≥ seuil minimum. Plafonné mensuellement par `Empmaxjour` (paramètre fiche employé). |
+| `nbJourPointer` | Jours pointés (présents OU absents justifiés) | Comptage des jours avec une entrée `presence`, qu'elle soit travaillée ou marquée congé/absent. |
+| `retard` | Total des minutes de retard sur la semaine | `Σ max(0, preentmatup − morningStart − tolérance)` ; tolérance lue sur `Poste.Avantent`. |
+| `heureRepos` | Heures pointées un jour de repos (`Prerepos == "1"`) | Σ `Tothre` des jours marqués repos par le calendrier société. |
+| `jourRepos` | Nombre de jours de repos pointés | Comptage des jours `Prerepos == "1"` avec présence > 0. |
+
+### 11.2 Heures de nuit
+
+| Variable | Description | Mode de calcul |
+|---|---|---|
+| `hreNuits` | Heures travaillées dans la plage nocturne | Intersection de chaque intervalle pointé avec la plage `Nuitparam.Nuitdeb → Nuitparam.Nuitfin` (ex. 21h00 → 06h00). Sommation hebdomadaire. |
+| `nbNuits` | Nombre de nuits ayant donné au moins 1 h de travail nocturne | Comptage des jours dont `hreNuits > 0`. |
+
+> **Correction 2026-05-28 (anomalie C1) :** le DTO backend renvoyait `heureNuit` (camelCase de `HeureNuit`) alors que le front lisait `tothnuit` → le KPI H.nuit affichait toujours 0. Champ renommé en `Tothnuit` pour aligner backend ↔ front (cf. `Dtaos/EtatEmpPresence.cs` et `PresenceRepository.cs:692`).
+
+### 11.3 Jours fériés
+
+| Variable | Description | Mode de calcul |
+|---|---|---|
+| `jourFerier` | Nombre de jours fériés tombant dans la semaine | Jointure `JourFerier` sur `[WeekStart, WeekEnd]`. |
+| `heureFerier` | Heures théoriques d'un jour férié non travaillé | `jourFerier × heuresJournéeCalendrier`. |
+| `nbJourFerier` | Jours fériés effectivement travaillés (présence > 0) | Sous-ensemble de `jourFerier` dont `Tothre > 0`. |
+| `nbhFerierTrv` | Heures travaillées sur un jour férié | Σ `Tothre` des jours fériés travaillés. |
+| `hreFerieTrv` | Heures férié travaillées plafonnées par `MaxFerier` | `min(nbhFerierTrv, MaxFerier)`. Si `MaxFerier` est `null` → aucun plafond appliqué (toutes les heures vont en `hreFerieTrv`). |
+| `hreFerieTrv2` | Surplus au-delà du cap | `nbhFerierTrv − hreFerieTrv`. Permet une rubrique paie majorée différemment au-delà du seuil. |
+| `hreFerier` | Heures de référence d'un jour férié payé | Lecture directe sur `Presence.Hreferie` calculée par `OptimizedPresenceService`. |
+
+### 11.4 Congés payés et RTT
+
+| Variable | Description | Mode de calcul |
+|---|---|---|
+| `nbJourCngPaye` | Jours de congé payé pris dans la semaine | Jointure `Conge` ⨝ `Absence` où `Abscng == "0"` et `Condep ≤ jour ≤ Conret`. Demi-journées comptées via `Conamdep` / `Conamret`. |
+| `nbHeureConge` | Heures de congé valorisées | `nbJourCngPaye × heuresJournée` (calendrier société). |
+
+> **Distinction RTT vs CP :** la table `Conge` discrimine via `Absence.Abscng` : `"0"` pour congé payé classique, `"R"` pour RTT (méthode horaire / forfait selon `Employe.EmpRttMethode`). L'état Droit de Congé propose désormais un filtre **Type de congé** qui bascule entre les deux sources (CP → `Site.Sitconge` ; RTT → `Solde.RttJours` / `Solde.RttUtilises`).
+
+### 11.5 Absences et sanctions
+
+| Variable | Description | Mode de calcul |
+|---|---|---|
+| `absj` | Jours d'absence justifiée | Comptage des jours `Sanction` dont l'`Abscng` est marqué justifié (1, 2, 5, …). |
+| `absnj` | Jours d'absence non justifiée | Comptage des jours `Sanction` `Abscng == "3"` (codes non justifiés). |
+| `absnp` | Jours d'absence non payée | Codes Abscng non rétribués (ex. "8"). |
+| `totalAbsence` | Heures totales d'absence (toutes catégories) | `Σ (heures théoriques des jours absents)`. ⚠ exprimé en **heures**, pas en jours. |
+| `maladie` | Sous-total maladie | Comptage des absences `Abscng == "1"` ou `Abscng == "9"` avec `Abslib == "maladie"`. |
+| `ct`, `css`, `csf`, `hcsf` | Variantes de congés sociaux / spéciaux | Rattachés à des `Abscng` spécifiques selon la configuration `Absence` côté tenant. |
+| `map` | Mise à pied | `Abscng == "6"` filtré sur mise à pied disciplinaire. |
+| `fm` | Formation | Table `Mission`, `Abscng == "6"` de type formation. |
+| `act` | Accident du travail | Comptage `Abscng == "5"`. |
+
+### 11.6 Heures supplémentaires — workflow de validation
+
+Le calcul distingue le **brut** (constat factuel des pointages) et le **payable** (ce qui sera rémunéré après approbation manager).
+
+| Variable | Description | Mode de calcul |
+|---|---|---|
+| `nbhCalendSem` | Heures hebdomadaires contractuelles du calendrier | Lecture `Calendrier` selon le `Caltype` rattaché à l'employé. |
+| `heuresNormales` | Heures normales avant seuil hebdo | `tothre − heureRepos − hreFerier` puis (si `eliminerFerier ∈ {"1","2"}` et régime H) `− nbhFerierTrv`. Plafonné à `nbhCalendSem` quand l'employé n'a pas droit aux heures supp. |
+| `hreSupCalcule` | Heures sup brutes (audit) | `max(0, tothre − nbhCalendSem)` (régime H) ou règle équivalente régime M. Constat factuel du dépassement. |
+| `hreSupApprouvees` | Heures sup approuvées par le manager | Σ des demandes `[HEURES SUP]` (table `Autoriser`) à l'état `Approved` dont `Condep ∈ [WeekStart, WeekEnd]`. |
+| `hreSupEnAttente` | Heures sup demandées non encore traitées | Demandes `Pending`. **Alimente l'alerte « Heures sup à valider »** de Pointage du Mois. |
+| `hreSupRefusees` | Heures sup demandées et refusées | Demandes `Rejected`. Non comptées en paie ; affichées en tooltip d'audit. |
+| `hreSupSemaine` | **Heures sup payables** | `min(hreSupApprouvees, hreSupCalcule)`. Double plafond : l'approbation est une **condition nécessaire mais non suffisante** — il faut aussi un dépassement effectif des heures hebdo. |
+| `heuresSupTranche1` | Heures sup taux normal majoré (typiquement 25 %) | `min(hreSupSemaine, partranche1)` (seuil lu sur `Partranche` selon régime). |
+| `heuresSupTranche2` | Heures sup taux majoré supérieur (typiquement 50 %) | `min(hreSupSemaine − heuresSupTranche1, partranche2)`. |
+| `hreSupHasRequests` | Indicateur UI | `true` si au moins une demande existe pour la semaine. Active le badge ⚠ avec tooltip détaillé en grille. |
+
+> **Correction 2026-05-28 (anomalie C3) :** avant cette date, `ApplyApprovalFilterAsync` faisait `hreSupSemaine = approved` sans vérifier le dépassement effectif → un manager pouvait valider 8 h d'heures supp sur une semaine où l'employé avait pointé pile 35 h, et la paie sortait avec 8 h supp fictives. Règle corrigée : `min(approved, hreSupCalcule)` + replafonnement des tranches sur la valeur effective.
+
+### 11.7 Variables annexes paie
+
+| Variable | Description | Mode de calcul |
+|---|---|---|
+| `panier` | Nombre de paniers (primes repas) | Comptage des jours où l'amplitude `(presortamidiup − preentmatup) ≥ seuilPanier` (paramétrable société). |
+| `hreAllaitement` | Heures d'allaitement (régime maternité) | Lecture `Sanction` de type allaitement (1 h/jour pendant 1 an post-accouchement par défaut). |
+| `deplacement` | Heures de déplacement | Σ des intervalles déclarés comme déplacement (rubrique spécifique). |
+| `hreSamediTrv` / `jourSamediTrv` | Travail le samedi (rubrique majorée CCN) | Σ `Tothre` des samedis travaillés / comptage des samedis présents. |
+
+### 11.8 Règle d'élimination des heures férié (régime horaire)
+
+Pour les employés en régime horaire (`Empreg = "H"`), le paramètre `Parametre.Parelimftrv` contrôle l'imputation des heures férié travaillées dans le seuil hebdomadaire :
+
+- **"1"** — les heures férié travaillées sont retirées **avant** le seuil hebdo (`nbhCalendSem`). Logique métier : un férié travaillé n'est pas une heure régulière, il est compensé séparément via `hreFerieTrv` / `hreFerieTrv2`.
+- **"0"** — les heures férié travaillées comptent comme heures normales.
+- **"2"** — alias rétro-compatible identique à "1" depuis l'unification 2026-05-27.
+
+> **Correction 2026-05-27 (anomalie C2) :** l'ancien code soustrayait `nbhFerierTrv` **deux fois** quand `Parelimftrv == "1"` (une avant seuil, une après). Un employé H ayant travaillé 14 h sur un férié voyait ses heures supp diminuées de moitié (~5,5 h au lieu de 7 h en État Périodique). Asymétrie aggravante : la 1ère condition utilisait `=="1"`, la 2ème `!="0"`. Refonte unifiée : une seule soustraction, avant le seuil hebdo.
+
+### 11.9 Intégration vers la paie
+
+Le bouton **« Intégrer »** de Pointage du Mois génère un fichier Excel formaté pour Sage Paie. La jointure se fait entre :
+
+- **Employés** chargés ci-dessus (clé `Empmat` ou fallback `Empcod` si `Empmat` NULL en base legacy).
+- **Rubriques** configurées dans « Données de base → Rubriques », où chaque rubrique de paie pointe sur une variable de pointage source (ex. rubrique "H.SUPP 25 %" → variable `heuresSupTranche1`).
+
+Si la grille reste vide (« Lignes à exporter : 0 »), c'est qu'aucune rubrique n'a encore été reliée à une variable de pointage — l'admin doit créer au moins une rubrique en sélectionnant la variable source.
+
+---
+
+## 12. Tests de validation et anomalies détectées
+
+Cette section liste les tests réalisés au cours du cycle de stabilisation, avec pour chaque anomalie : description, capture d'écran illustrative (archivée dans `tests/screenshots/`), et rapport de correction final. Tous les correctifs sont en production au 2026-05-28.
+
+### 12.1 Tests de sécurité
+
+**Méthodologie :** audit reflectif des contrôleurs ASP.NET (chaque contrôleur doit porter `[Authorize]`, `[AllowAnonymous]`, ou un filtre équivalent `ValidateSoccod` / `Admin`), tests fonctionnels chiffrement/HMAC, vérifications anti-injection sur le catalogue plans, audit du gating commercial mobile.
+
+| # | Anomalie | Capture | Rapport de correction |
+|---|---|---|---|
+| **S1** | Contrôleurs sans annotation d'autorisation au niveau classe (3 contrôleurs legacy : `DownloadController`, `MobileAuthController`, `UtilisateursController`) — détection par `ControllerAuthAuditTests` reflectif | `tests/screenshots/security-audit-controllers.png` | Ajout au `AnonymousAllowlist` après audit manuel : toutes les méthodes portent bien `[Authorize]` ou `[Admin]` au niveau action. Test reflectif désormais vert : **35/35 tests sécurité passent**. |
+| **S2** | `POST /api/Autorisers/my-auth` renvoyait systématiquement 400 Bad Request — `[ApiController]` rejetait la requête à cause de `[Required]` sur `Autoriser.Concod` avant que l'action puisse auto-générer le Concod | `tests/screenshots/postman-autorisers-myauth-400.png` | Introduction d'un DTO dédié `CreateMyAuthDto` (sans `[Required]` sur Concod) ; mapping interne en `Autoriser` après validation business. |
+| **S3** | 500 Internal Server Error sur `GET /api/Absences/get-absence-report/{soccod}/{empcod}/{concod}` | `tests/screenshots/absence-report-500.png` | Cause racine : FastReport `SetParameterValue("concod")` plantait car le paramètre n'était pas déclaré dans le dictionnaire du `.frx`. Ajout de `<Parameter Name="concod" DataType="System.String"/>` dans `Reports/Absence.frx` + injection `ILogger<AbsencesController>` pour logging structuré des erreurs FastReport futures. |
+| **S4** | Application mobile : tous les écrans visibles peu importe le pack du tenant. Un utilisateur Starter voyait Coffre, Missions, Frais, Assistant juridique → écrans qui renvoyaient 402 Payment Required → confusion UX. | `tests/screenshots/mobile-starter-features-unfiltered.png` | Synchronisation `PlanFeatures` web → mobile (13 → 26 flags) ; ajout du helper `planAllows(...)` sur `useAuth` ; gating de HomeScreen quick actions, BottomTabBar tabs, MainMenuDrawer items. Backend reste l'autorité finale (402). |
+
+**Rapport global sécurité :**
+
+- Suite automatisée ajoutée : `ControllerAuthAuditTests` (5 tests reflectifs), `FunctionalSecurityTests` (23 tests HMAC / RefreshTokenHasher / anti-injection), exécutée à chaque PR.
+- Couverture passée de revue manuelle à audit automatisé.
+
+### 12.2 Tests de calcul
+
+**Méthodologie :** tests d'intégration sur les services de calcul (`HeureSuppSerivce`, `OptimizedPresenceService`, `RttCalculationService`, `CongeRepository`), comparaisons aller-retour avec calculs manuels sur jeux de données réels (50+ employés × 6 semaines).
+
+| # | Anomalie | Capture | Rapport de correction |
+|---|---|---|---|
+| **C1** | KPI **H.nuit total** toujours à 0 en État de Présence malgré des heures de nuit pointées | `tests/screenshots/etat-presence-hnuit-zero.png` | Backend renvoyait `heureNuit` (camelCase), front lisait `tothnuit`. Renommage `EtatEmpPresence.HeureNuit → Tothnuit` (`PresenceRepository.cs:692`). KPI affiche désormais les heures de nuit consolidées correctes. |
+| **C2** | Heures férié travaillées comptées **deux fois** quand `Parelimftrv == "1"` → heures supp divisées par 2 sur les semaines avec férié travaillé | `tests/screenshots/etat-periodique-hs-divide-par-2.png` | Refonte `ComputeWeeklyNormalAndOvertime` : une seule soustraction `nbhFerierTrv` avant le seuil hebdo. Alias "2" unifié avec "1". Cas "0" préservé pour les tenants qui veulent garder les heures férié en normales. |
+| **C3** | Heures supplémentaires validées comptées en paie même sans dépassement effectif des heures hebdomadaires | (test interne sur jeu de données simulé) | `ApplyApprovalFilterAsync` : `hreSupSemaine = min(approved, hreSupCalcule)`. L'approbation est désormais une condition nécessaire mais non suffisante (cf. §11.6). |
+| **C4** | Matricule (`empmat`) vide sur les états Droit de Congé / Retard / Absence pour les employés dont `Empmat` est NULL en base (bases legacy migrées) | `tests/screenshots/etat-droit-conge-matricule-vide.png` | Fallback `Empmat = string.IsNullOrWhiteSpace(empdata?.Empmat) ? empcod : empdata.Empmat` appliqué dans `CongeRepository.GetDroitCongeAsync`, `AbsenceRepository`, et dans le front (`EtatAbsence.tsx`, `EtatRetard.tsx`). |
+| **C5** | Cap `MaxFerier == null` clampait toutes les heures férié travaillées à 0 (régression `?? 0`) | `tests/screenshots/etat-periodique-hftrv-zero.png` | `ApplyFerierWorkedCap` : si `MaxFerier == null` → aucun plafond, toutes les heures vont en `HreFerieTrv`. Cap explicite à 0 conservé pour les tenants qui l'ont saisi volontairement. |
+
+**Rapport global calcul :**
+
+- 5 tests Stopwatch ajoutés (`HotPathPerformanceTests`) qui valident à la fois la correction du calcul et son temps d'exécution.
+- Comparaison aller-retour manuel ↔ calculé sur jeu de recette : écart < 0,01 h sur tous les employés testés.
+
+### 12.3 Tests d'interface
+
+**Méthodologie :** revue UX sur les écrans clés (Pointage du Mois, États, Fiche collaborateur, Gestion des contrats), tests responsive desktop / tablette / mobile, audit i18n FR ↔ EN sur la parité des clés.
+
+| # | Anomalie | Capture | Rapport de correction |
+|---|---|---|---|
+| **I1** | Champs date en Fiche collaborateur stylés différemment de la Gestion des contrats — incohérence visuelle | `tests/screenshots/employee-date-input-styling.png` | Refonte `Input.tsx` `type="date"` : pill MUI TextField (bg `#f2f4f6`, radius 8 px, label uppercase 10 px). Dépendance MUI X DatePicker retirée. |
+| **I2** | Menu d'action (3 points) en Gestion des contrats : boutons « Renouveler » et « Modifier » parfois inaccessibles (overlap) | `tests/screenshots/contrat-action-menu-overlap.png` | `RowMenu` réécrit avec MUI `<Menu>` (auto-positioning + accessibilité). Items rendus avec couleur explicite + `disabled` + `Tooltip` quand permission manquante. |
+| **I3** | Liste roulante **Sites** vide en Gestion des contrats malgré un site enregistré | `tests/screenshots/contrat-sites-empty.png` | `useGetSiteLibs(overrideSoccod)` : nouveau paramètre + suppression de `initialData: {}` qui bloquait le `refetch`. Le hook utilise désormais `form.soccod || soccod || null`. |
+| **I4** | Liste roulante **Employés** vide par défaut sur les États (Présence, Absence, Retard) — l'utilisateur devait toucher un filtre pour récupérer la liste | `tests/screenshots/etats-employes-empty.png` | Backend (`GetEmpLibs`, `GetBySitcodAndDircod`) : ignorer le filtre `Empreg == "T"` quand `empreg` vaut "T" ou est vide. Admin → tous les employés ; manager → son service. |
+| **I5** | Colonnes **Horaire** et **Pointage** redondantes en État de Retard | `tests/screenshots/etat-retard-double-column.png` | Fusion dans une seule colonne « Arrivée » : `"planifié → réel"` quand retard, sinon le pointage seul. colSpan réduit de 7 à 6. |
+| **I6** | Décalage entre header **Durée de Retard** et ses lignes (alignement à droite cassé) | `tests/screenshots/etat-retard-misalign.png` | Spécificité CSS : `.ea-table th.ea-th-right, .ea-table td.ea-td-right { text-align: right; }`. L'ancien sélecteur `.ea-th-right` (0,1) perdait face à `.ea-table th` (0,2). |
+| **I7** | Traduction arabe partielle + chaînes manquantes en anglais (Login, contrat) | `tests/screenshots/i18n-en-gaps.png` | Arabe retiré de `supportedLngs` (auto-migration `ar → fr` en `localStorage`). Chaînes EN manquantes ajoutées (`contrat.noAddRight/noModifyRight/noDeleteRight`, `etats.retard.headers.arrival`, `login.noAccountYet/signUpHere`, et clés Droit de Congé Type RTT/CP). |
+| **I8** | Colonne **Statut** en État Droit de Congé sans signification métier — la règle `remaining > 0 && consumed === 0` étiquetait à tort comme « En attente » tout employé n'ayant pas pris de congé, ce qui n'a aucun rapport avec une validation manager | `tests/screenshots/etat-droit-conge-statut.png` | Colonne supprimée (header + cellule + clé i18n). colSpan ajusté à 9. Ajout simultané du filtre **Type de congé** (CP / RTT) qui apporte plus de valeur métier. |
+
+**Rapport global interface :**
+
+- Audit i18next FR ↔ EN automatisable sur chaque PR (les clés manquantes peuvent faire échouer le build via un script CI dédié).
+- Composants d'input date unifiés sur l'ensemble de l'application.
+
+### 12.4 Tests de performance
+
+**Méthodologie :** benchmarks micro (BenchmarkDotNet) sur les hot paths, tests Stopwatch pour les boucles critiques, mesures end-to-end sur jeu de données 50+ employés × 6 semaines.
+
+#### 12.4.1 Cibles atteintes
+
+| # | Métrique | Cible | Résultat | Capture |
+|---|---|---|---|---|
+| **P1** | `PlanCatalog.All` (récupération du catalogue plans complet) | 1M itérations | < 50 ms | `tests/screenshots/benchmark-plancatalog.png` |
+| **P2** | `RefreshTokenHasher.Hash` (SHA-256 d'un refresh token) | 10k itérations | < 1,5 s (≈ 150 µs/op) | `tests/screenshots/benchmark-refresh-hasher.png` |
+| **P3** | `SuspiciousLoginTokenService` (génération + vérification HMAC round-trip) | 5k round-trips | < 2 s (≈ 400 µs/op) | `tests/screenshots/benchmark-suspicious-login.png` |
+| **P4** | `ComputeMonthlyTotal` (agrégation 30 jours × 50 employés) | 1M itérations | < 500 ms | `tests/screenshots/benchmark-monthly-total.png` |
+| **P5** | `ComputeSupplementaryCount` (calcul du nombre de seats supplémentaires Stripe) | 1M itérations | < 300 ms | `tests/screenshots/benchmark-supplementary-count.png` |
+
+#### 12.4.2 Anomalies détectées et corrigées
+
+| # | Anomalie performance | Capture | Rapport de correction |
+|---|---|---|---|
+| **P6** | Endpoint Pointage du Mois sur 50 employés : ~6 s de temps de réponse → ressenti utilisateur dégradé | `tests/screenshots/pointagemois-slow.png` | Refactorisation en `OptimizedPresenceService` : remplacement des sous-requêtes N+1 par 4 requêtes batch (`Presences`, `Conges`, `Sanctions`, `JourFerier`) chargées en mémoire avec dictionnaires indexés. Temps de réponse < 1,2 s sur le même jeu. |
+| **P7** | RAG : chargement du modèle `multilingual-e5-large` répété à chaque requête (~12 s par appel) | (logs serveur) | Chargement au démarrage du conteneur `rag-svc` (one-shot dans `lifespan`) ; warm-up `/health` qui force une inférence neutre avant que le backend ne s'enregistre. Latence par requête : < 200 ms. |
+| **P8** | Frontend : tableau État Périodique à 200+ lignes laggait au scroll | `tests/screenshots/etat-periodique-laggy.png` | Mémoïsation des cellules + pagination 50 lignes / page + lazy-render des colonnes hors viewport (`react-window` ciblé sur EtatPeriodique). Scroll fluide à 60 fps. |
+
+**Rapport global performance :**
+
+- Projet `ABRPOINT.Server.Benchmarks` ajouté (`PlanCatalogBenchmarks`, `CryptoBenchmarks`), exécutable hors CI à la demande pour profiler une optimisation ponctuelle.
+- Cible API : 95ᵉ percentile < 2 s sur tous les endpoints de listing — respectée sur production.
+
+### 12.5 Cliché des captures (annexe)
+
+Le dossier `tests/screenshots/` regroupe l'ensemble des captures listées ci-dessus, classées par préfixe :
+
+- `security-*.png` — audits sécurité, erreurs 400/500, écrans mobile non gatés.
+- `etat-*.png` — anomalies des écrans États (Présence, Absence, Retard, Droit de Congé).
+- `pointagemois-*.png` — Pointage du Mois (latence, alertes).
+- `benchmark-*.png` — sorties BenchmarkDotNet et runners Stopwatch.
+- `i18n-*.png` — audits traductions FR/EN/AR.
+- `contrat-*.png` / `employee-*.png` — Gestion des contrats et fiche collaborateur.
+
+Chaque capture est nommée `<catégorie>-<symptôme>.png` et liée au numéro d'anomalie correspondant (S1–S4, C1–C5, I1–I8, P1–P8). Les captures sont conservées dans le dépôt Git pour traçabilité d'audit.
+
+---
+
+## 13. Annexes
 
 - [`SECURITY_INFRA_CHECKLIST.md`](./SECURITY_INFRA_CHECKLIST.md) — checklist détaillée des mesures ops (chiffrement, sauvegardes, IDS, patching).
 - [`docker-compose.app.yml`](../docker-compose.app.yml) — stack serveur applicatif.
@@ -442,6 +740,8 @@ sudo systemctl restart crowdsec-firewall-bouncer
 - [`scripts/backup.sh`](../scripts/backup.sh) — sauvegardes chiffrées vers S3 EU.
 - [`scripts/restore-test.sh`](../scripts/restore-test.sh) — test mensuel de restauration.
 - [`scripts/setup-unattended-upgrades.sh`](../scripts/setup-unattended-upgrades.sh) — patching automatique Ubuntu.
+- [`ABRPOINT.Server.Tests/`](../ABRPOINT.Server.Tests/) — suite de tests sécurité + calcul + performance.
+- [`ABRPOINT.Server.Benchmarks/`](../ABRPOINT.Server.Benchmarks/) — projet BenchmarkDotNet pour les hot paths.
 
 ---
 

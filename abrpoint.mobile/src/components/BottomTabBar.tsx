@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../config/env';
+import { useAuth, PlanFeatures } from '../contexts/AuthContext';
 
 export type TabKey = 'home' | 'history' | 'requests' | 'profile';
 
@@ -11,12 +12,17 @@ interface TabSpec {
   label: string;
   icon: string;
   route: string;
+  /** Si défini, la tab disparaît quand la feature n'est pas active sur le pack. */
+  requires?: keyof PlanFeatures;
 }
 
 const TABS: TabSpec[] = [
   { key: 'home', label: 'Accueil', icon: 'home-variant', route: 'Home' },
   { key: 'history', label: 'Historique', icon: 'history', route: 'PresenceHistory' },
-  { key: 'requests', label: 'Demandes', icon: 'inbox-multiple-outline', route: 'LeaveRequest' },
+  // 2026-05-27 — Tab Demandes gated sur leaveManagement : sur le pack Starter
+  // (positionnement « pointage simple sans workflow RH ») l'écran LeaveRequest
+  // n'a pas de sens — on retire l'entrée de la barre du bas.
+  { key: 'requests', label: 'Demandes', icon: 'inbox-multiple-outline', route: 'LeaveRequest', requires: 'leaveManagement' },
   { key: 'profile', label: 'Profil', icon: 'account-circle-outline', route: 'Profile' },
 ];
 
@@ -54,13 +60,16 @@ export function useTabBarPadding(extra: number = 16): number {
  */
 export default function BottomTabBar({ active, navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { planAllows } = useAuth();
   // Sur Android on garde un minimum de 8px même si insets.bottom est 0 (cas mode
   // 3-boutons sur certains constructeurs où Android ne les reporte pas comme inset).
   const bottomPad = Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 0);
 
+  const visibleTabs = TABS.filter(t => !t.requires || planAllows(t.requires));
+
   return (
     <View style={[styles.bar, { paddingBottom: bottomPad + 6 }]}>
-      {TABS.map((tab) => {
+      {visibleTabs.map((tab) => {
         const isActive = tab.key === active;
         return (
           <TouchableOpacity

@@ -134,7 +134,7 @@ namespace ABRPOINT.Server.Controllers
                     return BadRequest(new { isValid = false, message = "Le code site et le code société sont obligatoires" });
                 }
 
-                // Quota plan : Starter = 1 site, Standard = 5 sites, Business = illimité.
+                // Quota plan : Starter = 1 site, Standard = 5 sites, Premium = illimité.
                 var limits = TrialPolicy.GetLimits(_currentTenant.Current);
                 if (limits.MaxSites.HasValue)
                 {
@@ -144,12 +144,12 @@ namespace ABRPOINT.Server.Controllers
                         var planLabel = TrialPolicy.IsTrialing(_currentTenant.Current)
                             ? "l'essai gratuit"
                             : $"votre plan {_currentTenant.Current?.PlanCode}";
-                        // Message adapté à la progression Starter→Standard→Business :
-                        // on cite le plan supérieur réellement utile, pas Premium par défaut.
+                        // Message adapté à la progression Starter→Standard→Premium :
+                        // on cite le plan supérieur réellement utile.
                         var currentPlanCode = _currentTenant.Current?.PlanCode ?? string.Empty;
                         var upgradeTarget = string.Equals(currentPlanCode, PlanCatalog.StarterCode, StringComparison.OrdinalIgnoreCase)
                             ? "Standard (jusqu'à 5 sites)"
-                            : "Business (sites et filiales illimités)";
+                            : "Premium (sites et filiales illimités)";
                         var siteWord = limits.MaxSites.Value > 1 ? "sites maximum" : "site maximum";
                         return StatusCode(402, new
                         {

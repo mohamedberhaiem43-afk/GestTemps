@@ -173,7 +173,8 @@ namespace ABRPOINT.Server.Controllers
         [HttpGet("get-droit-de-conge/{soccod}/{datedebut}/{datefin}")]
         [CanGetDroitConge]
         public async Task<IActionResult> GetDroitConge(string soccod, string datedebut, string datefin,
-                                                        [FromQuery] List<string> empcods)
+                                                        [FromQuery] List<string> empcods,
+                                                        [FromQuery] string? typeConge = "paye")
         {
             try
             {
@@ -188,7 +189,7 @@ namespace ABRPOINT.Server.Controllers
                 List<DroitCongeDto> result = new List<DroitCongeDto>();
                 foreach (var empcod in empcods)
                 {
-                    var droitConge = await _congeRepository.GetDroitCongeAsync(soccod, empcod, parsedDateDebut, parsedDateFin);
+                    var droitConge = await _congeRepository.GetDroitCongeAsync(soccod, empcod, parsedDateDebut, parsedDateFin, typeConge);
                     result.Add(droitConge);
                 }
                     return Ok(result);

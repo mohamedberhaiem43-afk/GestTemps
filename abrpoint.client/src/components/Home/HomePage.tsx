@@ -91,7 +91,9 @@ const COMPARISON_ROWS: CompRow[] = [
   // commercial, tous les packs facturent simplement l'overage au-delà.
   { type: 'feature', label: 'Administrateurs inclus',                                starter: '1',      standard: '3',            premium: 'Illimité' },
   { type: 'feature', label: 'Stockage inclus',                                       starter: '10 Go',  standard: '50 Go',        premium: '200 Go' },
-  { type: 'feature', label: 'Stockage maximum',                                      starter: '50 Go',  standard: '300 Go',       premium: '2 To' },
+  // 2026-05-27 : ligne « Stockage maximum » supprimée — plus de plafond commercial,
+  // l'admin peut acheter des blocs de stockage supplémentaires sans limite côté
+  // backend (PlanDefinition.MaxStorageMb = null pour tous les packs).
   { type: 'feature', label: 'Support',                                               starter: 'Standard', standard: 'Prioritaire', premium: 'SLA prioritaire · onboarding accompagné' },
 ];
 
@@ -329,7 +331,7 @@ export default function HomePage() {
   const monthlyBase   = { starter: 99,  standard: 219, premium: 449 };
   const annualMonthly = { starter: 69,  standard: 119, premium: 249 };
   // Économies annuelles exactes issues de l'email officiel
-  // Starter : (99−69)×12 = 360 € HT · Standard : (219−119)×12 = 1 200 € HT · Business : (449−249)×12 = 2 400 € HT
+  // Starter : (99−69)×12 = 360 € HT · Standard : (219−119)×12 = 1 200 € HT · Premium : (449−249)×12 = 2 400 € HT
   const annualSavings = { starter: 360, standard: 1200, premium: 2400 };
   const annualTotal = {
     starter:  annualMonthly.starter,
@@ -714,7 +716,7 @@ export default function HomePage() {
               letterSpacing: '0.08em', textTransform: 'uppercase',
               boxShadow: '0 4px 10px rgba(184,134,11,0.32)',
             }}>★ Haut de gamme</div>
-            <div className="price-tier" style={{ color: '#b8860b' }}>Business</div>
+            <div className="price-tier" style={{ color: '#b8860b' }}>Premium</div>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#b8860b', marginBottom: 4 }}>À partir de</div>
             <div className="price-amount" style={{ color: '#92670a' }}>
               <span className="currency">€</span>{prices.premium}<span className="period" style={{ color: '#b8860b' }}>{pricePeriod}</span>
@@ -821,7 +823,7 @@ export default function HomePage() {
             {/* Droite : features en 2 colonnes */}
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>
-                Tout le pack Business, plus :
+                Tout le pack Premium, plus :
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 32px' }}>
                 {[
@@ -938,7 +940,7 @@ export default function HomePage() {
                   </button>
                 </th>
                 <th className="comp-plan comp-plan-premium-th">
-                  <div className="comp-plan-name" style={{ color: '#b8860b' }}>Business</div>
+                  <div className="comp-plan-name" style={{ color: '#b8860b' }}>Premium</div>
                   <div className="comp-plan-price">
                     à partir de <strong>{prices.premium} €</strong> HT{pricePeriod}
                   </div>

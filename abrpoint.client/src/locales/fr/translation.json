@@ -813,6 +813,13 @@
       "missingPoste_one": "{{count}} employé avec poste non résolu",
       "missingPoste_other": "{{count}} employés avec poste non résolu",
       "checkAttachments": "Vérifier les rattachements Lcategories ou le Poscod par défaut",
+      "hsPending_one": "{{count}} Heures sup. à valider",
+      "hsPending_other": "{{count}} Heures sup. à valider",
+      "hsPendingSub": "Demandes en attente — non comptées en paie tant qu'elles ne sont pas approuvées",
+      "hsPendingLabel": "{{value}}h supp en attente de validation · Semaine {{week}}",
+      "filterHsPending": "Heures sup à valider",
+      "openOvertimeApproval": "Ouvrir l'écran de validation des heures supp.",
+      "openOvertimeApprovalBtn": "Valider",
       "treatBtn": "Traiter les alertes",
       "dialogTitle": "Traitement des Alertes — {{period}}",
       "totalChip": "{{count}} Total",
@@ -1461,6 +1468,9 @@
   },
   "contrat": {
     "noConsultRight": "Vous n'avez pas le droit de consulter les contrats.",
+    "noAddRight": "Vous n'avez pas le droit de créer ou renouveler un contrat.",
+    "noModifyRight": "Vous n'avez pas le droit de modifier un contrat.",
+    "noDeleteRight": "Vous n'avez pas le droit de supprimer un contrat.",
     "loadEmployeeError": "Erreur lors du chargement des données de l'employé",
     "selectEmployee": "Veuillez sélectionner un employé",
     "concodRequired": "Le N° contrat est obligatoire",
@@ -2828,6 +2838,7 @@
         "date": "Date",
         "schedule": "Horaire",
         "punch": "Pointage",
+        "arrival": "Arrivée",
         "lateDuration": "Duree retard",
         "status": "Statut"
       },
@@ -3998,6 +4009,9 @@
       "selectedCount": "{{count}} collaborateurs sélectionnés",
       "dateStart": "Date Début",
       "dateEnd": "Date Fin",
+      "leaveType": "Type de congé",
+      "leaveTypePaid": "Congé payé",
+      "leaveTypeRtt": "RTT",
       "search": "RECHERCHE"
     },
     "summary": {

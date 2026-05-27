@@ -31,13 +31,12 @@ const PLAN_CATALOG: Record<PlanKey, {
   // Grille tarifs.txt 2026-05 — alignée avec ABRPOINT.Server.Tenancy.PlanCatalog :
   //   Starter   :  99 €/mois (mensuel) ou  69 €/mois (annuel) — 10 inclus, overage illimité
   //   Standard  : 219 €/mois (mensuel) ou 119 €/mois (annuel) — 25 inclus, overage illimité
-  //   Business  : 449 €/mois (mensuel) ou 249 €/mois (annuel) — 50 inclus, overage illimité
+  //   Premium   : 449 €/mois (mensuel) ou 249 €/mois (annuel) — 50 inclus, overage illimité
   // 2026-05-23 : `maxEmployees` retiré — plafond commercial supprimé sur tous les packs.
-  // Le code interne « Premium » est conservé pour la compat Stripe ; le libellé
-  // commercial affiché est « Business ».
+  // Le code interne et le libellé commercial sont alignés sur « Premium » depuis 2026-05-27.
   Starter:  { displayName: 'Starter',  flatPriceMonthlyEur: 99,  flatPriceAnnualMonthlyEur: 69,  includedEmployees: 10, overageRatePerEmployeeEur: 4.90, moduleCount: 7  },
   Standard: { displayName: 'Standard', flatPriceMonthlyEur: 219, flatPriceAnnualMonthlyEur: 119, includedEmployees: 25, overageRatePerEmployeeEur: 6.90, moduleCount: 14 },
-  Premium:  { displayName: 'Business', flatPriceMonthlyEur: 449, flatPriceAnnualMonthlyEur: 249, includedEmployees: 50, overageRatePerEmployeeEur: 9.90, moduleCount: 19 },
+  Premium:  { displayName: 'Premium',  flatPriceMonthlyEur: 449, flatPriceAnnualMonthlyEur: 249, includedEmployees: 50, overageRatePerEmployeeEur: 9.90, moduleCount: 19 },
 };
 
 /**

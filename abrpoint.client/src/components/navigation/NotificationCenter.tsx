@@ -66,16 +66,41 @@ interface CategoryMeta {
 
 const FALLBACK: CategoryMeta = { icon: <NotificationsIcon fontSize="small" />, color: '#64748b', bg: '#f1f5f9' };
 
+// 2026-05-27 — Carto étendue : toutes les catégories émises côté backend
+// (cf. UserNotificationService.ExtractCategory + payloads `type` dans
+// AutorisersController / DemCongesController / DemandeAbsenceController /
+// DemandeAutorisationsController / TeletravailController / VaultController
+// / LetterGenerationService / ClaudeRagService) ont maintenant un `route`
+// associé. Avant : un clic sur une notif d'heures sup / télétravail / coffre
+// / lettre IA / chat IA marquait la notif lue mais ne naviguait nulle part.
 const CATEGORIES: Record<string, CategoryMeta> = {
-  reminder_in:           { icon: <LoginIcon fontSize="small" />,         color: '#0040a1', bg: '#dae2ff', route: '/dashboard' },
-  reminder_out:          { icon: <LogoutIcon fontSize="small" />,        color: '#b45309', bg: '#fff1c2', route: '/dashboard' },
-  leave_request_created: { icon: <LeaveIcon fontSize="small" />,         color: '#0056d2', bg: '#d5e3fc', route: '/dashboard/gestion-de-conge' },
-  leave_request_accepted:{ icon: <ValidIcon fontSize="small" />,         color: '#005236', bg: '#8df7c2', route: '/dashboard/gestion-de-conge' },
-  leave_request_refused: { icon: <CancelIcon fontSize="small" />,        color: '#ba1a1a', bg: '#ffdad6', route: '/dashboard/gestion-de-conge' },
-  auth_request_created:  { icon: <AutorisationIcon fontSize="small" />,  color: '#0056d2', bg: '#d5e3fc', route: '/dashboard/demande-autorisation' },
-  auth_request_accepted: { icon: <ValidIcon fontSize="small" />,         color: '#005236', bg: '#8df7c2', route: '/dashboard/demande-autorisation' },
-  auth_request_refused:  { icon: <RefuseIcon fontSize="small" />,        color: '#ba1a1a', bg: '#ffdad6', route: '/dashboard/demande-autorisation' },
-  test_push:             { icon: <NotificationsIcon fontSize="small" />, color: '#64748b', bg: '#f1f5f9' },
+  // Rappels pointage entrée/sortie : pas de page dédiée, dashboard accueille.
+  reminder_in:                  { icon: <LoginIcon fontSize="small" />,         color: '#0040a1', bg: '#dae2ff', route: '/dashboard' },
+  reminder_out:                 { icon: <LogoutIcon fontSize="small" />,        color: '#b45309', bg: '#fff1c2', route: '/dashboard' },
+  // Congés (cycle complet).
+  leave_request_created:        { icon: <LeaveIcon fontSize="small" />,         color: '#0056d2', bg: '#d5e3fc', route: '/dashboard/gestion-de-conge' },
+  leave_request_accepted:       { icon: <ValidIcon fontSize="small" />,         color: '#005236', bg: '#8df7c2', route: '/dashboard/gestion-de-conge' },
+  leave_request_refused:        { icon: <CancelIcon fontSize="small" />,        color: '#ba1a1a', bg: '#ffdad6', route: '/dashboard/gestion-de-conge' },
+  // Autorisations de sortie (cycle complet).
+  auth_request_created:         { icon: <AutorisationIcon fontSize="small" />,  color: '#0056d2', bg: '#d5e3fc', route: '/dashboard/demande-autorisation' },
+  auth_request_accepted:        { icon: <ValidIcon fontSize="small" />,         color: '#005236', bg: '#8df7c2', route: '/dashboard/demande-autorisation' },
+  auth_request_refused:         { icon: <RefuseIcon fontSize="small" />,        color: '#ba1a1a', bg: '#ffdad6', route: '/dashboard/demande-autorisation' },
+  // Heures supplémentaires : émis par AutorisersController.PostMyAuthorization
+  // dès qu'un employé envoie une demande [HEURES SUP]. Le manager doit valider.
+  overtime_request_pending:     { icon: <AutorisationIcon fontSize="small" />,  color: '#0056d2', bg: '#d5e3fc', route: '/dashboard/validation-heures-sup' },
+  overtime_request_accepted:    { icon: <ValidIcon fontSize="small" />,         color: '#005236', bg: '#8df7c2', route: '/dashboard/demande-heures-sup' },
+  overtime_request_refused:     { icon: <RefuseIcon fontSize="small" />,        color: '#ba1a1a', bg: '#ffdad6', route: '/dashboard/demande-heures-sup' },
+  // Demandes d'absence (web côté employé) + télétravail.
+  absence_request_created:      { icon: <LeaveIcon fontSize="small" />,         color: '#0056d2', bg: '#d5e3fc', route: '/dashboard/demande-absence' },
+  absence_request_cancelled:    { icon: <CancelIcon fontSize="small" />,        color: '#64748b', bg: '#f1f5f9', route: '/dashboard/demande-absence' },
+  teletravail_request_created:  { icon: <AutorisationIcon fontSize="small" />,  color: '#0056d2', bg: '#d5e3fc', route: '/dashboard/validation-teletravail' },
+  teletravail_request_cancelled:{ icon: <CancelIcon fontSize="small" />,        color: '#64748b', bg: '#f1f5f9', route: '/dashboard/demande-teletravail' },
+  // Coffre numérique : signature de document publié pour le collaborateur.
+  vault_document_uploaded:      { icon: <ValidIcon fontSize="small" />,         color: '#0056d2', bg: '#d5e3fc', route: '/dashboard/coffre-fort' },
+  // IA : lettres générées (courriers IA) et chat RH — l'utilisateur retombe sur la page outil.
+  letter_gen:                   { icon: <ValidIcon fontSize="small" />,         color: '#7c3aed', bg: '#f5f3ff', route: '/dashboard/courriers' },
+  chat:                         { icon: <NotificationsIcon fontSize="small" />, color: '#7c3aed', bg: '#f5f3ff', route: '/dashboard/chat-bot' },
+  test_push:                    { icon: <NotificationsIcon fontSize="small" />, color: '#64748b', bg: '#f1f5f9' },
 };
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -87,6 +112,16 @@ const CATEGORY_LABEL: Record<string, string> = {
   auth_request_created: 'À valider',
   auth_request_accepted: 'Autorisation acceptée',
   auth_request_refused: 'Autorisation refusée',
+  overtime_request_pending: 'H. supp à valider',
+  overtime_request_accepted: 'H. supp validées',
+  overtime_request_refused: 'H. supp refusées',
+  absence_request_created: 'Absence à valider',
+  absence_request_cancelled: 'Absence annulée',
+  teletravail_request_created: 'Télétravail à valider',
+  teletravail_request_cancelled: 'Télétravail annulé',
+  vault_document_uploaded: 'Document à signer',
+  letter_gen: 'Lettre IA',
+  chat: 'Assistant RH',
   test_push: 'Test',
 };
 

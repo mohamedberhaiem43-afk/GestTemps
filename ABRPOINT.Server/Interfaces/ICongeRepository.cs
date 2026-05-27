@@ -9,7 +9,7 @@ namespace ABRPOINT.Server.Interfaces
         Task<List<CongeAbsenceDto>> GetCongeWithAbsenceAsync(string soccod, string uticod);
         Task AddMultipleAsync(List<Conge> conges);
         Task<NombreConge> GetNbJourEtHreEmpCongeAsync(string soccod, string empcod, DateTime? predat,string codpost);
-        Task<DroitCongeDto> GetDroitCongeAsync(string soccod, string empcod, DateTime? datedebut, DateTime? datefin);
+        Task<DroitCongeDto> GetDroitCongeAsync(string soccod, string empcod, DateTime? datedebut, DateTime? datefin, string? typeConge = "paye");
         Task<string> GetCongeLibAsync(string? soccod,string empcod, DateTime dmdate);
         Task<Dictionary<(string Soccod, string Empcod, DateTime Date), (string? Abslib, float? Connbjour)>> GetCongeLibBatchAsync(List<(string Soccod, string Empcod, DateTime Date)> demandes);
 
