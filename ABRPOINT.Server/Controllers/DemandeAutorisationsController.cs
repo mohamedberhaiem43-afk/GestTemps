@@ -91,6 +91,48 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
+        // GET: api/DemandeAutorisations/by-soc/{soccod}
+        // Vue agrégée pour le Calendrier équipe (TeamCalendarPage). Aligné sur
+        // DemConges/by-soc et MissionsController/by-soc : admin/manager
+        // uniquement (un employé ne voit pas les autorisations des collègues).
+        // Avant cet endpoint, le front catchait un 404 silencieux → calendrier
+        // restait vide même avec des demandes approuvées en base.
+        // Le champ `etat` est mappé depuis `Statut` ("Approuvé"/"Refusé"/
+        // "En attente") pour matcher le filtre frontend `isAccepted` qui
+        // détecte la sous-chaîne "approuv".
+        [HttpGet("by-soc/{soccod}")]
+        public async Task<IActionResult> GetBySoc(string soccod)
+        {
+            var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return Unauthorized();
+            var isPrivileged = await _context.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == caller)
+                .Select(u => u.Utiadm == "1"
+                          || PermissionCatalog.IsAdminRole(u.Utirole)
+                          || u.Utirole == PermissionCatalog.Roles.Manager)
+                .FirstOrDefaultAsync();
+            if (!isPrivileged) return Forbid();
+
+            var rows = await (
+                from d in _context.DemandeAutorisations.AsNoTracking()
+                where d.Soccod == soccod
+                join e in _context.Employes.AsNoTracking()
+                    on new { d.Soccod, d.Empcod } equals new { e.Soccod, e.Empcod } into ej
+                from e in ej.DefaultIfEmpty()
+                select new
+                {
+                    id     = d.Id,
+                    empcod = d.Empcod,
+                    emplib = e != null ? e.Emplib : null,
+                    motif  = d.Conmotif,
+                    condep = d.Condep,
+                    conret = d.Conret,
+                    etat   = d.Statut,
+                }
+            ).ToListAsync();
+            return Ok(rows);
+        }
+
         // GET: api/DemandeAutorisations/get-all/{soccod}/{uticod}
         // A5 — Liste globale des demandes : restreint aux managers / admins.
         [HttpGet("get-all/{soccod}/{uticod}")]

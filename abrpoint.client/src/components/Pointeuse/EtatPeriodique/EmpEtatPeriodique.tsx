@@ -7,6 +7,7 @@ import { Box, Button, Checkbox, CircularProgress, Dialog, DialogContent, DialogT
 import EditIcon from '@mui/icons-material/Edit';
 import CancelIcon from '@mui/icons-material/Cancel';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { EmployeeContext } from './EmployeeContext';
 import { useDateRange } from './FilterContext';
 import useUpdatePresence from '../../../hooks/presenceHooks/useUpdatePresence';
@@ -305,11 +306,15 @@ const { data: fetchedSanction } = useGetSanctionDate(
       muiEditTextFieldProps: {
         type: 'text',
       },
-      // Mention « h.supp refusées » (exigence produit 2026-05 sur l'état
-      // périodique) : on garde la valeur calculée à l'affichage mais on
-      // signale d'un coup d'œil les jours où le manager a refusé la demande
-      // — sinon l'employé voit son tothsup et croit qu'il sera payé alors
-      // que la paie ne reprendra que les heures approuvées.
+      // Signalisation des h.supp selon l'état de validation (exigence produit
+      // 2026-05) — depuis le passage en mode strict, AUCUNE h.supp n'est payée
+      // sans demande approuvée. On le matérialise visuellement pour que
+      // l'employé/RH comprenne pourquoi le total payable peut être inférieur
+      // au total pointé :
+      //   • null + tothsup>0  → triangle ambre « non validé » (pas de demande)
+      //   • Pending / Mixed    → sablier orange
+      //   • Rejected / Mixed   → croix rouge + barré
+      //   • Approved (couvert) → affichage standard
       Cell: ({ cell, row }: { cell: import('material-react-table').MRT_Cell<EmpEtat>; row: MRT_Row<EmpEtat> }) => {
         const value = cell.getValue<string>();
         const status = row.original.overtimeRequestStatus ?? null;
@@ -317,7 +322,33 @@ const { data: fetchedSanction } = useGetSanctionDate(
         const pending = row.original.overtimePendingHours ?? 0;
         const comment = row.original.overtimeDecisionComment;
 
-        // Pas de demande → affichage standard, pas de mention.
+        // tothsup arrive en string "HH:MM" — "00:00" / vide = pas d'h.supp,
+        // on garde l'affichage neutre sans warning.
+        const trimmed = (value ?? '').trim();
+        const hasOvertime = trimmed !== '' && trimmed !== '00:00' && trimmed !== '0' && trimmed !== '0:00';
+
+        // Aucune demande mais des h.supp détectées dans le pointage →
+        // mention « non validé » : ces heures n'apparaîtront pas dans le total
+        // payable tant qu'aucune demande n'est soumise et approuvée.
+        if (!status && hasOvertime) {
+          return (
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+              <span style={{ color: '#b45309' }}>{value}</span>
+              <Tooltip
+                title={
+                  <span style={{ whiteSpace: 'pre-line' }}>
+                    {`Heures supp. non validées (${value}).\nAucune demande soumise — ces heures ne sont pas comptées dans la paie tant qu'un manager/admin ne les approuve pas.`}
+                  </span>
+                }
+                arrow
+              >
+                <WarningAmberIcon sx={{ fontSize: 14, color: '#b45309' }} />
+              </Tooltip>
+            </Box>
+          );
+        }
+
+        // Pas de demande et pas d'h.supp → affichage standard.
         if (!status) {
           return <span>{value}</span>;
         }

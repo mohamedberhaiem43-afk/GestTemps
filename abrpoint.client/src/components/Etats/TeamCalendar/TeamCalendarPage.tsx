@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import apiInstance from '../../API/apiInstance';
 import { useAuth } from '../../helper/AuthProvider';
+import AccessDenied from '../../helper/AccessDenied';
 
 /**
  * TeamCalendarPage — vue calendrier mensuelle des absences/congés/missions
@@ -81,8 +82,15 @@ const isAccepted = (etat?: string, refus?: string) => {
 
 export default function TeamCalendarPage() {
   const { t } = useTranslation();
-  const { soccod } = useAuth();
+  const { soccod, isAdmin, isManager, utiadm } = useAuth();
   const navigate = useNavigate();
+
+  // Défense en profondeur : un salarié qui taperait directement l'URL
+  // /dashboard/calendrier-equipe (le lien étant déjà retiré de la sidebar)
+  // tombe ici plutôt que sur un calendrier vide silencieux — les endpoints
+  // backend by-soc renvoient 403 dans ce cas.
+  const isAdminEffective = isAdmin || utiadm === '1';
+  const canViewTeamCalendar = isAdminEffective || isManager;
 
   const [conges, setConges] = React.useState<CongeRow[]>([]);
   const [missions, setMissions] = React.useState<MissionRow[]>([]);
@@ -94,7 +102,7 @@ export default function TeamCalendarPage() {
   const [empFilter, setEmpFilter] = React.useState<string>('all');
 
   React.useEffect(() => {
-    if (!soccod) return;
+    if (!soccod || !canViewTeamCalendar) return;
     setLoading(true);
     Promise.all([
       apiInstance.get(`/DemConges/by-soc/${soccod}`).catch(() => ({ data: [] })),
@@ -105,7 +113,11 @@ export default function TeamCalendarPage() {
       setMissions(Array.isArray(mR.data) ? mR.data : []);
       setAutos(Array.isArray(aR.data) ? aR.data : []);
     }).finally(() => setLoading(false));
-  }, [soccod]);
+  }, [soccod, canViewTeamCalendar]);
+
+  if (!canViewTeamCalendar) {
+    return <AccessDenied />;
+  }
 
   // Liste unique d'employés pour le filtre dropdown.
   const employees = React.useMemo(() => {

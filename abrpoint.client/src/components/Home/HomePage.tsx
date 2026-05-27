@@ -14,6 +14,13 @@ import './HomePage.css';
 type StepIndex = 0 | 1 | 2 | 3;
 type BillingCycle = 'monthly' | 'annual';
 
+// URL du site corporate Concorde Tech Innovation — utilisée par le CTA
+// « Demander un devis » du pack Enterprise Plus. L'ancien CTA renvoyait vers
+// /signup, ce qui n'avait pas de sens pour une offre sur mesure (il n'y a pas
+// de checkout automatique). On ouvre la page corporate dans un nouvel onglet
+// (target=_blank + noopener) pour que le visiteur garde la landing ouverte.
+const CONCORDE_TECH_CONTACT_URL = 'https://www.concorde-tech.fr/#contact';
+
 // ─── COMPARATIF DÉTAILLÉ ─────────────────────────────────────────────────────
 // Cellule de la table de comparaison : `true` = inclus (✓), `false` = exclu (✗),
 // `string` = valeur libre (ex: "Jusqu'à 5", "200 Go"). Restera figé en parallèle
@@ -125,9 +132,9 @@ const STEPS: { num: string; title: string; desc: string }[] = [
   },
 ];
 
-// ─── OFFRE FONDATEUR ÉTÉ 2026 ──────────────────────────────────────────────
+// ─── OFFRE FONDATEUR ÉTÉ 2026 ────────────────────────────────────────────────
 // Période : 1er juin → 31 août 2026. Compte à rebours live recalculé chaque
-// seconde. Affiché juste après le hero (cf. demande UX 2026-05-27).
+// seconde. Affiché dès l'ouverture de page, juste après le hero.
 
 const FOUNDER_OFFER_END = new Date('2026-09-01T00:00:00+02:00'); // 31 août 23:59 CEST
 
@@ -159,23 +166,25 @@ function FounderPromoSection({ onSignup }: { onSignup: () => void }) {
   if (expired) return null; // section disparaît automatiquement le 1er septembre
 
   const AVANTAGES = [
-    { icon: '🎁', label: '1 mois offert', sub: 'Sans carte bancaire requise' },
-    { icon: '🚀', label: 'Activation rapide', sub: 'Opérationnel en 48h' },
-    { icon: '🎓', label: 'Onboarding inclus', sub: 'Accompagnement expert dédié' },
-    { icon: '🎧', label: 'Support prioritaire', sub: 'Accès file prioritaire' },
-    { icon: '⚡', label: 'Accès anticipé', sub: 'Nouvelles fonctionnalités en avant-première' },
-    { icon: '🔓', label: 'Sans engagement', sub: 'Vous décidez après l\'essai' },
+    { icon: '🎁', label: '1 mois offert',         sub: 'Sans carte bancaire requise' },
+    { icon: '🚀', label: 'Activation rapide',     sub: 'Opérationnel en 48h' },
+    { icon: '🎓', label: 'Onboarding inclus',     sub: 'Accompagnement expert dédié' },
+    { icon: '📧', label: 'Support prioritaire',   sub: 'Accès file prioritaire' },
+    { icon: '⚡', label: 'Accès anticipé',        sub: 'Nouvelles fonctionnalités en avant-première' },
+    { icon: '🔓', label: 'Sans engagement',       sub: 'Vous décidez après l\'essai' },
   ];
 
   return (
     <section className="promo-launch promo-launch--top reveal" aria-label="Offre Fondateur Été 2026">
       <div className="promo-launch-inner">
+
+        {/* Pill */}
         <span className="promo-launch-pill">
           <span className="promo-launch-pill-icon">🚀</span>
           OFFRE FONDATEUR — ÉTÉ 2026
         </span>
 
-        {/* Titre + compte à rebours côte-à-côte sur desktop, empilés en mobile. */}
+        {/* Titre + compte à rebours */}
         <div className="founder-hero-row">
           <div className="founder-title-block">
             <h2 className="promo-launch-title">
@@ -190,7 +199,7 @@ function FounderPromoSection({ onSignup }: { onSignup: () => void }) {
             </p>
           </div>
 
-          {/* Compte à rebours live (mis à jour chaque seconde par useFounderCountdown). */}
+          {/* Compte à rebours */}
           <div className="founder-countdown" aria-label="Temps restant avant la fin de l'offre">
             <div className="founder-countdown-label">L'offre se termine dans</div>
             <div className="founder-countdown-grid">
@@ -217,7 +226,7 @@ function FounderPromoSection({ onSignup }: { onSignup: () => void }) {
           </div>
         </div>
 
-        {/* Grille des 6 avantages — 3×2 desktop, responsive plus bas. */}
+        {/* Grille des 6 avantages */}
         <ul className="founder-avantages">
           {AVANTAGES.map((a) => (
             <li key={a.label} className="founder-avantage-item">
@@ -230,18 +239,21 @@ function FounderPromoSection({ onSignup }: { onSignup: () => void }) {
           ))}
         </ul>
 
+        {/* CTA */}
         <button type="button" className="promo-launch-cta" onClick={onSignup}>
           <span className="promo-launch-cta-icon">🚀</span>
           Rejoindre l'offre Fondateur
           <span className="promo-launch-cta-arrow">→</span>
         </button>
 
+        {/* Trust */}
         <div className="promo-launch-trust">
-          <span><span className="plt-icon">🛡</span> Sécurisé &amp; conforme RGPD</span>
+          <span><span className="plt-icon">🛡️</span> Sécurisé &amp; conforme RGPD</span>
           <span><span className="plt-icon">🇫🇷</span> Hébergement France OVH</span>
           <span><span className="plt-icon">⚡</span> Mise en place en 48h</span>
-          <span><span className="plt-icon">🎧</span> Support francophone humain</span>
+          <span><span className="plt-icon">💬</span> Support francophone humain</span>
         </div>
+
       </div>
     </section>
   );
@@ -252,7 +264,7 @@ export default function HomePage() {
   // Session : si un utilisateur est déjà connecté à son tenant, le CTA « Essayer
   // 30 jours gratuit » et les liens d'inscription doivent court-circuiter le
   // flux signup (qui n'a aucun sens — il a déjà un compte) et le ramener à son
-  // espace plateforme. Source : /Utilisateurs/me → uticod non null.
+  // espace plateforme. Source : /Utilisateurs/me — uticod non null.
   const { uticod } = useAuth();
   const isAuthenticated = Boolean(uticod);
   const [activeStep, setActiveStep] = useState<StepIndex>(0);
@@ -266,17 +278,6 @@ export default function HomePage() {
   // hamburger qui déplie cette liste verticalement. Avant : aucun moyen
   // d'accéder à #pricing depuis mobile sans scroller jusqu'au footer.
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Expansion par pack : on n'affiche que les 4 features clés par défaut, puis
-  // un lien « Lire la suite » dévoile le reste. État indépendant par pack pour
-  // que l'utilisateur puisse comparer librement sans repli forcé.
-  type PackKey = 'starter' | 'standard' | 'premium';
-  const [expandedPacks, setExpandedPacks] = useState<Record<PackKey, boolean>>({
-    starter: false, standard: false, premium: false,
-  });
-  const togglePack = (k: PackKey) =>
-    setExpandedPacks((s) => ({ ...s, [k]: !s[k] }));
-  const KEY_FEATURE_LIMIT = 4;
 
   const howSectionRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -320,21 +321,20 @@ export default function HomePage() {
   // Grille tarifs.txt 2026-05 — alignée avec ABRPOINT.Server.Tenancy.PlanCatalog
   // et PlanConfigurationPage. On affiche le prix « à partir de » selon le cycle :
   //   • Mensuel : tarif d'engagement mensuel sans engagement annuel (99/219/449).
-  //   • Annuel  : TOTAL ANNUEL = tarif annuel par mois × 12 (828 / 1428 / 2988).
-  // 2026-05-22 — Décision commerce : en cycle annuel on affiche directement le
-  // TOTAL annuel en euros avec la période « / an » (et non plus l'équivalent
-  // mensuel « 69 €/mois »), afin que le client voie immédiatement le montant
-  // exact qui sera prélevé à la souscription annuelle.
+  //   • Annuel  : tarif annuel par mois (69/119/249), facturé annuellement.
   const monthly = billingCycle === 'monthly';
   const formatPrice = (v: number) =>
     new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(v);
-  const monthlyBase  = { starter: 99,  standard: 219, premium: 449 };
+  // Tarifs officiels — Offre Fondateur Été 2026 (email "Offre Fondateur" / Mme Aïda)
+  const monthlyBase   = { starter: 99,  standard: 219, premium: 449 };
   const annualMonthly = { starter: 69,  standard: 119, premium: 249 };
-  // Totaux annuels = tarif annuel par mois × 12 (aucune remise % dérivée).
+  // Économies annuelles exactes issues de l'email officiel
+  // Starter : (99−69)×12 = 360 € HT · Standard : (219−119)×12 = 1 200 € HT · Business : (449−249)×12 = 2 400 € HT
+  const annualSavings = { starter: 360, standard: 1200, premium: 2400 };
   const annualTotal = {
-    starter: annualMonthly.starter,   //  828
-    standard: annualMonthly.standard , // 1428
-    premium: annualMonthly.premium ,   // 2988
+    starter:  annualMonthly.starter,
+    standard: annualMonthly.standard,
+    premium:  annualMonthly.premium,
   };
   const prices = {
     starter:  monthly ? formatPrice(monthlyBase.starter)  : formatPrice(annualTotal.starter),
@@ -342,9 +342,6 @@ export default function HomePage() {
     premium:  monthly ? formatPrice(monthlyBase.premium)  : formatPrice(annualTotal.premium),
   };
   const pricePeriod = monthly ? ' / mois HT' : ' / mois HT';
-  // Sous-libellé indiquant l'engagement (« sans engagement » vs « facturé annuellement »).
-  // En cycle annuel on n'affiche AUCUN pourcentage de remise : les tarifs annuel et
-  // mensuel sont fixés indépendamment, le tarif annuel n'est pas un % du tarif mensuel.
   const priceCommitmentLabel = monthly ? 'Sans engagement · tarif mensuel' : 'tarif annuel · facturation unique';
 
   // 2026-05-23 — Tous les CTAs « Essayer 30 jours gratuit » / « Créer un
@@ -374,16 +371,23 @@ export default function HomePage() {
     navigate('/login');
   };
   // Clic sur une carte de prix → /signup avec le pack pré-sélectionné en state.
-  // Backward-compatible : pour les autres composants qui appellent encore
-  // `goToPlanConfig`, on garde le nom.
   const goToPlanConfig = (plan: 'Starter' | 'Standard' | 'Premium') => goToSignup(plan);
+
+  // CTA « Demander un devis » du pack Enterprise Plus → site corporate
+  // Concorde Tech Innovation (page contact). Pas de navigate() : on quitte
+  // l'app SaaS pour le site marketing externe → window.open + _blank pour
+  // conserver la landing ouverte côté visiteur. noopener/noreferrer pour la
+  // sécurité (le site cible ne récupère pas window.opener).
+  const goToConcordeTechContact = () => {
+    window.open(CONCORDE_TECH_CONTACT_URL, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div className="home-page" ref={containerRef}>
       <div className="bg-mesh" />
 
       {/* NAV — fixée en tête de page. */}
-      <nav className={`hp-nav${scrolled ? ' scrolled' : ''}`} >
+      <nav className={`hp-nav${scrolled ? ' scrolled' : ''}`}>
         <div className="nav-logo">
           <img className="logo-mark" src="/concorde-wrokly-logo.jpg" alt="Concorde Workforce" />
         </div>
@@ -425,9 +429,7 @@ export default function HomePage() {
       )}
 
       {/* HERO — titre et sous-titre en premier, avant la bannière promo.
-          Le dashboard preview a été supprimé (2026-05-27) : on mise désormais
-          sur la vidéo de démo dans la section "Comment ça marche" plutôt que
-          sur un mock figé qui prenait beaucoup de place sans valeur ajoutée. */}
+          Le dashboard a été supprimé (2026-05-27). */}
       <section className="hero">
         <h1 className="hero-title">
           Le pointage et la gestion<br />du temps <span className="accent">simplifiés</span>
@@ -456,9 +458,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* OFFRE FONDATEUR ÉTÉ 2026 — placée APRÈS le hero (titre/sous-titre)
-          conformément à la demande UX 2026-05-27. Disparait automatiquement
-          au 1er septembre 2026 (cf. FOUNDER_OFFER_END). */}
+      {/* OFFRE FONDATEUR ÉTÉ 2026 — placée après le hero (titre/sous-titre)
+          conformément à la demande UX 2026-05-27. */}
       <FounderPromoSection onSignup={() => goToSignup()} />
 
       {/* STATS */}
@@ -522,10 +523,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Section "Fonctionnalités" retirée (2026-05-27) : la valeur produit
-          est désormais portée par la vidéo de démo dans "Comment ça marche"
-          + le comparatif détaillé plus bas. Évite la redondance sur la home. */}
-
       {/* HOW IT WORKS */}
       <section id="how" ref={howSectionRef} style={{ background: 'var(--hp-surface-container-lowest)' }}>
         <div className="section-tag">Comment ça marche</div>
@@ -547,12 +544,9 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-          {/* VIDÉO — remplace les illustrations animées des 4 étapes (2026-05-27).
-              Lecture automatique au scroll via IntersectionObserver (pas d'autoplay
-              brut pour respecter les politiques navigateurs / Lighthouse).
-              Le fichier source : abrpoint.client/vidéo finale .mp4 (UTF-8 + espace)
-              a été copié dans public/ sous le nom ASCII-safe vide_o_finale_.mp4
-              pour éviter les soucis d'URL encoding selon les navigateurs. */}
+          {/* VIDÉO — remplace les illustrations des étapes (2026-05-27).
+              Lecture automatique déclenchée par IntersectionObserver au scroll.
+              Le fichier doit être placé dans public/ sous le nom vide_o_finale_.mp4 */}
           <div className="step-video-wrap">
             <video
               ref={(el) => {
@@ -605,7 +599,7 @@ export default function HomePage() {
             }}
           >
             <div style={{ color: '#92400e', fontWeight: 800, fontSize: 15, marginBottom: 4, letterSpacing: 0.2 }}>
-              ✦ Conditions tarifaires privilégiées
+              💎 Conditions tarifaires privilégiées
             </div>
             <div style={{ color: '#7c5a0b', fontWeight: 500, fontSize: 13.5, lineHeight: 1.55 }}>
               Bénéficiez actuellement de conditions tarifaires privilégiées sur l'ensemble de nos offres SaaS professionnelles.
@@ -617,181 +611,92 @@ export default function HomePage() {
         </div>
         <div className="pricing-toggle">
           <button type="button" className={`toggle-btn${monthly ? ' active' : ''}`} onClick={() => setBillingCycle('monthly')}>Mensuel</button>
-          <button type="button" className={`toggle-btn${!monthly ? ' active' : ''}`} onClick={() => setBillingCycle('annual')}>Annuel</button>
+          <button type="button" className={`toggle-btn${!monthly ? ' active' : ''}`} onClick={() => setBillingCycle('annual')}>Engagement annuel</button>
         </div>
         <div className="pricing-grid reveal">
-          {/* Starter */}
+
+          {/* ── STARTER ── */}
           <div className="price-card">
             <div className="price-tier">Starter</div>
-            {/* En cycle annuel : on affiche le tarif annuel en titre + le tarif
-                mensuel barré juste après pour matérialiser l'économie. Les deux
-                prix sont indépendants (annuel = 69 €/mois × 12 = 828 €/an,
-                mensuel = 99 €/mois × 12 = 1188 €/an si poursuivi), pas de
-                pourcentage de remise dérivé. */}
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 4 }}>
-              À partir de
-            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 4 }}>À partir de</div>
             <div className="price-amount">
               <span className="currency">€</span>{prices.starter}<span className="period">{pricePeriod}</span>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#475569', fontStyle: 'italic', marginTop: 4 }}>
-              ({monthly ? 'Abonnement mensuel' : 'Abonnement annuel'})
+            <div style={{ fontSize: 13, fontWeight: 600, fontStyle: 'italic', marginTop: 4 }}>
+              {monthly ? (
+                <span style={{ color: '#16a34a' }}>✓ Sans engagement de durée</span>
+              ) : (
+                <span style={{ color: '#0040a1' }}>✓ Engagement annuel · conditions préférentielles</span>
+              )}
             </div>
             {!monthly && (
-              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column' }}>
-                {/* Tarif mensuel standard annualisé barré : comparaison apples-to-apples
-                    en cycle annuel (99 €/mois × 12 = 1188 €/an). */}
-                <span style={{ fontSize: 18, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 17, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
                   {formatPrice(monthlyBase.starter)} € HT / mois
                 </span>
-                <span style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                  Tarif mensuel standard sur 12 mois
+                <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>
+                  Économie : {formatPrice(annualSavings.starter)} € HT / an
                 </span>
               </div>
             )}
-            <div className="price-included" style={{ marginTop: 14 }}>10 collaborateurs inclus · 10 Go de stockage</div>
-            <div className="price-per">+ 4,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · {priceCommitmentLabel}</div>
-            <div className="price-desc">Pour les TPE et startups qui démarrent la digitalisation RH d'une petite équipe.</div>
-            {/* Marges de croissance — formulation commerciale : on présente les plafonds
-                comme une « marge confortable pour votre croissance » plutôt que comme
-                un seuil bloquant. Au-delà, le client passe au pack supérieur sans
-                rupture de service ni perte de données. NB : on N'INTITULE PAS la
-                section « Limites du pack » (formulation jugée trop restrictive
-                par le commerce) — seule la phrase d'intro joue le rôle de titre. */}
-            <div className="price-margins-box" style={{
-              marginTop: 14, padding: '12px 14px',
-              background: '#f8fafc', borderRadius: 12,
-              border: '1px solid #e2e8f0',
-            }}>
-              <div style={{ fontSize: 12, color: '#0040a1', fontWeight: 700, marginBottom: 8 }}>
-                Une marge confortable pour accompagner vos premiers pas :
-              </div>
-              <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600 }}>
-                <span style={{ color: '#0040a1', fontWeight: 800, marginRight: 4 }}>🗄</span>
-                Stockage sécurisé jusqu'à <strong>50 Go maximum</strong>
-              </div>
-            </div>
-            <div className="price-features">
-              {(() => {
-                const features = [
-                  { type: 'check', text: 'Pointage web & mobile' },
-                  { type: 'check', text: 'Gestion RH essentielle (fiches, contrats)' },
-                  { type: 'check', text: 'Gestion congés & absences' },
-                  { type: 'check', text: 'Tableau de bord simplifié · Exports PDF / Excel' },
-                  { type: 'check', text: 'Notifications essentielles' },
-                  { type: 'check', text: '10 Go stockage sécurisé · Hébergement France OVH' },
-                  { type: 'check', text: '1 administrateur · support standard' },
-                  { type: 'x', text: 'Saisie manuelle uniquement (sans import Excel en masse)' },
-                  { type: 'check', text: 'Idéal : TPE · petites structures · première digitalisation RH' },
-                ];
-                const expanded = expandedPacks.starter;
-                const visible = expanded ? features : features.slice(0, KEY_FEATURE_LIMIT);
-                return (
-                  <>
-                    {visible.map((f, i) => (
-                      <div key={i} className="pf-item">
-                        {f.type === 'check'
-                          ? <><span className="pf-check">✓</span> {f.text}</>
-                          : <><span className="pf-x">✕</span> <span className="pf-muted">{f.text}</span></>}
-                      </div>
-                    ))}
-                    {features.length > KEY_FEATURE_LIMIT && (
-                      <button type="button" onClick={() => togglePack('starter')} aria-expanded={expanded}
-                        style={{ background: 'none', border: 'none', padding: 0, marginTop: 6,
-                          color: '#0040a1', fontWeight: 700, fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-                        {expanded ? 'Réduire ↑' : `Lire la suite (+${features.length - KEY_FEATURE_LIMIT}) ↓`}
-                      </button>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
+            <div className="price-included" style={{ marginTop: 12 }}>10 collaborateurs inclus · 10 Go stockage sécurisé</div>
+            <div className="price-per">{priceCommitmentLabel}</div>
+            <ul className="price-desc-list">
+              <li>Pointage web &amp; mobile (iOS / Android)</li>
+              <li>Gestion RH essentielle (fiches, contrats)</li>
+              <li>Gestion congés &amp; absences</li>
+              <li>Tableau de bord simplifié · exports PDF / Excel</li>
+              <li>Notifications essentielles</li>
+              <li>10 Go stockage sécurisé · Hébergement France OVH</li>
+              <li>Multi utilisateurs</li>
+            </ul>
             <button type="button" className="btn-plan btn-plan-ghost" onClick={() => goToPlanConfig('Starter')}>Essayer 30 jours gratuit</button>
           </div>
-          {/* Standard */}
+
+          {/* ── STANDARD ── */}
           <div className="price-card featured">
             <div className="popular-badge">⭐ Le plus populaire</div>
-            <div className="price-tier">Standard</div>
-            {/* Même structure de prix que Starter : annuel en titre, mensuel barré
-                en référence. Annuel = 119 €/mois × 12 = 1428 €/an, mensuel = 219 €/mois × 12. */}
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 4 }}>
-              À partir de
-            </div>
+            <div className="price-tier" style={{ marginTop: 10 }}>Standard</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 4 }}>À partir de</div>
             <div className="price-amount">
               <span className="currency">€</span>{prices.standard}<span className="period">{pricePeriod}</span>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#475569', fontStyle: 'italic', marginTop: 4 }}>
-              ({monthly ? 'Abonnement mensuel' : 'Abonnement annuel'})
+            <div style={{ fontSize: 13, fontWeight: 600, fontStyle: 'italic', marginTop: 4 }}>
+              {monthly ? (
+                <span style={{ color: '#16a34a' }}>✓ Sans engagement de durée</span>
+              ) : (
+                <span style={{ color: '#0040a1' }}>✓ Engagement annuel · conditions préférentielles</span>
+              )}
             </div>
             {!monthly && (
-              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 18, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
-                  {formatPrice(monthlyBase.standard )} € HT / mois
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 17, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
+                  {formatPrice(monthlyBase.standard)} € HT / mois
                 </span>
-                <span style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                  Tarif mensuel standard sur 12 mois
+                <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>
+                  Économie : {formatPrice(annualSavings.standard)} € HT / an
                 </span>
               </div>
             )}
-            <div className="price-included" style={{ marginTop: 14 }}>25 collaborateurs inclus · 50 Go de stockage</div>
-            <div className="price-per">+ 6,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · {priceCommitmentLabel}</div>
-            <div className="price-desc">Suite complète mobile pour les PME en croissance et équipes structurées.</div>
-            {/* Marges de croissance — voir note Starter.
-                marginTop: -17 (demande 2026-05-23) : rapproche visuellement la
-                boîte des limites de la description du pack, par cohérence avec
-                Business plus bas. */}
-            <div className="price-margins-box" style={{
-              marginTop: -17, padding: '12px 14px',
-              background: '#f8fafc', borderRadius: 12,
-              border: '1px solid #e2e8f0',
-            }}>
-              <div style={{ fontSize: 12, color: '#0040a1', fontWeight: 700, marginBottom: 8 }}>
-                Dimensionné pour accompagner votre montée en charge :
-              </div>
-              <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600 }}>
-                <span style={{ color: '#0040a1', fontWeight: 800, marginRight: 4 }}>🗄</span>
-                Stockage sécurisé jusqu'à <strong>300 Go maximum</strong>
-              </div>
-            </div>
-            <div className="price-features">
-              {(() => {
-                const features = [
-                  'Tout le pack Starter',
-                  'Application mobile + géolocalisation',
-                  'Coffre numérique & signature électronique',
-                  'Import Excel en masse (employés, services, fonctions, rubriques…)',
-                  'Préparation paie · export paie',
-                  'Multi-sites simple',
-                  'Congés, RTT, CET, sanctions',
-                  'Notifications push / email · Reporting avancé',
-                  '50 Go stockage sécurisé · Hébergement France OVH',
-                  '3 administrateurs · Support prioritaire',
-                  'Idéal : PME en croissance. Equipes terrain · structures multi-sites . Gestion RH centralisée',
-                ];
-                const expanded = expandedPacks.standard;
-                const visible = expanded ? features : features.slice(0, KEY_FEATURE_LIMIT);
-                return (
-                  <>
-                    {visible.map((f, i) => (
-                      <div key={i} className="pf-item"><span className="pf-check">✓</span> {f}</div>
-                    ))}
-                    {features.length > KEY_FEATURE_LIMIT && (
-                      <button type="button" onClick={() => togglePack('standard')} aria-expanded={expanded}
-                        style={{ background: 'none', border: 'none', padding: 0, marginTop: 6,
-                          color: '#0040a1', fontWeight: 700, fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-                        {expanded ? 'Réduire ↑' : `Lire la suite (+${features.length - KEY_FEATURE_LIMIT}) ↓`}
-                      </button>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
+            <div className="price-included" style={{ marginTop: 12 }}>25 collaborateurs inclus · 50 Go stockage sécurisé</div>
+            <div className="price-per">{priceCommitmentLabel}</div>
+            <ul className="price-desc-list">
+              <li>Tout le pack Starter</li>
+              <li>Application mobile + géolocalisation</li>
+              <li>Coffre numérique &amp; signature électronique</li>
+              <li>Import Excel en masse (employés, services, fonctions, rubriques…)</li>
+              <li>Préparation paie · export paie</li>
+              <li>Multi-sites simple</li>
+              <li>Congés, RTT, CET, sanctions</li>
+              <li>Notifications push / email · Reporting avancé</li>
+              <li>50 Go stockage sécurisé · Hébergement France OVH</li>
+              <li>Multi utilisateurs</li>
+              <li>Idéal : PME en croissance · équipes terrain · structures multi-sites · gestion RH centralisée</li>
+            </ul>
             <button type="button" className="btn-plan btn-plan-primary" onClick={() => goToPlanConfig('Standard')}>Essayer 30 jours gratuit</button>
           </div>
-          {/* Premium — cadre + accents or (#d4af37) pour signaler le positionnement
-              haut de gamme. Le titre et les chips de prix sont colorés en or foncé,
-              et le bouton "Choisir Premium" est en gradient or pour conclure
-              visuellement l'identité premium de cette colonne. */}
+
+          {/* ── BUSINESS ── */}
           <div
             className="price-card price-card-premium"
             style={{
@@ -808,99 +713,137 @@ export default function HomePage() {
               padding: '4px 12px', borderRadius: 999,
               letterSpacing: '0.08em', textTransform: 'uppercase',
               boxShadow: '0 4px 10px rgba(184,134,11,0.32)',
-            }}>
-              ★ Haut de gamme
-            </div>
+            }}>★ Haut de gamme</div>
             <div className="price-tier" style={{ color: '#b8860b' }}>Business</div>
-            {/* Même structure : annuel en titre, mensuel barré.
-                Annuel = 249 €/mois × 12 = 2988 €/an, mensuel = 449 €/mois × 12. */}
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#b8860b', marginBottom: 4 }}>
-              À partir de
-            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#b8860b', marginBottom: 4 }}>À partir de</div>
             <div className="price-amount" style={{ color: '#92670a' }}>
               <span className="currency">€</span>{prices.premium}<span className="period" style={{ color: '#b8860b' }}>{pricePeriod}</span>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#b8860b', fontStyle: 'italic', marginTop: 4 }}>
-              ({monthly ? 'Abonnement mensuel' : 'Abonnement annuel'})
+            <div style={{ fontSize: 13, fontWeight: 600, fontStyle: 'italic', marginTop: 4 }}>
+              {monthly ? (
+                <span style={{ color: '#16a34a' }}>✓ Sans engagement de durée</span>
+              ) : (
+                <span style={{ color: '#b8860b' }}>✓ Engagement annuel · conditions préférentielles</span>
+              )}
             </div>
             {!monthly && (
-              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 18, fontWeight: 700, color: '#cbb778', textDecoration: 'line-through' }}>
-                  {formatPrice(monthlyBase.premium )} € HT / mois
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 17, fontWeight: 700, color: '#cbb778', textDecoration: 'line-through' }}>
+                  {formatPrice(monthlyBase.premium)} € HT / mois
                 </span>
-                <span style={{ fontSize: 12, color: '#a08a52', marginTop: 2 }}>
-                  Tarif mensuel standard sur 12 mois
+                <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>
+                  Économie : {formatPrice(annualSavings.premium)} € HT / an
                 </span>
               </div>
             )}
-            <div className="price-included" style={{ marginTop: 14 }}>50 collaborateurs inclus · 200 Go de stockage</div>
-            <div className="price-per">+ 9,90 € HT / collaborateur supplémentaire / mois · +29 € HT / 100 Go · {priceCommitmentLabel}</div>
-            <div className="price-desc">Multi-filiales, IA contextuelle et sécurité renforcée pour les grandes structures.</div>
-            {/* Marges de croissance — accent or pour rester cohérent avec l'identité Business.
-                marginTop: -17 (demande 2026-05-23) : rapproche la boîte de la
-                description, alignement avec le pack Standard. */}
-            <div className="price-margins-box" style={{
-              marginTop: -17, padding: '12px 14px',
-              background: 'rgba(212,175,55,0.06)', borderRadius: 12,
-              border: '1px solid rgba(212,175,55,0.35)',
-            }}>
-              <div style={{ fontSize: 12, color: '#b8860b', fontWeight: 700, marginBottom: 8 }}>
-                Une capacité haut volume pour les grandes structures :
-              </div>
-              <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600 }}>
-                <span style={{ color: '#b8860b', fontWeight: 800, marginRight: 4 }}>🗄</span>
-                Stockage sécurisé jusqu'à <strong>2 To maximum</strong>
-              </div>
-            </div>
-            <div className="price-features">
-              {(() => {
-                const features = [
-                  'Tout le pack Standard',
-                  'Multi-filiales illimité · tableaux de bord avancés',
-                  'Assistant IA contextuel (RAG)',
-                  'Sécurité renforcée',
-                  'Audit logs avancés',
-                  'Supervision avancée',
-                  '200 Go stockage sécurisé · Hébergement France OVH',
-                  'Administrateurs illimités · Onboarding accompagné',
-                  'SLA prioritaire',
-                  'API & futures intégrations',
-                  'Idéal : PME structurées · groupes multi-sites · conformité & sécurité avancées . organisations en croissance',
-                ];
-                const expanded = expandedPacks.premium;
-                const visible = expanded ? features : features.slice(0, KEY_FEATURE_LIMIT);
-                return (
-                  <>
-                    {visible.map((f, i) => (
-                      <div key={i} className="pf-item"><span className="pf-check" style={{ color: '#b8860b' }}>✓</span> {f}</div>
-                    ))}
-                    {features.length > KEY_FEATURE_LIMIT && (
-                      <button type="button" onClick={() => togglePack('premium')} aria-expanded={expanded}
-                        style={{ background: 'none', border: 'none', padding: 0, marginTop: 6,
-                          color: '#b8860b', fontWeight: 700, fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-                        {expanded ? 'Réduire ↑' : `Lire la suite (+${features.length - KEY_FEATURE_LIMIT}) ↓`}
-                      </button>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
+            <div className="price-included" style={{ marginTop: 12 }}>50 collaborateurs inclus · 200 Go stockage sécurisé</div>
+            <div className="price-per">{priceCommitmentLabel}</div>
+            <ul className="price-desc-list">
+              <li>Tout le pack Standard</li>
+              <li>Multi-filiales sur devis · tableaux de bord avancés</li>
+              <li>Sécurité renforcée</li>
+              <li>Audit logs avancés</li>
+              <li>Supervision avancée</li>
+              <li>200 Go stockage sécurisé · Hébergement France OVH</li>
+              <li>Administrateurs illimités · Onboarding accompagné</li>
+              <li>SLA prioritaire</li>
+              <li>API &amp; futures intégrations</li>
+              <li>Idéal : PME structurées · groupes multi-sites · conformité &amp; sécurité avancées · organisations en croissance</li>
+            </ul>
             <button
               type="button"
               className="btn-plan"
               onClick={() => goToPlanConfig('Premium')}
               style={{
                 background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
-                color: '#fff',
-                border: 'none',
-                fontWeight: 800,
+                color: '#fff', border: 'none', fontWeight: 800,
                 boxShadow: '0 6px 18px rgba(184,134,11,0.32)',
               }}
             >
               Essayer 30 jours gratuit
             </button>
           </div>
+
+          {/* ── ENTERPRISE PLUS ── */}
+          <div
+            className="price-card"
+            style={{
+              gridColumn: '1 / -1',
+              background: 'linear-gradient(135deg, #0f172a 0%, #0040a1 100%)',
+              border: '2px solid #0040a1',
+              boxShadow: '0 12px 36px rgba(0,64,161,0.22)',
+              color: '#fff',
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 40,
+              padding: '28px 36px',
+            }}
+          >
+            {/* Gauche : titre + prix */}
+            <div style={{ flexShrink: 0 }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: 99, padding: '3px 12px', fontSize: 10, fontWeight: 800,
+                letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', marginBottom: 12,
+              }}>
+                ★ Sur mesure
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 6 }}>Enterprise Plus</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#fde68a', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                Sur devis
+              </div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6, lineHeight: 1.5 }}>
+                Tarification personnalisée<br />selon votre structure &amp; volume
+              </div>
+              {/* CTA redirigé vers le site corporate Concorde Tech Innovation
+                  (page contact) — c'est une offre sur mesure, le checkout
+                  automatique n'a pas de sens. window.open + _blank pour
+                  garder la landing ouverte derrière. */}
+              <button
+                type="button"
+                className="btn-plan"
+                style={{
+                  marginTop: 18, background: '#fff', color: '#0040a1',
+                  border: 'none', fontWeight: 800, padding: '11px 22px',
+                  width: 'fit-content', whiteSpace: 'nowrap',
+                }}
+                onClick={goToConcordeTechContact}
+              >
+                Demander un devis →
+              </button>
+            </div>
+
+            {/* Séparateur */}
+            <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
+
+            {/* Droite : features en 2 colonnes */}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>
+                Tout le pack Business, plus :
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 32px' }}>
+                {[
+                  'IA RH avancée',
+                  'Recherche documentaire intelligente',
+                  'Workflows intelligents',
+                  'API avancées &amp; SSO',
+                  'Hébergement dédié possible',
+                  'Architecture sur mesure',
+                  'Déploiement multi-entités',
+                ].map((f, i) => (
+                  <div key={i} style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <span style={{ color: '#fde68a', fontWeight: 800, fontSize: 11 }}>✓</span>
+                    <span dangerouslySetInnerHTML={{ __html: f }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
         </div>
+
         <div className="pricing-footnote">
           Sans engagement de durée · TVA en sus · Facturation Stripe sécurisée
         </div>
@@ -952,15 +895,6 @@ export default function HomePage() {
             <strong>Déploiement et accompagnement</strong> possibles selon les besoins du client.
           </p>
         </div>
-
-        {/* Modules optionnels : retirés de la landing 2026-05-22.
-            Décision UX : la home est focalisée sur le choix du pack ; les modules
-            (IA Assistant RH, stockage supplémentaire, RAG avancé) sont désormais
-            présentés UNIQUEMENT sur l'écran « Plan & Configuration » qui s'ouvre
-            après le clic « Choisir <pack> ». Le client peut alors les cocher dans
-            son panier et voir le total HT s'ajuster instantanément avant de signer.
-            Cela évite de surcharger la home et concentre la décision d'add-ons au
-            moment où elle est la plus pertinente (juste avant le checkout). */}
       </section>
 
       {/* ────────────────────────────────────────────────────────────────────────
@@ -994,7 +928,7 @@ export default function HomePage() {
                   </button>
                 </th>
                 <th className="comp-plan comp-plan-featured">
-                  <div className="comp-plan-badge">★ Le plus populaire</div>
+                  <div className="comp-plan-badge">⭐ Le plus populaire</div>
                   <div className="comp-plan-name">Standard</div>
                   <div className="comp-plan-price">
                     à partir de <strong>{prices.standard} €</strong> HT{pricePeriod}
@@ -1069,7 +1003,7 @@ export default function HomePage() {
               <span>Concorde Workforce</span>
             </div>
             <div className="footer-desc">
-              La plateforme RH & pointage conçue pour les équipes terrain en Afrique francophone et en Europe. Contrôle, conformité, sérénité.
+              La plateforme RH &amp; pointage conçue pour les équipes terrain en Afrique francophone et en Europe. Contrôle, conformité, sérénité.
             </div>
             <div className="footer-flags">🇫🇷 🇧🇪 🇲🇦 🇸🇳</div>
           </div>

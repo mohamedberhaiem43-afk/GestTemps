@@ -195,6 +195,29 @@ namespace ABRPOINT.Server.Controllers
                     autoriser.Conetat = "Pending";
                 }
 
+                // Auto-génération du Concod si le client n'en fournit pas — permet à un
+                // front (web ou autre intégration) de poster sans avoir à appeler un
+                // endpoint séparé `get-next-concod`. Le mobile continue de pouvoir
+                // pré-affecter une valeur (via DemConges.get-next-concod) ; on respecte
+                // alors sa préférence. Format : "A" + yyMM + séquence 5 digits, aligné
+                // sur Sanction.InsertSanctionFromDemandeAsync.
+                if (string.IsNullOrWhiteSpace(autoriser.Concod) && !string.IsNullOrEmpty(autoriser.Soccod))
+                {
+                    var prefix = "A" + DateTime.Now.ToString("yyMM");
+                    var maxConcod = await _db.Autorisers.AsNoTracking()
+                        .Where(a => a.Soccod == autoriser.Soccod && a.Concod.StartsWith(prefix))
+                        .OrderByDescending(a => a.Concod)
+                        .Select(a => a.Concod)
+                        .FirstOrDefaultAsync();
+                    int nextSeq = 1;
+                    if (!string.IsNullOrEmpty(maxConcod) && maxConcod.Length > prefix.Length
+                        && int.TryParse(maxConcod.Substring(prefix.Length), out int lastSeq))
+                    {
+                        nextSeq = lastSeq + 1;
+                    }
+                    autoriser.Concod = prefix + nextSeq.ToString("D5");
+                }
+
                 await _autoriserRepository.AddAsync(autoriser);
 
                 // Notifie admins/managers qu'une nouvelle demande d'heures sup. est à traiter

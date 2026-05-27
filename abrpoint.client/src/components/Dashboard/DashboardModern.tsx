@@ -1047,6 +1047,17 @@ function DashboardModernAdmin() {
       </Box>
       )}
 
+      {/* Donut Hommes / Femmes — remonté au-dessus de la fold (2026-05) pour
+          que le KPI Effectif par sexe soit visible dès l'ouverture du dashboard
+          sans avoir à scroller. Utilise les données déjà renvoyées par
+          DashboardService.EffectifParSexe — pas de hook supplémentaire.
+          Masqué sur Starter (dashboard simplifié sans graphiques). */}
+      {visibility.genderDonut && advancedDashboards && (
+        <Box className="db-chart-card" sx={{ mt: 2 }}>
+          <GenderDonutChart data={dashboardData?.effectifParSexe} />
+        </Box>
+      )}
+
       {/* Charts + Absences : graphique d'évolution + panel absences récentes.
           Evolution chart réservé au pack avancé (Starter voit un dashboard simplifié
           sans graphiques) ; le panel "Absences récentes" reste visible partout car
@@ -1099,15 +1110,6 @@ function DashboardModernAdmin() {
         </Box>
         )}
       </Box>
-      )}
-
-      {/* Donut Hommes / Femmes — utilise les données déjà renvoyées par
-          DashboardService.EffectifParSexe, donc pas de hook supplémentaire.
-          Masqué sur Starter (dashboard simplifié sans graphiques). */}
-      {visibility.genderDonut && advancedDashboards && (
-        <Box className="db-chart-card" sx={{ mt: 2 }}>
-          <GenderDonutChart data={dashboardData?.effectifParSexe} />
-        </Box>
       )}
 
       {/* Bottom row — renouvellements de contrats : réservé aux packs avancés

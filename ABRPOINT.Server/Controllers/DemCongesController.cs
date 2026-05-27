@@ -122,6 +122,56 @@ namespace ABRPOINT.Server.Controllers
                 throw;
             }
         }
+        // GET: api/DemConges/by-soc/{soccod}
+        // Vue agrégée pour le Calendrier équipe (TeamCalendarPage). Aligné sur
+        // MissionsController.GetBySoc : admin/manager uniquement (vue globale
+        // tenant — un employé ne voit pas les congés des collègues).
+        // Renvoie chaque DemConge avec son `etat` calculé (Accepté / Refusé /
+        // En attente) — la table Conge sert de source de vérité pour le statut
+        // post-décision, sans laquelle le calendrier restait vide même quand
+        // des congés étaient acceptés. Le frontend filtre ensuite via
+        // `isAccepted(etat)` (cf. TeamCalendarPage.tsx ligne 76).
+        [HttpGet("by-soc/{soccod}")]
+        public async Task<IActionResult> GetBySoc(string soccod)
+        {
+            var caller = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller)) return Unauthorized();
+            var isPrivileged = await _context.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == caller)
+                .Select(u => u.Utiadm == "1"
+                          || ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(u.Utirole)
+                          || u.Utirole == ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Manager)
+                .FirstOrDefaultAsync();
+            if (!isPrivileged) return Forbid();
+
+            // Left join Demconge ↔ Conge : Conge présent = décidé, Conrefus="1"
+            // = refusé, sinon accepté. Left join Employe pour emplib. On garde
+            // les 3 statuts dans la sortie ; le front choisit ce qu'il affiche.
+            var rows = await (
+                from d in _context.Demconges.AsNoTracking()
+                where d.Soccod == soccod
+                join c in _context.Conges.AsNoTracking()
+                    on new { d.Soccod, d.Concod } equals new { c.Soccod, c.Concod } into cj
+                from c in cj.DefaultIfEmpty()
+                join e in _context.Employes.AsNoTracking()
+                    on new { d.Soccod, d.Empcod } equals new { e.Soccod, e.Empcod } into ej
+                from e in ej.DefaultIfEmpty()
+                select new
+                {
+                    concod   = d.Concod,
+                    empcod   = d.Empcod,
+                    emplib   = e != null ? e.Emplib : null,
+                    abscod   = d.Abscod,
+                    condep   = d.Condep,
+                    conret   = d.Conret,
+                    conrefus = c != null ? c.Conrefus : null,
+                    etat     = c == null ? "En attente"
+                             : (c.Conrefus == "1" ? "Refusé" : "Accepté"),
+                }
+            ).ToListAsync();
+            return Ok(rows);
+        }
+
         [HttpGet("get-pending-demconge-by-periode/{soccod}/{uticod}/{datedebut}/{datefin}")]
         [CanGetDemConge]
         public async Task<List<Demconge>> GetPendingCongeWithAbsenceAsync(string soccod, string uticod,DateTime datedebut,DateTime datefin)

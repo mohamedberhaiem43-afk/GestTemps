@@ -73,6 +73,7 @@ const EtatAbsence = React.lazy(() => import('../Etats/EtatAbsence/EtatAbsence'))
 const EmployeModern = React.lazy(() => import('../gestionEmploye/EmployeModern'));
 const EmployeProfileView = React.lazy(() => import('../gestionEmploye/EmployeProfileView'));
 const HeuresSupValidation = React.lazy(() => import('../gestionEmploye/HeuresSupValidation/HeuresSupValidation'));
+const DemandeHeuresSuppModern = React.lazy(() => import('../gestionEmploye/DemandeHeureSupp/DemandeHeuresSuppModern'));
 const EffectifsGlobaux = React.lazy(() => import('../gestionEmploye/EffectifsGlobaux'));
 const CahierConge = React.lazy(() => import('../Etats/CahierConge/CahierConge'));
 const TeamCalendarPage = React.lazy(() => import('../Etats/TeamCalendar/TeamCalendarPage'));
@@ -278,6 +279,11 @@ const useNavigationItems = (): NavGroup[] => {
           ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
           ...(planAllows('leaveManagement') ? [{ label: t('navigation.absenceRequest'), href: '/dashboard/demande-absence', icon: ClipboardList }] : []),
           ...(planAllows('leaveManagement') ? [{ label: t('navigation.remoteWorkRequest'), href: '/dashboard/demande-teletravail', icon: Laptop }] : []),
+          // Demande h.supp côté collaborateur — gated sur authorizationManagement
+          // (le marker [HEURES SUP] et la file de validation vivent dans la table
+          // autoriser). Sans cette entrée, le salarié n'avait pas de canal de
+          // soumission depuis le web alors que la validation existait déjà.
+          ...(planAllows('authorizationManagement') ? [{ label: 'Demande h.supp', href: '/dashboard/demande-heures-sup', icon: Clock3 }] : []),
           ...(planAllows('missions') ? [{ label: t('navigation.myMissions'), href: '/dashboard/missions', icon: Briefcase }] : []),
           // Cf. note plus bas dans la nav full : notes de frais gated sur expenseReports.
           ...(planAllows('expenseReports') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
@@ -373,6 +379,10 @@ const useNavigationItems = (): NavGroup[] => {
         // poser leur propre demande tout en validant celles de leur équipe.
         ...(!isAdminEffective && canSee('demande-absence') ? [{ label: t('navigation.absenceRequest'), href: '/dashboard/demande-absence', icon: ClipboardList }] : []),
         ...(!isAdminEffective && canSee('demande-teletravail') ? [{ label: t('navigation.remoteWorkRequest'), href: '/dashboard/demande-teletravail', icon: Laptop }] : []),
+        // Demande h.supp employé — affichée uniquement aux non-admins, à côté
+        // des autres self-services (absence, télétravail). La validation
+        // correspondante reste dans le groupe Demandes/Validation plus bas.
+        ...(!isAdminEffective && planAllows('authorizationManagement') ? [{ label: 'Demande h.supp', href: '/dashboard/demande-heures-sup', icon: Clock3 }] : []),
         ...((isAdminEffective || isManager) && canSee('validation-absence') ? [{ label: t('navigation.absenceValidation'), href: '/dashboard/validation-absence', icon: CheckSquare }] : []),
         ...((isAdminEffective || isManager) && canSee('validation-teletravail') ? [{ label: t('navigation.remoteWorkValidation'), href: '/dashboard/validation-teletravail', icon: CheckSquare }] : []),
         ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
@@ -449,9 +459,13 @@ const useNavigationItems = (): NavGroup[] => {
       icon: BarChart2,
       items: [
         // Calendrier équipe : vue mensuelle agrégée (congés + missions + autorisations).
-        // Visible pour tout utilisateur ayant accès aux états de présence —
-        // c'est la même portée fonctionnelle (visualisation des absences).
-        ...(canSee('etat-de-presence') ? [{ label: t('navigation.teamCalendar', 'Calendrier équipe'), href: '/dashboard/calendrier-equipe', icon: CalendarDays }] : []),
+        // Restreint aux admins/managers — un salarié ne doit pas voir le
+        // planning d'absences de ses collègues. Le backend renforce déjà la
+        // même règle (DemConges/by-soc, DemandeAutorisations/by-soc et
+        // Missions/by-soc renvoient 403 pour un employé), mais on retire en
+        // plus l'entrée de la sidebar pour éviter de proposer un lien qui
+        // mènerait à une page bloquée.
+        ...((isAdminEffective || isManager) && canSee('etat-de-presence') ? [{ label: t('navigation.teamCalendar', 'Calendrier équipe'), href: '/dashboard/calendrier-equipe', icon: CalendarDays }] : []),
         ...(canSee('etat-de-presence') ? [{ label: t('navigation.attendanceReport'), href: '/dashboard/etat-de-presence', icon: Users }] : []),
         ...(canSee('etat-de-retard') ? [{ label: t('navigation.lateReport'), href: '/dashboard/etat-de-retard', icon: Clock3 }] : []),
         ...(canSee('etat-des-absences') ? [{ label: t('navigation.absenceReport'), href: '/dashboard/etat-des-absences', icon: AlarmClock }] : []),
@@ -610,6 +624,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/geolocation-rgpd': content = <GeolocationPolicyPage />; break;
     case '/dashboard/suivi-positions': content = <PositionTrackingPage />; break;
     case '/dashboard/validation-heures-sup': content = <HeuresSupValidation />; break;
+    case '/dashboard/demande-heures-sup': content = <DemandeHeuresSuppModern />; break;
     case '/dashboard/gestion-de-solde': content = <SoldeCongeModern />; break;
     case '/dashboard/affectation-solde': content = <SoldeCongeAdmin />; break;
     case '/dashboard/cet': content = <CetPage />; break;
