@@ -68,6 +68,31 @@ const ADDON_KEYS: ReadonlyArray<keyof typeof ADDON_LABELS> = [
 type PlanKey = 'Starter' | 'Standard' | 'Premium';
 type Cycle = 'monthly' | 'annual';
 
+// Définition du pack courant — exposée par /billing/subscription depuis 2026-05
+// pour que l'UI affiche les prix / effectif inclus / overage SANS dupliquer la
+// grille PlanCatalog côté front (risque de divergence à chaque ajustement
+// tarifaire). Tous les montants sont en € HT.
+interface PlanInfo {
+  code: string;
+  displayName: string;
+  flatPriceMonthlyEur: number;
+  flatPriceAnnualMonthlyEur: number;
+  includedEmployees: number;
+  includedAdmins: number | null;       // null = illimité (Business)
+  overageRatePerEmployeeEur: number;
+  storageQuotaMb: number;
+  maxStorageMb: number;
+  storageSupplementBlockEur: number;
+}
+
+interface UsageInfo {
+  activeEmployees: number;
+  includedEmployees: number | null;
+  extraEmployees: number;              // > 0 = overage facturé via Stripe user_supp
+  extraCostMonthlyEur: number;
+  isOverCapacity: boolean;
+}
+
 interface SubscriptionInfo {
   slug: string;
   companyName: string;
@@ -78,6 +103,8 @@ interface SubscriptionInfo {
   cancelAtPeriodEnd: boolean;
   cancellationRequestedAt: string | null;
   hasActiveStripeSubscription: boolean;
+  plan?: PlanInfo | null;              // null si tenant sans PlanCode défini
+  usage?: UsageInfo | null;
 }
 
 interface PaymentMethodInfo {
@@ -582,6 +609,154 @@ export default function MonAbonnementPage() {
           )}
         </Stack>
       </Paper>
+
+      {/* ─── Détail du pack et effectif ────────────────────────────────────────
+          Carte exposant les conditions tarifaires actuelles du tenant (tarif
+          mensuel/annuel, effectif inclus, tarif overage par employé, quota
+          stockage) + l'usage temps réel des sièges. Source de vérité :
+          /api/billing/subscription { plan, usage } — alignée sur PlanCatalog
+          côté backend, donc plus de risque de divergence avec HomePage.tsx
+          quand on bouge un prix.
+
+          Permet aussi à l'admin d'AJOUTER un collaborateur depuis cette page
+          (CTA en bas). Si l'effectif dépasse le seuil inclus du pack, le
+          surplus est automatiquement facturé via l'item Stripe user_supp à
+          chaque ajout (cf. EmployesController ligne 785 + EmployeeBillingSync).
+      */}
+      {info?.plan && info?.usage && (
+        <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: '20px', border: '1px solid #e2e8f0', mb: 3 }}>
+          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
+            <Box sx={{
+              width: 48, height: 48, borderRadius: '12px', bgcolor: '#eef2f8',
+              color: '#0040a1', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <RocketLaunchIcon />
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Votre formule en détail
+              </Typography>
+              <Typography sx={{ fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
+                Pack {info.plan.displayName} · {info.usage.activeEmployees} collaborateur{info.usage.activeEmployees > 1 ? 's' : ''} actif{info.usage.activeEmployees > 1 ? 's' : ''}
+              </Typography>
+            </Box>
+          </Stack>
+
+          {/* Grille des conditions tarifaires — exactement ce qui est facturé */}
+          <Box sx={{
+            display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
+            gap: 2, mb: 3,
+          }}>
+            <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <Typography sx={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
+                Tarif mensuel
+              </Typography>
+              <Typography sx={{ fontWeight: 800, color: '#0f172a', fontSize: 18, mt: 0.5 }}>
+                {info.plan.flatPriceMonthlyEur.toFixed(0)} € HT
+                <Typography component="span" sx={{ fontSize: 11, color: '#64748b', fontWeight: 600, ml: 0.5 }}>/ mois</Typography>
+              </Typography>
+            </Box>
+            <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <Typography sx={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
+                Tarif annuel
+              </Typography>
+              <Typography sx={{ fontWeight: 800, color: '#0f172a', fontSize: 18, mt: 0.5 }}>
+                {info.plan.flatPriceAnnualMonthlyEur.toFixed(0)} € HT
+                <Typography component="span" sx={{ fontSize: 11, color: '#64748b', fontWeight: 600, ml: 0.5 }}>/ mois</Typography>
+              </Typography>
+              <Typography sx={{ fontSize: 10, color: '#16a34a', fontWeight: 700, mt: 0.3 }}>
+                soit {(info.plan.flatPriceAnnualMonthlyEur * 12).toFixed(0)} € HT / an
+              </Typography>
+            </Box>
+            <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <Typography sx={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
+                Inclus dans le pack
+              </Typography>
+              <Typography sx={{ fontWeight: 800, color: '#0f172a', fontSize: 18, mt: 0.5 }}>
+                {info.plan.includedEmployees}
+                <Typography component="span" sx={{ fontSize: 11, color: '#64748b', fontWeight: 600, ml: 0.5 }}>collaborateurs</Typography>
+              </Typography>
+            </Box>
+            <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <Typography sx={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
+                Collaborateur supplémentaire
+              </Typography>
+              <Typography sx={{ fontWeight: 800, color: '#0f172a', fontSize: 18, mt: 0.5 }}>
+                {info.plan.overageRatePerEmployeeEur.toFixed(2)} € HT
+                <Typography component="span" sx={{ fontSize: 11, color: '#64748b', fontWeight: 600, ml: 0.5 }}>/ mois / emp.</Typography>
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Jauge d'occupation des sièges */}
+          <Box sx={{ mb: 3 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
+                Sièges occupés
+              </Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: info.usage.isOverCapacity ? '#b45309' : '#0040a1' }}>
+                {info.usage.activeEmployees} / {info.plan.includedEmployees}
+                {info.usage.extraEmployees > 0 && (
+                  <Typography component="span" sx={{ fontSize: 12, color: '#b45309', fontWeight: 700, ml: 1 }}>
+                    (+{info.usage.extraEmployees} en supplément)
+                  </Typography>
+                )}
+              </Typography>
+            </Stack>
+            <LinearProgress
+              variant="determinate"
+              value={Math.min(100, (info.usage.activeEmployees / Math.max(1, info.plan.includedEmployees)) * 100)}
+              sx={{
+                height: 8, borderRadius: 4, bgcolor: '#e2e8f0',
+                '& .MuiLinearProgress-bar': {
+                  bgcolor: info.usage.isOverCapacity ? '#f59e0b' : '#0040a1',
+                  borderRadius: 4,
+                },
+              }}
+            />
+            {info.usage.isOverCapacity && (
+              <Alert severity="info" sx={{ mt: 2, borderRadius: '12px' }}>
+                Vous avez dépassé l'effectif inclus dans votre pack — un supplément de{' '}
+                <strong>{info.usage.extraCostMonthlyEur.toFixed(2)} € HT / mois</strong> sera ajouté
+                à votre prochaine facture ({info.usage.extraEmployees} collaborateur{info.usage.extraEmployees > 1 ? 's' : ''}{' '}
+                × {info.plan.overageRatePerEmployeeEur.toFixed(2)} €). Aucune action requise — la
+                facturation Stripe est déjà synchronisée.
+              </Alert>
+            )}
+          </Box>
+
+          {/* CTA d'ajout de collaborateur — disponible aux admins/managers. Sur
+              trial, EmployesController bloque déjà l'ajout au-delà du seuil
+              inclus avec un 402 explicite ; sur plan payant, la confirmation
+              d'overage est intégrée au flux de création employé. */}
+          {canManage && (
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+              <Button
+                variant="contained"
+                onClick={() => navigate('/dashboard/profil-employe?new=true')}
+                sx={{
+                  textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3,
+                  bgcolor: '#0040a1', '&:hover': { bgcolor: '#003080' },
+                }}
+              >
+                ➕ Ajouter un collaborateur
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => setChangePlanOpen(true)}
+                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3 }}
+              >
+                Changer de pack pour plus de sièges
+              </Button>
+            </Stack>
+          )}
+          {!canManage && (
+            <Typography sx={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
+              Contactez un administrateur pour ajouter un collaborateur.
+            </Typography>
+          )}
+        </Paper>
+      )}
 
       {/* ─── Modules actifs ────────────────────────────────────────────────────
           Récapitulatif des fonctionnalités débloquées par le pack ET par les

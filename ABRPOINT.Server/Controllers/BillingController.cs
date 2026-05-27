@@ -514,6 +514,63 @@ public class BillingController : ControllerBase
         if (tenant is null)
             return NotFound(new { error = "Tenant introuvable." });
 
+        // Définition du pack courant — source de vérité PlanCatalog (2026-05).
+        // Inclus dans la réponse pour que MonAbonnementPage puisse afficher prix,
+        // effectif inclus et tarif overage SANS dupliquer la grille tarifaire
+        // côté frontend (qui dérivait sur HomePage.tsx — risque de divergence
+        // chaque fois qu'on bouge un prix).
+        var plan = PlanCatalog.GetPlan(tenant.PlanCode);
+
+        // Usage temps réel : nombre de salariés actifs dans la base du tenant.
+        // ApplicationDbContext est déjà scopé au tenant courant via le middleware
+        // de résolution, donc on compte directement les employés du tenant.
+        // Filtre Actif="A" identique à EmployesController.cs ligne 783 (cohérence
+        // de calcul d'overage entre l'ajout d'employé et l'affichage abonnement).
+        var activeEmployees = await _tenantDb.Employes
+            .AsNoTracking()
+            .CountAsync(e => e.Actif == "A", ct);
+
+        object? planPayload = null;
+        object? usagePayload = null;
+        if (plan != null)
+        {
+            var extraEmployees = PlanCatalog.ComputeSupplementaryCount(plan, activeEmployees);
+            planPayload = new
+            {
+                code = plan.Code,
+                displayName = plan.DisplayName,
+                flatPriceMonthlyEur = plan.FlatPriceMonthlyEur,
+                flatPriceAnnualMonthlyEur = plan.FlatPriceAnnualMonthlyEur,
+                includedEmployees = plan.IncludedEmployees,
+                includedAdmins = plan.IncludedAdmins,           // null = illimité
+                overageRatePerEmployeeEur = plan.OverageRatePerEmployeeEur,
+                storageQuotaMb = plan.StorageQuotaMb,
+                maxStorageMb = plan.MaxStorageMb,
+                storageSupplementBlockEur = plan.StorageSupplementBlockEur,
+            };
+            usagePayload = new
+            {
+                activeEmployees,
+                includedEmployees = plan.IncludedEmployees,
+                extraEmployees,                                 // # employés > seuil inclus
+                extraCostMonthlyEur = extraEmployees * plan.OverageRatePerEmployeeEur,
+                isOverCapacity = extraEmployees > 0,
+            };
+        }
+        else
+        {
+            // Pas de plan résolu (tenant sans PlanCode défini) — usage encore utile
+            // côté UI pour afficher l'effectif courant même sans pack actif.
+            usagePayload = new
+            {
+                activeEmployees,
+                includedEmployees = (int?)null,
+                extraEmployees = 0,
+                extraCostMonthlyEur = 0m,
+                isOverCapacity = false,
+            };
+        }
+
         return Ok(new
         {
             slug = tenant.Slug,
@@ -525,6 +582,8 @@ public class BillingController : ControllerBase
             cancelAtPeriodEnd = tenant.CancelAtPeriodEnd,
             cancellationRequestedAt = tenant.CancellationRequestedAt,
             hasActiveStripeSubscription = !string.IsNullOrEmpty(tenant.StripeSubscriptionId),
+            plan = planPayload,
+            usage = usagePayload,
         });
     }
 
