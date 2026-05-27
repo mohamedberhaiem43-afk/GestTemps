@@ -1,4 +1,5 @@
 using ABRPOINT.Server.CalculService.HeureSupp;
+using ABRPOINT.Server.Models;
 using FluentAssertions;
 using Xunit;
 
@@ -260,5 +261,91 @@ public class HeureSuppFerierTests
         var (c, s) = HeuresSupplementairesHebdomadairesService.ApplyFerierWorkedCap(worked, cap);
         c.Should().BeApproximately(expectedCap, 0.01f);
         s.Should().BeApproximately(expectedSurplus, 0.01f);
+    }
+
+    // ─── ComputeWorkedHoursFromPunches : régression J.Fér.Trv=0 + H.Fér.Trv=0 ──
+
+    [Fact]
+    public void ComputeWorkedHoursFromPunches_ContinuousMorningOnly_ReturnsFullDuration()
+    {
+        // Cas terrain : pointage continu 08:00→22:00 en slot matin uniquement
+        // (pas de slot aprem). Doit retourner 14h.
+        var p = new Presence
+        {
+            Preentmatup = "08:00", Presortmatup = "22:00",
+        };
+
+        var hours = OptimizedPresenceService.ComputeWorkedHoursFromPunches(p);
+
+        hours.Should().BeApproximately(14f, 0.01f);
+    }
+
+    [Fact]
+    public void ComputeWorkedHoursFromPunches_AllThreeSlots_SumsCorrectly()
+    {
+        // 4h matin + 3h aprem + 5h supp = 12h. La régression était l'absence du slot
+        // supp dans la version d'avant 2026-05-27 → cette plage était ignorée.
+        var p = new Presence
+        {
+            Preentmatup = "08:00", Presortmatup = "12:00",
+            Preentamidiup = "14:00", Presortamidiup = "17:00",
+            Preentasupup = "18:00", Presortsupup = "23:00",
+        };
+
+        var hours = OptimizedPresenceService.ComputeWorkedHoursFromPunches(p);
+
+        hours.Should().BeApproximately(12f, 0.01f, "matin 4h + aprem 3h + supp 5h");
+    }
+
+    [Fact]
+    public void ComputeWorkedHoursFromPunches_OnlySuppSlot_NotMissed()
+    {
+        // CŒUR DU BUG terrain : si toutes les heures férié travaillées sont stockées
+        // EXCLUSIVEMENT dans le slot supp (ce qui arrive sur les pointages atypiques
+        // ou les jours fériés gérés en heures supplémentaires), l'ancienne implémentation
+        // retournait 0 → garde `workedHours > 0` skip → J.Fér.Trv reste à 0 et l'employé
+        // n'a aucune trace de son travail férié sur le Pointage du Mois.
+        var p = new Presence
+        {
+            Preentasupup = "08:00", Presortsupup = "22:00",
+        };
+
+        var hours = OptimizedPresenceService.ComputeWorkedHoursFromPunches(p);
+
+        hours.Should().BeApproximately(14f, 0.01f,
+            "le slot supp doit être lu — sinon J.Fér.Trv et H.Fér.Trv restent à 0");
+    }
+
+    [Fact]
+    public void ComputeWorkedHoursFromPunches_OvernightShift_HandlesMidnightCrossing()
+    {
+        // Pointage 22:00 → 02:00 (post-fix midnight-safe, comme CalcNbHeure).
+        // Avant fix : (02:00 - 22:00).TotalHours = -20h → Math.Max(0, ...) = 0 → bug.
+        var p = new Presence
+        {
+            Preentmatup = "22:00", Presortmatup = "02:00",
+        };
+
+        var hours = OptimizedPresenceService.ComputeWorkedHoursFromPunches(p);
+
+        hours.Should().BeApproximately(4f, 0.01f, "22h→02h = 4h franchissement minuit");
+    }
+
+    [Fact]
+    public void ComputeWorkedHoursFromPunches_EmptyPresence_ReturnsZero()
+    {
+        var p = new Presence();
+        OptimizedPresenceService.ComputeWorkedHoursFromPunches(p).Should().Be(0f);
+    }
+
+    [Fact]
+    public void ComputeWorkedHoursFromPunches_OnlyEntryNoExit_ReturnsZero()
+    {
+        // Oubli de pointer la sortie → slot incomplet → ne contribue pas.
+        var p = new Presence
+        {
+            Preentmatup = "08:00", Presortmatup = null,
+        };
+        OptimizedPresenceService.ComputeWorkedHoursFromPunches(p).Should().Be(0f);
     }
 }

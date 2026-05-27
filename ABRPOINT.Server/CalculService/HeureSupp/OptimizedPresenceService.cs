@@ -522,20 +522,41 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         }
 
         /// <summary>
-        /// Calcule les heures travaillées dans la journée à partir des 4 timestamps de
-        /// pointage (entrée/sortie matin + entrée/sortie après-midi). Plus fiable que de
-        /// lire la colonne Tothre — celle-ci peut avoir été persistée avec une valeur
-        /// erronée par un calcul antérieur (cf. commentaire dans <c>PresenceRepository</c>
-        /// : « Force recompute from punches: clear any stale Tothre stored in DB »).
+        /// Calcule les heures travaillées dans la journée à partir des 6 timestamps de
+        /// pointage (3 slots : matin / après-midi / supp soir). Plus fiable que de lire
+        /// la colonne Tothre — celle-ci peut avoir été persistée avec une valeur erronée
+        /// par un calcul antérieur (cf. commentaire dans <c>PresenceRepository</c> :
+        /// « Force recompute from punches: clear any stale Tothre stored in DB »).
+        ///
+        /// ⚠ Régression corrigée 2026-05-27 (visible sur Lundi Pentecôte 2026-05-25) :
+        ///   • L'ancienne version ne lisait QUE les slots matin + aprem (matup/sortmat
+        ///     + amidiup/sortamidi), en ratant la slot SUPP (asupup/sortsupup). Un
+        ///     employé pointant 08:00 → 22:00 en continu sur un férié voyait ses heures
+        ///     atterrir partiellement dans la slot supp, donc <c>workedHours = 0</c> ici
+        ///     → la garde `if (workedHours > 0)` skippait l'incrément, et les colonnes
+        ///     <c>NbJourFerier</c> (J.Fér.Trv) + <c>NbhFerierTrv</c> (H.Fér.Trv)
+        ///     restaient à 0 malgré 14h travaillées le jour férié. L'EtatPeriodique
+        ///     (qui utilise <c>PresenceRepository.CalcNbHeure</c> avec les 3 slots)
+        ///     affichait correctement 14:07, créant une incohérence inter-vues.
+        ///   • Pas de gestion du franchissement de minuit : un pointage 22:00 → 02:00
+        ///     produisait une durée négative clampée à 0 (cf. même fix que CalcNbHeure
+        ///     dans PresenceRepository.cs:1570-1576).
+        ///
+        /// On aligne désormais sur la sémantique de CalcNbHeure : 3 slots + midnight-safe.
         /// </summary>
-        private static float ComputeWorkedHoursFromPunches(Presence p)
+        public static float ComputeWorkedHoursFromPunches(Presence p)
         {
-            float total = 0;
-            if (TimeSpan.TryParse(p.Preentmatup, out var entMat) && TimeSpan.TryParse(p.Presortmatup, out var sortMat))
-                total += (float)Math.Max(0, (sortMat - entMat).TotalHours);
-            if (TimeSpan.TryParse(p.Preentamidiup, out var entAm) && TimeSpan.TryParse(p.Presortamidiup, out var sortAm))
-                total += (float)Math.Max(0, (sortAm - entAm).TotalHours);
-            return total;
+            static float SlotHours(string? entStr, string? sortStr)
+            {
+                if (!TimeSpan.TryParse(entStr, out var ent) || !TimeSpan.TryParse(sortStr, out var sort))
+                    return 0f;
+                if (sort < ent) sort = sort.Add(TimeSpan.FromDays(1)); // franchit minuit
+                return (float)(sort - ent).TotalHours;
+            }
+
+            return SlotHours(p.Preentmatup, p.Presortmatup)
+                 + SlotHours(p.Preentamidiup, p.Presortamidiup)
+                 + SlotHours(p.Preentasupup, p.Presortsupup);
         }
 
         // UPDATED: Process presence details (now only for calculations that require presence)

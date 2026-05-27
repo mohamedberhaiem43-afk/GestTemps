@@ -1523,3 +1523,142 @@
   .home-page .promo-launch-inner { padding: 38px 28px 30px; }
   .home-page .promo-launch-grid { gap: 24px; }
 }
+
+/* ── VIDÉO DE DÉMO (section "Comment ça marche") ──────────────────────────
+   Remplace les anciennes step-illustration (4 vignettes animées par
+   activeStep). Le ratio cible est ~16:9 et la vidéo doit garder la même
+   hauteur que les illustrations précédentes pour ne pas casser la grille
+   how-layout (1fr / 1fr). play() est déclenché par IntersectionObserver
+   côté React — on désactive l'autoplay HTML pour rester conforme aux
+   politiques navigateurs (autoplay muted toléré, mais on garde la maîtrise
+   pour ne pas saturer la home dès l'ouverture). */
+.home-page .step-video-wrap {
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--hp-outline-variant);
+  box-shadow: var(--hp-shadow-lift);
+  background: #000;
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.home-page .step-video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 20px;
+}
+
+/* ── OFFRE FONDATEUR ÉTÉ 2026 ────────────────────────────────────────────
+   Section saisonnière (1er juin → 31 août 2026). Conçue pour s'intégrer
+   visuellement dans la bannière .promo-launch existante (mêmes couleurs
+   navy + or) mais avec un compte à rebours live + une grille de 6 avantages
+   en 3×2. Disparait automatiquement du DOM le 1er septembre (cf. condition
+   `expired` dans FounderPromoSection côté TSX). */
+
+/* Titre + compte à rebours côte-à-côte sur desktop, empilés en dessous
+   de 900px (cf. media plus bas). */
+.home-page .founder-hero-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 40px;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.home-page .founder-countdown {
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 20px;
+  padding: 20px 28px;
+  text-align: center;
+  backdrop-filter: blur(6px);
+}
+.home-page .founder-countdown-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 14px;
+}
+.home-page .founder-countdown-grid {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.home-page .founder-countdown-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 52px;
+}
+.home-page .founder-countdown-num {
+  font-family: var(--hp-font-headline);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #fff;
+  line-height: 1;
+  background: rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 6px 10px;
+  min-width: 52px;
+  text-align: center;
+}
+.home-page .founder-countdown-sub {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.65);
+}
+.home-page .founder-countdown-sep {
+  font-size: 24px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 16px;
+  line-height: 1;
+}
+
+/* Grille 6 avantages : 3×2 sur desktop, 2 cols à 900px, 1 col à 540px. */
+.home-page .founder-avantages {
+  list-style: none;
+  margin: 0 0 32px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 24px;
+}
+.home-page .founder-avantage-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(255,255,255,0.09);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+/* Responsive Fondateur */
+@media (max-width: 900px) {
+  .home-page .founder-hero-row {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .home-page .founder-countdown { width: fit-content; }
+  .home-page .founder-avantages { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 540px) {
+  .home-page .founder-avantages { grid-template-columns: 1fr; }
+  .home-page .founder-countdown-num {
+    font-size: 24px;
+    min-width: 40px;
+    padding: 4px 8px;
+  }
+  .home-page .founder-countdown-unit { min-width: 40px; }
+}

@@ -125,6 +125,128 @@ const STEPS: { num: string; title: string; desc: string }[] = [
   },
 ];
 
+// ─── OFFRE FONDATEUR ÉTÉ 2026 ──────────────────────────────────────────────
+// Période : 1er juin → 31 août 2026. Compte à rebours live recalculé chaque
+// seconde. Affiché juste après le hero (cf. demande UX 2026-05-27).
+
+const FOUNDER_OFFER_END = new Date('2026-09-01T00:00:00+02:00'); // 31 août 23:59 CEST
+
+function useFounderCountdown() {
+  const calc = () => {
+    const diff = FOUNDER_OFFER_END.getTime() - Date.now();
+    if (diff <= 0) return { jours: 0, heures: 0, minutes: 0, secondes: 0, expired: true };
+    const total = Math.floor(diff / 1000);
+    return {
+      jours: Math.floor(total / 86400),
+      heures: Math.floor((total % 86400) / 3600),
+      minutes: Math.floor((total % 3600) / 60),
+      secondes: total % 60,
+      expired: false,
+    };
+  };
+  const [remaining, setRemaining] = useState(calc);
+  useEffect(() => {
+    const id = window.setInterval(() => setRemaining(calc()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  return remaining;
+}
+
+function FounderPromoSection({ onSignup }: { onSignup: () => void }) {
+  const { jours, heures, minutes, secondes, expired } = useFounderCountdown();
+  const pad = (n: number) => String(n).padStart(2, '0');
+
+  if (expired) return null; // section disparaît automatiquement le 1er septembre
+
+  const AVANTAGES = [
+    { icon: '🎁', label: '1 mois offert', sub: 'Sans carte bancaire requise' },
+    { icon: '🚀', label: 'Activation rapide', sub: 'Opérationnel en 48h' },
+    { icon: '🎓', label: 'Onboarding inclus', sub: 'Accompagnement expert dédié' },
+    { icon: '🎧', label: 'Support prioritaire', sub: 'Accès file prioritaire' },
+    { icon: '⚡', label: 'Accès anticipé', sub: 'Nouvelles fonctionnalités en avant-première' },
+    { icon: '🔓', label: 'Sans engagement', sub: 'Vous décidez après l\'essai' },
+  ];
+
+  return (
+    <section className="promo-launch promo-launch--top reveal" aria-label="Offre Fondateur Été 2026">
+      <div className="promo-launch-inner">
+        <span className="promo-launch-pill">
+          <span className="promo-launch-pill-icon">🚀</span>
+          OFFRE FONDATEUR — ÉTÉ 2026
+        </span>
+
+        {/* Titre + compte à rebours côte-à-côte sur desktop, empilés en mobile. */}
+        <div className="founder-hero-row">
+          <div className="founder-title-block">
+            <h2 className="promo-launch-title">
+              Conditions tarifaires<br />
+              <span className="promo-launch-accent">préférentielles Fondateur</span>
+              <span className="promo-launch-sparkle" aria-hidden="true">✨</span>
+            </h2>
+            <p className="promo-launch-sub">
+              Du <span className="promo-launch-sub-hl">1er juin</span> au{' '}
+              <span className="promo-launch-sub-hl">31 août 2026</span> — une fenêtre
+              exclusive pour rejoindre Concorde Workforce à des conditions fondateur.
+            </p>
+          </div>
+
+          {/* Compte à rebours live (mis à jour chaque seconde par useFounderCountdown). */}
+          <div className="founder-countdown" aria-label="Temps restant avant la fin de l'offre">
+            <div className="founder-countdown-label">L'offre se termine dans</div>
+            <div className="founder-countdown-grid">
+              <div className="founder-countdown-unit">
+                <span className="founder-countdown-num">{pad(jours)}</span>
+                <span className="founder-countdown-sub">jours</span>
+              </div>
+              <span className="founder-countdown-sep">:</span>
+              <div className="founder-countdown-unit">
+                <span className="founder-countdown-num">{pad(heures)}</span>
+                <span className="founder-countdown-sub">heures</span>
+              </div>
+              <span className="founder-countdown-sep">:</span>
+              <div className="founder-countdown-unit">
+                <span className="founder-countdown-num">{pad(minutes)}</span>
+                <span className="founder-countdown-sub">min</span>
+              </div>
+              <span className="founder-countdown-sep">:</span>
+              <div className="founder-countdown-unit">
+                <span className="founder-countdown-num">{pad(secondes)}</span>
+                <span className="founder-countdown-sub">sec</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Grille des 6 avantages — 3×2 desktop, responsive plus bas. */}
+        <ul className="founder-avantages">
+          {AVANTAGES.map((a) => (
+            <li key={a.label} className="founder-avantage-item">
+              <div className="plf-icon">{a.icon}</div>
+              <div className="plf-text">
+                <strong>{a.label}</strong>
+                <span>{a.sub}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <button type="button" className="promo-launch-cta" onClick={onSignup}>
+          <span className="promo-launch-cta-icon">🚀</span>
+          Rejoindre l'offre Fondateur
+          <span className="promo-launch-cta-arrow">→</span>
+        </button>
+
+        <div className="promo-launch-trust">
+          <span><span className="plt-icon">🛡</span> Sécurisé &amp; conforme RGPD</span>
+          <span><span className="plt-icon">🇫🇷</span> Hébergement France OVH</span>
+          <span><span className="plt-icon">⚡</span> Mise en place en 48h</span>
+          <span><span className="plt-icon">🎧</span> Support francophone humain</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
   // Session : si un utilisateur est déjà connecté à son tenant, le CTA « Essayer
@@ -266,7 +388,6 @@ export default function HomePage() {
           <img className="logo-mark" src="/concorde-wrokly-logo.jpg" alt="Concorde Workforce" />
         </div>
         <ul className="nav-links">
-          <li><a href="#features">Fonctionnalités</a></li>
           <li><a href="#how">Voir le démo</a></li>
           <li><a href="#pricing">Tarifs</a></li>
           <li><a href="#comparison">Comparatif</a></li>
@@ -296,7 +417,6 @@ export default function HomePage() {
           après le smooth-scroll vers l'ancre. */}
       {mobileMenuOpen && (
         <div className="nav-mobile-menu" role="menu" onClick={() => setMobileMenuOpen(false)}>
-          <a href="#features" role="menuitem">Fonctionnalités</a>
           <a href="#how" role="menuitem">Voir le démo</a>
           <a href="#pricing" role="menuitem">Tarifs</a>
           <a href="#comparison" role="menuitem">Comparatif</a>
@@ -304,73 +424,10 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* PROMO UNIFIÉE — placée juste sous la nav pour que le visiteur la
-          découvre dès l'ouverture de la page (avant même le hero). Le padding
-          haut de la section compense la hauteur de .hp-nav (fixed, 76px).
-          Remplace les 3 anciens bandeaux Early Launch / multi-pays / essai. */}
-      <section className="promo-launch promo-launch--top reveal" aria-label="Offre de lancement">
-        <div className="promo-launch-inner">
-          <span className="promo-launch-pill">
-            <span className="promo-launch-pill-icon">🚀</span>
-            OFFRE EXCLUSIVE
-          </span>
-
-          <div className="promo-launch-grid">
-            <div className="promo-launch-left">
-              <h2 className="promo-launch-title">
-                Les <span className="promo-launch-num">10</span> premières entreprises<br />
-                profitent de l'offre <span className="promo-launch-accent">À VIE !</span><span className="promo-launch-sparkle" aria-hidden="true">✨</span>
-              </h2>
-              <p className="promo-launch-sub">
-                Une <span className="promo-launch-sub-hl">opportunité unique</span> pour simplifier votre gestion RH et gagner du temps.
-              </p>
-            </div>
-
-            <aside className="promo-launch-right" aria-label="Conditions pour les autres entreprises">
-              <div className="promo-launch-right-head">POUR TOUTES LES AUTRES ENTREPRISES</div>
-              <ul className="promo-launch-features">
-                <li>
-                  <div className="plf-icon">🎁</div>
-                  <div className="plf-text">
-                    <strong>1 mois d'essai <span className="plf-yellow">GRATUIT</span></strong>
-                    <span>sans carte bancaire, sans engagement</span>
-                  </div>
-                </li>
-                <li>
-                  <div className="plf-icon">💳</div>
-                  <div className="plf-text">
-                    <strong>Sans carte bancaire</strong>
-                    <span>Aucune donnée bancaire demandée</span>
-                  </div>
-                </li>
-                <li>
-                  <div className="plf-icon">📅</div>
-                  <div className="plf-text">
-                    <strong>Sans engagement</strong>
-                    <span>Vous décidez après l'essai</span>
-                  </div>
-                </li>
-              </ul>
-            </aside>
-          </div>
-
-          <button type="button" className="promo-launch-cta" onClick={() => goToSignup()}>
-            <span className="promo-launch-cta-icon">🚀</span>
-            J'en profite maintenant
-            <span className="promo-launch-cta-arrow">→</span>
-          </button>
-
-          <div className="promo-launch-trust">
-            <span><span className="plt-icon">🛡</span> Sécurisé &amp; conforme RGPD</span>
-            <span><span className="plt-icon">🎧</span> Support réactif</span>
-            <span><span className="plt-icon">⚡</span> Mise en place rapide</span>
-          </div>
-        </div>
-      </section>
-
-      {/* HERO — sobre depuis que les bandeaux promo sont consolidés dans la
-          bannière au-dessus : titre + sous-titre + CTAs + indicateurs de
-          confiance + preview dashboard. */}
+      {/* HERO — titre et sous-titre en premier, avant la bannière promo.
+          Le dashboard preview a été supprimé (2026-05-27) : on mise désormais
+          sur la vidéo de démo dans la section "Comment ça marche" plutôt que
+          sur un mock figé qui prenait beaucoup de place sans valeur ajoutée. */}
       <section className="hero">
         <h1 className="hero-title">
           Le pointage et la gestion<br />du temps <span className="accent">simplifiés</span>
@@ -397,69 +454,12 @@ export default function HomePage() {
           <div className="trust-divider" />
           <div className="trust-item"><span className="trust-icon">✓</span> Multi-pays FR · BE · MA · SN</div>
         </div>
-
-        {/* DASHBOARD PREVIEW */}
-        <div className="hero-visual">
-          <div className="float-badge fb-tl">
-            <div className="green-dot" />
-            <div className="fb-info">
-              <div className="fb-title">178 collaborateurs présents</div>
-              <div className="fb-sub">Mise à jour il y a 2 min</div>
-            </div>
-          </div>
-          <div className="dashboard-frame">
-            <div className="dashboard-bar">
-              <div className="dot dot-red" />
-              <div className="dot dot-yellow" />
-              <div className="dot dot-green" />
-              <div className="url-bar">acme.concorde-work-force.com/dashboard</div>
-            </div>
-            <div className="dashboard-content">
-              <div className="dash-sidebar">
-                <div style={{ fontSize: '10.5px', color: 'var(--hp-outline)', letterSpacing: '.06em', textTransform: 'uppercase', padding: '6px 12px 12px', fontWeight: 700 }}>Menu</div>
-                <div className="dash-nav-item active"><span className="dash-nav-icon">⌂</span> Tableau de bord</div>
-                <div className="dash-nav-item"><span className="dash-nav-icon">⏱</span> Pointage</div>
-                <div className="dash-nav-item"><span className="dash-nav-icon">▤</span> Planning</div>
-                <div className="dash-nav-item"><span className="dash-nav-icon">☷</span> Congés & Absences</div>
-                <div className="dash-nav-item"><span className="dash-nav-icon">⊞</span> Collaborateurs</div>
-                <div className="dash-nav-item"><span className="dash-nav-icon">▦</span> Contrats</div>
-                <div className="dash-nav-item"><span className="dash-nav-icon">⊟</span> Rapports</div>
-                <div style={{ height: 14 }} />
-                <div className="dash-nav-item"><span className="dash-nav-icon">⚙</span> Paramètres</div>
-              </div>
-              <div className="dash-main">
-                <div className="dash-row">
-                  <div className="kpi-card">
-                    <div className="kpi-label">Présents</div>
-                    <div className="kpi-val primary">178</div>
-                    <div className="kpi-change">↑ +12 vs hier</div>
-                  </div>
-                  <div className="kpi-card">
-                    <div className="kpi-label">Absences</div>
-                    <div className="kpi-val green">4,2%</div>
-                    <div className="kpi-change">↓ −2,1% ce mois</div>
-                  </div>
-                  <div className="kpi-card">
-                    <div className="kpi-label">H. supp</div>
-                    <div className="kpi-val blue">142h</div>
-                    <div className="kpi-change">↑ +18h vs S−1</div>
-                  </div>
-                </div>
-                <div className="dash-chart">
-                  <div className="chart-title">Présence hebdomadaire · 4 dernières semaines</div>
-                  <div className="chart-bars">
-                    <div className="bar-wrap"><div className="bar" style={{ height: 52 }} /><div className="bar-label">S−4</div></div>
-                    <div className="bar-wrap"><div className="bar" style={{ height: 62 }} /><div className="bar-label">S−3</div></div>
-                    <div className="bar-wrap"><div className="bar filled" style={{ height: 48 }} /><div className="bar-label">S−2</div></div>
-                    <div className="bar-wrap"><div className="bar filled" style={{ height: 68 }} /><div className="bar-label">S−1</div></div>
-                    <div className="bar-wrap"><div className="bar filled" style={{ height: 74 }} /><div className="bar-label">Cette S.</div></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </section>
+
+      {/* OFFRE FONDATEUR ÉTÉ 2026 — placée APRÈS le hero (titre/sous-titre)
+          conformément à la demande UX 2026-05-27. Disparait automatiquement
+          au 1er septembre 2026 (cf. FOUNDER_OFFER_END). */}
+      <FounderPromoSection onSignup={() => goToSignup()} />
 
       {/* STATS */}
       <div className="stats-strip reveal">
@@ -522,80 +522,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* FEATURES */}
-      <section id="features">
-        <div className="section-tag">Fonctionnalités</div>
-        <h2 className="section-title">Tout ce dont vous avez besoin, <span className="accent">dans une seule plateforme</span></h2>
-        <p className="section-sub">Conçu pour les équipes terrain, les multi-sites et les marchés africains et européens.</p>
-        <div className="features-grid reveal">
-          <div className="feature-card">
-            <div className="feature-icon">⏱</div>
-            <div className="feature-title">Pointage intelligent</div>
-            <div className="feature-desc">Application mobile avec géolocalisation, pointeuses biométriques compatibles, et synchronisation automatique. Fonctionne même sans connexion stable.</div>
-            <div className="feature-tags">
-              <span className="ftag">Mobile iOS / Android</span>
-              <span className="ftag">Géolocalisation</span>
-              <span className="ftag">Multi-sites</span>
-            </div>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon green-icon">☷</div>
-            <div className="feature-title">Congés & Autorisations</div>
-            <div className="feature-desc">Demandes de congés et autorisations de sortie validées en un clic. Notifications push aux managers, calendrier équipe partagé et soldes mis à jour automatiquement.</div>
-            <div className="feature-tags">
-              <span className="ftag">Validation en 1 clic</span>
-              <span className="ftag">Notifications push</span>
-              <span className="ftag">Calendrier équipe</span>
-            </div>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon blue-icon">▦</div>
-            <div className="feature-title">Contrats & Coffre numérique</div>
-            <div className="feature-desc">Générez, faites signer électroniquement et archivez vos contrats. Coffre-fort numérique sécurisé par collaborateur. Conformité droit du travail.</div>
-            <div className="feature-tags">
-              <span className="ftag">Signature électronique</span>
-              <span className="ftag">Coffre RGPD</span>
-              <span className="ftag">Multi-pays</span>
-            </div>
-          </div>
-          <div className="feature-card large">
-            <div className="feature-large-grid">
-              <div>
-                <div className="feature-icon">📊</div>
-                <div className="feature-title">Préparation paie & Reporting</div>
-                <div className="feature-desc">Heures supplémentaires, retards, pauses, RTT : tout est consolidé pour la paie. Tableaux de bord temps réel par site, département ou équipe. Exports PDF/Excel en un clic.</div>
-                <div className="feature-tags">
-                  <span className="ftag">Préparation paie</span>
-                  <span className="ftag">Heures supp / RTT</span>
-                  <span className="ftag">Export PDF/Excel</span>
-                  <span className="ftag">Temps réel</span>
-                </div>
-              </div>
-              <div className="feature-results-box">
-                <div className="feature-results-title">Résultats clients</div>
-                <div className="feature-results">
-                  <div>
-                    <div className="feature-result-row"><span>Réduction absentéisme</span><span className="v-green">−34%</span></div>
-                    <div className="feature-result-bar"><div className="feature-result-fill fill-green" style={{ width: '66%' }} /></div>
-                  </div>
-                  <div>
-                    <div className="feature-result-row"><span>Temps admin économisé</span><span className="v-primary">−9h/sem</span></div>
-                    <div className="feature-result-bar"><div className="feature-result-fill fill-primary" style={{ width: '78%' }} /></div>
-                  </div>
-                  <div>
-                    <div className="feature-result-row"><span>Adoption mobile J+21</span><span className="v-blue">85%</span></div>
-                    <div className="feature-result-bar"><div className="feature-result-fill fill-blue" style={{ width: '85%' }} /></div>
-                  </div>
-                  <div>
-                    <div className="feature-result-row"><span>Satisfaction RH (NPS)</span><span className="v-green">+42 pts</span></div>
-                    <div className="feature-result-bar"><div className="feature-result-fill fill-green" style={{ width: '72%' }} /></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Section "Fonctionnalités" retirée (2026-05-27) : la valeur produit
+          est désormais portée par la vidéo de démo dans "Comment ça marche"
+          + le comparatif détaillé plus bas. Évite la redondance sur la home. */}
 
       {/* HOW IT WORKS */}
       <section id="how" ref={howSectionRef} style={{ background: 'var(--hp-surface-container-lowest)' }}>
@@ -618,62 +547,36 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-          <div className="step-visual">
-            {activeStep === 0 && (
-              <div className="step-illustration">
-                <div className="step-illus-icon">🏢</div>
-                <div className="step-illus-title">Inscription en 5 minutes</div>
-                <div className="step-illus-desc">Saisissez votre SIRET, choisissez votre pays. Vérification automatique du registre officiel (Sirene, BCE, ICE, NINEA).</div>
-                <div className="step-chips">
-                  <span className="step-chip">🇫🇷 France</span>
-                  <span className="step-chip">🇧🇪 Belgique</span>
-                  <span className="step-chip">🇲🇦 Maroc</span>
-                  <span className="step-chip">🇸🇳 Sénégal</span>
-                </div>
-              </div>
-            )}
-            {activeStep === 1 && (
-              <div className="step-illustration">
-                <div className="step-illus-icon">⊞</div>
-                <div className="step-illus-title">Import en 1 clic</div>
-                <div className="step-illus-desc">Glissez votre fichier CSV — vos 500 collaborateurs sont importés en 30 secondes.</div>
-                <div className="mini-profile">
-                  <div className="avatar">KB</div>
-                  <div>
-                    <div className="mini-name">Khaled Benali · Directeur Opérations</div>
-                    <div className="mini-role">Site Casablanca · 220 collaborateurs</div>
-                  </div>
-                </div>
-              </div>
-            )}
-            {activeStep === 2 && (
-              <div className="step-illustration">
-                <div className="step-illus-icon">📱</div>
-                <div className="step-illus-title">Mobile-first</div>
-                <div className="step-illus-desc">iOS · Android · Mode offline · Géolocalisation optionnelle · Pointeuses biométriques compatibles</div>
-                <div className="step-stores">
-                  <a className="step-store" href="/download" target="_blank" rel="noreferrer">↓ App Store</a>
-                  <a className="step-store" href="/download" target="_blank" rel="noreferrer">↓ Google Play</a>
-                </div>
-                <div className="step-store-url">
-                  ou téléchargez l'APK depuis <a href="/download"><strong>concordeworkly.com</strong></a>
-                </div>
-              </div>
-            )}
-            {activeStep === 3 && (
-              <div className="step-illustration">
-                <div className="step-illus-icon">📊</div>
-                <div className="step-illus-title">ROI mesurable à J+30</div>
-                <div className="step-illus-desc">Tableaux de bord temps réel, préparation paie automatisée, alertes sur les anomalies.</div>
-                <div className="mini-profile">
-                  <div className="avatar tertiary">€</div>
-                  <div>
-                    <div className="mini-name">Économies estimées : 41 000 €/an</div>
-                    <div className="mini-role">Calculées sur vos données réelles</div>
-                  </div>
-                </div>
-              </div>
-            )}
+          {/* VIDÉO — remplace les illustrations animées des 4 étapes (2026-05-27).
+              Lecture automatique au scroll via IntersectionObserver (pas d'autoplay
+              brut pour respecter les politiques navigateurs / Lighthouse).
+              Le fichier source : abrpoint.client/vidéo finale .mp4 (UTF-8 + espace)
+              a été copié dans public/ sous le nom ASCII-safe vide_o_finale_.mp4
+              pour éviter les soucis d'URL encoding selon les navigateurs. */}
+          <div className="step-video-wrap">
+            <video
+              ref={(el) => {
+                if (!el) return;
+                const obs = new IntersectionObserver(
+                  ([entry]) => {
+                    if (entry.isIntersecting) {
+                      el.play().catch(() => {});
+                    } else {
+                      el.pause();
+                    }
+                  },
+                  { threshold: 0.4 }
+                );
+                obs.observe(el);
+              }}
+              src="/vide_o_finale_.mp4"
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              className="step-video"
+              aria-label="Démonstration de la plateforme Concorde Workforce"
+            />
           </div>
         </div>
       </section>
@@ -1173,21 +1076,11 @@ export default function HomePage() {
           <div className="footer-col">
             <h4>Produit</h4>
             <div className="footer-links">
-              <a href="#features">Fonctionnalités</a>
               <a href="#pricing">Tarifs</a>
               <a href="#how">Démo</a>
               <a href="#download">Application mobile</a>
               <a href="/download">concordeworkly.com</a>
               <a href="#temoignages">Cas clients</a>
-            </div>
-          </div>
-          <div className="footer-col">
-            <h4>Secteurs</h4>
-            <div className="footer-links">
-              <a href="#secteurs">Industrie</a>
-              <a href="#secteurs">Retail</a>
-              <a href="#secteurs">Services</a>
-              <a href="#secteurs">BPO</a>
             </div>
           </div>
           <div className="footer-col">
