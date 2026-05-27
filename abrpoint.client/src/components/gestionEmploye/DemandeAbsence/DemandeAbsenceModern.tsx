@@ -13,6 +13,7 @@ import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import apiInstance from '../../API/apiInstance';
 import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
+import { useAuth } from '../../helper/AuthProvider';
 
 /**
  * Page « Mes demandes d'absence » côté collaborateur.
@@ -75,6 +76,7 @@ const formatBytes = (b?: number | null) => {
 };
 
 export default function DemandeAbsenceModern() {
+  const { soccod } = useAuth();
   const [items, setItems] = useState<DemandeAbsenceDto[]>([]);
   const [absenceTypes, setAbsenceTypes] = useState<AbsenceTypeOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,17 +103,19 @@ export default function DemandeAbsenceModern() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Chargement des types d'absence (réutilise l'endpoint existant — pas besoin
-  // de dupliquer la liste côté nouveau modèle).
+  // Chargement des types d'absence. Endpoint correct : /Absences/get-libs/{soccod}
+  // renvoie un Dictionary<abscod, abslib>. L'ancien appel `/Absences` (sans soccod
+  // ni sous-route) 404ait car AbsencesController n'a pas d'action [HttpGet] racine
+  // → la dropdown restait vide, l'utilisateur soumettait avec Abscod=null, et la
+  // sanction auto-créée n'apparaissait pas dans la liste (cf. SanctionRepository
+  // GetSanctionWithAbsenceAsync ligne 95 — INNER JOIN sur Absences éliminait les
+  // lignes à Abscod null).
   const loadAbsenceTypes = useCallback(async () => {
+    if (!soccod) return;
     try {
-      const { data } = await apiInstance.get<any>('/Absences');
-      // L'endpoint peut renvoyer un Array ou un dict {abscod: abslib}. On
-      // normalise — mais on REJETTE explicitement les chaînes : quand le
-      // backend renvoie une page d'erreur HTML (proxy Vite en 503, IIS
-      // service unavailable…), `data` arrive comme string "<!doctype html>…".
-      // Sans ce garde, Object.entries(string) produit [["0","<"],["1","!"]…]
-      // et l'UI affiche un MenuItem par caractère (cf. incident 2026-05-24).
+      const { data } = await apiInstance.get<any>(`/Absences/get-libs/${soccod}`);
+      // L'endpoint renvoie Dictionary<string,string>. On garde la branche Array
+      // par défense au cas où un autre endpoint serait câblé plus tard.
       let arr: AbsenceTypeOption[] = [];
       if (Array.isArray(data)) {
         arr = data
@@ -122,7 +126,7 @@ export default function DemandeAbsenceModern() {
       }
       setAbsenceTypes(arr);
     } catch { /* silent — l'utilisateur peut quand même saisir sans type */ }
-  }, []);
+  }, [soccod]);
 
   useEffect(() => { reload(); loadAbsenceTypes(); }, [reload, loadAbsenceTypes]);
 

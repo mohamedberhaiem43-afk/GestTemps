@@ -89,10 +89,16 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                // Utiliser une jointure avec Socusers au lieu de Contains
+                // LEFT JOIN sur Absences : les sanctions auto-créées depuis une
+                // DemandeAbsence (cf. DemandeAbsenceController.InsertSanctionFromDemandeAsync)
+                // peuvent avoir Abscod=null quand l'utilisateur n'a pas sélectionné
+                // de type. Un INNER JOIN les masquait → l'utilisateur croyait que
+                // l'insertion automatique ne fonctionnait pas, alors qu'elles
+                // existaient bel et bien en base.
                 var rawResult = await (
                     from c in _dbContext.Sanctions
-                    join a in _dbContext.Absences on c.Abscod equals a.Abscod
+                    join a in _dbContext.Absences on c.Abscod equals a.Abscod into aj
+                    from a in aj.DefaultIfEmpty()
                     join e in _dbContext.Employes on c.Empcod equals e.Empcod
                     join su in _dbContext.Socusers
                         on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
@@ -108,7 +114,7 @@ namespace ABRPOINT.Server.Repository
                         Condep = c.Condep,
                         Conret = c.Conret,
                         Connbjour = c.Connbjour,
-                        Abslib = a.Abslib,
+                        Abslib = a != null ? a.Abslib : null,
                     }).ToListAsync();
 
                 // Dédoublonnage et tri en mémoire

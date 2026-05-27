@@ -186,11 +186,10 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
         /// <summary>
         /// Applique le filtre d'approbation à un <see cref="HeuresSupplementairesResultat"/>
-        /// déjà calculé : remplit HreSupCalcule/Approuvees/EnAttente/Refusees/HasRequests,
-        /// et bascule HreSupSemaine (+ tranches) sur les seules heures approuvées si au
-        /// moins une demande existe sur la semaine. Si aucune demande n'existe, on garde
-        /// les valeurs calculées (compat ascendante — un tenant qui n'utilise pas le
-        /// workflow de validation ne perd pas son historique d'h.supp).
+        /// déjà calculé. Règle métier (2026-05) : <strong>les h.supp ne sont comptabilisées
+        /// QUE si elles ont été approuvées par un manager/admin</strong>. Sans demande
+        /// approuvée, HreSupSemaine = 0 — même si les pointages révèlent un dépassement.
+        /// Le total calculé brut reste accessible via HreSupCalcule pour audit/transparence.
         /// </summary>
         private async Task ApplyApprovalFilterAsync(
             HeuresSupplementairesResultat result,
@@ -199,16 +198,21 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             float? tranche1,
             float? tranche2)
         {
-            // Conserve la valeur calculée pour l'audit/transparence.
+            // Conserve la valeur calculée pour l'audit/transparence (UI peut afficher
+            // « 5h supp détectées dont 0h approuvées »).
             result.HreSupCalcule = result.HreSupSemaine;
 
             if (!result.WeekStartDate.HasValue || !result.WeekEndDate.HasValue)
             {
-                // Pas de plage → rien à filtrer, on laisse HreSupSemaine tel quel.
-                result.HreSupApprouvees = result.HreSupSemaine;
+                // Pas de plage → impossible d'interroger les approbations.
+                // On bascule en mode strict prudent : 0 h.supp comptées.
+                result.HreSupApprouvees = 0f;
                 result.HreSupEnAttente = 0f;
                 result.HreSupRefusees = 0f;
                 result.HreSupHasRequests = false;
+                result.HreSupSemaine = 0f;
+                result.HeuresSupTranche1 = 0f;
+                result.HeuresSupTranche2 = 0f;
                 return;
             }
 
@@ -228,22 +232,18 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             result.HreSupRefusees = rejected;
             result.HreSupHasRequests = approvals.Count > 0;
 
-            if (!result.HreSupHasRequests)
-                return; // Mode legacy : HreSupSemaine = calculé. Pas de modification.
-
-            // Mode strict : seules les h.supp approuvées comptent. On replafonne
-            // également les deux tranches sur ce total approuvé en respectant la
-            // même règle de répartition (tranche1 jusqu'à son seuil, le reste en
-            // tranche2). Le total Tothre est ajusté du delta calculé → approuvé
-            // pour rester cohérent avec ce qu'affichait la ligne "Total".
-            var newHreSup = approved;
-            var delta = newHreSup - (result.HreSupCalcule ?? 0f);
-            if (result.Tothre.HasValue)
-                result.Tothre += delta;
-
-            result.HreSupSemaine = newHreSup;
-            result.HeuresSupTranche1 = (float?)Math.Min(newHreSup, tranche1 ?? 0f);
-            var remaining = newHreSup - (result.HeuresSupTranche1 ?? 0f);
+            // Mode strict permanent : seules les h.supp approuvées comptent. Pas de
+            // bypass legacy — un dépassement non validé n'apparaît plus dans le total
+            // payable. Les tranches sont replafonnées sur ce total approuvé en
+            // respectant la règle de répartition (tranche1 jusqu'à son seuil, le
+            // reste en tranche2).
+            //
+            // ⚠ Tothre n'est PAS ajusté : il représente le total d'heures physiquement
+            // pointées (gross), pas le total payable. Le découplage gross/net est
+            // exactement ce que le workflow de validation matérialise.
+            result.HreSupSemaine = approved;
+            result.HeuresSupTranche1 = (float?)Math.Min(approved, tranche1 ?? 0f);
+            var remaining = approved - (result.HeuresSupTranche1 ?? 0f);
             result.HeuresSupTranche2 = (float?)Math.Min(remaining, tranche2 ?? 0f);
         }
 

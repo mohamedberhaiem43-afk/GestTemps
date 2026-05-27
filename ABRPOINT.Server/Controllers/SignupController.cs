@@ -30,6 +30,12 @@ public class SignupController : ControllerBase
         "master", "auth", "login", "signup", "stripe", "test", "demo", "staging", "prod",
     };
 
+    // Notification interne envoyée à chaque création de tenant pour que l'équipe
+    // commerciale/produit ait une visibilité temps réel sur les nouveaux clients
+    // (lead qualification, suivi onboarding, détection d'abus). Hardcodé volontairement —
+    // c'est un détail opérationnel Concorde, pas un paramètre tenant.
+    private const string SignupNotificationRecipient = "contact@concorde-tech.fr";
+
     // Note 2026-05 — Liste des domaines d'emails personnels/jetables RETIRÉE : la contrainte
     // « adresse pro uniquement » bloquait trop de prospects légitimes (indépendants, asso,
     // petites structures sans domaine propre). Compensé par la vérification email obligatoire
@@ -448,6 +454,13 @@ public class SignupController : ControllerBase
             // (POST /api/Utilisateurs/resend-verification).
             _ = SendWelcomeEmailAsync(tenant, req, redirectUrl, rootDomain, verifCodePlain, ct);
 
+            // Notification interne Concorde — best-effort fire-and-forget. Capture
+            // l'IP/UA AVANT le détachement de tâche : HttpContext n'est plus garanti
+            // accessible une fois la réponse renvoyée.
+            var requestIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "—";
+            var requestUa = Request.Headers["User-Agent"].ToString();
+            _ = SendInternalSignupNotificationAsync(tenant, req, redirectUrl, requestIp, requestUa, ct);
+
             // SEC-20 — `dbName` retiré de la réponse : exposait la convention de nommage
             // de la base SQL (`tenant_<slug>_<8hex>`), ce qui facilite une attaque ciblée
             // si un attaquant obtient un accès réseau au serveur SQL.
@@ -631,6 +644,84 @@ public class SignupController : ControllerBase
             // peut demander un nouveau code depuis /verify-email.
             _log.LogWarning(ex, "Welcome email échoué pour {Email} (tenant {Slug}) — signup non impacté.",
                 tenant.AdminEmail, tenant.Slug);
+        }
+    }
+
+    /// <summary>
+    /// Email interne envoyé à <see cref="SignupNotificationRecipient"/> pour signaler
+    /// la création d'un nouveau tenant. Contient toutes les infos d'inscription utiles
+    /// au suivi commercial et à la détection d'abus (entreprise, admin, pack souscrit,
+    /// IP, User-Agent). N'inclut JAMAIS le mot de passe administrateur.
+    ///
+    /// Best-effort fire-and-forget : SMTP absent ou erreur d'envoi → log warning,
+    /// l'inscription reste valide.
+    /// </summary>
+    private async Task SendInternalSignupNotificationAsync(
+        Tenant tenant,
+        SignupRequest req,
+        string redirectUrl,
+        string requestIp,
+        string requestUa,
+        CancellationToken ct)
+    {
+        if (_email == null) return;
+
+        try
+        {
+            string Esc(string? s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+
+            var planLabel = string.IsNullOrWhiteSpace(req.PlanCode) ? "—" : req.PlanCode.Trim();
+            var cycleLabel = string.IsNullOrWhiteSpace(req.BillingCycle) ? "—" : req.BillingCycle.Trim();
+            var addonsLabel = string.IsNullOrEmpty(tenant.Addons) ? "—" : tenant.Addons;
+            var trialEndStr = tenant.TrialEndsAt?.ToString("yyyy-MM-dd HH:mm 'UTC'") ?? "—";
+            var createdStr = tenant.CreatedAt.ToString("yyyy-MM-dd HH:mm 'UTC'");
+
+            var rows = new (string label, string value)[]
+            {
+                ("Slug",            Esc(tenant.Slug)),
+                ("Entreprise",      Esc(tenant.CompanyName)),
+                ("Pays",            Esc(tenant.CountryCode)),
+                ("SIRET / ID",      Esc(tenant.Siret)),
+                ("Admin",           Esc($"{req.AdminFirstName} {req.AdminLastName}".Trim())),
+                ("Email admin",     Esc(tenant.AdminEmail)),
+                ("Pack",            Esc(planLabel)),
+                ("Cycle",           Esc(cycleLabel)),
+                ("Addons",          Esc(addonsLabel)),
+                ("Statut",          Esc(tenant.Status)),
+                ("Région",          Esc(tenant.Region)),
+                ("Créé le",         Esc(createdStr)),
+                ("Fin essai",       Esc(trialEndStr)),
+                ("URL espace",      $"<a href=\"{Esc(redirectUrl)}\">{Esc(redirectUrl)}</a>"),
+                ("Tenant Id",       Esc(tenant.Id.ToString())),
+                ("IP source",       Esc(requestIp)),
+                ("User-Agent",      Esc(requestUa)),
+            };
+
+            var tableRows = string.Join("", rows.Select(r =>
+                $"<tr><td style=\"padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#64748b;font-weight:600;width:35%;\">{r.label}</td>" +
+                $"<td style=\"padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a;\">{r.value}</td></tr>"));
+
+            var body = $@"<!DOCTYPE html>
+<html><body style=""font-family:Arial,Helvetica,sans-serif;color:#1e293b;max-width:640px;margin:0 auto;padding:24px;background:#f8fafc;"">
+  <div style=""background:#fff;border-radius:12px;padding:24px;border:1px solid #e2e8f0;"">
+    <h2 style=""margin:0 0 4px;color:#0040a1;"">🎉 Nouveau tenant inscrit</h2>
+    <p style=""margin:0 0 16px;color:#64748b;font-size:13px;"">Notification automatique — création de compte sur la plateforme.</p>
+    <table style=""width:100%;border-collapse:collapse;font-size:14px;"">
+      {tableRows}
+    </table>
+    <p style=""margin-top:20px;font-size:12px;color:#94a3b8;"">Concorde Workforce · Signup auto-notification</p>
+  </div>
+</body></html>";
+
+            var subject = $"[Signup] {tenant.CompanyName} ({tenant.Slug}) — {planLabel}";
+            await _email.SendEmailAsync(SignupNotificationRecipient, subject, body);
+            _log.LogInformation("Internal signup notification envoyée à {Recipient} pour tenant {Slug}",
+                SignupNotificationRecipient, tenant.Slug);
+        }
+        catch (Exception ex)
+        {
+            // Best-effort : ne casse pas le signup si l'envoi échoue (SMTP down, etc.).
+            _log.LogWarning(ex, "Internal signup notification échouée pour tenant {Slug} — non bloquant.", tenant.Slug);
         }
     }
 

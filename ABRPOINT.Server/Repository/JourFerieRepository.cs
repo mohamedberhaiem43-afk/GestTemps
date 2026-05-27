@@ -18,10 +18,19 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
+                // Borne haute = startOfNextDay (exclusive) plutôt que `endDate` (inclusive).
+                // Les fériés importés depuis calendrier.api.gouv.fr sont stockés à 12:00:00
+                // UTC ; les bornes de période passées par OptimizedPresenceService /
+                // PresenceRepository sont à 00:00:00. Avec `<= endDate`, un férié tombant
+                // sur le dernier jour de la période (ex. 25 du mois si joufin=25) avait
+                // Ferdate=2026-05-25 12:00:00 > endDate=2026-05-25 00:00:00 → exclu du
+                // résultat → H.Fér.Trv et J.Fér.Trv = 0 dans Pointage du Mois et État
+                // Périodique pour ce dernier jour.
+                var endExclusive = endDate.Date.AddDays(1);
                 return await _dbContext.Feriers
                     .Where(f => f.Soccod == soccod &&
-                               f.Ferdate >= startDate &&
-                               f.Ferdate <= endDate)
+                               f.Ferdate >= startDate.Date &&
+                               f.Ferdate < endExclusive)
                     .ToListAsync();
             }
             catch (Exception)
@@ -50,10 +59,15 @@ namespace ABRPOINT.Server.Repository
         }
         public async Task<Dictionary<DateTime, Ferier>> GetByFerdateBatch(string soccod, DateTime dateDeb, DateTime dateFin)
         {
+            // Borne haute = startOfNextDay (exclusive) — même justification que dans
+            // GetFeriersByPeriod : un Ferier stocké à 12:00:00 UTC tombant sur dateFin
+            // (à 00:00:00) était exclu, ce qui faisait disparaître les J.Fér.Trv /
+            // H.Fér.Trv du dernier jour de la période de paie dans l'État Périodique.
+            var endExclusive = dateFin.Date.AddDays(1);
             var feries = await _dbContext.Feriers
                 .Where(f => f.Soccod == soccod && f.Ferdate.HasValue
-                            && f.Ferdate >= dateDeb
-                            && f.Ferdate <= dateFin)
+                            && f.Ferdate >= dateDeb.Date
+                            && f.Ferdate < endExclusive)
                 .ToListAsync();
 
             // Clé normalisée sur .Date : un férié importé depuis calendrier.api.gouv.fr est

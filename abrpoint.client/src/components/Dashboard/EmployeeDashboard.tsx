@@ -13,6 +13,11 @@ import { useCountUp } from '../helper/animations/useCountUp';
 import apiInstance from '../API/apiInstance';
 import './DashboardModern.css';
 import EmployeeDashboardMobile from './EmployeeDashboardMobile';
+import {
+  startLiveLocationHeartbeat,
+  stopLiveLocationHeartbeat,
+  isLiveLocationSupported,
+} from '../../services/liveLocationWeb';
 
 // Document type tel que renvoyé par GET /api/Vault/{soccod}/{empcod}.
 // On ne reprend que les champs qu'on affiche dans le spotlight.
@@ -80,6 +85,43 @@ export default function EmployeeDashboard() {
       });
     return () => { cancelled = true; };
   }, [soccod, uticod]);
+
+  // ─── Partage de position « live » ──────────────────────────────────────────
+  // Le salarié connecté peut apparaître sur la carte « Suivi positions » (vue
+  // admin/manager) en activant ce toggle. Sans ça, seuls les mobiles publiaient
+  // un heartbeat — un salarié connecté uniquement via le web restait invisible
+  // de la carte live malgré une autorisation navigateur accordée.
+  // L'état est persisté localement (clé sharePos:<empcod>) pour qu'un F5 ne
+  // coupe pas le partage sans prévenir l'admin qui voyait l'employé sur la carte.
+  const shareKey = uticod ? `sharePos:${uticod}` : null;
+  const [sharingPosition, setSharingPosition] = useState<boolean>(() => {
+    if (typeof window === 'undefined' || !shareKey) return false;
+    return localStorage.getItem(shareKey) === '1';
+  });
+  const [shareError, setShareError] = useState<string | null>(null);
+  const canShareLocation = !!soccod && !!uticod && isLiveLocationSupported();
+
+  useEffect(() => {
+    if (!shareKey) return;
+    if (sharingPosition && soccod && uticod) {
+      try {
+        startLiveLocationHeartbeat({ soccod, empcod: uticod });
+        localStorage.setItem(shareKey, '1');
+        setShareError(null);
+      } catch (e: any) {
+        setSharingPosition(false);
+        setShareError(e?.message ?? 'Impossible d\'activer le partage.');
+        localStorage.removeItem(shareKey);
+      }
+    } else {
+      stopLiveLocationHeartbeat();
+      localStorage.removeItem(shareKey);
+    }
+    // Cleanup au démontage : pas de heartbeat fantôme si l'utilisateur navigue
+    // ailleurs sans cliquer Stop. La position reste 30 min côté backend avant
+    // purge (LivePositionRetentionHostedService).
+    return () => { stopLiveLocationHeartbeat(); };
+  }, [sharingPosition, soccod, uticod, shareKey]);
 
   // Sentinel interne pour le statut d'une demande. On garde des codes ASCII stables
   // ('approved' / 'refused' / 'pending') au lieu des libellés français pour que la
@@ -226,16 +268,42 @@ export default function EmployeeDashboard() {
             </h2>
             <p className="text-slate-500 font-medium">{t('employeeDashboard.weekSummary', { date: dayjs().startOf('week').add(1, 'day').format('DD MMMM') })}</p>
           </div>
-          {canSelfRequest && (
-            <button
-              onClick={() => navigate('/dashboard/gestion-de-conge')}
-              className="bg-gradient-to-br from-[#0040a1] to-[#0056d2] text-white px-6 py-3.5 rounded-xl font-['Manrope'] font-bold flex items-center gap-2 shadow-lg shadow-[#0040a1]/20 hover:-translate-y-0.5 transition-transform"
-            >
-              <span className="material-symbols-outlined">add</span>
-              {t('employeeDashboard.newRequest')}
-            </button>
-          )}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+            {canShareLocation && (
+              <button
+                onClick={() => setSharingPosition(s => !s)}
+                title={sharingPosition
+                  ? 'Vous apparaissez sur la carte « Suivi positions » de votre manager.'
+                  : 'Activer pour apparaître en direct sur la carte de votre manager.'}
+                className={
+                  sharingPosition
+                    ? "bg-emerald-50 border border-emerald-200 text-emerald-700 px-5 py-3 rounded-xl font-['Manrope'] font-semibold flex items-center gap-2 hover:bg-emerald-100 transition-colors"
+                    : "bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-xl font-['Manrope'] font-semibold flex items-center gap-2 hover:bg-slate-50 transition-colors"
+                }
+              >
+                <span className={`relative flex h-2.5 w-2.5 ${sharingPosition ? '' : 'opacity-40'}`}>
+                  {sharingPosition && (
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  )}
+                  <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${sharingPosition ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                </span>
+                {sharingPosition ? 'Partage de position actif' : 'Partager ma position'}
+              </button>
+            )}
+            {canSelfRequest && (
+              <button
+                onClick={() => navigate('/dashboard/gestion-de-conge')}
+                className="bg-gradient-to-br from-[#0040a1] to-[#0056d2] text-white px-6 py-3.5 rounded-xl font-['Manrope'] font-bold flex items-center gap-2 shadow-lg shadow-[#0040a1]/20 hover:-translate-y-0.5 transition-transform"
+              >
+                <span className="material-symbols-outlined">add</span>
+                {t('employeeDashboard.newRequest')}
+              </button>
+            )}
+          </div>
         </div>
+        {shareError && (
+          <p className="mt-2 text-xs text-amber-600 font-medium">{shareError}</p>
+        )}
       </section>
 
       {/* KPI Bento Row — passe à 4 colonnes si l'employé a un solde RTT à afficher. */}

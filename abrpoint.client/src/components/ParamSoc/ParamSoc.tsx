@@ -40,8 +40,8 @@ export default function ParamSocModern() {
   const { t } = useTranslation();
   const { soccod } = useAuth();
   const { data: parametres, refetch } = useGetParametres();
-  const { data: partranche } = useGetParTranche();
-  const { data: socheures } = useGetSocHeures();
+  const { data: partranche, refetch: refetchPartranche } = useGetParTranche();
+  const { data: socheures, refetch: refetchSocheures } = useGetSocHeures();
   const { data: calendriers = {} } = useGetCalendrier();
 
   const updateParametreMutation = useUpdateParametres();
@@ -82,7 +82,13 @@ export default function ParamSocModern() {
       if (successCount >= total) {
         setIsLoading(false);
         setSnackbar({ open: true, message: t('paramSoc.common.updateSuccess'), severity: "success" });
+        // Refetch les 3 sources : sinon, refetch() seul rafraîchit parametres,
+        // useEffect re-déclenche, et setTranchesH/M réinitialise depuis la
+        // cache partranche stale (sans la tranche qu'on vient d'enregistrer)
+        // → la nouvelle ligne disparaît jusqu'à F5.
         refetch();
+        refetchPartranche();
+        refetchSocheures();
       }
     };
 
