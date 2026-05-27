@@ -163,18 +163,64 @@ namespace ABRPOINT.Server.Controllers
         }
 
 
+        // DTO « create » pour my-auth : le Concod est généré côté serveur (cf. plus
+        // bas) et donc OPTIONNEL côté requête. On ne peut pas réutiliser le modèle
+        // Autoriser comme corps direct : son champ Concod est `[Required]`, et avec
+        // `[ApiController]` ASP.NET court-circuite l'action sur ModelState invalide
+        // → 400 systématique avant que la logique d'auto-génération ne s'exécute.
+        // Ce DTO miroir ne déclare aucun champ requis pour laisser passer la requête,
+        // puis on mappe vers Autoriser dans l'action.
+        public sealed class CreateMyAuthDto
+        {
+            public string? Concod { get; set; }
+            public string? Soccod { get; set; }
+            public string? Empcod { get; set; }
+            public DateTime? Condat { get; set; }
+            public string? Conjour { get; set; }
+            public DateTime? Condep { get; set; }
+            public string? Conamdep { get; set; }
+            public DateTime? Conret { get; set; }
+            public string? Conamret { get; set; }
+            public string? Abscod { get; set; }
+            public string? Conmotif { get; set; }
+            public string? Consanc { get; set; }
+            public float? Connbjour { get; set; }
+            public string? Conref { get; set; }
+            public string? Conaffecte { get; set; }
+        }
+
         // POST api/Autorisers/my-auth - Employee self-service create (no special permission)
         // A4 — `autoriser.Empcod` doit correspondre à l'appelant. Sinon n'importe quel
         // employé peut créer une autorisation au nom de n'importe quel collègue.
         [HttpPost("my-auth")]
-        public async Task<IActionResult> PostMyAuthorization([FromBody] Autoriser autoriser)
+        public async Task<IActionResult> PostMyAuthorization([FromBody] CreateMyAuthDto dto)
         {
-            if (autoriser == null)
+            if (dto == null)
                 return BadRequest("Veuillez saisir les champs obligatoires");
             try
             {
                 var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(caller)) return Unauthorized();
+
+                var autoriser = new Autoriser
+                {
+                    Concod = dto.Concod ?? string.Empty, // placeholder ; renseigné plus bas
+                    Soccod = dto.Soccod,
+                    Empcod = dto.Empcod,
+                    Condat = dto.Condat,
+                    Conjour = dto.Conjour,
+                    Condep = dto.Condep,
+                    Conamdep = dto.Conamdep,
+                    Conret = dto.Conret,
+                    Conamret = dto.Conamret,
+                    Abscod = dto.Abscod,
+                    Conmotif = dto.Conmotif,
+                    Consanc = dto.Consanc,
+                    Connbjour = dto.Connbjour,
+                    Conref = dto.Conref,
+                    Conaffecte = dto.Conaffecte,
+                };
+
                 if (string.IsNullOrEmpty(autoriser.Empcod))
                 {
                     // Permissif : on aligne sur l'appelant si le client n'a pas posé l'empcod.

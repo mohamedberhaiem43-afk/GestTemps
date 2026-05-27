@@ -44,6 +44,22 @@ interface PreviewResponse {
   activeEmployees: number;
 }
 
+// Source de vérité côté serveur : PlanCatalog. Fetché à l'ouverture de la modale
+// pour ne plus dupliquer les tarifs en dur dans le frontend (toute mise à jour de
+// grille tarifaire ne nécessite ainsi qu'un déploiement backend).
+interface PlanCatalogEntry {
+  code: string;
+  displayName: string;
+  flatPriceMonthlyEur: number;
+  flatPriceAnnualMonthlyEur: number;
+  includedEmployees: number;
+  includedAdmins: number | null;
+  overageRatePerEmployeeEur: number;
+  storageQuotaMb: number;
+  maxStorageMb: number;
+  storageSupplementBlockEur: number;
+}
+
 interface ChangePlanModalProps {
   open: boolean;
   onClose: () => void;
@@ -169,6 +185,10 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
   const [previewing, setPreviewing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // Catalogue tarifaire chargé depuis le backend (PlanCatalog). On garde les
+  // valeurs en dur (PLAN_META) en fallback pour ne pas casser l'affichage si
+  // l'API plans n'est pas joignable (offline, dev sans backend…).
+  const [catalog, setCatalog] = useState<Record<PlanKey, PlanCatalogEntry> | null>(null);
 
   // Reset state à chaque ouverture (sinon résidus du précédent flow)
   useEffect(() => {
@@ -178,6 +198,32 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
       setPreviewError(null);
       setSubmitError(null);
     }
+  }, [open]);
+
+  // Fetch du catalogue tarifaire backend une fois à l'ouverture. Les prix affichés
+  // viennent désormais de PlanCatalog côté serveur — toute mise à jour tarifaire
+  // se propage sans redéploiement client.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await apiInstance.get<PlanCatalogEntry[]>('/billing/plans');
+        if (cancelled) return;
+        const map = data.reduce<Record<string, PlanCatalogEntry>>((acc, p) => {
+          acc[p.code] = p;
+          return acc;
+        }, {});
+        setCatalog({
+          Starter: map['Starter'],
+          Standard: map['Standard'],
+          Premium: map['Premium'],
+        });
+      } catch {
+        // best-effort — on garde les valeurs PLAN_META en dur en fallback.
+      }
+    })();
+    return () => { cancelled = true; };
   }, [open]);
 
   // Auto-preview à chaque changement de sélection (seulement si on est en mode in-place).
@@ -374,13 +420,36 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
                   Pack <Box component="span" sx={{ color: isPremium ? goldAccent : '#0040a1' }}>{meta.label}</Box>
                 </Typography>
 
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 1 }}>
-                  <Typography sx={{ color: '#64748b', fontSize: 14 }}>dès</Typography>
-                  <Typography sx={{ fontSize: 28, fontWeight: 800, color: isPremium ? goldText : '#0f172a' }}>
-                    {meta.baseEur.toFixed(0)} €
-                  </Typography>
-                  <Typography sx={{ color: '#64748b', fontSize: 13 }}>HT/mois</Typography>
-                </Box>
+                {(() => {
+                  // Prix issu du backend si fetch OK, sinon constante PLAN_META (fallback).
+                  // Affichage : « dès {annuel} € HT/mois » + petit rappel mensuel pour
+                  // rendre la grille tarifaire transparente (l'engagement annuel est
+                  // moins cher, mais l'admin doit voir le prix mensuel sans engagement).
+                  const cat = catalog?.[key];
+                  const annual = cat?.flatPriceAnnualMonthlyEur ?? meta.baseEur;
+                  const monthly = cat?.flatPriceMonthlyEur;
+                  return (
+                    <Box sx={{ mb: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+                        <Typography sx={{ color: '#64748b', fontSize: 14 }}>dès</Typography>
+                        <Typography sx={{ fontSize: 28, fontWeight: 800, color: isPremium ? goldText : '#0f172a' }}>
+                          {annual.toFixed(0)} €
+                        </Typography>
+                        <Typography sx={{ color: '#64748b', fontSize: 13 }}>HT/mois</Typography>
+                      </Box>
+                      {monthly != null && monthly !== annual && (
+                        <Typography sx={{ fontSize: 11, color: '#64748b', mt: 0.5 }}>
+                          ou <strong>{monthly.toFixed(0)} €</strong> HT/mois sans engagement
+                        </Typography>
+                      )}
+                      {cat && (
+                        <Typography sx={{ fontSize: 11, color: '#64748b', mt: 0.3 }}>
+                          {cat.includedEmployees} salariés inclus · +{cat.overageRatePerEmployeeEur.toFixed(2)} € / collab. supp.
+                        </Typography>
+                      )}
+                    </Box>
+                  );
+                })()}
 
                 <Typography sx={{ color: '#475569', fontSize: 13, mb: 2.5, lineHeight: 1.5, minHeight: 56 }}>
                   {meta.tagline}

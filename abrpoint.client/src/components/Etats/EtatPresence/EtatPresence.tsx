@@ -148,10 +148,14 @@ function EtatPresence() {
         const ey = em === 0 ? year - 1 : year;
         sm = sm === 0 ? 12 : sm;
         em = em === 0 ? 12 : em;
-        const pad = (n: number) => String(n).padStart(2, '0');
+        const pad = (n: number | string) => String(n).padStart(2, '0');
+        // joudeb/joufin viennent du backend en string non paddé (« 1 » plutôt
+        // que « 01 »). Sans padding ici, on produisait des chaînes type
+        // « 2026-04-1 » que `new Date(...)` parse comme Invalid Date sur
+        // certains navigateurs → toISOString() → RangeError → crash page.
         setAnnee(year.toString());
-        setDateDebut(`${sy}-${pad(sm)}-${joudeb}`);
-        setDateFin(`${ey}-${pad(em)}-${joufin}`);
+        setDateDebut(`${sy}-${pad(sm)}-${pad(joudeb)}`);
+        setDateFin(`${ey}-${pad(em)}-${pad(joufin)}`);
       })
       .catch((err) => console.error('Params error:', err));
   }, [soccod]);
@@ -212,8 +216,22 @@ function EtatPresence() {
     setTimeout(() => refetch(), 0);
   };
 
+  // Garde de validité ISO (yyyy-MM-dd) ET de la date elle-même (un vrai jour
+  // calendaire, pas "2026-04-31" ni "2026-02-30"). Évite d'émettre une requête
+  // qui finirait en 500 côté backend FastReport.
+  const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+  const isValidIsoDate = (s: string) => {
+    if (!ISO_DATE_REGEX.test(s)) return false;
+    const d = new Date(s);
+    return !Number.isNaN(d.getTime());
+  };
+
   const handlePrintReport = async () => {
     if (!soccod || !hasEffectiveEmployees) return;
+    if (!isValidIsoDate(dateDebut) || !isValidIsoDate(dateFin)) {
+      console.warn('Rapport non lancé : bornes de période invalides', { dateDebut, dateFin });
+      return;
+    }
     try {
       const params = new URLSearchParams();
       effectiveEmpcods.forEach((c) => params.append('empcods', c));

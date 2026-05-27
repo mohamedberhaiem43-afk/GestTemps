@@ -1149,6 +1149,26 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
         return string.Equals(interval, "year", System.StringComparison.OrdinalIgnoreCase) ? "annual" : "monthly";
     }
 
+    /// <summary>
+    /// Clé de metadata Stripe utilisée pour stocker le nombre de sièges supplémentaires
+    /// pré-achetés (cf. <see cref="PurchaseExtraSeatsAsync"/>). Le sync quotidien respecte
+    /// ce floor — il garantit que les sièges payés d'avance ne sont jamais déduits
+    /// avant la fin du cycle de facturation, même si l'admin n'a pas encore créé les
+    /// employés correspondants.
+    /// </summary>
+    private const string ExtraSeatsPurchasedMetaKey = "extra_seats_purchased";
+
+    private static int ReadPurchasedExtras(Stripe.Subscription sub)
+    {
+        if (sub.Metadata != null
+            && sub.Metadata.TryGetValue(ExtraSeatsPurchasedMetaKey, out var raw)
+            && int.TryParse(raw, out var v) && v > 0)
+        {
+            return v;
+        }
+        return 0;
+    }
+
     public async Task<int?> SyncSupplementaryEmployeesAsync(
         Tenant tenant,
         int activeEmployeeCount,
@@ -1163,7 +1183,7 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
         var plan = PlanCatalog.GetPlan(tenant.PlanCode);
         if (plan is null) return null;
 
-        var supplementary = PlanCatalog.ComputeSupplementaryCount(plan, activeEmployeeCount);
+        var activeOverage = PlanCatalog.ComputeSupplementaryCount(plan, activeEmployeeCount);
 
         Stripe.StripeConfiguration.ApiKey = _opts.SecretKey;
         var subService = new Stripe.SubscriptionService();
@@ -1173,6 +1193,12 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
             _log.LogWarning("Tenant {Slug} : subscription {Sub} introuvable, skip user_supp sync.", tenant.Slug, tenant.StripeSubscriptionId);
             return null;
         }
+
+        // Respect du floor de sièges pré-achetés : si l'admin a payé pour 5 collabs supp.
+        // mais n'a créé que 0 employé au-delà du seuil inclus, on garde la quantité à 5
+        // (sinon le sync remettrait à 0 et la facture pré-payée serait remboursée).
+        var purchased = ReadPurchasedExtras(sub);
+        var supplementary = System.Math.Max(activeOverage, purchased);
 
         var cycle = DetectBillingCycle(sub);
         var userSuppPriceId = ResolveUserSuppPriceId(tenant.PlanCode, cycle);
@@ -1217,9 +1243,90 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
             ProrationBehavior = "create_prorations",
         }, cancellationToken: ct);
         _log.LogInformation(
-            "Tenant {Slug} ({Plan}) : user_supp {Old} → {New} (employés={Count}, inclus={Included})",
-            tenant.Slug, tenant.PlanCode, existing.Quantity, supplementary, activeEmployeeCount, plan.IncludedEmployees);
+            "Tenant {Slug} ({Plan}) : user_supp {Old} → {New} (employés={Count}, inclus={Included}, pré-achetés={Purchased})",
+            tenant.Slug, tenant.PlanCode, existing.Quantity, supplementary, activeEmployeeCount, plan.IncludedEmployees, purchased);
         return supplementary;
+    }
+
+    public async Task<SeatPurchaseResult?> PurchaseExtraSeatsAsync(
+        Tenant tenant,
+        int delta,
+        int activeEmployeeCount,
+        CancellationToken ct = default)
+    {
+        if (delta <= 0) throw new System.ArgumentOutOfRangeException(nameof(delta), "Le nombre de sièges à ajouter doit être > 0.");
+        if (!_opts.IsConfigured) return null;
+        if (string.IsNullOrWhiteSpace(tenant.StripeSubscriptionId)) return null;
+
+        var plan = PlanCatalog.GetPlan(tenant.PlanCode);
+        if (plan is null) return null;
+
+        Stripe.StripeConfiguration.ApiKey = _opts.SecretKey;
+        var subService = new Stripe.SubscriptionService();
+        var sub = await subService.GetAsync(tenant.StripeSubscriptionId, cancellationToken: ct);
+        if (sub is null)
+        {
+            _log.LogWarning("Tenant {Slug} : subscription {Sub} introuvable, achat sièges impossible.",
+                tenant.Slug, tenant.StripeSubscriptionId);
+            return null;
+        }
+
+        var cycle = DetectBillingCycle(sub);
+        var userSuppPriceId = ResolveUserSuppPriceId(tenant.PlanCode, cycle);
+        if (string.IsNullOrEmpty(userSuppPriceId))
+        {
+            _log.LogWarning(
+                "Tenant {Slug} : price UserSupp:{Plan}:{Cycle} non configuré, achat sièges refusé.",
+                tenant.Slug, tenant.PlanCode, cycle);
+            return null;
+        }
+
+        var prevPurchased = ReadPurchasedExtras(sub);
+        var newPurchased = prevPurchased + delta;
+        var activeOverage = PlanCatalog.ComputeSupplementaryCount(plan, activeEmployeeCount);
+        var newQuantity = System.Math.Max(activeOverage, newPurchased);
+
+        // Met à jour la metadata AVANT l'item — si l'update item échoue après, on garde
+        // la trace de l'intention côté Stripe pour rejouer manuellement si besoin.
+        await subService.UpdateAsync(tenant.StripeSubscriptionId, new Stripe.SubscriptionUpdateOptions
+        {
+            Metadata = new Dictionary<string, string>
+            {
+                [ExtraSeatsPurchasedMetaKey] = newPurchased.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            },
+        }, cancellationToken: ct);
+
+        var existing = sub.Items.Data.FirstOrDefault(i =>
+            string.Equals(i.Price?.Id, userSuppPriceId, System.StringComparison.Ordinal));
+        var itemService = new Stripe.SubscriptionItemService();
+        if (existing is null)
+        {
+            await itemService.CreateAsync(new Stripe.SubscriptionItemCreateOptions
+            {
+                Subscription = tenant.StripeSubscriptionId,
+                Price = userSuppPriceId,
+                Quantity = newQuantity,
+                ProrationBehavior = "create_prorations",
+            }, cancellationToken: ct);
+        }
+        else if (existing.Quantity != newQuantity)
+        {
+            await itemService.UpdateAsync(existing.Id, new Stripe.SubscriptionItemUpdateOptions
+            {
+                Quantity = newQuantity,
+                ProrationBehavior = "create_prorations",
+            }, cancellationToken: ct);
+        }
+
+        _log.LogInformation(
+            "Tenant {Slug} ({Plan}) : achat de {Delta} siège(s) supp. (total pré-achetés {Prev}→{New}, qty user_supp={Qty}).",
+            tenant.Slug, tenant.PlanCode, delta, prevPurchased, newPurchased, newQuantity);
+
+        return new SeatPurchaseResult(
+            PurchasedExtraSeats: newPurchased,
+            CurrentBilledQuantity: newQuantity,
+            MonthlyCostEur: newQuantity * plan.OverageRatePerEmployeeEur,
+            OverageRatePerSeat: plan.OverageRatePerEmployeeEur);
     }
 }
 

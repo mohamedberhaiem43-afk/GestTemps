@@ -689,7 +689,7 @@ namespace ABRPOINT.Server.Repository
                         Regime = p.Empreg,
                         TotalHeure = p.Tothre,
                         Emplib = item.e?.Emplib ?? "Anonyme",
-                        HeureNuit = p.Tothnuit,
+                        Tothnuit = p.Tothnuit,
 
                         Entree1 = p.Preentmatup,
                         Entree2 = p.Preentamidiup,

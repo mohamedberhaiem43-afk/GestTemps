@@ -10,6 +10,9 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ExtensionIcon from '@mui/icons-material/Extension';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import RemoveIcon from '@mui/icons-material/Remove';
+import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
 import apiInstance from '../API/apiInstance';
 import { useAuth, type PlanFeatures } from '../helper/AuthProvider';
@@ -149,6 +152,11 @@ const statusLabel = (s: string): { label: string; color: 'success' | 'warning' |
 const TRIAL_DURATION_DAYS = 30;
 
 export default function MonAbonnementPage() {
+  // navigate sert encore au redirect post-réactivation (finishSuccess → /dashboard).
+  // Le bouton « Ajouter un collaborateur » a basculé sur un dialog inline (cf.
+  // addSeatsDialogOpen plus bas) : on ne fait plus de navigate vers la page de
+  // création employé puisque la demande utilisateur 2026-05-27 était explicitement
+  // de NE PAS rediriger.
   const navigate = useNavigate();
   const { isAdmin, isManager, refreshAuth, userName, isTrialing, trialDaysRemaining, planCode, planFeatures, addons } = useAuth();
   const canManage = isAdmin || isManager;
@@ -189,6 +197,44 @@ export default function MonAbonnementPage() {
   // qui est aussi appelé par le widget de quota stockage côté topbar.
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodInfo | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
+
+  // Dialog "Ajouter des collaborateurs" : permet à l'admin de pré-acheter N sièges
+  // supplémentaires sans passer par la page de création employé. Chaque siège
+  // pré-acheté est facturé via Stripe user_supp au tarif d'overage du pack. Les
+  // employés correspondants peuvent être créés plus tard sans nouvelle confirmation.
+  // Cf. POST /billing/add-seats côté backend (BillingController.AddSeats).
+  const [addSeatsDialogOpen, setAddSeatsDialogOpen] = useState(false);
+  const [addSeatsCount, setAddSeatsCount] = useState<number>(1);
+  const [addSeatsSubmitting, setAddSeatsSubmitting] = useState(false);
+  const [addSeatsError, setAddSeatsError] = useState<string | null>(null);
+  const openAddSeatsDialog = () => {
+    setAddSeatsCount(1);
+    setAddSeatsError(null);
+    setAddSeatsDialogOpen(true);
+  };
+  const submitAddSeats = async () => {
+    if (addSeatsCount <= 0) { setAddSeatsError('Le nombre de sièges doit être supérieur à 0.'); return; }
+    setAddSeatsSubmitting(true);
+    setAddSeatsError(null);
+    try {
+      const { data } = await apiInstance.post<{
+        purchasedExtraSeats: number;
+        billedQuantity: number;
+        monthlyCostEur: number;
+        overageRatePerSeat: number;
+      }>('/billing/add-seats', { count: addSeatsCount });
+      setAddSeatsDialogOpen(false);
+      setSuccessMsg(
+        `${addSeatsCount} siège${addSeatsCount > 1 ? 's' : ''} ajouté${addSeatsCount > 1 ? 's' : ''} avec succès. ` +
+        `Votre prochaine facture inclura ${data.monthlyCostEur.toFixed(2)} € HT/mois pour les ${data.billedQuantity} collaborateur${data.billedQuantity > 1 ? 's' : ''} supplémentaire${data.billedQuantity > 1 ? 's' : ''}.`
+      );
+      await fetchInfo({ silent: true });
+    } catch (e: any) {
+      setAddSeatsError(e?.response?.data?.error || 'Impossible d\'ajouter des sièges. Réessayez plus tard.');
+    } finally {
+      setAddSeatsSubmitting(false);
+    }
+  };
 
   // Dialog "Gérer mes modules optionnels" : ouvert depuis la carte "Vos modules actifs".
   // Le brouillon contient la sélection en cours avant validation — sans toucher au state
@@ -725,21 +771,24 @@ export default function MonAbonnementPage() {
             )}
           </Box>
 
-          {/* CTA d'ajout de collaborateur — disponible aux admins/managers. Sur
-              trial, EmployesController bloque déjà l'ajout au-delà du seuil
-              inclus avec un 402 explicite ; sur plan payant, la confirmation
-              d'overage est intégrée au flux de création employé. */}
+          {/* CTA d'ajout de collaborateur — ouvre un dialog inline qui pré-achète N
+              sièges supplémentaires via /billing/add-seats. Pas de redirection vers
+              la page de création employé : l'admin commit financièrement les sièges
+              ici, et les employés peuvent être créés ensuite sans nouvelle prompt
+              d'overage (les sièges sont déjà couverts). */}
           {canManage && (
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
               <Button
                 variant="contained"
-                onClick={() => navigate('/dashboard/profil-employe?new=true')}
+                onClick={openAddSeatsDialog}
+                startIcon={<GroupAddIcon />}
+                disabled={!info?.hasActiveStripeSubscription}
                 sx={{
                   textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3,
                   bgcolor: '#0040a1', '&:hover': { bgcolor: '#003080' },
                 }}
               >
-                ➕ Ajouter un collaborateur
+                Ajouter un collaborateur
               </Button>
               <Button
                 variant="outlined"
@@ -749,6 +798,11 @@ export default function MonAbonnementPage() {
                 Changer de pack pour plus de sièges
               </Button>
             </Stack>
+          )}
+          {canManage && !info?.hasActiveStripeSubscription && (
+            <Typography sx={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic', mt: 1 }}>
+              L'ajout de sièges nécessite un abonnement Stripe actif. Activez d'abord votre formule.
+            </Typography>
           )}
           {!canManage && (
             <Typography sx={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
@@ -1233,6 +1287,120 @@ export default function MonAbonnementPage() {
             }}
           >
             {addonsSubmitting ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Enregistrer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ─── Dialog "Ajouter des collaborateurs" ────────────────────────────────
+          Pré-achat de N sièges supplémentaires depuis la page abonnement (sans
+          passer par /dashboard/profil-employe). À la confirmation : appel
+          POST /billing/add-seats qui pousse user_supp dans Stripe + stocke le
+          floor dans la metadata `extra_seats_purchased`. La sync quotidienne
+          (EmployeeBillingSyncService) respecte ce floor donc les sièges payés
+          d'avance ne sont jamais déduits.
+      */}
+      <Dialog
+        open={addSeatsDialogOpen}
+        onClose={() => !addSeatsSubmitting && setAddSeatsDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '16px' } }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1, fontWeight: 800 }}>
+          <GroupAddIcon sx={{ color: '#0040a1' }} />
+          Ajouter des collaborateurs
+        </DialogTitle>
+        <DialogContent dividers>
+          {addSeatsError && (
+            <Alert severity="error" sx={{ mb: 2, borderRadius: '10px' }} onClose={() => setAddSeatsError(null)}>
+              {addSeatsError}
+            </Alert>
+          )}
+          <Typography sx={{ fontSize: 13, color: '#475569', mb: 2.5, lineHeight: 1.55 }}>
+            Augmentez immédiatement votre quota de collaborateurs autorisés. Chaque
+            siège supplémentaire est facturé à votre prochaine échéance Stripe au
+            tarif d'overage de votre pack. Les collaborateurs correspondants pourront
+            être créés ultérieurement sans confirmation supplémentaire.
+          </Typography>
+
+          {info?.plan && (
+            <Box sx={{ p: 2, mb: 2.5, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <Typography sx={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', mb: 0.5 }}>
+                Tarif overage Pack {info.plan.displayName}
+              </Typography>
+              <Typography sx={{ fontSize: 16, fontWeight: 800, color: '#0040a1' }}>
+                {info.plan.overageRatePerEmployeeEur.toFixed(2)} € HT
+                <Typography component="span" sx={{ fontSize: 12, color: '#64748b', fontWeight: 600, ml: 0.5 }}>
+                  / mois / collaborateur
+                </Typography>
+              </Typography>
+            </Box>
+          )}
+
+          {/* Stepper -/+ pour le nombre de sièges. Min=1, Max=500 (limite serveur). */}
+          <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="center" sx={{ my: 1.5 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setAddSeatsCount((n) => Math.max(1, n - 1))}
+              disabled={addSeatsCount <= 1 || addSeatsSubmitting}
+              sx={{ minWidth: 48, width: 48, height: 48, borderRadius: '12px' }}
+            >
+              <RemoveIcon />
+            </Button>
+            <Box sx={{ flexGrow: 1, textAlign: 'center', py: 1, bgcolor: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+              <Typography sx={{ fontSize: 11, color: '#1e40af', fontWeight: 700, textTransform: 'uppercase' }}>
+                Sièges à ajouter
+              </Typography>
+              <Typography sx={{ fontSize: 32, fontWeight: 800, color: '#0040a1', lineHeight: 1 }}>
+                +{addSeatsCount}
+              </Typography>
+            </Box>
+            <Button
+              variant="outlined"
+              onClick={() => setAddSeatsCount((n) => Math.min(500, n + 1))}
+              disabled={addSeatsCount >= 500 || addSeatsSubmitting}
+              sx={{ minWidth: 48, width: 48, height: 48, borderRadius: '12px' }}
+            >
+              <AddIcon />
+            </Button>
+          </Stack>
+
+          {/* Récap chiffré du coût mensuel additionnel pour les sièges ajoutés */}
+          {info?.plan && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: '#fffbeb', borderRadius: '12px', border: '1px solid #fde68a' }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography sx={{ fontSize: 13, color: '#92400e', fontWeight: 700 }}>
+                  Surcoût mensuel estimé
+                </Typography>
+                <Typography sx={{ fontSize: 20, fontWeight: 800, color: '#b45309' }}>
+                  +{(addSeatsCount * info.plan.overageRatePerEmployeeEur).toFixed(2)} € HT
+                </Typography>
+              </Stack>
+              <Typography sx={{ fontSize: 11, color: '#92400e', mt: 0.5 }}>
+                Calculé au prorata sur votre prochaine facture. Pas de prélèvement immédiat.
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            onClick={() => setAddSeatsDialogOpen(false)}
+            disabled={addSeatsSubmitting}
+            sx={{ textTransform: 'none', fontWeight: 700 }}
+          >
+            Annuler
+          </Button>
+          <Button
+            variant="contained"
+            onClick={submitAddSeats}
+            disabled={addSeatsSubmitting || addSeatsCount < 1}
+            startIcon={addSeatsSubmitting ? <CircularProgress size={16} color="inherit" /> : <GroupAddIcon />}
+            sx={{
+              textTransform: 'none', fontWeight: 700, borderRadius: '10px',
+              bgcolor: '#0040a1', '&:hover': { bgcolor: '#003080' },
+            }}
+          >
+            {addSeatsSubmitting ? 'Validation…' : `Confirmer +${addSeatsCount} siège${addSeatsCount > 1 ? 's' : ''}`}
           </Button>
         </DialogActions>
       </Dialog>

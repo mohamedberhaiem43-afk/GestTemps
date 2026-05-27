@@ -69,6 +69,36 @@ public class BillingController : ControllerBase
     }
 
     /// <summary>
+    /// Grille tarifaire publique : tous les packs commerciaux avec leurs prix
+    /// (mensuel + équivalent annuel), effectif inclus, tarif overage, et quotas
+    /// stockage. Source de vérité unique = <see cref="PlanCatalog"/> côté serveur.
+    /// Évite la divergence entre MonAbonnementPage, ChangePlanModal et HomePage
+    /// qui dupliquaient chacun leur propre constante de prix. Le frontend doit
+    /// désormais fetch cet endpoint pour afficher la grille — toute mise à jour
+    /// tarifaire se fait uniquement dans PlanCatalog et se propage sans déploiement
+    /// client.
+    /// </summary>
+    [HttpGet("plans")]
+    [AllowAnonymous]
+    public IActionResult GetPlansCatalog()
+    {
+        var plans = PlanCatalog.All.Select(p => new
+        {
+            code = p.Code,
+            displayName = p.DisplayName,
+            flatPriceMonthlyEur = p.FlatPriceMonthlyEur,
+            flatPriceAnnualMonthlyEur = p.FlatPriceAnnualMonthlyEur,
+            includedEmployees = p.IncludedEmployees,
+            includedAdmins = p.IncludedAdmins,
+            overageRatePerEmployeeEur = p.OverageRatePerEmployeeEur,
+            storageQuotaMb = p.StorageQuotaMb,
+            maxStorageMb = p.MaxStorageMb,
+            storageSupplementBlockEur = p.StorageSupplementBlockEur,
+        }).ToList();
+        return Ok(plans);
+    }
+
+    /// <summary>
     /// État courant du quota de stockage du tenant. Lecture du snapshot mis à jour
     /// hourly par <c>StorageUsageHostedService</c> (mesure réelle = pg_database_size).
     /// Affiché côté dashboard admin sous forme de jauge "X Mo / Y Mo".
@@ -661,6 +691,58 @@ public class BillingController : ControllerBase
 
         _log.LogInformation("Tenant {Slug} → Active via /confirm-checkout (réconciliation, session={SessionId}).", tenant.Slug, req.SessionId);
         return Ok(new { status = tenant.Status, reconciled = true });
+    }
+
+    public sealed record AddSeatsRequest(int Count);
+
+    /// <summary>
+    /// Pré-achat de N sièges supplémentaires depuis la page « Mon abonnement ». Évite à
+    /// l'admin de passer par la page de création employé : il commit financièrement
+    /// pour N collaborateurs en plus, et la facturation Stripe est ajustée immédiatement.
+    /// Les employés correspondants peuvent être créés plus tard sans déclencher de
+    /// confirmation overage (les sièges sont déjà payés). Les sièges pré-achetés sont
+    /// préservés à chaque cycle de facturation tant que la sync ne réduit pas en-deçà.
+    /// </summary>
+    [HttpPost("add-seats")]
+    public async Task<IActionResult> AddSeats([FromBody] AddSeatsRequest req, CancellationToken ct)
+    {
+        if (req is null || req.Count <= 0)
+            return BadRequest(new { error = "Le nombre de sièges à ajouter doit être supérieur à 0." });
+        if (req.Count > 500)
+            return BadRequest(new { error = "Demande aberrante (>500 sièges). Contactez le commercial pour les volumes." });
+        if (!await CallerIsAdminOrManagerAsync()) return Forbid();
+
+        var slug = _currentTenant.Current?.Slug;
+        if (string.IsNullOrEmpty(slug))
+            return BadRequest(new { error = "Tenant non résolu." });
+
+        await using var master = await _masterFactory.CreateDbContextAsync(ct);
+        var tenant = await master.Tenants.FirstOrDefaultAsync(t => t.Slug == slug, ct);
+        if (tenant is null)
+            return NotFound(new { error = "Tenant introuvable." });
+        if (string.IsNullOrEmpty(tenant.StripeSubscriptionId))
+            return BadRequest(new { error = "Aucun abonnement Stripe actif — finalisez d'abord votre souscription." });
+
+        var activeEmployees = await _tenantDb.Employes.AsNoTracking().CountAsync(e => e.Actif == "A", ct);
+        try
+        {
+            var result = await _billing.PurchaseExtraSeatsAsync(tenant, req.Count, activeEmployees, ct);
+            if (result is null)
+                return StatusCode(502, new { error = "Configuration de facturation Stripe incomplète pour ce pack. Contactez le support." });
+
+            return Ok(new
+            {
+                purchasedExtraSeats = result.PurchasedExtraSeats,
+                billedQuantity = result.CurrentBilledQuantity,
+                monthlyCostEur = result.MonthlyCostEur,
+                overageRatePerSeat = result.OverageRatePerSeat,
+            });
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Échec achat sièges supplémentaires pour {Slug} (delta={Delta}).", slug, req.Count);
+            return StatusCode(502, new { error = "Échec de l'ajout de sièges côté Stripe. Réessayez plus tard." });
+        }
     }
 
     public sealed record CancelSubscriptionRequest(bool Immediate, string? Reason);

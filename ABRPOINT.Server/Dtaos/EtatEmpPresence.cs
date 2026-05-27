@@ -25,6 +25,11 @@
         public string HS100 { get; set; }
         public string TotalRetard { get; set; }
         public string TotalHeure { get; set; }
-        public string HeureNuit { get; set; }
+        // Nommé Tothnuit (et non HeureNuit) pour matcher la colonne Presence.Tothnuit
+        // et le champ lu côté client `etatPresence.tothnuit`. Le rename est purement
+        // sérialisation : la KPI « H.Nuit total » de la page EtatPresence sommait
+        // `r.tothnuit` qui n'existait pas dans le JSON renvoyé (le champ s'appelait
+        // `heureNuit`) → résultat toujours 0 même sur des plannings avec h. nuit.
+        public string Tothnuit { get; set; }
     }
 }

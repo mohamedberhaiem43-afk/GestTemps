@@ -118,7 +118,35 @@ public interface IBillingService
         Tenant tenant,
         int activeEmployeeCount,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Pré-achat de sièges supplémentaires : l'admin paye d'avance pour autoriser N
+    /// collaborateurs au-delà de l'effectif inclus du pack, sans avoir à créer
+    /// immédiatement les employés. Concrètement, on stocke un floor <c>extra_seats_purchased</c>
+    /// dans la metadata Stripe de la subscription, et on pousse l'item user_supp
+    /// à <c>max(activeOverage, purchased)</c>. <see cref="SyncSupplementaryEmployeesAsync"/>
+    /// respecte ce floor (ne réduit jamais en-dessous), donc la pré-allocation tient
+    /// jusqu'à la fin du cycle de facturation ou jusqu'à un nouvel achat.
+    /// </summary>
+    /// <param name="delta">Nombre de sièges à AJOUTER (positif uniquement — la réduction
+    /// se fait via downgrade de pack).</param>
+    /// <returns>Nouvel état des sièges achetés + coût mensuel estimé. Null si la
+    /// subscription n'est pas configurée (pas de Stripe).</returns>
+    Task<SeatPurchaseResult?> PurchaseExtraSeatsAsync(
+        Tenant tenant,
+        int delta,
+        int activeEmployeeCount,
+        CancellationToken ct = default);
 }
+
+/// <summary>
+/// Résultat d'un achat de sièges supplémentaires (cf. <see cref="IBillingService.PurchaseExtraSeatsAsync"/>).
+/// </summary>
+public sealed record SeatPurchaseResult(
+    int PurchasedExtraSeats,
+    int CurrentBilledQuantity,
+    decimal MonthlyCostEur,
+    decimal OverageRatePerSeat);
 
 public sealed record BillingProvisionResult(
     string? CustomerId,
