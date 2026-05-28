@@ -3,10 +3,11 @@ import { Route, useLocation, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, TextField, Button, CircularProgress, Alert,
   Paper, Stack, InputAdornment, MenuItem,
+  Checkbox,
+  FormControlLabel,
 } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import CategoryIcon from '@mui/icons-material/Category';
-import BadgeIcon from '@mui/icons-material/Badge';
 import PublicIcon from '@mui/icons-material/Public';
 import LinkIcon from '@mui/icons-material/Link';
 import PersonIcon from '@mui/icons-material/Person';
@@ -19,6 +20,7 @@ import { useAuth } from '../helper/AuthProvider';
 import GetRestCountries from '../../services/RestCountriesService/GetRestCountries';
 import PlanPicker, { type PlanKey, type Cycle, type AddonKey } from './PlanPicker';
 import VerifyEmailPage from './VerifyEmailPage';
+import { BadgeIcon, Link } from 'lucide-react';
 
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$/;
 
@@ -180,6 +182,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [emailStatus, setEmailStatus] = useState<EmailStatus>('idle');
   const [password, setPassword] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Sélection du pack + cycle + modules optionnels. Pré-rempli depuis planFromPricing
   // si l'utilisateur vient de la pricing page ; sinon défauts commerciaux (Standard +
@@ -508,6 +511,7 @@ export default function SignupPage() {
     emailStatus !== 'taken' &&
     emailStatus !== 'invalid' &&
     password.length >= 8 &&
+    termsAccepted &&
     captchaChallengeId.length > 0 &&
     captchaAnswer.trim() !== '';
 
@@ -834,6 +838,11 @@ export default function SignupPage() {
             />
           </Stack>
 
+          <FormControlLabel
+            control={<Checkbox checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />}
+            label={<span>J'accepte les <Link href="/CONCORDE%20TECH%20INNOVATION%20-%20Conditions%20g%C3%A9n%C3%A9rales%20d%27utilisation%20et%20de%20services.pdf" target="_blank">conditions générales d'utilisation et de services</Link>, la <Link href="/Mentions%20l%C3%A9gales.pdf" target="_blank">mentions légales</Link> et la <Link href="/Politique%20de%20confidentialit%C3%A9.pdf" target="_blank">politique de confidentialité</Link>.</span>}
+          />
+
           <TextField
             fullWidth
             type="password"
@@ -892,9 +901,7 @@ export default function SignupPage() {
             )}
           </Button>
 
-          <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
-            En vous inscrivant, vous acceptez les conditions générales d'utilisation et la politique de confidentialité.
-          </Typography>
+          {/* Terms acceptance handled by the checkbox above */}
 
           <Box sx={{ textAlign: 'center', pt: 1 }}>
             <Typography variant="body2" color="text.secondary">

@@ -198,7 +198,8 @@ export default function PlanPicker({
       }}>
         {PLANS.map(plan => {
           const selected = plan.key === selectedPlan;
-          const price = selectedCycle === 'annual' ? plan.priceAnnualMonthly : plan.priceMonthly;
+          const price = selectedCycle === 'annual' ? plan.priceAnnualMonthly * 12 : plan.priceMonthly;
+          const priceLabel = selectedCycle === 'annual' ? '/ an HT' : '/ mois HT';
           return (
             <Paper
               key={plan.key}
@@ -237,7 +238,7 @@ export default function PlanPicker({
                   {price}€
                 </Typography>
                 <Typography component="span" sx={{ fontSize: 12, color: '#64748b', ml: 0.5 }}>
-                  / mois HT
+                  {priceLabel}
                 </Typography>
                 <Typography sx={{ fontSize: 11, color: '#94a3b8' }}>
                   {plan.includedEmployees} collaborateurs inclus
