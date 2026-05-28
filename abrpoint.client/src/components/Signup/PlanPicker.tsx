@@ -90,10 +90,10 @@ interface AddonDef {
 }
 
 const ADDONS: AddonDef[] = [
-  { key: 'aiAssistantRh',         displayName: 'Assistant RH IA',                  description: 'Aide à la rédaction RH, recherche multi-sources, automatisations.', priceMonthly: 49 },
-  { key: 'signatureElectronique', displayName: 'Signature électronique avancée',   description: 'Signature qualifiée eIDAS, parapheur multi-signataires.',         priceMonthly: 19 },
-  { key: 'supportPrioritaire',    displayName: 'Support prioritaire 24/7',       description: 'Réponse sous 2h ouvrées, hotline dédiée, account manager.',      priceMonthly: 149 },
-  { key: 'apiPublique',           displayName: 'API publique',                     description: "Accès à l'API publique.", priceMonthly: 199 },
+  { key: 'aiAssistantRh', displayName: 'Assistant RH IA', description: 'Aide à la rédaction RH, recherche multi-sources, automatisations.', priceMonthly: 49 },
+  { key: 'signatureElectronique', displayName: 'Signature électronique avancée', description: 'Signature qualifiée eIDAS, parapheur multi-signataires.', priceMonthly: 19 },
+  { key: 'supportPrioritaire', displayName: 'Support prioritaire 24/7', description: 'Réponse sous 2h ouvrées, hotline dédiée, account manager.', priceMonthly: 149 },
+  { key: 'apiPublique', displayName: 'API publique', description: "Accès à l'API publique.", priceMonthly: 199 },
 ];
 
 const PACK_INCLUDED_ADDONS: Record<PlanKey, AddonKey[]> = {
