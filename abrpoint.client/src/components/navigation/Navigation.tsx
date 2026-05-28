@@ -106,6 +106,7 @@ const CoachingPage = React.lazy(() => import('../Support/CoachingPage'));
 const PackMiseEnPlacePage = React.lazy(() => import('../Support/PackMiseEnPlacePage'));
 const ContactPage = React.lazy(() => import('../Support/ContactPage'));
 const PrivacyPolicyPage = React.lazy(() => import('../Legal/PrivacyPolicyPage'));
+const LegalNoticesPage = React.lazy(() => import('../Legal/LegalNoticesPage'));
 const TermsOfServicePage = React.lazy(() => import('../Legal/TermsOfServicePage'));
 
 /* ── Lucide icons ── */
@@ -650,6 +651,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     // (Apple Privacy Policy URL, Google Play Privacy + ToS) et le RGPD.
     case '/confidentialite': content = <PrivacyPolicyPage />; break;
     case '/cgu': content = <TermsOfServicePage />; break;
+            case '/legal': content = <LegalNoticesPage />; break;
     default: content = <DashboardModernSync />;
   }
 

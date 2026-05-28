@@ -578,8 +578,8 @@ export default function SignupPage() {
       if (pickerAddons.length > 0) {
         sessionStorage.setItem('signupAddons', JSON.stringify(pickerAddons));
       }
-              // After successful signup, redirect to email verification page
-        navigate('/verify-email', { state: { email: email.trim() } });
+              // After successful signup, redirect to login page
+navigate('/login', { state: { email: email.trim() } });
       <Route path="/verify-email" element={<VerifyEmailPage />} />
     } catch (e: any) {
   // Handle specific error codes
@@ -939,7 +939,7 @@ export default function SignupPage() {
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
             <Link href="/cgu" target="_blank" rel="noopener" underline="hover" color="inherit">Conditions Générales d’Utilisation et de Services</Link>
-            <Link href="/privacy" target="_blank" rel="noopener" underline="hover" color="inherit">Politique de Confidentialité</Link>
+            <Link href="/confidentialite" target="_blank" rel="noopener" underline="hover" color="inherit">Politique de Confidentialité</Link>
             <Link href="/legal" target="_blank" rel="noopener" underline="hover" color="inherit">Mentions Légales</Link>
           </Box>
         </Stack>
