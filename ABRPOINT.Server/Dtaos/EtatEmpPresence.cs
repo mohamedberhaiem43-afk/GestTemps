@@ -6,7 +6,11 @@
         public string Empmat { get; set; }
         public string EmpSite { get; set; }
         public string Emplib { get; set; }
-        public string Regime { get; set; }
+        // 2026-05-28 — Renommé Regime → Empreg pour matcher le champ lu côté
+        // client (EtatPresenceModel.empreg, drawer detail des écrans État
+        // Présence / État Retard). Avant : JSON sortait « regime » → le
+        // drawer affichait toujours « — » dans la section « Régime ».
+        public string Empreg { get; set; }
         public string? Motif { get; set; }
         public string HasConge { get; set; }
         public DateTime Predat { get; set; }

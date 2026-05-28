@@ -26,7 +26,6 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
 import AddIcon from '@mui/icons-material/Add';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -78,6 +77,25 @@ const fieldStyle = {
         '& fieldset': { border: '1.5px solid #e8ecf0' },
         '&:hover fieldset': { borderColor: '#b8c4d0' },
         '&.Mui-focused fieldset': { borderColor: '#0040a1', borderWidth: '1.5px' },
+        '&:hover': { backgroundColor: '#fff' },
+        '&.Mui-focused': { backgroundColor: '#fff' },
+    },
+    '& .MuiInputBase-input': { fontSize: '13px', padding: '9px 12px' },
+};
+
+// 2026-05-28 — Style dédié aux champs date : on retire la bordure du fieldset
+// pour s'aligner sur la pill compacte utilisée dans SaisieContratModern
+// (Date début / Date fin). Le résultat est un input gris uni avec l'icône
+// calendrier native rendue à droite par le navigateur — pas d'adornment à
+// gauche, ce qui évite l'effet « icône + bordure + champ » trop chargé.
+const dateFieldStyle = {
+    backgroundColor: '#f2f4f6',
+    borderRadius: '8px',
+    '& .MuiOutlinedInput-root': {
+        backgroundColor: 'transparent',
+        borderRadius: '8px',
+        fontSize: '13px',
+        '& fieldset': { border: 'none' },
         '&:hover': { backgroundColor: '#fff' },
         '&.Mui-focused': { backgroundColor: '#fff' },
     },
@@ -1365,8 +1383,7 @@ const EmployeModernInner = () => {
                                             {[{ lbl: t('employe.field.hireDate'), type: 'date', name: 'empemb', val: formData.empemb ? dayjs(formData.empemb).format('YYYY-MM-DD') : '' }].map(f => (
                                                 <Box key={f.name}>
                                                     <Typography sx={labelStyle}>{f.lbl}</Typography>
-                                                    <TextField name={f.name} type={f.type} value={f.val} onChange={handleField} size="small" fullWidth sx={fieldStyle} InputLabelProps={{ shrink: true }}
-                                                        InputProps={{ startAdornment: <CalendarTodayIcon sx={{ fontSize: 16, color: '#94a3b8', mr: 1 }} /> }} />
+                                                    <TextField name={f.name} type={f.type} value={f.val} onChange={handleField} size="small" fullWidth sx={dateFieldStyle} InputLabelProps={{ shrink: true }} />
                                                 </Box>
                                             ))}
                                             <Box>
@@ -1478,7 +1495,7 @@ const EmployeModernInner = () => {
                                             </Box>
                                             <Box>
                                                 <Typography sx={labelStyle}>{t('employe.field.hireDate')}</Typography>
-                                                <TextField name="empemb2" type="date" value={formData.empemb ? dayjs(formData.empemb).format('YYYY-MM-DD') : ''} onChange={handleField} size="small" fullWidth sx={fieldStyle} InputLabelProps={{ shrink: true }} />
+                                                <TextField name="empemb" type="date" value={formData.empemb ? dayjs(formData.empemb).format('YYYY-MM-DD') : ''} onChange={handleField} size="small" fullWidth sx={dateFieldStyle} InputLabelProps={{ shrink: true }} />
                                             </Box>
                                             <Box>
                                                 <Typography sx={labelStyle}>{t('employe.field.statusLbl')}</Typography>

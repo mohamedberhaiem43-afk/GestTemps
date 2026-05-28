@@ -467,7 +467,11 @@ function EtatPresence() {
                   <tr>
                     <th>{t('etats.presence.headers.employee')}</th>
                     <th>{t('etats.presence.headers.date')}</th>
-                    <th>{t('etats.presence.headers.schedule')}</th>
+                    {/* 2026-05-28 — Colonnes « Horaire » + « Pointage » fusionnées
+                        en « Pointage ». Constat utilisateur : la colonne Horaire
+                        affichait l'intervalle entree1−sortie2 et la colonne
+                        Pointage affichait entree1, donc entree1 apparaissait
+                        deux fois (cf. EtatRetard.tsx pour le même traitement). */}
                     <th>{t('etats.presence.headers.punch')}</th>
                     <th className="ea-th-right">{t('etats.presence.headers.lateDuration')}</th>
                     <th>{t('etats.presence.headers.status')}</th>
@@ -477,15 +481,15 @@ function EtatPresence() {
                 <tbody>
                   {paginated.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="ea-no-data">
+                      <td colSpan={6} className="ea-no-data">
                         {searchTriggered ? t('etats.retard.noData') : t('etats.absence.table.clickSearch')}
                       </td>
                     </tr>
                   ) : (
                     paginated.map((row, idx) => {
                       const absoluteIndex = (currentPage - 1) * pageSize + idx;
-                      const planned = `${row.entree1 || DASH} - ${row.sortie2 || DASH}`;
-                      const pointage = row.entree1 || DASH;
+                      const entry = row.entree1 || DASH;
+                      const exit = row.sortie2 || DASH;
                       const retard = readRetard(row);
                       const statusKind: 'leave' | 'breastfeeding' | 'normal' =
                         asBool(row.hasConge) ? 'leave' : (asBool(row.allaitement) ? 'breastfeeding' : 'normal');
@@ -511,8 +515,17 @@ function EtatPresence() {
                             </div>
                           </td>
                           <td className="ea-td-date">{fmtDate(row.predat)}</td>
-                          <td className="ea-td-text">{planned}</td>
-                          <td className="ea-td-text" style={{ color: '#b91c1c', fontWeight: 700 }}>{pointage}</td>
+                          <td className="ea-td-text">
+                            {entry === DASH && exit === DASH ? (
+                              <span style={{ color: '#94a3b8' }}>{DASH}</span>
+                            ) : (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ color: '#0f172a', fontWeight: 700 }}>{entry}</span>
+                                <span style={{ color: '#94a3b8' }}>→</span>
+                                <span style={{ color: '#0f172a', fontWeight: 700 }}>{exit}</span>
+                              </span>
+                            )}
+                          </td>
                           <td className="ea-td-right">
                             <span className={`ea-abs-badge ${toMinutes(retard) > 0 ? 'ea-abs-badge-red' : 'ea-abs-badge-gray'}`}>
                               {retard}
@@ -593,7 +606,9 @@ function EtatPresence() {
                 </div>
                 <div className="ea-drawer-field">
                   <div className="ea-drawer-field-label">{t('etats.presence.regimeLabel')}</div>
-                  <div className="ea-drawer-field-value">{selectedRow.empreg || '—'}</div>
+                  <div className="ea-drawer-field-value">
+                    {selectedRow.empreg ? (regimeOptions[selectedRow.empreg] || selectedRow.empreg) : '—'}
+                  </div>
                 </div>
               </div>
               {selectedRow.motif && (

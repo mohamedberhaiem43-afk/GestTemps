@@ -649,7 +649,9 @@ function EtatRetard() {
                 </div>
                 <div className="ea-drawer-field">
                   <div className="ea-drawer-field-label">{t('etats.absence.drawer.regime')}</div>
-                  <div className="ea-drawer-field-value">{selectedRow.empreg || '—'}</div>
+                  <div className="ea-drawer-field-value">
+                    {selectedRow.empreg ? (regimeOptions[selectedRow.empreg] || selectedRow.empreg) : '—'}
+                  </div>
                 </div>
               </div>
             </div>

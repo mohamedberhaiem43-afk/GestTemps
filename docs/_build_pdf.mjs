@@ -149,6 +149,19 @@ const fullHtml = `<!doctype html>
     font-size: 9.5pt;
   }
   tbody tr:nth-child(even) { background: #f8fafc; }
+  /* Captures intégrées dans les cellules de tableau (rapport §12).
+     max-width:100% : la capture se contraint à la largeur de la cellule.
+     border + radius : démarcation visuelle d'un screenshot.
+     page-break-inside:avoid via tr déjà déclaré au-dessus. */
+  td img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 4px 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    background: #fff;
+  }
   a {
     color: #0040a1;
     text-decoration: none;

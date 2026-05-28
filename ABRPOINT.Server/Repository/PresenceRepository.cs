@@ -695,7 +695,7 @@ namespace ABRPOINT.Server.Repository
                         Empmat = !string.IsNullOrWhiteSpace(item.e?.Empmat) ? item.e!.Empmat
                                  : !string.IsNullOrWhiteSpace(p.Empmat) ? p.Empmat
                                  : p.Empcod,
-                        Regime = p.Empreg,
+                        Empreg = p.Empreg,
                         TotalHeure = p.Tothre,
                         Emplib = item.e?.Emplib ?? "Anonyme",
                         Tothnuit = p.Tothnuit,
