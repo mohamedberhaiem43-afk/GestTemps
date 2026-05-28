@@ -294,15 +294,7 @@ export default function PlanPicker({
           onClick={() => setAddonsOpen(o => !o)}
         >
           <Box>
-            <Typography sx={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>
-              Modules supplémentaires {selectedAddons.length > 0 && (
-                <Chip
-                  size="small"
-                  label={selectedAddons.length}
-                  sx={{ ml: 1, height: 18, fontSize: 11, bgcolor: '#0040a1', color: '#fff' }}
-                />
-              )}
-            </Typography>
+            <Typography sx={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Modules supplémentaires</Typography>
             <Typography sx={{ fontSize: 12, color: '#64748b' }}>
               Optionnels — facturés en plus de la formule choisie.
             </Typography>

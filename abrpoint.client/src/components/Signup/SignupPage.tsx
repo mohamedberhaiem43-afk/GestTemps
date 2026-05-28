@@ -500,9 +500,6 @@ export default function SignupPage() {
     siretStatus !== 'already_used' &&
     siretStatus !== 'invalid';
 
-    password.length >= 8 &&
-    captchaChallengeId.length > 0 &&
-    captchaAnswer.trim() !== '';
 
   const submit = async () => {
     setError(null);
@@ -595,7 +592,7 @@ export default function SignupPage() {
       setSubmitting(false);
     }
   };
- const canSubmit =
+  const canSubmit =
     !submitting &&
     companyName.trim().length >= 2 &&
     slugAccepted &&
