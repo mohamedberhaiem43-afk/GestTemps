@@ -578,33 +578,33 @@ export default function SignupPage() {
       if (pickerAddons.length > 0) {
         sessionStorage.setItem('signupAddons', JSON.stringify(pickerAddons));
       }
-              // After successful signup, redirect to login page
-navigate('/login', { state: { email: email.trim() } });
+      // After successful signup, redirect to login page
+      navigate('/login', { state: { email: email.trim() } });
       <Route path="/verify-email" element={<VerifyEmailPage />} />
     } catch (e: any) {
-  // Handle specific error codes
-  if (e?.response?.status === 429) {
-    setError('Trop de requêtes. Veuillez réessayer dans quelques instants.');
-    // Optional: could implement exponential backoff retry here.
-  } else if (e?.response?.data?.code === 'cancelled_account_reactivatable') {
-    const cancelledSlug = e?.response?.data?.slug;
-    if (cancelledSlug) localStorage.setItem('tenantSlug', cancelledSlug);
-    navigate('/login', {
-      state: {
-        email: email.trim(),
-        notice: 'Votre compte a été résilié. Connectez-vous pour le réactiver et reprendre votre abonnement (vos données sont conservées 90 jours).',
-      },
-    });
-    return;
-  } else {
-    const msg = e?.response?.data?.error || e?.response?.data?.detail || 'Inscription échouée. Réessayez.';
-    setError(msg);
-  }
-  // Captcha invalide → on régénère un nouveau challenge pour la prochaine tentative.
-  if (e?.response?.data?.code === 'captcha_failed') {
-    await refreshCaptcha();
-  }
-} finally {
+      // Handle specific error codes
+      if (e?.response?.status === 429) {
+        setError('Trop de requêtes. Veuillez réessayer dans quelques instants.');
+        // Optional: could implement exponential backoff retry here.
+      } else if (e?.response?.data?.code === 'cancelled_account_reactivatable') {
+        const cancelledSlug = e?.response?.data?.slug;
+        if (cancelledSlug) localStorage.setItem('tenantSlug', cancelledSlug);
+        navigate('/login', {
+          state: {
+            email: email.trim(),
+            notice: 'Votre compte a été résilié. Connectez-vous pour le réactiver et reprendre votre abonnement (vos données sont conservées 90 jours).',
+          },
+        });
+        return;
+      } else {
+        const msg = e?.response?.data?.error || e?.response?.data?.detail || 'Inscription échouée. Réessayez.';
+        setError(msg);
+      }
+      // Captcha invalide → on régénère un nouveau challenge pour la prochaine tentative.
+      if (e?.response?.data?.code === 'captcha_failed') {
+        await refreshCaptcha();
+      }
+    } finally {
       setSubmitting(false);
     }
   };
@@ -918,12 +918,7 @@ navigate('/login', { state: { email: email.trim() } });
               control={<Checkbox checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />}
               label={
                 <Typography variant="body2" component="span">
-                  <Link href="/documents/cgu.pdf" target="_blank" rel="noopener" underline="hover" color="inherit">
-                    Conditions Générales d’Utilisation et de Services
-                  </Link>{' '}et la{' '}
-                  <Link href="/documents/privacy.pdf" target="_blank" rel="noopener" underline="hover" color="inherit">
-                    Politique de Confidentialité
-                  </Link>
+                  Conditions Générales d’Utilisation et de Services Politique de Confidentialité
                 </Typography>
               }
             />
@@ -940,7 +935,7 @@ navigate('/login', { state: { email: email.trim() } });
           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
             <Link href="/cgu" target="_blank" rel="noopener" underline="hover" color="inherit">Conditions Générales d’Utilisation et de Services</Link>
             <Link href="/confidentialite" target="_blank" rel="noopener" underline="hover" color="inherit">Politique de Confidentialité</Link>
-            <Link href="/legal" target="_blank" rel="noopener" underline="hover" color="inherit">Mentions Légales</Link>
+            <Link href="/mentions-legales" target="_blank" rel="noopener" underline="hover" color="inherit">Mentions Légales</Link>
           </Box>
         </Stack>
       </Paper>

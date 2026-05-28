@@ -190,356 +190,356 @@ const useNavigationItems = (): NavGroup[] => {
   // → 3 useEffect en aval (cf. plus bas, openedTabs / recentPages / localStorage)
   // s'exécutaient en boucle à chaque keystroke.
   return React.useMemo<NavGroup[]>(() => {
-  if (!authReady) return [];
+    if (!authReady) return [];
 
-  // utiadm='1' est un fallback admin — utile pendant la fenêtre où /me n'a pas encore
-  // répondu mais où sessionStorage a hydraté utiadm. Évite que le sidebar perde la
-  // plupart de ses items après un reload.
-  const isAdminEffective = isAdmin || utiadm === '1';
+    // utiadm='1' est un fallback admin — utile pendant la fenêtre où /me n'a pas encore
+    // répondu mais où sessionStorage a hydraté utiadm. Évite que le sidebar perde la
+    // plupart de ses items après un reload.
+    const isAdminEffective = isAdmin || utiadm === '1';
 
-  const segmentToModule: Record<string, string> = {
-    'gestion-societe': 'Données de Base',
-    'structure-organisationnelle': 'Données de Base',
-    'filiale': 'Données de Base',
-    'pays': 'Données de Base',
-    'ville': 'Données de Base',
-    'fonction': 'Données de Base',
-    'qualification': 'Données de Base',
-    'rubrique': 'Données de Base',
-    'lecture-pointeuse': 'Pointage et Temps',
-    'liste-pointeuse': 'Pointage et Temps',
-    'etat-periodique': 'Pointage et Temps',
-    'gestion-employe': 'Gestion Employés',
-    'profil-employe': 'Gestion Employés',
-    'contrat': 'Contrats et Avenants',
-    'allaitement': 'Gestion Employés',
-    'gestion-de-conge': 'Demande de Congé',
-    'gestion-de-solde': 'Gestion des Congés',
-    'affectation-solde': 'Gestion des Congés',
-    'titre-de-conge': 'Gestion des Congés',
-    'titre-de-conge-general': 'Gestion des Congés',
-    'jour-de-compensation': 'Absences et Sanctions',
-    'autorisation-de-sortie': 'Absences et Sanctions',
-    'autorisation-de-sortie-generale': 'Absences et Sanctions',
-    'demande-autorisation': 'Absences et Sanctions',
-    'demande-teletravail': 'Demande de Congé',
-    'validation-teletravail': 'Demande de Congé',
-    'demande-absence': 'Demande de Congé',
-    'validation-absence': 'Demande de Congé',
-    'validation-heures-sup': 'Absences et Sanctions',
-    'absence-et-sanction': 'Absences et Sanctions',
-    'saisie-classe-horaire': 'Paramètres de Temps',
-    'saisie-poste-de-travail': 'Paramètres de Temps',
-    'intitule-des-absences': 'Données de Base',
-    'Repos': 'Données de Base',
-    // 'accompte-salaire': 'Paie et Rémunération',
-    'pointage-du-mois': 'Paie et Rémunération',
-    'droit-de-conge': 'Paie et Rémunération',
-    'remboursement': 'Paie et Rémunération',
-    'etat-de-presence': 'Rapports et Statistiques',
-    'etat-de-retard': 'Rapports et Statistiques',
-    'etat-des-absences': 'Rapports et Statistiques',
-    'echeance-contrat': 'Rapports et Statistiques',
-    'cahier-conge': 'Rapports et Statistiques',
-    'gestion-utilisateur': 'Administration',
-    'droit-accees': 'Administration',
-    'societe': 'Administration',
-    'calendrier-societe': 'Administration',
-    'chat-bot': 'Administration',
-    'coffre-fort': 'Gestion Employés',
-    'sign-document': 'Gestion Employés',
-    'admin-vault': 'Gestion Employés',
-    'template-builder': 'Administration',
-    'documents': 'Administration',
-    'courriers': 'Administration',
-    'rag-audit': 'Administration',
-  };
+    const segmentToModule: Record<string, string> = {
+      'gestion-societe': 'Données de Base',
+      'structure-organisationnelle': 'Données de Base',
+      'filiale': 'Données de Base',
+      'pays': 'Données de Base',
+      'ville': 'Données de Base',
+      'fonction': 'Données de Base',
+      'qualification': 'Données de Base',
+      'rubrique': 'Données de Base',
+      'lecture-pointeuse': 'Pointage et Temps',
+      'liste-pointeuse': 'Pointage et Temps',
+      'etat-periodique': 'Pointage et Temps',
+      'gestion-employe': 'Gestion Employés',
+      'profil-employe': 'Gestion Employés',
+      'contrat': 'Contrats et Avenants',
+      'allaitement': 'Gestion Employés',
+      'gestion-de-conge': 'Demande de Congé',
+      'gestion-de-solde': 'Gestion des Congés',
+      'affectation-solde': 'Gestion des Congés',
+      'titre-de-conge': 'Gestion des Congés',
+      'titre-de-conge-general': 'Gestion des Congés',
+      'jour-de-compensation': 'Absences et Sanctions',
+      'autorisation-de-sortie': 'Absences et Sanctions',
+      'autorisation-de-sortie-generale': 'Absences et Sanctions',
+      'demande-autorisation': 'Absences et Sanctions',
+      'demande-teletravail': 'Demande de Congé',
+      'validation-teletravail': 'Demande de Congé',
+      'demande-absence': 'Demande de Congé',
+      'validation-absence': 'Demande de Congé',
+      'validation-heures-sup': 'Absences et Sanctions',
+      'absence-et-sanction': 'Absences et Sanctions',
+      'saisie-classe-horaire': 'Paramètres de Temps',
+      'saisie-poste-de-travail': 'Paramètres de Temps',
+      'intitule-des-absences': 'Données de Base',
+      'Repos': 'Données de Base',
+      // 'accompte-salaire': 'Paie et Rémunération',
+      'pointage-du-mois': 'Paie et Rémunération',
+      'droit-de-conge': 'Paie et Rémunération',
+      'remboursement': 'Paie et Rémunération',
+      'etat-de-presence': 'Rapports et Statistiques',
+      'etat-de-retard': 'Rapports et Statistiques',
+      'etat-des-absences': 'Rapports et Statistiques',
+      'echeance-contrat': 'Rapports et Statistiques',
+      'cahier-conge': 'Rapports et Statistiques',
+      'gestion-utilisateur': 'Administration',
+      'droit-accees': 'Administration',
+      'societe': 'Administration',
+      'calendrier-societe': 'Administration',
+      'chat-bot': 'Administration',
+      'coffre-fort': 'Gestion Employés',
+      'sign-document': 'Gestion Employés',
+      'admin-vault': 'Gestion Employés',
+      'template-builder': 'Administration',
+      'documents': 'Administration',
+      'courriers': 'Administration',
+      'rag-audit': 'Administration',
+    };
 
-  const canSee = (segment: string) => {
-    if (isAdminEffective) return true;
-    const mod = segmentToModule[segment];
-    if (!mod) return true;
-    return hasPermission(mod, 'consult');
-  };
+    const canSee = (segment: string) => {
+      if (isAdminEffective) return true;
+      const mod = segmentToModule[segment];
+      if (!mod) return true;
+      return hasPermission(mod, 'consult');
+    };
 
-  /* ── Employee (minimal) navigation ── */
-  if (isEmp && !isManager && !isAdminEffective) {
-    return [
+    /* ── Employee (minimal) navigation ── */
+    if (isEmp && !isManager && !isAdminEffective) {
+      return [
+        {
+          label: t('navigation.dashboard'),
+          href: '/dashboard',
+          icon: Home,
+          items: [],
+        },
+        {
+          label: t('navigation.mySpace'),
+          href: '/dashboard/mon-espace',
+          icon: User,
+          items: [
+            ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
+            ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
+            ...(planAllows('leaveManagement') ? [{ label: t('navigation.absenceRequest'), href: '/dashboard/demande-absence', icon: ClipboardList }] : []),
+            ...(planAllows('leaveManagement') ? [{ label: t('navigation.remoteWorkRequest'), href: '/dashboard/demande-teletravail', icon: Laptop }] : []),
+            // Demande h.supp côté collaborateur — gated sur authorizationManagement
+            // (le marker [HEURES SUP] et la file de validation vivent dans la table
+            // autoriser). Sans cette entrée, le salarié n'avait pas de canal de
+            // soumission depuis le web alors que la validation existait déjà.
+            ...(planAllows('authorizationManagement') ? [{ label: 'Demande h.supp', href: '/dashboard/demande-heures-sup', icon: Clock3 }] : []),
+            ...(planAllows('missions') ? [{ label: t('navigation.myMissions'), href: '/dashboard/missions', icon: Briefcase }] : []),
+            // Cf. note plus bas dans la nav full : notes de frais gated sur expenseReports.
+            ...(planAllows('expenseReports') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
+            ...(planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
+            { label: t('navigation.profile'), href: '/dashboard/profile', icon: CircleUser },
+            ...(planAllows('digitalVault') ? [{ label: t('navigation.myVault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
+          ],
+        },
+      ];
+    }
+
+    /* ── Full navigation ── */
+    const allGroups: NavGroup[] = [
       {
         label: t('navigation.dashboard'),
         href: '/dashboard',
         icon: Home,
         items: [],
       },
-      {
-        label: t('navigation.mySpace'),
-        href: '/dashboard/mon-espace',
-        icon: User,
+      ...(canSee('gestion-societe') || canSee('structure-organisationnelle') || canSee('intitule-des-absences') || canSee('Repos') ? [{
+        label: t('navigation.dataBase'),
+        href: '/dashboard/donnees-de-base',
+        icon: Database,
         items: [
-          ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
-          ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
-          ...(planAllows('leaveManagement') ? [{ label: t('navigation.absenceRequest'), href: '/dashboard/demande-absence', icon: ClipboardList }] : []),
-          ...(planAllows('leaveManagement') ? [{ label: t('navigation.remoteWorkRequest'), href: '/dashboard/demande-teletravail', icon: Laptop }] : []),
-          // Demande h.supp côté collaborateur — gated sur authorizationManagement
-          // (le marker [HEURES SUP] et la file de validation vivent dans la table
-          // autoriser). Sans cette entrée, le salarié n'avait pas de canal de
-          // soumission depuis le web alors que la validation existait déjà.
-          ...(planAllows('authorizationManagement') ? [{ label: 'Demande h.supp', href: '/dashboard/demande-heures-sup', icon: Clock3 }] : []),
-          ...(planAllows('missions') ? [{ label: t('navigation.myMissions'), href: '/dashboard/missions', icon: Briefcase }] : []),
-          // Cf. note plus bas dans la nav full : notes de frais gated sur expenseReports.
-          ...(planAllows('expenseReports') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
-          ...(planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
-          { label: t('navigation.profile'), href: '/dashboard/profile', icon: CircleUser },
-          ...(planAllows('digitalVault') ? [{ label: t('navigation.myVault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
+          ...(canSee('gestion-societe') ? [{ label: t('navigation.society'), href: '/dashboard/gestion-societe', icon: Building2 }] : []),
+          ...(canSee('structure-organisationnelle') ? [{ label: t('navigation.orgStructure'), href: '/dashboard/structure-organisationnelle', icon: Network }] : []),
+          ...(canSee('filiale') ? [{ label: t('navigation.branch'), href: '/dashboard/filiale', icon: Flag }] : []),
+          // Entrée "Pays" retirée de la sidebar (2026-05) : le référentiel des pays est
+          // désormais résolu côté front via restcountries.com (cf. RestCountriesService) ;
+          // plus besoin d'une page admin dédiée à la saisie manuelle. La route /dashboard/pays
+          // reste fonctionnelle pour les cas d'override mais n'est plus exposée en navigation.
+          ...(canSee('ville') ? [{ label: t('navigation.city'), href: '/dashboard/ville', icon: MapPin }] : []),
+          ...(canSee('fonction') ? [{ label: t('navigation.function'), href: '/dashboard/fonction', icon: Briefcase }] : []),
+          ...(canSee('qualification') ? [{ label: t('navigation.qualification'), href: '/dashboard/qualification', icon: Award }] : []),
+          ...(canSee('rubrique') ? [{ label: t('navigation.rubric'), href: '/dashboard/rubrique', icon: DollarSign }] : []),
+          ...(canSee('intitule-des-absences') ? [{ label: t('navigation.absenceTypes'), href: '/dashboard/intitule-des-absences', icon: ClipboardList }] : []),
+          ...(canSee('Repos') ? [{ label: t('navigation.publicHolidays'), href: '/dashboard/Repos', icon: CalendarCheck }] : []),
+        ],
+      }] : []),
+      ...(canSee('liste-pointeuse') ? [{
+        label: t('navigation.clockingMachine'),
+        href: '/dashboard/pointage',
+        icon: Fingerprint,
+        items: [
+          ...(canSee('liste-pointeuse') ? [{ label: t('navigation.clockingList'), href: '/dashboard/liste-pointeuse', icon: MonitorDot }] : []),
+          // 2026-05-12 : état périodique disponible sur tous les plans (y compris Starter)
+          // — c'est le rapport de base du pointage. Le gating `!isTrialing` précédent
+          // partait du principe que trial = Premium-pour-tous ; désormais le plan
+          // dicte les modules, et Starter conserve explicitement ce rapport.
+          ...(canSee('etat-periodique') ? [{ label: t('navigation.periodicReport'), href: '/dashboard/etat-periodique', icon: Activity }] : []),
+        ],
+      }] : []),
+      {
+        label: t('navigation.employee'),
+        href: '/dashboard/employe',
+        icon: Users,
+        items: [
+          ...(canSee('gestion-employe') ? [{ label: t('navigation.employeeManagement'), href: '/dashboard/gestion-employe', icon: Users }] : []),
+          ...(canSee('profil-employe') ? [{ label: t('navigation.employeeProfile'), href: '/dashboard/profil-employe', icon: User }] : []),
+          // Gating commercial : Gestion des contrats est un module facturable
+          // (cf. PlanFeatures.contractManagement) — exclu du pack Starter qui se
+          // limite au pointage + fiches collaborateurs. Sans ce gate, l'entrée
+          // s'affichait sur Starter mais le backend renvoyait 402 à l'ouverture.
+          ...(canSee('contrat') && planAllows('contractManagement') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat', icon: FileText }] : []),
+          ...(planAllows('missions') ? [{ label: t('navigation.missions'), href: '/dashboard/missions', icon: Briefcase }] : []),
+          // Renouvellement de contrat : intégré directement dans la liste des contrats (bouton
+          // "Renouveler" par ligne) et dans le dashboard (KPI échéance contrat → dialog).
+          ...(canSee('allaitement') && planAllows('breastfeedingManagement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
+          ...(canSee('coffre-fort') && planAllows('digitalVault') ? [{ label: t('navigation.vault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
+          ...(canSee('admin-vault') && planAllows('digitalVault') ? [{ label: t('navigation.vaultGlobalView'), href: '/dashboard/admin-vault', icon: Eye }] : []),
         ],
       },
+      // 2026-05-12 : groupes "Demandes et validations" + "Absences" entièrement masqués
+      // sur Starter (positionnement "pointage simple, sans workflow RH"). On wrappe au
+      // niveau du groupe — sinon les items résiduels non gatés (notes de frais,
+      // affectation solde, CET, absence et sanction) feraient remonter le groupe vide
+      // de sens commercial pour ce plan.
+      ...(planAllows('leaveManagement') ? [{
+        // Hub centralisé "Demandes et validations" : regroupe tout ce sur quoi un manager
+        // attend une action (congé, autorisation, notes de frais...). Le label précédent
+        // "Congé" était trop restrictif — la structure permet d'ajouter de nouveaux types
+        // de demandes plus tard sans casser la navigation.
+        label: t('navigation.requestsAndValidations'),
+        href: '/dashboard/conges',
+        icon: CalendarDays,
+        items: [
+          ...(canSee('gestion-de-conge') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
+          // Les entrées "Demande d'absence" / "Demande de télétravail" sont des
+          // formulaires de SAISIE pour le collaborateur. L'admin n'en a pas
+          // besoin (il ne pose pas de demande pour lui-même via cet écran) :
+          // ses validations couvrent tout le flux. Cf. décision produit 2026-05.
+          // Les managers gardent l'accès aux deux : ils peuvent avoir besoin de
+          // poser leur propre demande tout en validant celles de leur équipe.
+          ...(!isAdminEffective && canSee('demande-absence') ? [{ label: t('navigation.absenceRequest'), href: '/dashboard/demande-absence', icon: ClipboardList }] : []),
+          ...(!isAdminEffective && canSee('demande-teletravail') ? [{ label: t('navigation.remoteWorkRequest'), href: '/dashboard/demande-teletravail', icon: Laptop }] : []),
+          // Demande h.supp employé — affichée uniquement aux non-admins, à côté
+          // des autres self-services (absence, télétravail). La validation
+          // correspondante reste dans le groupe Demandes/Validation plus bas.
+          ...(!isAdminEffective && planAllows('authorizationManagement') ? [{ label: 'Demande h.supp', href: '/dashboard/demande-heures-sup', icon: Clock3 }] : []),
+          ...((isAdminEffective || isManager) && canSee('validation-absence') ? [{ label: t('navigation.absenceValidation'), href: '/dashboard/validation-absence', icon: CheckSquare }] : []),
+          ...((isAdminEffective || isManager) && canSee('validation-teletravail') ? [{ label: t('navigation.remoteWorkValidation'), href: '/dashboard/validation-teletravail', icon: CheckSquare }] : []),
+          ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
+          ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
+          ...(canSee('titre-de-conge-general') && planAllows('generalLeave') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
+          // Notes de frais : module facturable (PlanFeatures.expenseReports) —
+          // exclu du Starter. Sans ce gate, /dashboard/remboursement s'ouvrait
+          // côté UI mais NoteDeFraisController renvoyait 402 à toute requête.
+          ...(canSee('remboursement') && planAllows('expenseReports') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
+          ...(isAdminEffective ? [{ label: t('navigation.balanceAllocation'), href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
+          ...(isAdminEffective ? [{ label: t('navigation.timeSavingAccount'), href: '/dashboard/cet', icon: CalendarCheck }] : []),
+        ],
+      }] : []),
+      ...(planAllows('authorizationManagement') || planAllows('compensationDays') ? [{
+        label: t('navigation.absences'),
+        href: '/dashboard/absences',
+        icon: AlarmClock,
+        items: [
+          // Entrée "Gestion compensation" (jour-de-compensation) masquée temporairement (2026-05).
+          // Le module reste accessible via URL directe — uniquement retiré de la sidebar.
+          // ...(canSee('jour-de-compensation') && planAllows('compensationDays') ? [{ label: t('navigation.compensationDay'), href: '/dashboard/jour-de-compensation', icon: Clock3 }] : []),
+          ...(canSee('autorisation-de-sortie') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorization'), href: '/dashboard/autorisation-de-sortie', icon: Timer }] : []),
+          ...(canSee('autorisation-de-sortie-generale') && planAllows('generalExit') ? [{ label: t('navigation.generalExit'), href: '/dashboard/autorisation-de-sortie-generale', icon: Timer }] : []),
+          ...(canSee('demande-autorisation') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
+          // Validation heures sup. — admin/manager uniquement (les employés n'ont
+          // pas accès à ce groupe car la nav "Demandes et validations" est filtrée
+          // plus haut sur isEmp). Stocké dans la table autoriser avec marker
+          // [HEURES SUP] dans Conmotif. Affiché à côté de "Autorisation de sortie"
+          // car les deux flux partagent l'infra back.
+          ...((isAdminEffective || isManager) && planAllows('authorizationManagement')
+            ? [{ label: t('navigation.overtimeValidation'), href: '/dashboard/validation-heures-sup', icon: Clock3 }]
+            : []),
+          ...(canSee('absence-et-sanction') ? [{ label: t('navigation.absenceAndSanction'), href: '/dashboard/absence-et-sanction', icon: Gavel }] : []),
+        ],
+      }] : []),
+      {
+        label: t('navigation.timeClass'),
+        href: '/dashboard/temps',
+        icon: SlidersHorizontal,
+        items: [
+          ...(canSee('saisie-classe-horaire') ? [{ label: t('navigation.workSchedule'), href: '/dashboard/saisie-classe-horaire', icon: Clock3 }] : []),
+          ...(canSee('saisie-poste-de-travail') ? [{ label: t('navigation.workStation'), href: '/dashboard/saisie-poste-de-travail', icon: Briefcase }] : []),
+        ],
+      },
+      // Préparation paie & rapports analytiques : aligné sur le flag commercial
+      // `advancedDashboards` (Standard+). Avant 2026-05-18, on masquait toute la
+      // section pendant le trial sans distinction de pack, ce qui empêchait les
+      // tenants Standard/Premium en essai d'évaluer la préparation paie — alors
+      // que c'est précisément un argument clé de ces packs. Starter reste exclu
+      // car AdvancedDashboards=false dans PlanCatalog.
+      ...(planAllows('advancedDashboards') ? [{
+        label: t('navigation.payrollPreparation'),
+        href: '/dashboard/paie',
+        icon: Banknote,
+        items: [
+          // ...(canSee('accompte-salaire') ? [{ label: t('navigation.salaryAdvance'), href: '/dashboard/accompte-salaire', icon: Wallet }] : []),
+          ...(canSee('pointage-du-mois') ? [{ label: t('navigation.monthlyClocking'), href: '/dashboard/pointage-du-mois', icon: Clock3 }] : []),
+          ...(canSee('droit-de-conge') ? [{ label: t('navigation.leaveRights'), href: '/dashboard/droit-de-conge', icon: CalendarCheck }] : []),
+          // Notes de frais déplacé dans "Demandes et validations" (hub central de validation).
+        ],
+      }] : []),
+      // Rapports analytiques (état présence, retards, absences, échéances, cahier congé).
+      // Gating commercial : module « Reporting avancé » du pack Standard+. Sur Starter,
+      // la section est masquée (un dashboard basique reste accessible via /home).
+      // 2026-05-18 : on retire le filtre `!isTrialing` qui masquait les états MÊME aux
+      // tenants Premium/Standard en essai gratuit — contraire à la promesse commerciale
+      // « pack premium (test ou payant) a toutes les fonctionnalités ». PlanCatalog
+      // garantit déjà que Starter.AdvancedDashboards=false → la section reste cachée
+      // pour Starter qu'il soit en trial ou payant. Aucune raison d'avoir un cap trial
+      // supplémentaire ici.
+      ...(planAllows('advancedDashboards') ? [{
+        label: t('navigation.reports'),
+        href: '/dashboard/rapports',
+        icon: BarChart2,
+        items: [
+          // Calendrier équipe : vue mensuelle agrégée (congés + missions + autorisations).
+          // Restreint aux admins/managers — un salarié ne doit pas voir le
+          // planning d'absences de ses collègues. Le backend renforce déjà la
+          // même règle (DemConges/by-soc, DemandeAutorisations/by-soc et
+          // Missions/by-soc renvoient 403 pour un employé), mais on retire en
+          // plus l'entrée de la sidebar pour éviter de proposer un lien qui
+          // mènerait à une page bloquée.
+          ...((isAdminEffective || isManager) && canSee('etat-de-presence') ? [{ label: t('navigation.teamCalendar', 'Calendrier équipe'), href: '/dashboard/calendrier-equipe', icon: CalendarDays }] : []),
+          ...(canSee('etat-de-presence') ? [{ label: t('navigation.attendanceReport'), href: '/dashboard/etat-de-presence', icon: Users }] : []),
+          ...(canSee('etat-de-retard') ? [{ label: t('navigation.lateReport'), href: '/dashboard/etat-de-retard', icon: Clock3 }] : []),
+          ...(canSee('etat-des-absences') ? [{ label: t('navigation.absenceReport'), href: '/dashboard/etat-des-absences', icon: AlarmClock }] : []),
+          ...(canSee('echeance-contrat') ? [{ label: t('navigation.contractExpiry'), href: '/dashboard/echeance-contrat', icon: FileText }] : []),
+          ...(canSee('cahier-conge') ? [{ label: t('navigation.leaveBook'), href: '/dashboard/cahier-conge', icon: BookOpen }] : []),
+        ],
+      }] : []),
+      ...(isAdminEffective ? [{
+        label: t('navigation.administrator'),
+        href: '/dashboard/admin',
+        icon: KeyRound,
+        items: [
+          { label: t('navigation.users'), href: '/dashboard/gestion-utilisateur', icon: Users },
+          { label: t('navigation.accessRights'), href: '/dashboard/droit-accees', icon: Shield },
+          // Affectation site → utilisateur (table Socuser). Visible admin only.
+          { label: t('navigation.siteAccess', "Droits d'accès par site"), href: '/dashboard/droit-acces-site', icon: ShieldCheck },
+          // Builder de modèles de contrat : lié à PlanFeatures.contractManagement
+          // (mêmes endpoints /api/Templates côté backend qui posent le 402 sur Starter).
+          ...(planAllows('contractManagement') ? [{ label: t('navigation.contractTemplates'), href: '/dashboard/template-builder', icon: FileText }] : []),
+          { label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText },
+          // Courriers IA : la génération de lettres passe par le pipeline RAG
+          // (cf. LetterGenerationService) — gated sur PlanFeatures.ragAi
+          // (Premium uniquement). Le composant LetterTemplatesModern appelle
+          // /api/LetterTemplates qui dépend de ragAi pour la complétion.
+          ...(planAllows('ragAi') ? [{ label: t('navigation.letterTemplates'), href: '/dashboard/courriers', icon: FileText }] : []),
+          ...(planAllows('ragAi') ? [{ label: t('navigation.ragAudit'), href: '/dashboard/rag-audit', icon: History }] : []),
+          // Suivi positions GPS — page Leaflet alimentée par les colonnes
+          // prelat/prelon de la table presence (capturées au pointage mobile).
+          // Gated sur le plan Geolocation (Standard + Business) ; sur Starter
+          // la feature est masquée (la capture GPS l'est déjà côté backend).
+          ...(planAllows('geolocation') ? [{ label: t('navigation.positionTracking', 'Suivi positions'), href: '/dashboard/suivi-positions', icon: MapPin }] : []),
+          // Journaux d'audit + 3 pages de configuration RGPD : gated sur
+          // AdvancedAuditLogs (true uniquement sur le pack Business).
+          // Avant 2026-05-24 ces 4 entrées n'apparaissaient nulle part dans la
+          // sidebar — les composants existaient mais étaient orphelins.
+          ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.auditLogs', "Journaux d'audit"), href: '/dashboard/audit-logs', icon: History }] : []),
+          ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.retentionPolicy', 'Rétention RGPD'), href: '/dashboard/retention-rgpd', icon: Shield }] : []),
+          ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.processingNotice', 'Notice RGPD'), href: '/dashboard/notice-rgpd', icon: Shield }] : []),
+          ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.geolocationPolicy', 'Géolocalisation RGPD'), href: '/dashboard/geolocation-rgpd', icon: Shield }] : []),
+          { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
+          { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
+          // 2026-05-26 — Entrée "API & Intégrations" visible UNIQUEMENT quand l'addon
+          // apiAvancee a été souscrit (cf. PlanCatalog.GetEffectiveFeatures qui mappe
+          // l'addon vers PlanFeatures.ApiAccess). Pointe vers /dashboard/mon-abonnement
+          // tant qu'une page dédiée de gestion des clés API n'est pas prête —
+          // l'utilisateur y voit la souscription confirmée dans la section "Modules
+          // additionnels". À remplacer par /dashboard/api-keys quand la page existera.
+          ...(planAllows('apiAccess') ? [{ label: t('navigation.apiIntegrations', 'API & Intégrations'), href: '/dashboard/mon-abonnement', icon: KeyRound }] : []),
+          // Lien Chatbot retiré du sidebar : l'assistant reste accessible via le bouton flottant
+          // en bas à droite, présent globalement sur le dashboard. Pas besoin d'un menu dédié.
+          // L'entrée Tarification est volontairement absente du sidebar : la page est servie
+          // sur la landing publique '/' (parcours d'inscription Odoo-style). La route reste
+          // mappée plus bas pour les liens directs / paiement.
+        ],
+      }] : []),
+      // Paiement : groupe réservé Admin/Manager regroupant la gestion d'abonnement et
+      // l'historique de facturation. Remplace l'ancienne entrée footer « Mon abonnement »
+      // qui était plate et ne donnait pas accès aux factures (cf. tasks 2026-05-19).
+      ...((isAdmin || isManager) ? [{
+        label: t('navigation.payment', 'Paiement'),
+        href: '/dashboard/mon-abonnement',
+        icon: Wallet,
+        items: [
+          { label: t('navigation.subscription', 'Abonnement'), href: '/dashboard/mon-abonnement', icon: Wallet },
+          { label: t('navigation.concordeInvoices', 'Factures Concorde'), href: '/dashboard/factures-concorde', icon: Receipt },
+        ],
+      }] : []),
     ];
-  }
 
-  /* ── Full navigation ── */
-  const allGroups: NavGroup[] = [
-    {
-      label: t('navigation.dashboard'),
-      href: '/dashboard',
-      icon: Home,
-      items: [],
-    },
-    ...(canSee('gestion-societe') || canSee('structure-organisationnelle') || canSee('intitule-des-absences') || canSee('Repos') ? [{
-      label: t('navigation.dataBase'),
-      href: '/dashboard/donnees-de-base',
-      icon: Database,
-      items: [
-        ...(canSee('gestion-societe') ? [{ label: t('navigation.society'), href: '/dashboard/gestion-societe', icon: Building2 }] : []),
-        ...(canSee('structure-organisationnelle') ? [{ label: t('navigation.orgStructure'), href: '/dashboard/structure-organisationnelle', icon: Network }] : []),
-        ...(canSee('filiale') ? [{ label: t('navigation.branch'), href: '/dashboard/filiale', icon: Flag }] : []),
-        // Entrée "Pays" retirée de la sidebar (2026-05) : le référentiel des pays est
-        // désormais résolu côté front via restcountries.com (cf. RestCountriesService) ;
-        // plus besoin d'une page admin dédiée à la saisie manuelle. La route /dashboard/pays
-        // reste fonctionnelle pour les cas d'override mais n'est plus exposée en navigation.
-        ...(canSee('ville') ? [{ label: t('navigation.city'), href: '/dashboard/ville', icon: MapPin }] : []),
-        ...(canSee('fonction') ? [{ label: t('navigation.function'), href: '/dashboard/fonction', icon: Briefcase }] : []),
-        ...(canSee('qualification') ? [{ label: t('navigation.qualification'), href: '/dashboard/qualification', icon: Award }] : []),
-        ...(canSee('rubrique') ? [{ label: t('navigation.rubric'), href: '/dashboard/rubrique', icon: DollarSign }] : []),
-        ...(canSee('intitule-des-absences') ? [{ label: t('navigation.absenceTypes'), href: '/dashboard/intitule-des-absences', icon: ClipboardList }] : []),
-        ...(canSee('Repos') ? [{ label: t('navigation.publicHolidays'), href: '/dashboard/Repos', icon: CalendarCheck }] : []),
-      ],
-    }] : []),
-    ...(canSee('liste-pointeuse') ? [{
-      label: t('navigation.clockingMachine'),
-      href: '/dashboard/pointage',
-      icon: Fingerprint,
-      items: [
-        ...(canSee('liste-pointeuse') ? [{ label: t('navigation.clockingList'), href: '/dashboard/liste-pointeuse', icon: MonitorDot }] : []),
-        // 2026-05-12 : état périodique disponible sur tous les plans (y compris Starter)
-        // — c'est le rapport de base du pointage. Le gating `!isTrialing` précédent
-        // partait du principe que trial = Premium-pour-tous ; désormais le plan
-        // dicte les modules, et Starter conserve explicitement ce rapport.
-        ...(canSee('etat-periodique') ? [{ label: t('navigation.periodicReport'), href: '/dashboard/etat-periodique', icon: Activity }] : []),
-      ],
-    }] : []),
-    {
-      label: t('navigation.employee'),
-      href: '/dashboard/employe',
-      icon: Users,
-      items: [
-        ...(canSee('gestion-employe') ? [{ label: t('navigation.employeeManagement'), href: '/dashboard/gestion-employe', icon: Users }] : []),
-        ...(canSee('profil-employe') ? [{ label: t('navigation.employeeProfile'), href: '/dashboard/profil-employe', icon: User }] : []),
-        // Gating commercial : Gestion des contrats est un module facturable
-        // (cf. PlanFeatures.contractManagement) — exclu du pack Starter qui se
-        // limite au pointage + fiches collaborateurs. Sans ce gate, l'entrée
-        // s'affichait sur Starter mais le backend renvoyait 402 à l'ouverture.
-        ...(canSee('contrat') && planAllows('contractManagement') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat', icon: FileText }] : []),
-        ...(planAllows('missions') ? [{ label: t('navigation.missions'), href: '/dashboard/missions', icon: Briefcase }] : []),
-        // Renouvellement de contrat : intégré directement dans la liste des contrats (bouton
-        // "Renouveler" par ligne) et dans le dashboard (KPI échéance contrat → dialog).
-        ...(canSee('allaitement') && planAllows('breastfeedingManagement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
-        ...(canSee('coffre-fort') && planAllows('digitalVault') ? [{ label: t('navigation.vault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
-        ...(canSee('admin-vault') && planAllows('digitalVault') ? [{ label: t('navigation.vaultGlobalView'), href: '/dashboard/admin-vault', icon: Eye }] : []),
-      ],
-    },
-    // 2026-05-12 : groupes "Demandes et validations" + "Absences" entièrement masqués
-    // sur Starter (positionnement "pointage simple, sans workflow RH"). On wrappe au
-    // niveau du groupe — sinon les items résiduels non gatés (notes de frais,
-    // affectation solde, CET, absence et sanction) feraient remonter le groupe vide
-    // de sens commercial pour ce plan.
-    ...(planAllows('leaveManagement') ? [{
-      // Hub centralisé "Demandes et validations" : regroupe tout ce sur quoi un manager
-      // attend une action (congé, autorisation, notes de frais...). Le label précédent
-      // "Congé" était trop restrictif — la structure permet d'ajouter de nouveaux types
-      // de demandes plus tard sans casser la navigation.
-      label: t('navigation.requestsAndValidations'),
-      href: '/dashboard/conges',
-      icon: CalendarDays,
-      items: [
-        ...(canSee('gestion-de-conge') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
-        // Les entrées "Demande d'absence" / "Demande de télétravail" sont des
-        // formulaires de SAISIE pour le collaborateur. L'admin n'en a pas
-        // besoin (il ne pose pas de demande pour lui-même via cet écran) :
-        // ses validations couvrent tout le flux. Cf. décision produit 2026-05.
-        // Les managers gardent l'accès aux deux : ils peuvent avoir besoin de
-        // poser leur propre demande tout en validant celles de leur équipe.
-        ...(!isAdminEffective && canSee('demande-absence') ? [{ label: t('navigation.absenceRequest'), href: '/dashboard/demande-absence', icon: ClipboardList }] : []),
-        ...(!isAdminEffective && canSee('demande-teletravail') ? [{ label: t('navigation.remoteWorkRequest'), href: '/dashboard/demande-teletravail', icon: Laptop }] : []),
-        // Demande h.supp employé — affichée uniquement aux non-admins, à côté
-        // des autres self-services (absence, télétravail). La validation
-        // correspondante reste dans le groupe Demandes/Validation plus bas.
-        ...(!isAdminEffective && planAllows('authorizationManagement') ? [{ label: 'Demande h.supp', href: '/dashboard/demande-heures-sup', icon: Clock3 }] : []),
-        ...((isAdminEffective || isManager) && canSee('validation-absence') ? [{ label: t('navigation.absenceValidation'), href: '/dashboard/validation-absence', icon: CheckSquare }] : []),
-        ...((isAdminEffective || isManager) && canSee('validation-teletravail') ? [{ label: t('navigation.remoteWorkValidation'), href: '/dashboard/validation-teletravail', icon: CheckSquare }] : []),
-        ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
-        ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
-        ...(canSee('titre-de-conge-general') && planAllows('generalLeave') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
-        // Notes de frais : module facturable (PlanFeatures.expenseReports) —
-        // exclu du Starter. Sans ce gate, /dashboard/remboursement s'ouvrait
-        // côté UI mais NoteDeFraisController renvoyait 402 à toute requête.
-        ...(canSee('remboursement') && planAllows('expenseReports') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
-        ...(isAdminEffective ? [{ label: t('navigation.balanceAllocation'), href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
-        ...(isAdminEffective ? [{ label: t('navigation.timeSavingAccount'), href: '/dashboard/cet', icon: CalendarCheck }] : []),
-      ],
-    }] : []),
-    ...(planAllows('authorizationManagement') || planAllows('compensationDays') ? [{
-      label: t('navigation.absences'),
-      href: '/dashboard/absences',
-      icon: AlarmClock,
-      items: [
-        // Entrée "Gestion compensation" (jour-de-compensation) masquée temporairement (2026-05).
-        // Le module reste accessible via URL directe — uniquement retiré de la sidebar.
-        // ...(canSee('jour-de-compensation') && planAllows('compensationDays') ? [{ label: t('navigation.compensationDay'), href: '/dashboard/jour-de-compensation', icon: Clock3 }] : []),
-        ...(canSee('autorisation-de-sortie') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorization'), href: '/dashboard/autorisation-de-sortie', icon: Timer }] : []),
-        ...(canSee('autorisation-de-sortie-generale') && planAllows('generalExit') ? [{ label: t('navigation.generalExit'), href: '/dashboard/autorisation-de-sortie-generale', icon: Timer }] : []),
-        ...(canSee('demande-autorisation') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
-        // Validation heures sup. — admin/manager uniquement (les employés n'ont
-        // pas accès à ce groupe car la nav "Demandes et validations" est filtrée
-        // plus haut sur isEmp). Stocké dans la table autoriser avec marker
-        // [HEURES SUP] dans Conmotif. Affiché à côté de "Autorisation de sortie"
-        // car les deux flux partagent l'infra back.
-        ...((isAdminEffective || isManager) && planAllows('authorizationManagement')
-          ? [{ label: t('navigation.overtimeValidation'), href: '/dashboard/validation-heures-sup', icon: Clock3 }]
-          : []),
-        ...(canSee('absence-et-sanction') ? [{ label: t('navigation.absenceAndSanction'), href: '/dashboard/absence-et-sanction', icon: Gavel }] : []),
-      ],
-    }] : []),
-    {
-      label: t('navigation.timeClass'),
-      href: '/dashboard/temps',
-      icon: SlidersHorizontal,
-      items: [
-        ...(canSee('saisie-classe-horaire') ? [{ label: t('navigation.workSchedule'), href: '/dashboard/saisie-classe-horaire', icon: Clock3 }] : []),
-        ...(canSee('saisie-poste-de-travail') ? [{ label: t('navigation.workStation'), href: '/dashboard/saisie-poste-de-travail', icon: Briefcase }] : []),
-      ],
-    },
-    // Préparation paie & rapports analytiques : aligné sur le flag commercial
-    // `advancedDashboards` (Standard+). Avant 2026-05-18, on masquait toute la
-    // section pendant le trial sans distinction de pack, ce qui empêchait les
-    // tenants Standard/Premium en essai d'évaluer la préparation paie — alors
-    // que c'est précisément un argument clé de ces packs. Starter reste exclu
-    // car AdvancedDashboards=false dans PlanCatalog.
-    ...(planAllows('advancedDashboards') ? [{
-      label: t('navigation.payrollPreparation'),
-      href: '/dashboard/paie',
-      icon: Banknote,
-      items: [
-        // ...(canSee('accompte-salaire') ? [{ label: t('navigation.salaryAdvance'), href: '/dashboard/accompte-salaire', icon: Wallet }] : []),
-        ...(canSee('pointage-du-mois') ? [{ label: t('navigation.monthlyClocking'), href: '/dashboard/pointage-du-mois', icon: Clock3 }] : []),
-        ...(canSee('droit-de-conge') ? [{ label: t('navigation.leaveRights'), href: '/dashboard/droit-de-conge', icon: CalendarCheck }] : []),
-        // Notes de frais déplacé dans "Demandes et validations" (hub central de validation).
-      ],
-    }] : []),
-    // Rapports analytiques (état présence, retards, absences, échéances, cahier congé).
-    // Gating commercial : module « Reporting avancé » du pack Standard+. Sur Starter,
-    // la section est masquée (un dashboard basique reste accessible via /home).
-    // 2026-05-18 : on retire le filtre `!isTrialing` qui masquait les états MÊME aux
-    // tenants Premium/Standard en essai gratuit — contraire à la promesse commerciale
-    // « pack premium (test ou payant) a toutes les fonctionnalités ». PlanCatalog
-    // garantit déjà que Starter.AdvancedDashboards=false → la section reste cachée
-    // pour Starter qu'il soit en trial ou payant. Aucune raison d'avoir un cap trial
-    // supplémentaire ici.
-    ...(planAllows('advancedDashboards') ? [{
-      label: t('navigation.reports'),
-      href: '/dashboard/rapports',
-      icon: BarChart2,
-      items: [
-        // Calendrier équipe : vue mensuelle agrégée (congés + missions + autorisations).
-        // Restreint aux admins/managers — un salarié ne doit pas voir le
-        // planning d'absences de ses collègues. Le backend renforce déjà la
-        // même règle (DemConges/by-soc, DemandeAutorisations/by-soc et
-        // Missions/by-soc renvoient 403 pour un employé), mais on retire en
-        // plus l'entrée de la sidebar pour éviter de proposer un lien qui
-        // mènerait à une page bloquée.
-        ...((isAdminEffective || isManager) && canSee('etat-de-presence') ? [{ label: t('navigation.teamCalendar', 'Calendrier équipe'), href: '/dashboard/calendrier-equipe', icon: CalendarDays }] : []),
-        ...(canSee('etat-de-presence') ? [{ label: t('navigation.attendanceReport'), href: '/dashboard/etat-de-presence', icon: Users }] : []),
-        ...(canSee('etat-de-retard') ? [{ label: t('navigation.lateReport'), href: '/dashboard/etat-de-retard', icon: Clock3 }] : []),
-        ...(canSee('etat-des-absences') ? [{ label: t('navigation.absenceReport'), href: '/dashboard/etat-des-absences', icon: AlarmClock }] : []),
-        ...(canSee('echeance-contrat') ? [{ label: t('navigation.contractExpiry'), href: '/dashboard/echeance-contrat', icon: FileText }] : []),
-        ...(canSee('cahier-conge') ? [{ label: t('navigation.leaveBook'), href: '/dashboard/cahier-conge', icon: BookOpen }] : []),
-      ],
-    }] : []),
-    ...(isAdminEffective ? [{
-      label: t('navigation.administrator'),
-      href: '/dashboard/admin',
-      icon: KeyRound,
-      items: [
-        { label: t('navigation.users'), href: '/dashboard/gestion-utilisateur', icon: Users },
-        { label: t('navigation.accessRights'), href: '/dashboard/droit-accees', icon: Shield },
-        // Affectation site → utilisateur (table Socuser). Visible admin only.
-        { label: t('navigation.siteAccess', "Droits d'accès par site"), href: '/dashboard/droit-acces-site', icon: ShieldCheck },
-        // Builder de modèles de contrat : lié à PlanFeatures.contractManagement
-        // (mêmes endpoints /api/Templates côté backend qui posent le 402 sur Starter).
-        ...(planAllows('contractManagement') ? [{ label: t('navigation.contractTemplates'), href: '/dashboard/template-builder', icon: FileText }] : []),
-        { label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText },
-        // Courriers IA : la génération de lettres passe par le pipeline RAG
-        // (cf. LetterGenerationService) — gated sur PlanFeatures.ragAi
-        // (Premium uniquement). Le composant LetterTemplatesModern appelle
-        // /api/LetterTemplates qui dépend de ragAi pour la complétion.
-        ...(planAllows('ragAi') ? [{ label: t('navigation.letterTemplates'), href: '/dashboard/courriers', icon: FileText }] : []),
-        ...(planAllows('ragAi') ? [{ label: t('navigation.ragAudit'), href: '/dashboard/rag-audit', icon: History }] : []),
-        // Suivi positions GPS — page Leaflet alimentée par les colonnes
-        // prelat/prelon de la table presence (capturées au pointage mobile).
-        // Gated sur le plan Geolocation (Standard + Business) ; sur Starter
-        // la feature est masquée (la capture GPS l'est déjà côté backend).
-        ...(planAllows('geolocation') ? [{ label: t('navigation.positionTracking', 'Suivi positions'), href: '/dashboard/suivi-positions', icon: MapPin }] : []),
-        // Journaux d'audit + 3 pages de configuration RGPD : gated sur
-        // AdvancedAuditLogs (true uniquement sur le pack Business).
-        // Avant 2026-05-24 ces 4 entrées n'apparaissaient nulle part dans la
-        // sidebar — les composants existaient mais étaient orphelins.
-        ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.auditLogs', "Journaux d'audit"), href: '/dashboard/audit-logs', icon: History }] : []),
-        ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.retentionPolicy', 'Rétention RGPD'), href: '/dashboard/retention-rgpd', icon: Shield }] : []),
-        ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.processingNotice', 'Notice RGPD'), href: '/dashboard/notice-rgpd', icon: Shield }] : []),
-        ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.geolocationPolicy', 'Géolocalisation RGPD'), href: '/dashboard/geolocation-rgpd', icon: Shield }] : []),
-        { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
-        { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
-        // 2026-05-26 — Entrée "API & Intégrations" visible UNIQUEMENT quand l'addon
-        // apiAvancee a été souscrit (cf. PlanCatalog.GetEffectiveFeatures qui mappe
-        // l'addon vers PlanFeatures.ApiAccess). Pointe vers /dashboard/mon-abonnement
-        // tant qu'une page dédiée de gestion des clés API n'est pas prête —
-        // l'utilisateur y voit la souscription confirmée dans la section "Modules
-        // additionnels". À remplacer par /dashboard/api-keys quand la page existera.
-        ...(planAllows('apiAccess') ? [{ label: t('navigation.apiIntegrations', 'API & Intégrations'), href: '/dashboard/mon-abonnement', icon: KeyRound }] : []),
-        // Lien Chatbot retiré du sidebar : l'assistant reste accessible via le bouton flottant
-        // en bas à droite, présent globalement sur le dashboard. Pas besoin d'un menu dédié.
-        // L'entrée Tarification est volontairement absente du sidebar : la page est servie
-        // sur la landing publique '/' (parcours d'inscription Odoo-style). La route reste
-        // mappée plus bas pour les liens directs / paiement.
-      ],
-    }] : []),
-    // Paiement : groupe réservé Admin/Manager regroupant la gestion d'abonnement et
-    // l'historique de facturation. Remplace l'ancienne entrée footer « Mon abonnement »
-    // qui était plate et ne donnait pas accès aux factures (cf. tasks 2026-05-19).
-    ...((isAdmin || isManager) ? [{
-      label: t('navigation.payment', 'Paiement'),
-      href: '/dashboard/mon-abonnement',
-      icon: Wallet,
-      items: [
-        { label: t('navigation.subscription', 'Abonnement'), href: '/dashboard/mon-abonnement', icon: Wallet },
-        { label: t('navigation.concordeInvoices', 'Factures Concorde'), href: '/dashboard/factures-concorde', icon: Receipt },
-      ],
-    }] : []),
-  ];
-
-  // Filtre les groupes vides
-  return allGroups.filter(
-    (g) => g.items === undefined || g.items.length > 0 || g.href === '/dashboard'
-  );
+    // Filtre les groupes vides
+    return allGroups.filter(
+      (g) => g.items === undefined || g.items.length > 0 || g.href === '/dashboard'
+    );
   }, [authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, isTrialing, t]);
 };
 
@@ -587,7 +587,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/fonction': content = <FonctionModern />; break;
     case '/dashboard/gestion-employe': content = <EffectifsGlobaux />; break;
     case '/dashboard/profil-employe': content = <EmployeModern />; break;
-    case '/dashboard/fiche-employe':  content = <EmployeProfileView />; break;
+    case '/dashboard/fiche-employe': content = <EmployeProfileView />; break;
     case '/dashboard/remboursement': content = <RemboursementModern />; break;
     case '/dashboard/missions': content = <MissionPage />; break;
     case '/dashboard/gestion-utilisateur': content = <Utilisateur />; break;
@@ -650,8 +650,8 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     // Mentions légales — pages publiques (cf. PUBLIC_PATHS) requises par les stores
     // (Apple Privacy Policy URL, Google Play Privacy + ToS) et le RGPD.
     case '/confidentialite': content = <PrivacyPolicyPage />; break;
+    case '/mentions-legale': content = <LegalNoticesPage />; break;
     case '/cgu': content = <TermsOfServicePage />; break;
-            case '/legal': content = <LegalNoticesPage />; break;
     default: content = <DashboardModernSync />;
   }
 
@@ -1161,10 +1161,12 @@ function DashboardLayoutAccount(_props: DemoProps) {
     // PlanFeatures.PrioritySupport). Visibilité immédiate pour l'utilisateur
     // que son addon est actif. La page SupportPage doit afficher en plus le
     // canal de contact dédié (account manager, hotline) — voir SupportPage.tsx.
-    { label: planAllows('prioritySupport')
+    {
+      label: planAllows('prioritySupport')
         ? `${t('navigation.support')} ★ ${t('navigation.priorityBadge', 'Prioritaire')}`
         : t('navigation.support'),
-      href: '/dashboard/support', icon: LifeBuoy },
+      href: '/dashboard/support', icon: LifeBuoy
+    },
     // « Mon abonnement » a quitté le footer le 2026-05-19 : il est désormais regroupé
     // avec « Factures Concorde » sous le groupe Paiement de la nav principale (réservé
     // Admin/Manager). Voir allGroups plus haut.
@@ -1202,10 +1204,10 @@ function DashboardLayoutAccount(_props: DemoProps) {
             n'a aucun usage du bot à cet endroit (il y est seulement de passage). */}
         {isAuthenticated && chatbotAllowed
           && pathname !== '/' && pathname !== '/login' && pathname !== '/signup' && (
-          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-            <UnifiedAssistantHub />
-          </Box>
-        )}
+            <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+              <UnifiedAssistantHub />
+            </Box>
+          )}
       </>
     );
   }

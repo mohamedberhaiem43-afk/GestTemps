@@ -1028,9 +1028,9 @@ export default function HomePage() {
         <div className="footer-bottom">
           <span>© 2026 Concorde Workforce · Tous droits réservés</span>
           <span className="footer-bottom-links">
-            <a>Confidentialité</a>
-            <a>CGU</a>
-            <a>Mentions légales</a>
+            <a href="/confidentialite">Confidentialité</a>
+            <a href="/cgu">CGU</a>
+            <a href="/legal">Mentions légales</a>
           </span>
         </div>
       </footer>
