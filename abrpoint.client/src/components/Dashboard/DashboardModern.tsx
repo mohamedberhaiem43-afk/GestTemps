@@ -13,7 +13,6 @@ import HowToRegIcon from '@mui/icons-material/HowToReg';
 import PersonOffIcon from '@mui/icons-material/PersonOff';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import MoreTimeIcon from '@mui/icons-material/MoreTime';
-import WcIcon from '@mui/icons-material/Wc';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
@@ -59,7 +58,84 @@ const AVATAR_COLORS = ['#0040a1', '#047857', '#b45309', '#6d28d9', '#065f46'];
 // Le hook `useCountUp` + composant `AnimatedNumber` sont extraits dans
 // components/shared/AnimatedNumber.tsx (réutilisés par SoldeConge, Remboursement,
 // Etats, etc.). On les ré-exporte ici pour ne pas casser les imports existants.
+function GenderKpiDonut({ nbH, nbF, nbAutre, total }: {
+  nbH: number; nbF: number; nbAutre: number; total: number;
+}) {
+  const r = 36; // rayon
+  const cx = 50; const cy = 50;
+  const gap = 3; // gap entre arcs en degrés
 
+  const slices = [
+    { value: nbH,    color: '#0040a1', label: 'Hommes',  emoji: '👨' },
+    { value: nbF,    color: '#d946ef', label: 'Femmes',  emoji: '👩' },
+    { value: nbAutre,color: '#94a3b8', label: 'Autre',   emoji: '⚧'  },
+  ].filter(s => s.value > 0);
+
+  // Calcul des arcs SVG
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const describeArc = (start: number, end: number) => {
+    const s = toRad(start - 90);
+    const e = toRad(end - 90);
+    const x1 = cx + r * Math.cos(s); const y1 = cy + r * Math.sin(s);
+    const x2 = cx + r * Math.cos(e); const y2 = cy + r * Math.sin(e);
+    const large = end - start > 180 ? 1 : 0;
+    return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
+  };
+
+    // Recalcul propre
+  let angle = 0;
+  const arcs = slices.map((s, i) => {
+    const sweep = total > 0 ? (s.value / total) * (360 - gap * slices.length) : 360 / slices.length;
+    const start = angle + i * gap;
+    const end = start + sweep;
+    angle += sweep;
+    return { ...s, start, end };
+  });
+
+  return (
+    <Box className="db-kpi-card" sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Typography className="db-kpi-label">Effectif H / F</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        {/* Donut SVG */}
+        <Box sx={{ position: 'relative', flexShrink: 0 }}>
+          <svg width="80" height="80" viewBox="0 0 100 100">
+            {total === 0 ? (
+              <circle cx={cx} cy={cy} r={r} fill="#f1f5f9" />
+            ) : (
+              arcs.map((a, i) => (
+                <path key={i} d={describeArc(a.start, a.end)} fill={a.color} opacity={0.9} />
+              ))
+            )}
+            {/* Trou central */}
+            <circle cx={cx} cy={cy} r={22} fill="white" />
+            {/* Total au centre */}
+            <text x={cx} y={cy - 3} textAnchor="middle" fontSize="13" fontWeight="800" fill="#0d1f3c">{total}</text>
+            <text x={cx} y={cy + 9} textAnchor="middle" fontSize="7" fill="#94a3b8">total</text>
+          </svg>
+        </Box>
+        {/* Légende */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
+          {arcs.map((a, i) => (
+            <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: a.color, flexShrink: 0 }} />
+              <Typography sx={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>
+                {a.label}
+              </Typography>
+              <Typography sx={{ fontSize: '12px', fontWeight: 800, color: a.color, ml: 'auto', pl: 1 }}>
+                {a.value}
+              </Typography>
+            </Box>
+          ))}
+          {total > 0 && (
+            <Typography sx={{ fontSize: '10px', color: '#94a3b8', mt: 0.5 }}>
+              {Math.round((nbH / total) * 100)}% H · {Math.round((nbF / total) * 100)}% F
+            </Typography>
+          )}
+        </Box>
+      </Box>
+    </Box>
+  );
+}
 function KpiCard({ icon, label, value, trend, trendLabel, trendPositive, iconBg, iconColor }: {
   icon: React.ReactNode; label: string; value: string | number;
   trend?: number; trendLabel?: string; trendPositive?: boolean;
@@ -964,16 +1040,8 @@ function DashboardModernAdmin() {
           const nbH = repartition['M'] ?? 0;
           const nbF = repartition['F'] ?? 0;
           const nbAutre = repartition['Autre'] ?? 0;
-          const hasData = (nbH + nbF + nbAutre) > 0;
-          return (
-            <KpiCard
-              icon={<WcIcon sx={{ fontSize: 20 }} />}
-              label="Effectif H / F"
-              value={hasData ? `${nbH}H · ${nbF}F${nbAutre > 0 ? ` · ${nbAutre}` : ''}` : '--'}
-              trendLabel={hasData ? `${nbH + nbF + nbAutre} salarié(s)` : periodLabel}
-              iconBg="rgba(124,58,237,0.1)" iconColor="#7c3aed"
-            />
-          );
+          const total = nbH + nbF + nbAutre;
+          return <GenderKpiDonut nbH={nbH} nbF={nbF} nbAutre={nbAutre} total={total} />;
         })()}
         {/* Masse salariale brute = somme des Empsbrut déchiffrés (cf. DashboardService).
             Format FR avec séparateur d'espace pour les milliers, 0 décimales pour la

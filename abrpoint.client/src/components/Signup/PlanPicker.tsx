@@ -97,7 +97,6 @@ interface AddonDef {
 
 const ADDONS: AddonDef[] = [
   { key: 'aiAssistantRh',         displayName: 'Assistant RH IA',                  description: 'Aide à la rédaction RH, recherche multi-sources, automatisations.', priceMonthly: 49 },
-  { key: 'iaDocumentaireAvancee', displayName: 'IA documentaire avancée',          description: 'Recherche RAG sur vos archives RH, embeddings vectoriels.',       priceMonthly: 149 },
   { key: 'signatureElectronique', displayName: 'Signature électronique avancée',   description: 'Signature qualifiée eIDAS, parapheur multi-signataires.',         priceMonthly: 19 },
   { key: 'apiAvancee',            displayName: 'API avancée',                      description: 'Accès programmatique pour intégrer à votre SIRH / paie / ERP.',   priceMonthly: 79 },
   { key: 'supportPrioritaire',    displayName: 'Support prioritaire étendu',       description: 'Réponse sous 2h ouvrées, hotline dédiée, account manager.',      priceMonthly: 49 },

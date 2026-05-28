@@ -67,7 +67,10 @@ import { useQuery } from '@tanstack/react-query';
 import useGetVillesLibs from '../../hooks/villeHooks/useGetVillesLibs';
 import { staggerSx } from '../helper/animations/Stagger';
 import { Skeleton } from '@mui/material';
-
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import 'dayjs/locale/fr';
 // ── Styles ────────────────────────────────────────────────────────────────────
 const fieldStyle = {
     '& .MuiOutlinedInput-root': {
@@ -83,24 +86,6 @@ const fieldStyle = {
     '& .MuiInputBase-input': { fontSize: '13px', padding: '9px 12px' },
 };
 
-// 2026-05-28 — Style dédié aux champs date : on retire la bordure du fieldset
-// pour s'aligner sur la pill compacte utilisée dans SaisieContratModern
-// (Date début / Date fin). Le résultat est un input gris uni avec l'icône
-// calendrier native rendue à droite par le navigateur — pas d'adornment à
-// gauche, ce qui évite l'effet « icône + bordure + champ » trop chargé.
-const dateFieldStyle = {
-    backgroundColor: '#f2f4f6',
-    borderRadius: '8px',
-    '& .MuiOutlinedInput-root': {
-        backgroundColor: 'transparent',
-        borderRadius: '8px',
-        fontSize: '13px',
-        '& fieldset': { border: 'none' },
-        '&:hover': { backgroundColor: '#fff' },
-        '&.Mui-focused': { backgroundColor: '#fff' },
-    },
-    '& .MuiInputBase-input': { fontSize: '13px', padding: '9px 12px' },
-};
 
 const labelStyle = {
     fontSize: '10px',
@@ -1280,7 +1265,22 @@ const EmployeModernInner = () => {
                                         </Box>
                                         <Box>
                                             <Typography sx={labelStyle}>{t('employe.field.birthPlace')}</Typography>
-                                            <TextField name="emplnais" value={formData.emplnais || ''} onChange={handleField} size="small" fullWidth sx={fieldStyle} />
+                                            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
+                                            <DatePicker
+                                                value={formData.empdnais ? dayjs(formData.empdnais) : null}
+                                                onChange={(v) => setFormData(p => ({ ...p, empdnais: v && v.isValid() ? v.format('YYYY-MM-DD') : '' }))}
+                                                format="DD/MM/YYYY"
+                                                views={['year', 'month', 'day']}
+                                                openTo="year"
+                                                minDate={dayjs().subtract(100, 'year')}
+                                                maxDate={dayjs().subtract(16, 'year')}
+                                                slotProps={{
+                                                textField: { size: 'small', fullWidth: true, sx: fieldStyle },
+                                                calendarHeader: { format: 'MMMM YYYY' },
+                                                }}
+                                            />
+                                            </LocalizationProvider>
+
                                         </Box>
                                         <Box>
                                             <Typography sx={labelStyle}>{t('employe.field.civilStatus')}</Typography>
@@ -1383,7 +1383,21 @@ const EmployeModernInner = () => {
                                             {[{ lbl: t('employe.field.hireDate'), type: 'date', name: 'empemb', val: formData.empemb ? dayjs(formData.empemb).format('YYYY-MM-DD') : '' }].map(f => (
                                                 <Box key={f.name}>
                                                     <Typography sx={labelStyle}>{f.lbl}</Typography>
-                                                    <TextField name={f.name} type={f.type} value={f.val} onChange={handleField} size="small" fullWidth sx={dateFieldStyle} InputLabelProps={{ shrink: true }} />
+                                                    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
+                                                    <DatePicker
+                                                        value={formData.empemb ? dayjs(formData.empemb) : null}
+                                                        onChange={(v) => setFormData(p => ({ ...p, empemb: (v && v.isValid() ? v.format('YYYY-MM-DD') : '') as any }))}
+                                                        format="DD/MM/YYYY"
+                                                        views={['year', 'month', 'day']}
+                                                        openTo="day"
+                                                        minDate={dayjs().subtract(50, 'year')}
+                                                        maxDate={dayjs().add(5, 'year')}
+                                                        slotProps={{
+                                                        textField: { size: 'small', fullWidth: true, sx: fieldStyle },
+                                                        calendarHeader: { format: 'MMMM YYYY' },
+                                                        }}
+                                                    />
+                                                    </LocalizationProvider>
                                                 </Box>
                                             ))}
                                             <Box>
@@ -1492,10 +1506,6 @@ const EmployeModernInner = () => {
                                                 <SelectWithAdd value={formData.seccod || ''}
                                                     onChange={v => setFormData(p => ({ ...p, seccod: v }))}
                                                     options={secMap} onAdd={handleAddSection} addTitle={t('employe.addTitle.section')} />
-                                            </Box>
-                                            <Box>
-                                                <Typography sx={labelStyle}>{t('employe.field.hireDate')}</Typography>
-                                                <TextField name="empemb" type="date" value={formData.empemb ? dayjs(formData.empemb).format('YYYY-MM-DD') : ''} onChange={handleField} size="small" fullWidth sx={dateFieldStyle} InputLabelProps={{ shrink: true }} />
                                             </Box>
                                             <Box>
                                                 <Typography sx={labelStyle}>{t('employe.field.statusLbl')}</Typography>

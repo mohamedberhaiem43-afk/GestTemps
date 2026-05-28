@@ -86,7 +86,6 @@ export default function PlanUpgradePage() {
     MultiSite: 'Multi-sites',
     MultiSociete: 'Multi-filiales',
     AdvancedDashboards: 'Tableaux de bord avancés',
-    RagAi: 'Assistant IA (RAG)',
     AdvancedAuditLogs: 'Audit logs avancés',
     CustomBranding: 'Branding personnalisé',
     DeviceTrustEnforced: 'Device trust mobile',

@@ -452,7 +452,9 @@ export default function InlineAuthCard({ presetPlan, presetNonce }: InlineAuthCa
       localStorage.setItem('tenantSlug', slug);
       await refreshAuth();
       feedback.showSuccess('Compte créé avec succès !');
-      navigate('/dashboard', { state: { signupRedirectUrl: data.redirectUrl } });
+      // Redirigeer vers la page de vérification email avant toute connexion complète.
+      // Le backend a déjà posé le cookie JWT; /me renverra emailVerified=false.
+      navigate('/verify-email', { state: { email: signupEmail.trim(), signupRedirectUrl: data.redirectUrl } });
     } catch (err: any) {
       if (err?.response?.data?.code === 'cancelled_account_reactivatable') {
         const cancelledSlug = err?.response?.data?.slug;

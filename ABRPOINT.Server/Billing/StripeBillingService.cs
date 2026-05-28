@@ -1129,8 +1129,10 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
     private string? ResolveUserSuppPriceId(string? planCode, string? billingCycle)
     {
         if (string.IsNullOrWhiteSpace(planCode)) return null;
+        var canonical = PlanCatalog.Normalize(planCode);
+        if (string.IsNullOrEmpty(canonical)) return null;
         var cycle = string.IsNullOrWhiteSpace(billingCycle) ? "monthly" : billingCycle.ToLowerInvariant();
-        var key = $"UserSupp:{planCode}:{cycle}";
+        var key = $"UserSupp:{canonical}:{cycle}";
         if (_opts.Prices.TryGetValue(key, out var pid) && !string.IsNullOrWhiteSpace(pid) && !pid.Contains("REPLACE"))
             return pid;
         return null;

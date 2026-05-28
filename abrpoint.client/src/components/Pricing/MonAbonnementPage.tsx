@@ -797,7 +797,7 @@ export default function MonAbonnementPage() {
                 onClick={() => setChangePlanOpen(true)}
                 sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3 }}
               >
-                Changer de pack pour plus de sièges
+                Changer de pack
               </Button>
             </Stack>
           )}
@@ -1378,9 +1378,6 @@ export default function MonAbonnementPage() {
                   +{(addSeatsCount * info.plan.overageRatePerEmployeeEur).toFixed(2)} € HT
                 </Typography>
               </Stack>
-              <Typography sx={{ fontSize: 11, color: '#92400e', mt: 0.5 }}>
-                Calculé au prorata sur votre prochaine facture. Pas de prélèvement immédiat.
-              </Typography>
             </Box>
           )}
         </DialogContent>

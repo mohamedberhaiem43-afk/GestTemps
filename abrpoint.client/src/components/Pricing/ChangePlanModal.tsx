@@ -93,35 +93,38 @@ const PLAN_META: Record<PlanKey, {
   // tarifs.txt 2026-05 : Starter 69 €, Standard 119 €, Premium 249 €.
   Starter: {
     label: 'Starter',
-    tagline: 'Pour démarrer la digitalisation RH d\'une petite équipe — pointage web & mobile, congés et fiches employés.',
+    tagline: 'TPE & startups',
     baseEur: 69,
     rank: 1,
     intro: 'Ce pack comprend les avantages :',
     features: [
-      'Pointage web & mobile',
+      'Pointage web & mobile (iOS / Android)',
       'Gestion RH essentielle (fiches, contrats)',
-      'Gestion congés & absences',
-      'Tableau de bord simplifié',
+      'Gestion congés, RTT, absences',
+      'Tableau de bord simplifié · exports PDF / Excel',
       'Notifications essentielles',
       '10 Go stockage sécurisé · Hébergement France OVH',
-      '1 administrateur · support standard',
-      'Jusqu\'à 10 salariés inclus',
-      'Saisie manuelle uniquement (sans import Excel en masse)',
+      'Multi utilisateurs',
     ],
   },
   Standard: {
     label: 'Standard',
-    tagline: 'Mobile, géolocalisation, coffre numérique, export paie et obligations RH.',
+    tagline: 'PME en croissance',
     baseEur: 119,
     rank: 2,
     intro: 'L\'intégralité du Pack Starter plus :',
     features: [
-      'App mobile + géolocalisation',
-      'Coffre numérique + signature électronique',
-      'Import Excel en masse (employés, services, fonctions…)',
-      'Export paie + préparation paie',
-      'Gestion congés, missions, autorisations',
-      'Tableaux de bord avancés · 25 salariés inclus · 50 Go stockage',
+      'Tout le pack Starter',
+      'Application mobile + géolocalisation',
+      'Coffre numérique & signature électronique',
+      'Import Excel en masse (employés, services, fonctions, rubriques…)',
+      'Préparation paie · export paie',
+      'Multi-sites simple',
+      'Congés, RTT, CET, sanctions',
+      'Notifications push / email · Reporting avancé',
+      '50 Go stockage sécurisé · Hébergement France OVH',
+      'Multi utilisateurs',
+      'Idéal : PME en croissance · équipes terrain · structures multi-sites · gestion RH centralisée',
     ],
     popular: true,
   },
@@ -129,15 +132,21 @@ const PLAN_META: Record<PlanKey, {
   // sur « Premium » depuis 2026-05-27 (était « Business »).
   Premium: {
     label: 'Premium',
-    tagline: 'Multi-filiales, assistant IA et sécurité avancée pour les grands comptes.',
+    tagline: 'Multi-filiales & sécurité avancée',
     baseEur: 249,
     rank: 3,
     intro: 'L\'intégralité du Pack Standard plus :',
     features: [
-      'Multi-filiales (sociétés illimitées)',
-      'Assistant IA (RAG)',
-      'Audit avancé + branding personnalisé',
-      'Sécurité mobile renforcée · 50 salariés inclus · 200 Go stockage',
+      'Tout le pack Standard',
+      'Multi-filiales sur devis · tableaux de bord avancés',
+      'Sécurité renforcée',
+      'Audit logs avancés',
+      'Supervision avancée',
+      '200 Go stockage sécurisé · Hébergement France OVH',
+      'Administrateurs illimités · Onboarding accompagné',
+      'SLA prioritaire',
+      'API & futures intégrations',
+      'Idéal : PME structurées · groupes multi-sites · conformité & sécurité avancées · organisations en croissance',
     ],
   },
 };
@@ -148,9 +157,9 @@ const PLAN_META: Record<PlanKey, {
 // passer Standard→Starter ne fait plus perdre ces fonctionnalités. Ce qui reste exclusif
 // Standard+ : géolocalisation, coffre, signature, multi-sites, dashboards avancés, missions.
 const PLAN_FEATURES: Record<PlanKey, string[]> = {
-  Starter:  ['App mobile', 'Congés', 'Autorisations'],
-  Standard: ['App mobile', 'Géolocalisation', 'Coffre numérique', 'Signature électronique', 'Multi-sites', 'Tableaux de bord avancés', 'Missions', 'Congés', 'Autorisations', 'Import Excel en masse'],
-  Premium:  ['App mobile', 'Géolocalisation', 'Coffre numérique', 'Signature électronique', 'Multi-sites', 'Multi-filiales', 'Tableaux de bord avancés', 'Assistant IA (RAG)', 'Audit avancé', 'Branding personnalisé', 'Sécurité mobile renforcée', 'Missions', 'Congés', 'Autorisations', 'Import Excel en masse'],
+  Starter:  ['Pointage web & mobile', 'Gestion RH essentielle', 'Gestion congés et absences', 'Tableau de bord simplifié', 'Notifications essentielles', 'Stockage sécurisé'],
+  Standard: ['Application mobile', 'Géolocalisation', 'Coffre numérique', 'Signature électronique', 'Import Excel en masse', 'Préparation paie', 'Multi-sites simple', 'Reporting avancé', 'Notifications push / email', 'Tableaux de bord avancés'],
+  Premium:  ['Multi-filiales', 'Tableaux de bord avancés', 'Sécurité renforcée', 'Audit logs avancés', 'Supervision avancée', 'Administrateurs illimités', 'SLA prioritaire', 'API & intégrations', 'Onboarding accompagné'],
 };
 
 function computeLostFeatures(current: PlanKey | null, target: PlanKey): string[] {
