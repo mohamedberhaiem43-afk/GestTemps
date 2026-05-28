@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Route, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Box, Typography, TextField, Button, CircularProgress, Alert,
+  Box, Typography, TextField, Button, CircularProgress, Alert, Link, Checkbox, FormControlLabel,
   Paper, Stack, InputAdornment, MenuItem,
 
 
@@ -16,6 +16,7 @@ import LockIcon from '@mui/icons-material/Lock';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import apiInstance from '../API/apiInstance';
+import { sendSupportMessage } from '../../services/ContactService';
 import { useAuth } from '../helper/AuthProvider';
 import GetRestCountries from '../../services/RestCountriesService/GetRestCountries';
 import PlanPicker, { type PlanKey, type Cycle, type AddonKey } from './PlanPicker';
@@ -146,6 +147,7 @@ export default function SignupPage() {
   const [slug, setSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
   const [slugStatus, setSlugStatus] = useState<SlugStatus>('idle');
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Pays de l'entreprise. Détermine le format de l'ID demandé (SIRET FR, BCE BE,
   // ICE MA, NINEA SN). Default FR — cohérent avec le marché commercial principal.
@@ -546,6 +548,17 @@ export default function SignupPage() {
       // Recharge le contexte d'auth maintenant que les cookies JWT du nouveau tenant sont posés
       // ET que tenantSlug est en localStorage : /me ira chercher l'admin dans la base du tenant.
       await refreshAuth();
+      // Notify internal contact that user accepted terms
+      try {
+        await sendSupportMessage({
+          name: `${firstName.trim()} ${lastName.trim()}`,
+          email: email.trim(),
+          subject: 'Nouvel utilisateur a accepté les conditions',
+          message: `L'utilisateur ${email.trim()} a accepté les conditions générales et la politique de confidentialité lors de son inscription.`,
+        });
+      } catch (e) {
+        console.error('Failed to send confirmation email to internal contact', e);
+      }
       // Politique 2026-05 : tous les nouveaux comptes passent par l'écran de vérification
       // email AVANT toute autre étape. Le code OTP a été envoyé par /api/signup dans
       // l'email de bienvenue. Pour les visiteurs venant de PlanConfiguration (avec
@@ -604,7 +617,8 @@ export default function SignupPage() {
     emailStatus !== 'invalid' &&
     password.length >= 8 &&
     captchaChallengeId.length > 0 &&
-    captchaAnswer.trim() !== '';
+    captchaAnswer.trim() !== '' &&
+    termsAccepted;
   return (
     <Box sx={{
       minHeight: '100vh',
@@ -895,7 +909,21 @@ export default function SignupPage() {
             )}
           </Button>
 
-          {/* Terms acceptance handled by the checkbox above */}
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexDirection: 'column' }}>
+            <FormControlLabel
+              control={<Checkbox checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />}
+              label={
+                <Typography variant="body2" component="span">
+                  <Link href="/documents/cgu.pdf" target="_blank" rel="noopener" underline="hover" color="inherit">
+                    Conditions Générales d’Utilisation et de Services
+                  </Link>{' '}et la{' '}
+                  <Link href="/documents/privacy.pdf" target="_blank" rel="noopener" underline="hover" color="inherit">
+                    Politique de Confidentialité
+                  </Link>
+                </Typography>
+              }
+            />
+          </Box>
 
           <Box sx={{ textAlign: 'center', pt: 1 }}>
             <Typography variant="body2" color="text.secondary">
@@ -904,6 +932,11 @@ export default function SignupPage() {
                 Se connecter
               </Button>
             </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
+            <Link href="/cgu" target="_blank" rel="noopener" underline="hover" color="inherit">Conditions Générales d’Utilisation et de Services</Link>
+            <Link href="/privacy" target="_blank" rel="noopener" underline="hover" color="inherit">Politique de Confidentialité</Link>
+            <Link href="/legal" target="_blank" rel="noopener" underline="hover" color="inherit">Mentions Légales</Link>
           </Box>
         </Stack>
       </Paper>
