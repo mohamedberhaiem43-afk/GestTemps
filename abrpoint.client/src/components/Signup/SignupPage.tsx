@@ -618,7 +618,8 @@ export default function SignupPage() {
     password.length >= 8 &&
     captchaChallengeId.length > 0 &&
     captchaAnswer.trim() !== '' &&
-    termsAccepted;
+    termsAccepted &&
+    slugAccepted;
   return (
     <Box sx={{
       minHeight: '100vh',
