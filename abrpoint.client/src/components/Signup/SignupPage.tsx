@@ -481,7 +481,7 @@ export default function SignupPage() {
     && slugStatus !== 'reserved'
     && slugStatus !== 'invalid';
 
-  // L'ID entreprise est obligatoire (anti-fraude). Format exigé selon le pays
+  /// L'ID entreprise est obligatoire (anti-fraude). Format exigé selon le pays
   // (countryConfig.idDigits + idRegex optionnel pour les ID alphanumériques) ;
   // on ne bloque pas sur 'checking' ou 'idle' pour permettre la soumission si
   // l'API Sirene FR est lente (le backend re-valide de toute façon et la
