@@ -520,7 +520,7 @@ export default function SignupPage() {
       // garde le champ dans le payload pour compat API. La détection "l'utilisateur
       // vient de PlanConfiguration" se fait désormais sur plan + userCount.
       const requiresPayment = false;
-      const { data } = await apiInstance.post('/signup', {
+      await apiInstance.post('/signup', {
         slug,
         companyName: companyName.trim(),
         siret: normalizeSiret(siret),
