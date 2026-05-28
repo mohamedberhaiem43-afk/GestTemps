@@ -61,7 +61,6 @@ const ADDON_LABELS: Record<string, { label: string; description: string; priceMo
   aiAssistantRh: { label: 'Assistant RH IA', description: 'Aide à la rédaction, recherche multi-sources, automatisations RH.', priceMonthlyEur: 49 },
   iaDocumentaireAvancee: { label: 'IA documentaire avancée', description: 'Recherche RAG, embeddings vectoriels sur vos archives.', priceMonthlyEur: 149 },
   signatureElectronique: { label: 'Signature électronique avancée', description: 'Parapheur multi-signataires, archivage légal eIDAS.', priceMonthlyEur: 19 },
-  apiAvancee: { label: 'API avancée', description: 'Accès programmatique étendu pour intégration SIRH/paie/ERP.', priceMonthlyEur: 79 },
   supportPrioritaire: { label: 'Support prioritaire étendu', description: 'Réponse <2h ouvrées, hotline dédiée, account manager.', priceMonthlyEur: 49 },
 };
 const ADDON_KEYS: ReadonlyArray<keyof typeof ADDON_LABELS> = [
@@ -257,12 +256,28 @@ export default function MonAbonnementPage() {
     setAddonsSubmitting(true);
     setAddonsError(null);
     try {
+      // Vérifie si les addons ont changé
+      const addonsChanged = addonsDraft.sort().join(',') !== subscribedAddons.sort().join(',');
+      
+      // Sauvegarde les addons en base de données
       await apiInstance.put('/billing/addons', { addons: addonsDraft });
+      
       // refreshAuth → /me recharge planFeatures (avec les flags fusionnés) ET addons,
       // ce qui réactualise la sidebar (via Navigation/planAllows) et la carte de récap.
       await refreshAuth();
       setAddonsDialogOpen(false);
-      setSuccessMsg('Modules mis à jour. La sidebar se rafraîchit avec vos nouveaux accès.');
+      
+      // Message de succès avec détail du changement
+      if (addonsChanged) {
+        setSuccessMsg(
+          'Modules mis à jour. ' +
+          (info?.hasActiveStripeSubscription 
+            ? 'La facturation sera ajustée à votre prochain cycle de facturation.' 
+            : 'Contactez notre équipe commerciale pour activer la facturation.')
+        );
+      } else {
+        setSuccessMsg('Aucun changement.');
+      }
     } catch (e: any) {
       setAddonsError(e?.response?.data?.error || 'Impossible de mettre à jour les modules. Réessayez.');
     } finally {

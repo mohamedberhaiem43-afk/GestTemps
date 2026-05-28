@@ -307,7 +307,6 @@ function DashboardModernAdmin() {
     lines.push(`Employés en Retard;${dashboardData?.nombreEmployesEnRetard ?? 0}`);
     lines.push(`Minutes Retard Cumulées;${dashboardData?.nombreRetards ?? 0}`);
     lines.push(`Demandes en Attente;${dashboardData?.totalDemandesEnAttente ?? 0}`);
-    // Effectif par sexe + masse salariale — exposés à plat dans le CSV pour
     // permettre des reportings RH cumulés (ex : pyramide H/F par site).
     lines.push(`Effectif Hommes;${dashboardData?.effectifParSexe?.['M'] ?? 0}`);
     lines.push(`Effectif Femmes;${dashboardData?.effectifParSexe?.['F'] ?? 0}`);
@@ -459,100 +458,10 @@ function DashboardModernAdmin() {
     const genderM = dashboardData?.effectifParSexe?.['M'] ?? 0;
     const genderF = dashboardData?.effectifParSexe?.['F'] ?? 0;
     const genderAutre = dashboardData?.effectifParSexe?.['Autre'] ?? 0;
-    const genderTotal = genderM + genderF + genderAutre;
+    // TODO: Use these variables for gender breakdown visualization
+    void genderM; void genderF; void genderAutre;
 
-    if (genderTotal > 0) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13);
-      doc.setTextColor(...C_TEXT);
-      doc.text('Effectif par sexe', margin, y);
-      y += 4;
-
-      const donutCx = margin + 22;
-      const donutCy = y + 24;
-      const donutOuterR = 22;
-      const donutInnerR = 12;
-
-      // Tuples explicites `as [r, g, b]` : sans ça TS infère `number[]` (longueur
-      // variable) ce qui casse le spread `doc.setFillColor(...color)` qui exige
-      // exactement 3 nombres.
-      const slices: { value: number; color: [number, number, number]; label: string }[] = [
-        { value: genderM, color: [0, 64, 161] as [number, number, number], label: 'Hommes' },
-        { value: genderF, color: [217, 70, 239] as [number, number, number], label: 'Femmes' },
-        { value: genderAutre, color: [148, 163, 184] as [number, number, number], label: 'Autre' },
-      ].filter((s) => s.value > 0);
-
-      // Trace une part de tarte via polygone radial : centre \u2192 arc \u00E9chantillonn\u00E9 \u2192 centre.
-      const drawSlice = (
-        cx: number, cy: number, r: number,
-        startAngle: number, endAngle: number,
-        color: [number, number, number]
-      ) => {
-        const sweep = endAngle - startAngle;
-        const steps = Math.max(6, Math.ceil((sweep * 180 / Math.PI) / 4));
-        let px = cx + Math.cos(startAngle) * r;
-        let py = cy + Math.sin(startAngle) * r;
-        const path: [number, number][] = [[px - cx, py - cy]];
-        for (let i = 1; i <= steps; i++) {
-          const a = startAngle + (sweep * i) / steps;
-          const nx = cx + Math.cos(a) * r;
-          const ny = cy + Math.sin(a) * r;
-          path.push([nx - px, ny - py]);
-          px = nx; py = ny;
-        }
-        path.push([cx - px, cy - py]);
-        doc.setFillColor(...color);
-        doc.lines(path, cx, cy, [1, 1], 'F', false);
-      };
-
-      let curAngle = -Math.PI / 2;
-      slices.forEach((s) => {
-        const sweep = (s.value / genderTotal) * 2 * Math.PI;
-        // Cas mono-segment (100 %) : un arc complet par lines() boucle mal,
-        // on dessine un disque plein \u00E0 la place.
-        if (Math.abs(sweep - 2 * Math.PI) < 1e-6) {
-          doc.setFillColor(...s.color);
-          doc.circle(donutCx, donutCy, donutOuterR, 'F');
-        } else {
-          drawSlice(donutCx, donutCy, donutOuterR, curAngle, curAngle + sweep, s.color);
-        }
-        curAngle += sweep;
-      });
-
-      // Trou central blanc \u2192 effet donut.
-      doc.setFillColor(255, 255, 255);
-      doc.circle(donutCx, donutCy, donutInnerR, 'F');
-
-      // Total au centre.
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(...C_TEXT);
-      doc.text(`${genderTotal}`, donutCx, donutCy - 0.5, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(...C_MUTED);
-      doc.text('total', donutCx, donutCy + 4, { align: 'center' });
-
-      // L\u00E9gende \u00E0 droite : pastille de couleur + libell\u00E9 + nombre + pourcentage.
-      const legendX = margin + 56;
-      let legendY = y + 8;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      slices.forEach((s) => {
-        const pct = ((s.value / genderTotal) * 100).toFixed(1);
-        doc.setFillColor(...s.color);
-        doc.roundedRect(legendX, legendY - 3, 4, 4, 1, 1, 'F');
-        doc.setTextColor(...C_TEXT);
-        doc.setFont('helvetica', 'bold');
-        doc.text(s.label, legendX + 7, legendY);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...C_MUTED);
-        doc.text(`${s.value}  \u00B7  ${pct} %`, legendX + 40, legendY);
-        legendY += 8;
-      });
-
-      y += 52;
-    }
+  
 
     // Indicateurs d\u00E9taill\u00E9s.
     autoTable(doc, {

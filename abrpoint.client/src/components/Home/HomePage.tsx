@@ -83,7 +83,6 @@ const COMPARISON_ROWS: CompRow[] = [
   { type: 'feature', label: 'Certificate pinning',                                   starter: false, standard: false,          premium: true },
 
   { type: 'section', label: 'Assistant IA' },
-  { type: 'feature', label: 'Assistant IA contextuel (RAG)',                         hint: 'Lettres, briefs, recherches dans vos docs', starter: false, standard: false, premium: true },
 
   { type: 'section', label: 'Limites & quotas' },
   { type: 'feature', label: 'Collaborateurs inclus',                                 starter: '10',     standard: '25',           premium: '50' },

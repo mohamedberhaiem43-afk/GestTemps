@@ -456,8 +456,8 @@ public class SignupController : ControllerBase
             // SEC — Cookie HttpOnly : le statut admin est lu par le front via /me, pas via document.cookie.
             Response.Cookies.Append("admin", "1", BuildAuthCookie(DateTimeOffset.UtcNow.AddDays(7)));
 
-            var rootDomain = _cfg["Hosting:RootDomain"] ?? "concorde.com";
-            var redirectUrl = $"https://{slug}.{rootDomain}/dashboard";
+            var rootDomain = _cfg["Hosting:RootDomain"] ?? "concorde-work-force.com";
+            var redirectUrl = $"https://{rootDomain}/dashboard";
 
             // Email combiné bienvenue + code de vérification (6 chiffres). L'utilisateur :
             //   (1) confirme qu'il contrôle réellement l'adresse en saisissant le code sur
