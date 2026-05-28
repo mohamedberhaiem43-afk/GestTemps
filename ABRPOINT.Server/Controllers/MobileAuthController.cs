@@ -67,6 +67,16 @@ namespace ABRPOINT.Server.Controllers
                 if (dbUser == null || !BCrypt.Net.BCrypt.Verify(model.Password, dbUser.Utimps))
                     return Unauthorized(new { message = "Identifiants invalides" });
 
+                if (string.Equals(dbUser.UtiEmailVerified, "0", StringComparison.Ordinal))
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new
+                    {
+                        message = "Vérifiez votre adresse email avant de vous connecter.",
+                        code = "email_not_verified",
+                        emailNotVerified = true,
+                    });
+                }
+
                 // Garde "compte désactivé" centralisée dans AccountAccessGuard — couvre :
                 // Utiactif != "1", Employe.Actif != "A", Empsort <= today (fin de contrat).
                 // Source unique partagée avec UtilisateursController côté web.
@@ -471,6 +481,16 @@ namespace ABRPOINT.Server.Controllers
             var user = await _dbContext.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == bio.Uticod);
             if (user == null)
                 return Unauthorized();
+
+            if (string.Equals(user.UtiEmailVerified, "0", StringComparison.Ordinal))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new
+                {
+                    message = "Vérifiez votre adresse email avant de vous connecter.",
+                    code = "email_not_verified",
+                    emailNotVerified = true,
+                });
+            }
 
             // Garde compte désactivé centralisée (cf. login + refresh).
             var bioDisableReason = await ABRPOINT.Server.Services.AccountAccessGuard.CheckAsync(_dbContext, user.Uticod);

@@ -244,6 +244,12 @@ export default function CredentialsSignInPage() {
             return;
           }
         }
+        // Email non vérifié : on redirige vers /verify-email pour que l'utilisateur
+        // saisisse son code OTP. Le JWT de pré-auth posé au signup est encore valide.
+        if (error?.response?.data?.emailNotVerified) {
+          navigate('/verify-email', { state: { email: utimail.trim() } });
+          return;
+        }
         setError(t('login.invalidCredentials'));
       })
       .finally(() => setLoading(false));

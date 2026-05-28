@@ -1,5 +1,6 @@
 using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
@@ -162,6 +163,37 @@ public sealed class TenantResolverMiddleware
         current.Set(tenant);
         try
         {
+            // Vérification email : un utilisateur authentifié ayant UtiEmailVerified == "0"
+            // ne peut pas appeler d'autres API que les exceptions ci-dessous.
+            if (isAuthenticatedApi)
+            {
+                var uticod = ctx.User!.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(uticod))
+                {
+                    var isVerificationOrAuthEndpoint =
+                        path.Equals("/api/Utilisateurs/me", StringComparison.OrdinalIgnoreCase)
+                        || path.Equals("/api/Utilisateurs/verify-email", StringComparison.OrdinalIgnoreCase)
+                        || path.Equals("/api/Utilisateurs/resend-verification", StringComparison.OrdinalIgnoreCase)
+                        || path.Equals("/api/Utilisateurs/logout", StringComparison.OrdinalIgnoreCase)
+                        || path.StartsWith("/api/billing/", StringComparison.OrdinalIgnoreCase);
+
+                    if (!isVerificationOrAuthEndpoint)
+                    {
+                        await using var db = dbFactory.Create();
+                        var dbUser = await db.Utilisateurs.AsNoTracking()
+                            .FirstOrDefaultAsync(u => u.Uticod == uticod, ctx.RequestAborted);
+
+                        if (dbUser != null && string.Equals(dbUser.UtiEmailVerified, "0", StringComparison.Ordinal))
+                        {
+                            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                            ctx.Response.ContentType = "application/json";
+                            await ctx.Response.WriteAsync("{\"error\":\"Vérifiez votre adresse email avant d'accéder à l'application.\",\"code\":\"email_not_verified\",\"emailNotVerified\":true}");
+                            return;
+                        }
+                    }
+                }
+            }
+
             // Migrations de schéma idempotentes (ajout de colonnes type parmodemp, expand vilcod/villib)
             // exécutées une fois par tenant et par process. Évite l'exception "Invalid column name"
             // sur les bases déployées avant l'ajout de la colonne.

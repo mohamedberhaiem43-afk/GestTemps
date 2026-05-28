@@ -27,7 +27,7 @@ const Loader: React.FC = () => (
 );
 
 export const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { authReady, uticod } = useAuth();
+  const { authReady, uticod, emailVerified } = useAuth();
 
   if (!authReady) return <Loader />;
   if (!uticod) {
@@ -36,15 +36,23 @@ export const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children 
     window.location.replace('/login');
     return <Loader />;
   }
+  if (!emailVerified && window.location.pathname !== '/verify-email') {
+    window.location.replace('/verify-email');
+    return <Loader />;
+  }
   return <>{children}</>;
 };
 
 export const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { authReady, uticod, isAdmin } = useAuth();
+  const { authReady, uticod, isAdmin, emailVerified } = useAuth();
 
   if (!authReady) return <Loader />;
   if (!uticod) {
     window.location.replace('/login');
+    return <Loader />;
+  }
+  if (!emailVerified && window.location.pathname !== '/verify-email') {
+    window.location.replace('/verify-email');
     return <Loader />;
   }
   if (!isAdmin) {

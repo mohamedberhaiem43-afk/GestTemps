@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Route, useLocation, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, TextField, Button, CircularProgress, Alert,
   Paper, Stack, InputAdornment, MenuItem,
@@ -18,6 +18,7 @@ import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
 import GetRestCountries from '../../services/RestCountriesService/GetRestCountries';
 import PlanPicker, { type PlanKey, type Cycle, type AddonKey } from './PlanPicker';
+import VerifyEmailPage from './VerifyEmailPage';
 
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$/;
 
@@ -419,8 +420,8 @@ export default function SignupPage() {
     // Source de vérification dépend du pays : Sirene pour FR, cbeapi.be pour BE, sinon format local.
     const verifSource =
       country === 'FR' ? 'auprès du référentiel Sirene' :
-      country === 'BE' ? 'auprès du registre BCE' :
-      'du format et de l\'unicité';
+        country === 'BE' ? 'auprès du registre BCE' :
+          'du format et de l\'unicité';
     // Message d'erreur format adapté : pour TN (alphanumérique) on évite "doit contenir N chiffres"
     // qui est faux ; on renvoie sur le placeholder/helper qui décrit le format DGI.
     const formatErrorText = countryConfig.idAlphanumeric
@@ -574,7 +575,8 @@ export default function SignupPage() {
       if (pickerAddons.length > 0) {
         sessionStorage.setItem('signupAddons', JSON.stringify(pickerAddons));
       }
-      navigate('/verify-email', { state: { email: email.trim(), signupRedirectUrl: data.redirectUrl } });
+      // navigate('/verify-email', { state: { email: email.trim(), signupRedirectUrl: data.redirectUrl } });
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
     } catch (e: any) {
       // Cas spécial : email lié à un compte résilié, mais dans la fenêtre de réactivation
       // (90j). On redirige l'utilisateur vers /login en pré-remplissant l'email — le login

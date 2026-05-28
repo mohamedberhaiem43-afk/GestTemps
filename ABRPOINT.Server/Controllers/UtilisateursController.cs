@@ -387,8 +387,25 @@ namespace GestionDesTickets.Server.Controllers
                 // (UtiEmailVerified == "0") ne peut pas se connecter. Il doit d'abord valider
                 // son adresse via /verify-email. Legacy NULL = grandfathered (comptes créés
                 // avant l'ajout de la vérification email) → autorisés.
+                // On pose quand même les cookies JWT pour que le front puisse appeler
+                // /verify-email et /resend-verification (qui exigent [Authorize]).
                 if (string.Equals(dbUser.UtiEmailVerified, "0", StringComparison.Ordinal))
                 {
+                    var evAccessToken = GenerateJwtToken(dbUser.Uticod);
+                    var evRefreshToken = GenerateRefreshToken();
+                    var evRefreshEntity = new RefreshToken
+                    {
+                        Uticod = dbUser.Uticod,
+                        Token = RefreshTokenHasher.Hash(evRefreshToken),
+                        ExpiresAt = DateTime.UtcNow.AddDays(1) // RT court : 24h seulement
+                    };
+                    await _dbContext.RefreshTokens.AddAsync(evRefreshEntity);
+                    await _dbContext.SaveChangesAsync();
+                    Response.Cookies.Append("accessToken", evAccessToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddMinutes(30)));
+                    Response.Cookies.Append("refreshToken", evRefreshToken, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(1)));
+                    Response.Cookies.Append("uticod", dbUser.Uticod ?? string.Empty, CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(1)));
+                    Response.Cookies.Append("admin", dbUser.Utiadm ?? "0", CreateCookieOptions(DateTimeOffset.UtcNow.AddDays(1)));
+
                     return StatusCode(StatusCodes.Status403Forbidden, new
                     {
                         message = "Vérifiez votre adresse email avant de vous connecter. Un code a été envoyé lors de votre inscription.",
