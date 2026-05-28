@@ -58,10 +58,10 @@ const FEATURE_LABELS: Partial<Record<keyof PlanFeatures, { label: string; icon: 
  * Prix exprimés en €/mois HT (cf. ADDON_CATALOG.unitPriceEur).
  */
 const ADDON_LABELS: Record<string, { label: string; description: string; priceMonthlyEur: number }> = {
-  aiAssistantRh: { label: 'Assistant RH IA', description: 'Aide à la rédaction, recherche multi-sources, automatisations RH.', priceMonthlyEur: 49 },
-  iaDocumentaireAvancee: { label: 'IA documentaire avancée', description: 'Recherche RAG, embeddings vectoriels sur vos archives.', priceMonthlyEur: 149 },
+  // aiAssistantRh: { label: 'Assistant RH IA', description: 'Aide à la rédaction, recherche multi-sources, automatisations RH.', priceMonthlyEur: 49 },
+  // iaDocumentaireAvancee: { label: 'IA documentaire avancée', description: 'Recherche RAG, embeddings vectoriels sur vos archives.', priceMonthlyEur: 149 },
   signatureElectronique: { label: 'Signature électronique avancée', description: 'Parapheur multi-signataires, archivage légal eIDAS.', priceMonthlyEur: 19 },
-  apiAvancee: { label: 'API avancée', description: 'Accès programmatique étendu pour intégrer Concorde Workforce à votre SIRH, paie ou ERP existant.', priceMonthlyEur: 79 },
+  // apiAvancee: { label: 'API avancée', description: 'Accès programmatique étendu pour intégrer Concorde Workforce à votre SIRH, paie ou ERP existant.', priceMonthlyEur: 79 },
   supportPrioritaire: { label: 'Support prioritaire étendu', description: 'Réponse <2h ouvrées, hotline dédiée, account manager.', priceMonthlyEur: 49 },
 };
 const ADDON_KEYS: ReadonlyArray<keyof typeof ADDON_LABELS> = [
