@@ -67,7 +67,6 @@ const COMPARISON_ROWS: CompRow[] = [
   { type: 'feature', label: 'Notes de frais',                                        starter: false, standard: true,           premium: true },
 
   { type: 'section', label: 'Reporting & tableaux de bord' },
-  { type: 'feature', label: 'Tableau de bord simplifié',                             starter: true,  standard: true,           premium: true },
   { type: 'feature', label: 'Tableaux de bord avancés',                              starter: false, standard: true,           premium: true },
   { type: 'feature', label: 'Journaux d\'audit (RGPD)',                              starter: false, standard: false,          premium: true },
 
@@ -81,8 +80,6 @@ const COMPARISON_ROWS: CompRow[] = [
   { type: 'feature', label: 'Branding personnalisé',                                 starter: false, standard: false,          premium: true },
   { type: 'feature', label: 'Protection capture d\'écran',                           starter: false, standard: false,          premium: true },
   { type: 'feature', label: 'Certificate pinning',                                   starter: false, standard: false,          premium: true },
-
-  { type: 'section', label: 'Assistant IA' },
 
   { type: 'section', label: 'Limites & quotas' },
   { type: 'feature', label: 'Collaborateurs inclus',                                 starter: '10',     standard: '25',           premium: '50' },

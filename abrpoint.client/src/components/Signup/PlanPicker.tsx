@@ -98,19 +98,9 @@ interface AddonDef {
 const ADDONS: AddonDef[] = [
   { key: 'aiAssistantRh',         displayName: 'Assistant RH IA',                  description: 'Aide à la rédaction RH, recherche multi-sources, automatisations.', priceMonthly: 49 },
   { key: 'signatureElectronique', displayName: 'Signature électronique avancée',   description: 'Signature qualifiée eIDAS, parapheur multi-signataires.',         priceMonthly: 19 },
-  { key: 'apiAvancee',            displayName: 'API avancée',                      description: 'Accès programmatique pour intégrer à votre SIRH / paie / ERP.',   priceMonthly: 79 },
   { key: 'supportPrioritaire',    displayName: 'Support prioritaire étendu',       description: 'Réponse sous 2h ouvrées, hotline dédiée, account manager.',      priceMonthly: 49 },
 ];
 
-// Modules déjà inclus dans chaque pack — quand un addon est dans cette liste, on
-// le grise dans l'UI (Switch désactivé + chip « Inclus ») et on le retire
-// automatiquement de `selectedAddons` lors d'un changement de pack pour ne pas
-// facturer un module dont la fonction est déjà ouverte.
-// Source de vérité : PlanCatalog.cs (PlanFeatures côté backend).
-//   • Standard / Premium  → ElectronicSignature = true  → signatureElectronique inclus
-//   • Premium             → RagAi = true               → aiAssistantRh + iaDocumentaireAvancee inclus
-//   • Premium             → Support prioritaire (cf. highlights commerciaux) → supportPrioritaire inclus
-//   • apiAvancee : pas d'équivalent dans aucun pack → toujours optionnel.
 const PACK_INCLUDED_ADDONS: Record<PlanKey, AddonKey[]> = {
   Starter: [],
   Standard: ['signatureElectronique'],

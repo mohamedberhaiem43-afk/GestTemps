@@ -383,6 +383,20 @@ namespace GestionDesTickets.Server.Controllers
                     await _dbContext.SaveChangesAsync();
                 }
 
+                // Garde vérification email : un utilisateur dont l'email n'est pas vérifié
+                // (UtiEmailVerified == "0") ne peut pas se connecter. Il doit d'abord valider
+                // son adresse via /verify-email. Legacy NULL = grandfathered (comptes créés
+                // avant l'ajout de la vérification email) → autorisés.
+                if (string.Equals(dbUser.UtiEmailVerified, "0", StringComparison.Ordinal))
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new
+                    {
+                        message = "Vérifiez votre adresse email avant de vous connecter. Un code a été envoyé lors de votre inscription.",
+                        code = "email_not_verified",
+                        emailNotVerified = true,
+                    });
+                }
+
                 // Garde "compte désactivé" — 3 raisons centralisées dans AccountAccessGuard :
                 // Utiactif != "1" OU Employe.Actif != "A" OU Empsort <= today (fin de contrat).
                 var disableReason = await AccountAccessGuard.CheckAsync(_dbContext, dbUser.Uticod);

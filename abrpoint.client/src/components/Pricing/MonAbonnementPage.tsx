@@ -875,7 +875,12 @@ export default function MonAbonnementPage() {
             ) : (
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 {activeFeatureKeys.map((k) => {
-                  const meta = FEATURE_LABELS[k]!;
+                  const meta = FEATURE_LABELS[k];
+                  // Skip rendering if no label is defined (safety fallback)
+                  if (!meta) {
+                    console.warn(`Missing label for feature: ${k}`);
+                    return null;
+                  }
                   return (
                     <Chip
                       key={k}

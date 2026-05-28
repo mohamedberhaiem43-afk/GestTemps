@@ -786,11 +786,6 @@ export default function SignupPage() {
             onChange={(e) => { setActivitySector(e.target.value); setActivitySectorAutofilled(true); }}
             InputProps={{ startAdornment: <InputAdornment position="start"><CategoryIcon /></InputAdornment> }}
             placeholder="Ex: Conseil en gestion, BTP, Restauration…"
-            helperText={
-              activitySectorAutofilled && siretStatus === 'available'
-                ? 'Auto-rempli depuis le répertoire officiel — modifiable si besoin.'
-                : 'Optionnel. Aide à personnaliser votre tableau de bord et l\'assistant IA.'
-            }
           />
 
           <Box>
