@@ -578,7 +578,8 @@ export default function SignupPage() {
       if (pickerAddons.length > 0) {
         sessionStorage.setItem('signupAddons', JSON.stringify(pickerAddons));
       }
-      // navigate('/verify-email', { state: { email: email.trim(), signupRedirectUrl: data.redirectUrl } });
+              // After successful signup, redirect to email verification page
+        navigate('/verify-email', { state: { email: email.trim() } });
       <Route path="/verify-email" element={<VerifyEmailPage />} />
     } catch (e: any) {
   // Handle specific error codes
