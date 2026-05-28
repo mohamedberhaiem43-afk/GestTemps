@@ -8,22 +8,6 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import StarsIcon from '@mui/icons-material/Stars';
 
-/**
- * Pack picker compact inséré dans le formulaire d'inscription. Volontairement plus
- * simple que PlanConfigurationPage (qui sert au upgrade/changement post-signup) :
- * 3 cards + toggle cycle + section repliable « Modules supplémentaires ».
- *
- * Source de vérité tarifaire : ABRPOINT.Server.Tenancy.PlanCatalog (backend).
- * Ce miroir front sert juste à l'affichage simulation — toute évolution de prix
- * doit être propagée des deux côtés simultanément, sinon le récap au signup
- * et la facture Stripe divergent.
- *
- * Pendant l'essai gratuit 30j, AUCUN paiement n'est déclenché — le pack choisi
- * détermine simplement les features ouvertes (planFeatures via /me). Les addons
- * cochés ici sont conservés en sessionStorage pour pré-remplir le futur Stripe
- * Checkout déclenché depuis /mon-abonnement.
- */
-
 export type PlanKey = 'Starter' | 'Standard' | 'Premium';
 export type Cycle = 'monthly' | 'annual';
 export type AddonKey =
@@ -109,18 +93,7 @@ const ADDONS: AddonDef[] = [
   { key: 'aiAssistantRh',         displayName: 'Assistant RH IA',                  description: 'Aide à la rédaction RH, recherche multi-sources, automatisations.', priceMonthly: 49 },
   { key: 'signatureElectronique', displayName: 'Signature électronique avancée',   description: 'Signature qualifiée eIDAS, parapheur multi-signataires.',         priceMonthly: 19 },
   { key: 'supportPrioritaire',    displayName: 'Support prioritaire 24/7',       description: 'Réponse sous 2h ouvrées, hotline dédiée, account manager.',      priceMonthly: 149 },
-  { key: 'formationVisio',        displayName: 'Formation administrateurs en visio', description: 'Formation en visioconférence pour administrateurs.', priceMonthly: 290 },
-  { key: 'formationSurSite',      displayName: 'Formation sur site',               description: 'Formation sur site, tarif à partir de 790€ / jour.', priceMonthly: 790 },
   { key: 'apiPublique',           displayName: 'API publique',                     description: "Accès à l'API publique.", priceMonthly: 199 },
-  { key: 'hebergementDedi',       displayName: 'Hébergement dédié',                description: 'Serveur dédié hébergé.', priceMonthly: 390 },
-  { key: 'penTestAnnuel',         displayName: 'Pen-test annuel',                  description: 'Test de pénétration annuel.', priceMonthly: 1500 },
-  { key: 'connecteurERPStandard', displayName: 'Connecteur ERP / Paie standard',   description: 'Intégration standard ERP/Paie.', priceMonthly: 490 },
-  { key: 'connecteurERPPersonnalise', displayName: 'Connecteur ERP personnalisé',   description: 'Intégration ERP sur devis.', priceMonthly: 0 },
-  { key: 'importDataAssiste',     displayName: 'Import de données assisté',       description: "Assistance à l'import de données.", priceMonthly: 250 },
-  { key: 'onboardingPremium',     displayName: 'Onboarding Premium',               description: "Accompagnement premium à l'onboarding.", priceMonthly: 390 },
-  { key: 'accompagnementVisio',   displayName: 'Accompagnement personnalisé visio', description: 'Accompagnement en visioconférence.', priceMonthly: 190 },
-  { key: 'accompagnementDemiJournee', displayName: 'Accompagnement demi-journée', description: 'Accompagnement sur demi-journée.', priceMonthly: 390 },
-  { key: 'accompagnementJournee', displayName: 'Accompagnement journée complète', description: 'Accompagnement sur journée complète.', priceMonthly: 690 },
 ];
 
 const PACK_INCLUDED_ADDONS: Record<PlanKey, AddonKey[]> = {
