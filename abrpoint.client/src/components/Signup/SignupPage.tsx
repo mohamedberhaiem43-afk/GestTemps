@@ -3,8 +3,8 @@ import { Route, useLocation, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, TextField, Button, CircularProgress, Alert,
   Paper, Stack, InputAdornment, MenuItem,
-  Checkbox,
-  FormControlLabel,
+
+
 } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -20,7 +20,7 @@ import { useAuth } from '../helper/AuthProvider';
 import GetRestCountries from '../../services/RestCountriesService/GetRestCountries';
 import PlanPicker, { type PlanKey, type Cycle, type AddonKey } from './PlanPicker';
 import VerifyEmailPage from './VerifyEmailPage';
-import { BadgeIcon, Link } from 'lucide-react';
+import { BadgeIcon } from 'lucide-react';
 
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$/;
 
@@ -182,7 +182,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [emailStatus, setEmailStatus] = useState<EmailStatus>('idle');
   const [password, setPassword] = useState('');
-  const [termsAccepted, setTermsAccepted] = useState(false);
+
 
   // Sélection du pack + cycle + modules optionnels. Pré-rempli depuis planFromPricing
   // si l'utilisateur vient de la pricing page ; sinon défauts commerciaux (Standard +
@@ -481,7 +481,7 @@ export default function SignupPage() {
     && slugStatus !== 'reserved'
     && slugStatus !== 'invalid';
 
-  /// L'ID entreprise est obligatoire (anti-fraude). Format exigé selon le pays
+  /// L'ID entreprise est obligatoire (anti-fraude). Format exigécanSc selon le pays
   // (countryConfig.idDigits + idRegex optionnel pour les ID alphanumériques) ;
   // on ne bloque pas sur 'checking' ou 'idle' pour permettre la soumission si
   // l'API Sirene FR est lente (le backend re-valide de toute façon et la
@@ -500,18 +500,7 @@ export default function SignupPage() {
     siretStatus !== 'already_used' &&
     siretStatus !== 'invalid';
 
-  const canSubmit =
-    !submitting &&
-    companyName.trim().length >= 2 &&
-    slugAccepted &&
-    siretAccepted &&
-    firstName.trim().length > 0 &&
-    lastName.trim().length > 0 &&
-    /.+@.+\..+/.test(email) &&
-    emailStatus !== 'taken' &&
-    emailStatus !== 'invalid' &&
     password.length >= 8 &&
-    termsAccepted &&
     captchaChallengeId.length > 0 &&
     captchaAnswer.trim() !== '';
 
@@ -606,7 +595,19 @@ export default function SignupPage() {
       setSubmitting(false);
     }
   };
-
+ const canSubmit =
+    !submitting &&
+    companyName.trim().length >= 2 &&
+    slugAccepted &&
+    siretAccepted &&
+    firstName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
+    /.+@.+\..+/.test(email) &&
+    emailStatus !== 'taken' &&
+    emailStatus !== 'invalid' &&
+    password.length >= 8 &&
+    captchaChallengeId.length > 0 &&
+    captchaAnswer.trim() !== '';
   return (
     <Box sx={{
       minHeight: '100vh',
@@ -838,10 +839,6 @@ export default function SignupPage() {
             />
           </Stack>
 
-          <FormControlLabel
-            control={<Checkbox checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />}
-            label={<span>J'accepte les <Link href="/CONCORDE%20TECH%20INNOVATION%20-%20Conditions%20g%C3%A9n%C3%A9rales%20d%27utilisation%20et%20de%20services.pdf" target="_blank">conditions générales d'utilisation et de services</Link>, la <Link href="/Mentions%20l%C3%A9gales.pdf" target="_blank">mentions légales</Link> et la <Link href="/Politique%20de%20confidentialit%C3%A9.pdf" target="_blank">politique de confidentialité</Link>.</span>}
-          />
 
           <TextField
             fullWidth

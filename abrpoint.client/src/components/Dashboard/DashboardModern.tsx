@@ -41,7 +41,6 @@ import { DashboardRequest } from '../../models/DashboardModels';
 import { CongeProvider } from '../helper/CongeContext';
 import DashboardCongeList from './DashboardCongeList';
 import EvolutionChart from './Bars/EvolutionChart';
-import GenderDonutChart from './Bars/GenderDonutChart';
 import './DashboardModern.css';
 import EmployeeDashboard from './EmployeeDashboard';
 import useGetPendingDemCongesByPeriode from '../../hooks/congeHooks/useGetPendingDemConge';
@@ -1024,16 +1023,7 @@ function DashboardModernAdmin() {
       </Box>
       )}
 
-      {/* Donut Hommes / Femmes — remonté au-dessus de la fold (2026-05) pour
-          que le KPI Effectif par sexe soit visible dès l'ouverture du dashboard
-          sans avoir à scroller. Utilise les données déjà renvoyées par
-          DashboardService.EffectifParSexe — pas de hook supplémentaire.
-          Masqué sur Starter (dashboard simplifié sans graphiques). */}
-      {visibility.genderDonut && advancedDashboards && (
-        <Box className="db-chart-card" sx={{ mt: 2 }}>
-          <GenderDonutChart data={dashboardData?.effectifParSexe} />
-        </Box>
-      )}
+      {/* Donut Hommes / Femmes: retiré */}
 
       {/* Charts + Absences : graphique d'évolution + panel absences récentes.
           Evolution chart réservé au pack avancé (Starter voit un dashboard simplifié

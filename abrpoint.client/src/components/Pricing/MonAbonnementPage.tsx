@@ -64,9 +64,8 @@ const ADDON_LABELS: Record<string, { label: string; description: string; priceMo
   // apiAvancee: { label: 'API avancée', description: 'Accès programmatique étendu pour intégrer Concorde Workforce à votre SIRH, paie ou ERP existant.', priceMonthlyEur: 79 },
   supportPrioritaire: { label: 'Support prioritaire étendu', description: 'Réponse <2h ouvrées, hotline dédiée, account manager.', priceMonthlyEur: 49 },
 };
-const ADDON_KEYS: ReadonlyArray<keyof typeof ADDON_LABELS> = [
-  'aiAssistantRh', 'iaDocumentaireAvancee', 'signatureElectronique', 'apiAvancee', 'supportPrioritaire',
-];
+
+const ADDON_KEYS = Object.keys(ADDON_LABELS) as (keyof typeof ADDON_LABELS)[];
 
 type PlanKey = 'Starter' | 'Standard' | 'Premium';
 type Cycle = 'monthly' | 'annual';
