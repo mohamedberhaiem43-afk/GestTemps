@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from "@tanstack/react-query";
 import apiInstance from "../API/apiInstance";
 import { RolePermission } from "../../models/Role";
 
@@ -135,6 +136,15 @@ const persistedKeys = new Set(["soccod", "soclib", "sitcod", "userName", "uticod
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const requestIdRef = useRef(0);
+  // Cache React Query partagé (singleton). On le vide au logout ET au changement
+  // de tenant pour empêcher qu'un compte voie les données mises en cache du compte
+  // précédent (bug observé : mêmes KPI dashboard après reconnexion sur un autre
+  // compte). Sans ça, les requêtes au staleTime non expiré (5 min) resservaient des
+  // valeurs périmées tant que la clé de requête coïncidait.
+  const queryClient = useQueryClient();
+  // Dernier soccod authentifié — sert à détecter un changement de tenant pour purger
+  // le cache même quand l'utilisateur enchaîne deux connexions sans logout explicite.
+  const prevSoccodRef = useRef<string | null>(sessionStorage.getItem('soccod'));
   // Hydrate l'état initial depuis sessionStorage uniquement pour les libellés
   // d'affichage non sensibles (soccod, soclib, sitcod, userName, uticod). Les flags
   // de privilège (isAdmin, utiadm, isManager, permissions, planFeatures) restent
@@ -308,6 +318,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     refreshAuth();
   }, [refreshAuth]);
 
+  // Purge du cache au CHANGEMENT DE TENANT : si /me révèle un soccod différent du
+  // précédent (reconnexion sur un autre compte sans logout explicite, ou bascule de
+  // société), on jette le cache React Query pour éviter que le nouveau compte voie
+  // les KPI/listes mis en cache de l'ancien. On NE purge PAS quand soccod est
+  // inchangé (refresh normal) ni au tout premier passage null→valeur (cache déjà vide).
+  useEffect(() => {
+    const current = authData.soccod;
+    const prev = prevSoccodRef.current;
+    if (current && prev && current !== prev) {
+      queryClient.clear();
+    }
+    if (current) prevSoccodRef.current = current;
+  }, [authData.soccod, queryClient]);
+
   // PERF — useCallback stables : ces fonctions sont passées dans value={...} du
   // Provider. Sans ça, chaque render du Provider créait de nouvelles références →
   // tous les consumers de useAuth (Navigation, dashboards, pages) re-rendaient.
@@ -332,6 +356,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // quand même côté client. apiInstance retourne 401 silencieusement si déjà
     // expiré, ce qui est OK.
     apiInstance.post('/Utilisateurs/logout').catch(() => { /* best-effort */ });
+
+    // Purge TOTALE du cache React Query : aucune donnée du compte sortant ne doit
+    // survivre pour le prochain login (KPI dashboard, listes employés, etc.).
+    queryClient.clear();
+    prevSoccodRef.current = null;
 
     sessionStorage.removeItem('soccod');
     sessionStorage.removeItem('soclib');
@@ -366,7 +395,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       addons: [],
       permissions: [],
     });
-  }, []);
+  }, [queryClient]);
 
   /**
    * Vérifie qu'une feature commerciale (cf. PlanCatalog côté backend) est ouverte au plan

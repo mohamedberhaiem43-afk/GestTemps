@@ -129,7 +129,7 @@ services:
       Smtp__FromName: "${SMTP_FROM_NAME:-Concorde Work Force}"
       Smtp__FromEmail: "${SMTP_FROM_EMAIL:-}"
       Smtp__EnableSsl: "true"
-      Download__ApkUrl: "${APK_URL:-https://expo.dev/artifacts/eas/5AWJzSxWsNWJ9vi2oYAxAd.apk}"
+      Download__ApkUrl: "${APK_URL:-https://expo.dev/accounts/concorde-tech-innovation/projects/concorde-workly/builds/72ec5992-7f5e-41ba-9ea6-bac3415b7022}"
       Download__ApkVersion: "${APK_VERSION:-1.0.0}"
       Download__ApkSizeMb: "${APK_SIZE_MB:-}"
       Download__ApkPublishedAt: "${APK_PUBLISHED_AT:-2026-05-15}"

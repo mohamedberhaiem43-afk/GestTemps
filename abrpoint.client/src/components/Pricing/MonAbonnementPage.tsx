@@ -54,19 +54,49 @@ const FEATURE_LABELS: Partial<Record<keyof PlanFeatures, { label: string; icon: 
 };
 
 /**
- * Catalogue des addons valides côté backend (PlanCatalog.ValidAddonKeys).
- * Source unique : libellés + prix alignés sur PlanConfigurationPage.ADDON_CATALOG.
- * Prix exprimés en €/mois HT (cf. ADDON_CATALOG.unitPriceEur).
+ * Catalogue des modules optionnels affichés dans « Mon abonnement ».
+ *
+ * - `addonKey` : clé reconnue par le backend (PlanCatalog.ValidAddonKeys). SEULS ces
+ *   modules sont activables/désactivables via PUT /billing/addons. Les modules sans
+ *   addonKey (stockage, domaine) ne sont PAS des addons facturables individuellement :
+ *   ils se gèrent ailleurs (blocs de stockage / pack Premium) et sont en lecture seule.
+ * - `feature` : flag PlanFeatures qui, s'il est vrai, indique que le module est DÉJÀ
+ *   inclus (par le pack ou un addon) → on l'affiche « inclus / actif » au lieu de le
+ *   proposer à l'achat.
+ *
+ * Prix en €/mois HT (grille commerciale 2026).
  */
-const ADDON_LABELS: Record<string, { label: string; description: string; priceMonthlyEur: number }> = {
-  // aiAssistantRh: { label: 'Assistant RH IA', description: 'Aide à la rédaction, recherche multi-sources, automatisations RH.', priceMonthlyEur: 49 },
-  // iaDocumentaireAvancee: { label: 'IA documentaire avancée', description: 'Recherche RAG, embeddings vectoriels sur vos archives.', priceMonthlyEur: 149 },
-  signatureElectronique: { label: 'Signature électronique avancée', description: 'Parapheur multi-signataires, archivage légal eIDAS.', priceMonthlyEur: 19 },
-  // apiAvancee: { label: 'API avancée', description: 'Accès programmatique étendu pour intégrer Concorde Workforce à votre SIRH, paie ou ERP existant.', priceMonthlyEur: 79 },
-  supportPrioritaire: { label: 'Support prioritaire étendu', description: 'Réponse <2h ouvrées, hotline dédiée, account manager.', priceMonthlyEur: 49 },
-};
+interface ModuleDef {
+  label: string;
+  description: string;
+  priceMonthlyEur: number;
+  feature: keyof PlanFeatures | null;
+  addonKey: string | null;
+  note?: string;
+}
 
-const ADDON_KEYS = Object.keys(ADDON_LABELS) as (keyof typeof ADDON_LABELS)[];
+const MODULE_CATALOG: ModuleDef[] = [
+  { label: 'Assistant RH IA',                description: 'Aide à la rédaction, recherche multi-sources, automatisations RH.',           priceMonthlyEur: 49,  feature: 'ragAi',               addonKey: 'aiAssistantRh' },
+  { label: 'IA documentaire avancée',        description: 'Recherche RAG, embeddings vectoriels sur vos archives.',                      priceMonthlyEur: 149, feature: 'ragAi',               addonKey: 'iaDocumentaireAvancee' },
+  { label: 'Signature électronique',         description: 'Parapheur multi-signataires, archivage légal eIDAS.',                        priceMonthlyEur: 19,  feature: 'electronicSignature', addonKey: 'signatureElectronique' },
+  { label: 'API avancée',                    description: 'Accès programmatique étendu pour intégrer votre SIRH, paie ou ERP.',         priceMonthlyEur: 79,  feature: 'apiAccess',           addonKey: 'apiAvancee' },
+  { label: 'Support prioritaire étendu',     description: 'Réponse <2h ouvrées, hotline dédiée, account manager.',                      priceMonthlyEur: 49,  feature: 'prioritySupport',     addonKey: 'supportPrioritaire' },
+  { label: 'Stockage supplémentaire 100 Go', description: '100 Go d\'espace sécurisé en plus.',                                          priceMonthlyEur: 29,  feature: null,                  addonKey: null, note: 'Se gère depuis la carte « Stockage » plus bas.' },
+  { label: 'Domaine personnalisé',           description: 'Votre espace sur votre propre domaine + personnalisation de marque.',        priceMonthlyEur: 19,  feature: 'customBranding',      addonKey: null, note: 'Inclus dans le pack Premium.' },
+];
+
+// Map dérivée (clé addon backend → meta) pour la décomposition du total (carte A) et
+// la carte récap « modules actifs », qui raisonnent en clés d'addons souscrits
+// (Tenant.Addons). Ne contient que les modules réellement activables comme addons.
+const ADDON_LABELS: Record<string, { label: string; description: string; priceMonthlyEur: number }> =
+  Object.fromEntries(
+    MODULE_CATALOG.filter((m) => m.addonKey).map((m) => [
+      m.addonKey as string,
+      { label: m.label, description: m.description, priceMonthlyEur: m.priceMonthlyEur },
+    ]),
+  );
+
+const ADDON_KEYS = Object.keys(ADDON_LABELS);
 
 type PlanKey = 'Starter' | 'Standard' | 'Premium';
 type Cycle = 'monthly' | 'annual';
@@ -174,6 +204,16 @@ export default function MonAbonnementPage() {
     .filter((k) => Boolean(planFeatures?.[k]));
   // Addons reconnus du catalogue (filtre défensif contre des valeurs serveur inattendues).
   const subscribedAddons = (addons ?? []).filter((a) => ADDON_LABELS[a] != null);
+
+  // Un module est « inclus dans le pack » si sa feature est active dans planFeatures
+  // SANS qu'un addon souscrit en soit la cause — donc fournie par le pack lui-même
+  // (ex. Premium inclut ragAi, customBranding…). Ces modules s'affichent « inclus /
+  // actif » (interrupteur verrouillé) au lieu d'être proposés à l'achat.
+  const moduleIsIncludedByPack = (m: ModuleDef): boolean => {
+    if (!m.feature || !planFeatures?.[m.feature]) return false;
+    if (m.addonKey && subscribedAddons.includes(m.addonKey)) return false;
+    return true;
+  };
   // Prénom uniquement pour personnaliser le bandeau trial (« Mohamed, il vous reste… »).
   // userName est « Prénom Nom » concaténé côté serveur (Utiprn + Utinom).
   const firstName = (userName ?? '').trim().split(/\s+/)[0] || null;
@@ -1343,42 +1383,61 @@ export default function MonAbonnementPage() {
             l'accès, votre commercial peut ensuite ajuster votre facture si besoin.
           </Typography>
           <Stack divider={<Divider />}>
-            {ADDON_KEYS.map((key) => {
-              const meta = ADDON_LABELS[key];
-              const checked = addonsDraft.includes(key);
+            {MODULE_CATALOG.map((m) => {
+              // Inclus par le pack → coché + verrouillé (pas re-facturé). Sinon
+              // activable seulement si c'est un addon backend valide (addonKey).
+              const included = moduleIsIncludedByPack(m);
+              const toggleable = !!m.addonKey && !included;
+              const checked = included || (m.addonKey ? addonsDraft.includes(m.addonKey) : false);
               return (
                 <Stack
-                  key={key}
+                  key={m.label}
                   direction="row"
                   alignItems="center"
                   spacing={2}
                   sx={{
                     px: 3, py: 2,
                     bgcolor: checked ? '#F3EEFE' : 'transparent',
+                    opacity: (!toggleable && !included) ? 0.75 : 1,
                     transition: 'background-color 0.15s',
                   }}
                 >
-                  {/* Interrupteur (variante C) — pilote directement le brouillon */}
+                  {/* Interrupteur (variante C). Verrouillé si inclus dans le pack ou
+                      si le module n'est pas un addon activable (stockage / domaine). */}
                   <Switch
                     checked={checked}
-                    onChange={() => toggleAddonInDraft(key)}
+                    disabled={!toggleable}
+                    onChange={() => { if (m.addonKey) toggleAddonInDraft(m.addonKey); }}
                     sx={{
                       '& .MuiSwitch-switchBase.Mui-checked': { color: '#7C3AED' },
                       '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#7C3AED', opacity: 1 },
                     }}
                   />
                   <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontWeight: 700, color: '#0F1B33', fontSize: 14 }}>
-                      {meta.label}
-                    </Typography>
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                      <Typography sx={{ fontWeight: 700, color: '#0F1B33', fontSize: 14 }}>
+                        {m.label}
+                      </Typography>
+                      {included && (
+                        <Chip
+                          size="small"
+                          label="Inclus dans le pack"
+                          sx={{ height: 18, fontSize: 10.5, fontWeight: 700, bgcolor: '#E7F6ED', color: '#15803d' }}
+                        />
+                      )}
+                    </Stack>
                     <Typography sx={{ fontSize: 12, color: '#6A7691', lineHeight: 1.45, mt: 0.25 }}>
-                      {meta.description}
+                      {m.description}{m.note ? ` · ${m.note}` : ''}
                     </Typography>
                   </Box>
-                  {/* Prix MENSUEL uniquement (cf. demande : pas d'affichage annuel) */}
+                  {/* Prix MENSUEL uniquement. Barré si inclus (déjà couvert par le pack). */}
                   <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                    <Typography sx={{ fontWeight: 800, color: '#7C3AED', fontSize: 15 }}>
-                      +{meta.priceMonthlyEur}€
+                    <Typography sx={{
+                      fontWeight: 800, fontSize: 15,
+                      color: included ? '#15803d' : '#7C3AED',
+                      textDecoration: included ? 'line-through' : 'none',
+                    }}>
+                      +{m.priceMonthlyEur}€
                       <Typography component="span" sx={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
                         {' '}/mois
                       </Typography>

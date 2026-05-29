@@ -980,7 +980,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   const PUBLIC_PATHS = [
     '/', '/about', '/login', '/signup', '/verify-email',
     '/plan-configuration', '/payment', '/contact-sales', '/download',
-    '/confidentialite', '/cgu',
+    '/confidentialite', '/cgu', '/mentions-legales',
   ];
   const canonicalPathname = (pathname === '/dashboard' || pathname.startsWith('/dashboard/') || PUBLIC_PATHS.includes(pathname))
     ? pathname

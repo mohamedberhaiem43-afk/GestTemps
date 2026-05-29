@@ -1028,7 +1028,7 @@ export default function HomePage() {
           <span className="footer-bottom-links">
             <a href="/confidentialite">Confidentialité</a>
             <a href="/cgu">CGU</a>
-            <a href="/legal">Mentions légales</a>
+            <a href="/mentions-legales">Mentions légales</a>
           </span>
         </div>
       </footer>
