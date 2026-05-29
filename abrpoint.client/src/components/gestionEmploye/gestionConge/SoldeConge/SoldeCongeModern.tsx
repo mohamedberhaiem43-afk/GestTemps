@@ -5,7 +5,8 @@ import BeachAccessIcon from '@mui/icons-material/BeachAccess';
 import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import WorkHistoryIcon from '@mui/icons-material/WorkHistory';
-import DownloadIcon from '@mui/icons-material/Download';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import DownloadIcon from '@mui/icons-material/FileUpload';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import EventIcon from '@mui/icons-material/Event';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -171,7 +172,11 @@ function SoldeCongeModernInner() {
   const rttAcquired = solde?.rttJours ?? 0;
   const rttTaken    = solde?.rttUtilises ?? 0;
   const rttBalance  = Math.max(0, rttAcquired - rttTaken);
-  
+
+  // CET (Compte Épargne Temps) : solde cumulé persisté sur la ligne Solde, alimenté par
+  // le transfert des congés payés non pris (cf. page Compte Épargne Temps). Lecture seule ici.
+  const cetBalance = solde?.cetjours ?? 0;
+
   // Categorize taken leaves
   const takenStats = useMemo(() => {
     const stats = { paye: 0, csf: 0, css: 0 };
@@ -333,6 +338,16 @@ function SoldeCongeModernInner() {
           taken={rttTaken}
           barColor="#10b981"
           emptyMsg={t('conge.soldeConge.card.noRtt', { defaultValue: 'Aucun droit RTT acquis pour cette période.' })}
+        />
+        <BalanceCard
+          icon={<AccountBalanceWalletIcon sx={{ color: '#7c3aed' }} />}
+          iconBg="rgba(124,58,237,0.12)"
+          label={t('conge.soldeConge.card.cet', { defaultValue: 'Compte Épargne Temps' })}
+          balance={cetBalance}
+          acquired={cetBalance}
+          taken={0}
+          barColor="#7c3aed"
+          emptyMsg={t('conge.soldeConge.card.noCet', { defaultValue: 'Aucun jour épargné (CET).' })}
         />
       </Box>
 

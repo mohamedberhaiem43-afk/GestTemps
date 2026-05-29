@@ -3,7 +3,7 @@ import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import { useContext, useEffect, useState, useMemo } from 'react';
 import SearchIcon from '@mui/icons-material/Search';
 import PrintIcon from '@mui/icons-material/Print';
-import DownloadIcon from '@mui/icons-material/Download';
+import DownloadIcon from '@mui/icons-material/FileUpload';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import RestaurantIcon from '@mui/icons-material/Restaurant';

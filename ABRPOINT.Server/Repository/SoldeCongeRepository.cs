@@ -65,6 +65,12 @@ namespace ABRPOINT.Server.Repository
             // RTT » côté front affichait 0 même quand l'employé a 11 j manuels saisis.
             var rtt = await _rttCalculationService.GetRttSoldeAsync(soccod, empcod);
 
+            // CET cumulé : valeur persistée sur la ligne Solde (alimentée par le transfert
+            // CET — cf. CetController). Sans cette lecture, le champ Cetjours n'était jamais
+            // renvoyé et le solde CET épargné restait invisible dans la vue "Solde de congé".
+            var row = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+                .FirstOrDefaultAsync(_dbContext.Soldes, s => s.Soccod == soccod && s.Empcod == empcod);
+
             return new Solde
             {
                 Soccod = soccod,
@@ -72,6 +78,7 @@ namespace ABRPOINT.Server.Repository
                 Annee = year,
                 Conge = (float?)etat.DroitConge,
                 Empconge = (float?)etat.SoldeAnterieur,
+                Cetjours = row?.Cetjours,
                 RttJours = rtt?.DroitAnnuel,
                 RttUtilises = rtt?.Pris,
             };

@@ -8,7 +8,7 @@ import { AnimatedNumber } from '../../shared/AnimatedNumber';
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import DownloadIcon from '@mui/icons-material/FileDownload';
+import DownloadIcon from '@mui/icons-material/FileUpload';
 import PrintIcon from '@mui/icons-material/Print';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CloseIcon from '@mui/icons-material/Close';

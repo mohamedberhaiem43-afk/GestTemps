@@ -98,6 +98,8 @@ namespace ABRPOINT.Server.Repository
 
             if (entity.Serlib != null) existing.Serlib = entity.Serlib;
             if (entity.Serloc != null) existing.Serloc = entity.Serloc;
+            if (entity.Serlieu != null) existing.Serlieu = entity.Serlieu;
+            if (entity.Seremail != null) existing.Seremail = entity.Seremail;
             if (entity.Effectif != null) existing.Effectif = entity.Effectif;
             await _dbContext.SaveChangesAsync();
         }

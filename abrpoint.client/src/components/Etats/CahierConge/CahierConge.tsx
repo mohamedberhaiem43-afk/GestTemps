@@ -3,6 +3,7 @@ import { Autocomplete, CircularProgress, TextField } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../helper/AuthProvider';
+import { currencyForCountry } from '../../helper/currency';
 import { AnimatedNumber } from '../../shared/AnimatedNumber';
 import AccessDenied from '../../helper/AccessDenied';
 import { useEmployeeFilter } from '../../../hooks/employeHooks/useEmployeeFilter';
@@ -17,7 +18,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
-import DownloadIcon from '@mui/icons-material/FileDownload';
+import DownloadIcon from '@mui/icons-material/FileUpload';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PrintIcon from '@mui/icons-material/Print';
 import CloseIcon from '@mui/icons-material/Close';
@@ -27,7 +28,9 @@ import GroupIcon from '@mui/icons-material/Group';
 import './CahierConge.css';
 function CahierCongePage() {
   const { t } = useTranslation();
-  const { soccod, hasPermission } = useAuth();
+  const { soccod, hasPermission, countryCode } = useAuth();
+  // Devise selon le pays souscrit (et non figée sur « DT »). Cf. helper/currency.ts.
+  const currency = currencyForCountry(countryCode);
 
   const regimeOptions: Record<string, string> = {
     '': t('cahierConge.filter.regimeAll'),
@@ -194,15 +197,15 @@ function CahierCongePage() {
       t('cahierConge.excel.headers.periodTemporis'),
       t('cahierConge.excel.headers.initialBalance'),
       t('cahierConge.excel.headers.leaveDue'),
-      t('cahierConge.excel.headers.leaveDueIndemnity'),
+      t('cahierConge.excel.headers.leaveDueIndemnity', { currency }),
       t('cahierConge.excel.headers.seniorityDays'),
-      t('cahierConge.excel.headers.seniorityAmount'),
+      t('cahierConge.excel.headers.seniorityAmount', { currency }),
       t('cahierConge.excel.headers.youngWorkerLeave'),
-      t('cahierConge.excel.headers.youngWorkerLeaveAmount'),
+      t('cahierConge.excel.headers.youngWorkerLeaveAmount', { currency }),
       t('cahierConge.excel.headers.youngWorkerDays'),
-      t('cahierConge.excel.headers.youngWorkerDaysAmount'),
-      t('cahierConge.excel.headers.totalDuePresence'),
-      t('cahierConge.excel.headers.leaveIndemnity'),
+      t('cahierConge.excel.headers.youngWorkerDaysAmount', { currency }),
+      t('cahierConge.excel.headers.totalDuePresence', { currency }),
+      t('cahierConge.excel.headers.leaveIndemnity', { currency }),
       t('cahierConge.excel.headers.departureDate'),
       t('cahierConge.excel.headers.departureHour'),
       t('cahierConge.excel.headers.returnDate'),
@@ -534,10 +537,10 @@ function CahierCongePage() {
               as="span"
               formatValue={(n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             />
-            <span className="cc-summary-unit">{t('cahierConge.summary.currency')}</span>
+            <span className="cc-summary-unit">{currency}</span>
           </div>
           <div className="cc-summary-footer">
-            {t('cahierConge.summary.indemnity', { value: totalIndemcong.toLocaleString('fr-FR', { minimumFractionDigits: 0 }) })}
+            {t('cahierConge.summary.indemnity', { value: totalIndemcong.toLocaleString('fr-FR', { minimumFractionDigits: 0 }), currency })}
           </div>
         </div>
       </div>
@@ -738,7 +741,7 @@ function CahierCongePage() {
                     {t('cahierConge.drawer.leaveDueIndemnity')}
                   </span>
                   <span className="cc-drawer-row-value" style={{ fontWeight: 900, color: '#1e40af' }}>
-                    {selectedRow.indemdu != null ? Number(selectedRow.indemdu).toFixed(2) : '—'} {t('cahierConge.drawer.currency')}
+                    {selectedRow.indemdu != null ? Number(selectedRow.indemdu).toFixed(2) : '—'} {currency}
                   </span>
                 </div>
               </div>
@@ -758,7 +761,7 @@ function CahierCongePage() {
                 <div className="cc-drawer-row">
                   <span className="cc-drawer-row-label">{t('cahierConge.drawer.seniorityAmount')}</span>
                   <span className="cc-drawer-row-value">
-                    {selectedRow.montanc != null ? Number(selectedRow.montanc).toFixed(2) : '—'} {t('cahierConge.drawer.currency')}
+                    {selectedRow.montanc != null ? Number(selectedRow.montanc).toFixed(2) : '—'} {currency}
                   </span>
                 </div>
               </div>
@@ -778,7 +781,7 @@ function CahierCongePage() {
                 <div className="cc-drawer-row">
                   <span className="cc-drawer-row-label">{t('cahierConge.drawer.youngWorkerLeaveAmount')}</span>
                   <span className="cc-drawer-row-value">
-                    {selectedRow.montjeutrv != null ? Number(selectedRow.montjeutrv).toFixed(2) : '—'} {t('cahierConge.drawer.currency')}
+                    {selectedRow.montjeutrv != null ? Number(selectedRow.montjeutrv).toFixed(2) : '—'} {currency}
                   </span>
                 </div>
                 <div className="cc-drawer-row">
@@ -790,7 +793,7 @@ function CahierCongePage() {
                 <div className="cc-drawer-row">
                   <span className="cc-drawer-row-label">{t('cahierConge.drawer.youngWorkerDaysAmount')}</span>
                   <span className="cc-drawer-row-value">
-                    {selectedRow.montjourjeutrv != null ? Number(selectedRow.montjourjeutrv).toFixed(2) : '—'} {t('cahierConge.drawer.currency')}
+                    {selectedRow.montjourjeutrv != null ? Number(selectedRow.montjourjeutrv).toFixed(2) : '—'} {currency}
                   </span>
                 </div>
               </div>
@@ -806,7 +809,7 @@ function CahierCongePage() {
                     {t('cahierConge.drawer.totalDuePresence')}
                   </span>
                   <span className="cc-drawer-row-value" style={{ fontWeight: 900, color: '#1e40af' }}>
-                    {selectedRow.totdupres != null ? Number(selectedRow.totdupres).toFixed(2) : '—'} {t('cahierConge.drawer.currency')}
+                    {selectedRow.totdupres != null ? Number(selectedRow.totdupres).toFixed(2) : '—'} {currency}
                   </span>
                 </div>
                 <div className="cc-drawer-row cc-drawer-row-highlight">
@@ -814,7 +817,7 @@ function CahierCongePage() {
                     {t('cahierConge.drawer.leaveIndemnity')}
                   </span>
                   <span className="cc-drawer-row-value" style={{ fontWeight: 900, color: '#059669' }}>
-                    {selectedRow.indemcong != null ? Number(selectedRow.indemcong).toFixed(2) : '—'} {t('cahierConge.drawer.currency')}
+                    {selectedRow.indemcong != null ? Number(selectedRow.indemcong).toFixed(2) : '—'} {currency}
                   </span>
                 </div>
               </div>

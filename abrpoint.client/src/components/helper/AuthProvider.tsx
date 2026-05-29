@@ -7,6 +7,9 @@ interface AuthContextType {
   soccod: string | null;
   soclib: string | null;
   sitcod: string | null;
+  // Pays souscrit (FR/BE/MA/SN/TN/DZ…). Source : Tenant via /Utilisateurs/me. Sert aux
+  // affichages dépendant du pays (ex : devise du cahier de congé).
+  countryCode: string | null;
   userName: string | null;
   uticod: string | null;
   utiadm: string | null;
@@ -101,6 +104,7 @@ const AuthContext = createContext<AuthContextType>({
   soccod: null,
   soclib: null,
   sitcod: null,
+  countryCode: null,
   userName: null,
   uticod: null,
   utiadm: null,
@@ -155,6 +159,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     soccod: sessionStorage.getItem('soccod'),
     sitcod: sessionStorage.getItem('sitcod'),
     soclib: sessionStorage.getItem('soclib'),
+    countryCode: null as string | null,
     userName: sessionStorage.getItem('userName') || null,
     uticod: persistedUticod,
     utiadm: null as string | null,
@@ -245,6 +250,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         soccod: response.data.soccod ?? prev.soccod ?? null,
         sitcod: response.data.sitcod ?? prev.sitcod ?? null,
         soclib: response.data.soclib ?? prev.soclib ?? null,
+        countryCode: response.data.countryCode ?? prev.countryCode ?? null,
         isTrialing: Boolean(response.data.isTrialing),
         trialEndsAt: response.data.trialEndsAt ?? null,
         trialDaysRemaining: response.data.trialDaysRemaining ?? null,
@@ -306,6 +312,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         planFeatures: null,
         addons: [],
         permissions: [],
+        countryCode: null,
       }));
     } finally {
       if (requestId === requestIdRef.current) {
@@ -376,6 +383,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       soccod: null,
       soclib: null,
       sitcod: null,
+      countryCode: null,
       userName: null,
       uticod: null,
       utiadm: null,

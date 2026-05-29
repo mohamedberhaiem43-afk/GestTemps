@@ -80,6 +80,15 @@ public static class BaseDataSchemaMigrator
         // une 400 de validation à l'ajout. On élargit à 100 caractères.
         var fermotif = await ExpandColumnIfNeededAsync(db, "ferier", "fermotif", "VARCHAR(100)", currentMaxLen: 20, targetMaxLen: 100, makeNotNull: false, ct);
 
+        // Service & Section — email + localisation. L'écran Structure organisationnelle
+        // permet de saisir un email (service + section) et une localisation (service),
+        // mais ces colonnes n'existaient pas : la « localisation » était écrite dans
+        // serloc (un flag VARCHAR(1) « service externe »), ce qui faisait échouer la
+        // modification en 400. On ajoute de vraies colonnes nullables ; serloc est conservé.
+        await AddColumnIfMissingAsync(db, "service", "serlieu", "VARCHAR(60) NULL", ct);
+        await AddColumnIfMissingAsync(db, "service", "seremail", "VARCHAR(256) NULL", ct);
+        await AddColumnIfMissingAsync(db, "section", "secemail", "VARCHAR(256) NULL", ct);
+
         // RTT (Réduction du Temps de Travail, loi française) :
         // 4 colonnes sur employe + 2 colonnes sur solde. Toutes nullables.
         var rttMethode = await AddColumnIfMissingAsync(db, "employe", "emp_rtt_methode", "VARCHAR(1) NULL", ct);

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
 import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 import InlineAuthCard from './InlineAuthCard';
@@ -43,59 +44,9 @@ type CompRow =
       premium: CompCell;
     };
 
-const COMPARISON_ROWS: CompRow[] = [
-  { type: 'section', label: 'Pointage & présence' },
-  { type: 'feature', label: 'Pointage web',                                          starter: true,  standard: true,           premium: true },
-  { type: 'feature', label: 'Application mobile (iOS / Android)',                    starter: true,  standard: true,           premium: true },
-  { type: 'feature', label: 'Pointage géolocalisé',                                  starter: false, standard: true,           premium: true },
-  { type: 'feature', label: 'État périodique & exports PDF/Excel',                   starter: true,  standard: true,           premium: true },
-
-  { type: 'section', label: 'Gestion des employés' },
-  { type: 'feature', label: 'Fiches collaborateurs',                                 starter: true,  standard: true,           premium: true },
-  { type: 'feature', label: 'Gestion des contrats',                                  starter: false, standard: true,           premium: true },
-  { type: 'feature', label: 'Coffre numérique',                                      starter: false, standard: true,           premium: true },
-  { type: 'feature', label: 'Signature électronique',                                starter: false, standard: true,           premium: true },
-  { type: 'feature', label: 'Scan OCR de pièces d\'identité',                        starter: false, standard: true,           premium: true },
-  { type: 'feature', label: 'Import Excel en masse',                                 hint: 'Employés, services, fonctions, rubriques…', starter: false, standard: true, premium: true },
-
-  { type: 'section', label: 'Congés, absences & autorisations' },
-  { type: 'feature', label: 'Demandes de congés',                                    starter: true,  standard: true,           premium: true },
-  { type: 'feature', label: 'Autorisations de sortie',                               starter: true,  standard: true,           premium: true },
-  { type: 'feature', label: 'Titre de congé général',                                starter: false, standard: true,           premium: true },
-  { type: 'feature', label: 'Autorisation de sortie générale',                       starter: false, standard: true,           premium: true },
-  { type: 'feature', label: 'Missions',                                              starter: false, standard: true,           premium: true },
-  { type: 'feature', label: 'Gestion de l\'allaitement',                             starter: false, standard: true,           premium: true },
-
-  { type: 'section', label: 'Paie & frais' },
-  { type: 'feature', label: 'Préparation paie · export paie',                       starter: false, standard: true,           premium: true },
-  { type: 'feature', label: 'Notes de frais',                                        starter: false, standard: true,           premium: true },
-
-  { type: 'section', label: 'Reporting & tableaux de bord' },
-  { type: 'feature', label: 'Tableaux de bord avancés',                              starter: false, standard: true,           premium: true },
-  { type: 'feature', label: 'Journaux d\'audit (RGPD)',                              starter: false, standard: false,          premium: true },
-
-  { type: 'section', label: 'Multi-sites & multi-sociétés' },
-  { type: 'feature', label: 'Multi-sites',                                           starter: false, standard: 'Jusqu\'à 5 sites', premium: 'Illimité' },
-  { type: 'feature', label: 'Multi-filiales / multi-sociétés',                       starter: false, standard: false,          premium: true },
-
-  { type: 'section', label: 'Sécurité & conformité' },
-  { type: 'feature', label: 'Hébergement France OVH',                                starter: true,  standard: true,           premium: true },
-  { type: 'feature', label: 'Chiffrement AES-256 + TLS 1.3',                         starter: true,  standard: true,           premium: true },
-  { type: 'feature', label: 'Branding personnalisé',                                 starter: false, standard: false,          premium: true },
-  { type: 'feature', label: 'Protection capture d\'écran',                           starter: false, standard: false,          premium: true },
-  { type: 'feature', label: 'Certificate pinning',                                   starter: false, standard: false,          premium: true },
-
-  { type: 'section', label: 'Limites & quotas' },
-  { type: 'feature', label: 'Collaborateurs inclus',                                 starter: '10',     standard: '25',           premium: '50' },
-  // 2026-05-23 : ligne « Collaborateurs maximum » supprimée — plus de plafond
-  // commercial, tous les packs facturent simplement l'overage au-delà.
-  { type: 'feature', label: 'Administrateurs inclus',                                starter: '1',      standard: '3',            premium: 'Illimité' },
-  { type: 'feature', label: 'Stockage inclus',                                       starter: '10 Go',  standard: '50 Go',        premium: '200 Go' },
-  // 2026-05-27 : ligne « Stockage maximum » supprimée — plus de plafond commercial,
-  // l'admin peut acheter des blocs de stockage supplémentaires sans limite côté
-  // backend (PlanDefinition.MaxStorageMb = null pour tous les packs).
-  { type: 'feature', label: 'Support',                                               starter: 'Standard', standard: 'Prioritaire', premium: 'SLA prioritaire · onboarding accompagné' },
-];
+// 2026-05-30 — les lignes du comparatif sont désormais fournies par i18n
+// (homePage.comparison.rows, returnObjects) et lues dans le composant pour suivre
+// la langue choisie. La source de vérité fonctionnelle reste PlanCatalog côté backend.
 
 /**
  * Rend une cellule de la table comparative. `true` → ✓ vert, `false` → ✗ gris,
@@ -111,28 +62,9 @@ function renderComparisonCell(value: CompCell): React.ReactNode {
   return <span className="comp-value">{value}</span>;
 }
 
-const STEPS: { num: string; title: string; desc: string }[] = [
-  {
-    num: '01',
-    title: 'Inscrivez-vous & validez votre SIRET',
-    desc: "Création du compte en 5 minutes. Vérification automatique du numéro d'entreprise (SIRET FR, BCE BE, ICE MA, NINEA SN) — unicité contrôlée pour empêcher les doublons.",
-  },
-  {
-    num: '02',
-    title: 'Importez vos équipes',
-    desc: "Upload CSV ou saisie manuelle de vos collaborateurs, sites et départements. Paramétrage en moins d'une heure avec notre équipe.",
-  },
-  {
-    num: '03',
-    title: 'Déployez sur le terrain',
-    desc: 'Application mobile iOS/Android pour les collaborateurs. Pointeuses biométriques compatibles. Web pour les managers. Mode offline disponible.',
-  },
-  {
-    num: '04',
-    title: 'Pilotez en temps réel',
-    desc: 'Tableau de bord temps réel dès J+1. Notifications push aux managers. Préparation paie automatisée à la fin du mois. ROI mesuré et partagé à J+30.',
-  },
-];
+// Les étapes « Comment ça marche » sont fournies par i18n (homePage.how.steps).
+
+type Step = { num: string; title: string; desc: string };
 
 // ─── OFFRE FONDATEUR ÉTÉ 2026 ────────────────────────────────────────────────
 // Période : 1er juin → 31 août 2026. Compte à rebours live recalculé chaque
@@ -162,19 +94,13 @@ function useFounderCountdown() {
 }
 
 function FounderPromoSection({ onSignup }: { onSignup: () => void }) {
+  const { t } = useTranslation();
   const { jours, heures, minutes, secondes, expired } = useFounderCountdown();
   const pad = (n: number) => String(n).padStart(2, '0');
 
   if (expired) return null; // section disparaît automatiquement le 1er septembre
 
-  const AVANTAGES = [
-    { icon: '🎁', label: '1 mois offert',         sub: 'Sans carte bancaire requise' },
-    { icon: '🚀', label: 'Activation rapide',     sub: 'Opérationnel en 48h' },
-    { icon: '🎓', label: 'Onboarding inclus',     sub: 'Accompagnement expert dédié' },
-    { icon: '📧', label: 'Support prioritaire',   sub: 'Accès file prioritaire' },
-    { icon: '⚡', label: 'Accès anticipé',        sub: 'Nouvelles fonctionnalités en avant-première' },
-    { icon: '🔓', label: 'Sans engagement',       sub: 'Vous décidez après l\'essai' },
-  ];
+  const AVANTAGES = t('homePage.founder.advantages', { returnObjects: true }) as Array<{ icon: string; label: string; sub: string }>;
 
   return (
     <section className="promo-launch promo-launch--top reveal" aria-label="Offre Fondateur Été 2026">
@@ -183,46 +109,45 @@ function FounderPromoSection({ onSignup }: { onSignup: () => void }) {
         {/* Pill */}
         <span className="promo-launch-pill">
           <span className="promo-launch-pill-icon">🚀</span>
-          OFFRE FONDATEUR — ÉTÉ 2026
+          {t('homePage.founder.pill')}
         </span>
 
         {/* Titre + compte à rebours */}
         <div className="founder-hero-row">
           <div className="founder-title-block">
             <h2 className="promo-launch-title">
-              Conditions tarifaires<br />
-              <span className="promo-launch-accent">préférentielles Fondateur</span>
+              {t('homePage.founder.titleA')}<br />
+              <span className="promo-launch-accent">{t('homePage.founder.titleAccent')}</span>
               <span className="promo-launch-sparkle" aria-hidden="true">✨</span>
             </h2>
             <p className="promo-launch-sub">
-              Du <span className="promo-launch-sub-hl">1er juin</span> au{' '}
-              <span className="promo-launch-sub-hl">31 août 2026</span> — une fenêtre
-              exclusive pour rejoindre Concorde Workforce à des conditions fondateur.
+              {t('homePage.founder.subPrefix')} <span className="promo-launch-sub-hl">{t('homePage.founder.date1')}</span> {t('homePage.founder.subMiddle')}{' '}
+              <span className="promo-launch-sub-hl">{t('homePage.founder.date2')}</span> {t('homePage.founder.subSuffix')}
             </p>
           </div>
 
           {/* Compte à rebours */}
-          <div className="founder-countdown" aria-label="Temps restant avant la fin de l'offre">
-            <div className="founder-countdown-label">L'offre se termine dans</div>
+          <div className="founder-countdown" aria-label={t('homePage.founder.countdownLabel')}>
+            <div className="founder-countdown-label">{t('homePage.founder.countdownLabel')}</div>
             <div className="founder-countdown-grid">
               <div className="founder-countdown-unit">
                 <span className="founder-countdown-num">{pad(jours)}</span>
-                <span className="founder-countdown-sub">jours</span>
+                <span className="founder-countdown-sub">{t('homePage.founder.days')}</span>
               </div>
               <span className="founder-countdown-sep">:</span>
               <div className="founder-countdown-unit">
                 <span className="founder-countdown-num">{pad(heures)}</span>
-                <span className="founder-countdown-sub">heures</span>
+                <span className="founder-countdown-sub">{t('homePage.founder.hours')}</span>
               </div>
               <span className="founder-countdown-sep">:</span>
               <div className="founder-countdown-unit">
                 <span className="founder-countdown-num">{pad(minutes)}</span>
-                <span className="founder-countdown-sub">min</span>
+                <span className="founder-countdown-sub">{t('homePage.founder.min')}</span>
               </div>
               <span className="founder-countdown-sep">:</span>
               <div className="founder-countdown-unit">
                 <span className="founder-countdown-num">{pad(secondes)}</span>
-                <span className="founder-countdown-sub">sec</span>
+                <span className="founder-countdown-sub">{t('homePage.founder.sec')}</span>
               </div>
             </div>
           </div>
@@ -244,16 +169,16 @@ function FounderPromoSection({ onSignup }: { onSignup: () => void }) {
         {/* CTA */}
         <button type="button" className="promo-launch-cta" onClick={onSignup}>
           <span className="promo-launch-cta-icon">🚀</span>
-          Rejoindre l'offre Fondateur
+          {t('homePage.founder.cta')}
           <span className="promo-launch-cta-arrow">→</span>
         </button>
 
         {/* Trust */}
         <div className="promo-launch-trust">
-          <span><span className="plt-icon">🛡️</span> Sécurisé &amp; conforme RGPD</span>
-          <span><span className="plt-icon">🇫🇷</span> Hébergement France OVH</span>
-          <span><span className="plt-icon">⚡</span> Mise en place en 48h</span>
-          <span><span className="plt-icon">💬</span> Support francophone humain</span>
+          <span><span className="plt-icon">🛡️</span> {t('homePage.founder.trust1')}</span>
+          <span><span className="plt-icon">🇫🇷</span> {t('homePage.founder.trust2')}</span>
+          <span><span className="plt-icon">⚡</span> {t('homePage.founder.trust3')}</span>
+          <span><span className="plt-icon">💬</span> {t('homePage.founder.trust4')}</span>
         </div>
 
       </div>
@@ -263,6 +188,10 @@ function FounderPromoSection({ onSignup }: { onSignup: () => void }) {
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  // Données traduites (suivent la langue choisie via le LanguageSwitcher).
+  const STEPS = t('homePage.how.steps', { returnObjects: true }) as Step[];
+  const COMPARISON_ROWS = t('homePage.comparison.rows', { returnObjects: true }) as CompRow[];
   // Session : si un utilisateur est déjà connecté à son tenant, le CTA « Essayer
   // 30 jours gratuit » et les liens d'inscription doivent court-circuiter le
   // flux signup (qui n'a aucun sens — il a déjà un compte) et le ramener à son
@@ -343,8 +272,8 @@ export default function HomePage() {
     standard: monthly ? formatPrice(monthlyBase.standard) : formatPrice(annualMonthly.standard),
     premium:  monthly ? formatPrice(monthlyBase.premium)  : formatPrice(annualMonthly.premium),
   };
-  const pricePeriod = ' / mois HT';
-  const priceCommitmentLabel = monthly ? 'Sans engagement · tarif mensuel' : 'Par mois · engagement annuel (facturé annuellement)';
+  const pricePeriod = t('homePage.pricing.period');
+  const priceCommitmentLabel = monthly ? t('homePage.pricing.commitmentMonthly') : t('homePage.pricing.commitmentAnnual');
 
   // 2026-05-23 — Tous les CTAs « Essayer 30 jours gratuit » / « Créer un
   // compte » naviguent désormais directement vers /signup (au lieu de
@@ -395,23 +324,23 @@ export default function HomePage() {
           <img className="logo-mark" src="/concorde-wrokly-logo.jpg" alt="Concorde Workforce" />
         </div>
         <ul className="nav-links">
-          <li><a href="#how">Voir le démo</a></li>
-          <li><a href="#pricing">Tarifs</a></li>
-          <li><a href="#comparison">Comparatif</a></li>
-          <li><a href="#download">Téléchargement</a></li>
+          <li><a href="#how">{t('homePage.nav.demo')}</a></li>
+          <li><a href="#pricing">{t('homePage.nav.pricing')}</a></li>
+          <li><a href="#comparison">{t('homePage.nav.comparison')}</a></li>
+          <li><a href="#download">{t('homePage.nav.download')}</a></li>
         </ul>
         <div className="nav-right">
           <LanguageSwitcher />
-          <button type="button" className="btn-ghost" onClick={goToLogin}>Connexion</button>
+          <button type="button" className="btn-ghost" onClick={goToLogin}>{t('homePage.nav.login')}</button>
           <button type="button" className="btn-primary" onClick={() => goToSignup()}>
-            Créer un compte <span>→</span>
+            {t('homePage.nav.createAccount')} <span>→</span>
           </button>
           {/* Hamburger : visible uniquement sur mobile (cf. CSS @media).
               Sur desktop, .nav-links est affichée et le bouton est masqué. */}
           <button
             type="button"
             className={`nav-mobile-toggle${mobileMenuOpen ? ' is-open' : ''}`}
-            aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-label={mobileMenuOpen ? t('homePage.nav.closeMenu') : t('homePage.nav.openMenu')}
             aria-expanded={mobileMenuOpen}
             onClick={() => setMobileMenuOpen(o => !o)}
           >
@@ -425,10 +354,10 @@ export default function HomePage() {
           après le smooth-scroll vers l'ancre. */}
       {mobileMenuOpen && (
         <div className="nav-mobile-menu" role="menu" onClick={() => setMobileMenuOpen(false)}>
-          <a href="#how" role="menuitem">Voir le démo</a>
-          <a href="#pricing" role="menuitem">Tarifs</a>
-          <a href="#comparison" role="menuitem">Comparatif</a>
-          <a href="#download" role="menuitem">Téléchargement</a>
+          <a href="#how" role="menuitem">{t('homePage.nav.demo')}</a>
+          <a href="#pricing" role="menuitem">{t('homePage.nav.pricing')}</a>
+          <a href="#comparison" role="menuitem">{t('homePage.nav.comparison')}</a>
+          <a href="#download" role="menuitem">{t('homePage.nav.download')}</a>
         </div>
       )}
 
@@ -436,29 +365,29 @@ export default function HomePage() {
           Le dashboard a été supprimé (2026-05-27). */}
       <section className="hero">
         <h1 className="hero-title">
-          Le pointage et la gestion<br />du temps <span className="accent">simplifiés</span>
+          {t('homePage.hero.titleA')}<br />{t('homePage.hero.titleB')} <span className="accent">{t('homePage.hero.titleAccent')}</span>
         </h1>
         <p className="hero-sub">
-          Pointeuses biométriques, application mobile, gestion des congés, autorisations de sortie et préparation paie — tout centralisé dans une seule plateforme sécurisée.
+          {t('homePage.hero.sub')}
         </p>
         <div className="hero-cta-row">
           <button type="button" className="btn-hero-primary" onClick={() => goToSignup()}>
-            Démarrer mon essai gratuit
+            {t('homePage.hero.ctaPrimary')}
             <span>→</span>
           </button>
           <button type="button" className="btn-hero-secondary" onClick={() => scrollTo(howSectionRef)}>
             <span>▶</span>
-            Voir comment ça marche
+            {t('homePage.hero.ctaSecondary')}
           </button>
         </div>
         <div className="hero-trust">
-          <div className="trust-item"><span className="trust-icon">✓</span> Conformité RGPD · TLS 1.3 · AES-256</div>
+          <div className="trust-item"><span className="trust-icon">✓</span> {t('homePage.hero.trust1')}</div>
           <div className="trust-divider" />
-          <div className="trust-item"><span className="trust-icon">✓</span> Hébergement France (OVH)</div>
+          <div className="trust-item"><span className="trust-icon">✓</span> {t('homePage.hero.trust2')}</div>
           <div className="trust-divider" />
-          <div className="trust-item"><span className="trust-icon">✓</span> Support francophone</div>
+          <div className="trust-item"><span className="trust-icon">✓</span> {t('homePage.hero.trust3')}</div>
           <div className="trust-divider" />
-          <div className="trust-item"><span className="trust-icon">✓</span> Multi-pays FR · BE · MA · SN</div>
+          <div className="trust-item"><span className="trust-icon">✓</span> {t('homePage.hero.trust4')}</div>
         </div>
       </section>
 
@@ -469,20 +398,20 @@ export default function HomePage() {
       {/* STATS */}
       <div className="stats-strip reveal">
         <div className="stat-item">
-          <div className="stat-num">500+</div>
-          <div className="stat-label">Entreprises clientes</div>
+          <div className="stat-num">{t('homePage.stats.s1num')}</div>
+          <div className="stat-label">{t('homePage.stats.s1label')}</div>
         </div>
         <div className="stat-item">
-          <div className="stat-num">4 pays</div>
-          <div className="stat-label">FR · BE · MA · SN</div>
+          <div className="stat-num">{t('homePage.stats.s2num')}</div>
+          <div className="stat-label">{t('homePage.stats.s2label')}</div>
         </div>
         <div className="stat-item">
-          <div className="stat-num">−34%</div>
-          <div className="stat-label">Absentéisme moyen</div>
+          <div className="stat-num">{t('homePage.stats.s3num')}</div>
+          <div className="stat-label">{t('homePage.stats.s3label')}</div>
         </div>
         <div className="stat-item">
-          <div className="stat-num">2 sem.</div>
-          <div className="stat-label">Pour déployer</div>
+          <div className="stat-num">{t('homePage.stats.s4num')}</div>
+          <div className="stat-label">{t('homePage.stats.s4label')}</div>
         </div>
       </div>
 
@@ -493,34 +422,34 @@ export default function HomePage() {
       <section id="download" className="download-band reveal">
         <div className="download-band-inner">
           <div className="download-band-left">
-            <div className="download-band-tag">📱 Application mobile</div>
-            <h3 className="download-band-title">Téléchargez l'app Concorde Workly</h3>
+            <div className="download-band-tag">{t('homePage.download.tag')}</div>
+            <h3 className="download-band-title">{t('homePage.download.title')}</h3>
             <p className="download-band-sub">
-              iOS · Android · Mode offline · Géolocalisation optionnelle. Rendez-vous sur{' '}
+              {t('homePage.download.subA')}{' '}
               <a className="download-band-url" href="/download">concordeworkly.com</a>
-              {' '}pour récupérer la dernière version.
+              {' '}{t('homePage.download.subB')}
             </p>
           </div>
           <div className="download-band-buttons">
             <a className="store-btn" href="/download">
               <span className="store-btn-icon"></span>
               <span className="store-btn-text">
-                <span className="store-btn-small">Télécharger sur</span>
-                <span className="store-btn-large">App Store</span>
+                <span className="store-btn-small">{t('homePage.download.appStoreSmall')}</span>
+                <span className="store-btn-large">{t('homePage.download.appStoreLarge')}</span>
               </span>
             </a>
             <a className="store-btn" href="/download">
               <span className="store-btn-icon">▶</span>
               <span className="store-btn-text">
-                <span className="store-btn-small">DISPONIBLE SUR</span>
-                <span className="store-btn-large">Google Play</span>
+                <span className="store-btn-small">{t('homePage.download.playSmall')}</span>
+                <span className="store-btn-large">{t('homePage.download.playLarge')}</span>
               </span>
             </a>
             <a className="store-btn store-btn-apk" href="/download">
               <span className="store-btn-icon">⬇</span>
               <span className="store-btn-text">
-                <span className="store-btn-small">APK direct</span>
-                <span className="store-btn-large">concordeworkly.com</span>
+                <span className="store-btn-small">{t('homePage.download.apkSmall')}</span>
+                <span className="store-btn-large">{t('homePage.download.apkLarge')}</span>
               </span>
             </a>
           </div>
@@ -529,9 +458,9 @@ export default function HomePage() {
 
       {/* HOW IT WORKS */}
       <section id="how" ref={howSectionRef} style={{ background: 'var(--hp-surface-container-lowest)' }}>
-        <div className="section-tag">Comment ça marche</div>
-        <h2 className="section-title">Opérationnel en <span className="accent">2 semaines</span></h2>
-        <p className="section-sub">Un déploiement guidé, sans technicien, sans résistance interne.</p>
+        <div className="section-tag">{t('homePage.how.tag')}</div>
+        <h2 className="section-title">{t('homePage.how.titleA')} <span className="accent">{t('homePage.how.titleAccent')}</span></h2>
+        <p className="section-sub">{t('homePage.how.sub')}</p>
         <div className="how-layout reveal">
           <div className="steps">
             {STEPS.map((s, i) => (
@@ -573,7 +502,7 @@ export default function HomePage() {
               playsInline
               preload="metadata"
               className="step-video"
-              aria-label="Démonstration de la plateforme Concorde Workforce"
+              aria-label={t('homePage.how.videoAria')}
             />
           </div>
         </div>
@@ -582,9 +511,9 @@ export default function HomePage() {
       {/* PRICING */}
       <section id="pricing" className="pricing-section">
         <div style={{ textAlign: 'center', marginBottom: 0 }}>
-          <div className="section-tag" style={{ justifyContent: 'center' }}>Tarifs</div>
+          <div className="section-tag" style={{ justifyContent: 'center' }}>{t('homePage.pricing.tag')}</div>
           <h2 className="section-title" style={{ margin: '0 auto', textAlign: 'center' }}>
-            Un tarif <span className="accent">transparent</span>,<br />zéro surprise
+            {t('homePage.pricing.titleA')} <span className="accent">{t('homePage.pricing.titleAccent')}</span>{t('homePage.pricing.titleB')}
           </h2>
           {/* Annonce commerciale "Conditions privilégiées" — ton or pour rester
               cohérent avec le bandeau Early Launch et le pack Premium. Placée
@@ -603,101 +532,85 @@ export default function HomePage() {
             }}
           >
             <div style={{ color: '#92400e', fontWeight: 800, fontSize: 15, marginBottom: 4, letterSpacing: 0.2 }}>
-              💎 Conditions tarifaires privilégiées
+              {t('homePage.pricing.bannerTitle')}
             </div>
             <div style={{ color: '#7c5a0b', fontWeight: 500, fontSize: 13.5, lineHeight: 1.55 }}>
-              Bénéficiez actuellement de conditions tarifaires privilégiées sur l'ensemble de nos offres SaaS professionnelles.
+              {t('homePage.pricing.bannerText')}
             </div>
           </div>
           <p className="section-sub" style={{ margin: '16px auto 48px', textAlign: 'center' }}>
-            Forfait mensuel par société · Salariés inclus + tarif par employé supplémentaire.
+            {t('homePage.pricing.sub')}
           </p>
         </div>
         <div className="pricing-toggle">
-          <button type="button" className={`toggle-btn${monthly ? ' active' : ''}`} onClick={() => setBillingCycle('monthly')}>Mensuel</button>
-          <button type="button" className={`toggle-btn${!monthly ? ' active' : ''}`} onClick={() => setBillingCycle('annual')}>Engagement annuel</button>
+          <button type="button" className={`toggle-btn${monthly ? ' active' : ''}`} onClick={() => setBillingCycle('monthly')}>{t('homePage.pricing.monthly')}</button>
+          <button type="button" className={`toggle-btn${!monthly ? ' active' : ''}`} onClick={() => setBillingCycle('annual')}>{t('homePage.pricing.annual')}</button>
         </div>
         <div className="pricing-grid reveal">
 
           {/* ── STARTER ── */}
           <div className="price-card">
-            <div className="price-tier">Starter</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 4 }}>À partir de</div>
+            <div className="price-tier">{t('homePage.pricing.starterTier')}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 4 }}>{t('homePage.pricing.from')}</div>
             <div className="price-amount">
               <span className="currency">€</span>{prices.starter}<span className="period">{pricePeriod}</span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 600, fontStyle: 'italic', marginTop: 4 }}>
               {monthly ? (
-                <span style={{ color: '#16a34a' }}>✓ Sans engagement de durée</span>
+                <span style={{ color: '#16a34a' }}>{t('homePage.pricing.noCommitment')}</span>
               ) : (
-                <span style={{ color: '#0040a1' }}>✓ Engagement annuel · conditions préférentielles</span>
+                <span style={{ color: '#0040a1' }}>{t('homePage.pricing.annualPref')}</span>
               )}
             </div>
             {!monthly && (
               <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ fontSize: 17, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
-                  {formatPrice(monthlyBase.starter)} € HT / mois
+                  {t('homePage.pricing.perMonthStrike', { price: formatPrice(monthlyBase.starter) })}
                 </span>
                 <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>
-                  Économie : {formatPrice(annualSavings.starter)} € HT / an
+                  {t('homePage.pricing.savings', { amount: formatPrice(annualSavings.starter) })}
                 </span>
               </div>
             )}
-            <div className="price-included" style={{ marginTop: 12 }}>10 collaborateurs inclus · 10 Go stockage sécurisé</div>
+            <div className="price-included" style={{ marginTop: 12 }}>{t('homePage.pricing.starterIncluded')}</div>
             <div className="price-per">{priceCommitmentLabel}</div>
             <ul className="price-desc-list">
-              <li>Pointage web &amp; mobile (iOS / Android)</li>
-              <li>Gestion RH essentielle (fiches, contrats)</li>
-              <li>Gestion congés &amp; absences</li>
-              <li>Tableau de bord simplifié · exports PDF / Excel</li>
-              <li>Notifications essentielles</li>
-              <li>10 Go stockage sécurisé · Hébergement France OVH</li>
-              <li>Multi utilisateurs</li>
+              {(t('homePage.pricing.starterFeatures', { returnObjects: true }) as string[]).map((f, i) => <li key={i}>{f}</li>)}
             </ul>
-            <button type="button" className="btn-plan btn-plan-ghost" onClick={() => goToPlanConfig('Starter')}>Essayer 30 jours gratuit</button>
+            <button type="button" className="btn-plan btn-plan-ghost" onClick={() => goToPlanConfig('Starter')}>{t('homePage.pricing.trialBtn')}</button>
           </div>
 
           {/* ── STANDARD ── */}
           <div className="price-card featured">
-            <div className="popular-badge">⭐ Le plus populaire</div>
-            <div className="price-tier" style={{ marginTop: 10 }}>Standard</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 4 }}>À partir de</div>
+            <div className="popular-badge">{t('homePage.pricing.popular')}</div>
+            <div className="price-tier" style={{ marginTop: 10 }}>{t('homePage.pricing.standardTier')}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 4 }}>{t('homePage.pricing.from')}</div>
             <div className="price-amount">
               <span className="currency">€</span>{prices.standard}<span className="period">{pricePeriod}</span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 600, fontStyle: 'italic', marginTop: 4 }}>
               {monthly ? (
-                <span style={{ color: '#16a34a' }}>✓ Sans engagement de durée</span>
+                <span style={{ color: '#16a34a' }}>{t('homePage.pricing.noCommitment')}</span>
               ) : (
-                <span style={{ color: '#0040a1' }}>✓ Engagement annuel · conditions préférentielles</span>
+                <span style={{ color: '#0040a1' }}>{t('homePage.pricing.annualPref')}</span>
               )}
             </div>
             {!monthly && (
               <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ fontSize: 17, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
-                  {formatPrice(monthlyBase.standard)} € HT / mois
+                  {t('homePage.pricing.perMonthStrike', { price: formatPrice(monthlyBase.standard) })}
                 </span>
                 <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>
-                  Économie : {formatPrice(annualSavings.standard)} € HT / an
+                  {t('homePage.pricing.savings', { amount: formatPrice(annualSavings.standard) })}
                 </span>
               </div>
             )}
-            <div className="price-included" style={{ marginTop: 12 }}>25 collaborateurs inclus · 50 Go stockage sécurisé</div>
+            <div className="price-included" style={{ marginTop: 12 }}>{t('homePage.pricing.standardIncluded')}</div>
             <div className="price-per">{priceCommitmentLabel}</div>
             <ul className="price-desc-list">
-              <li>Tout le pack Starter</li>
-              <li>Application mobile + géolocalisation</li>
-              <li>Coffre numérique &amp; signature électronique</li>
-              <li>Import Excel en masse (employés, services, fonctions, rubriques…)</li>
-              <li>Préparation paie · export paie</li>
-              <li>Multi-sites simple</li>
-              <li>Congés, RTT, CET, sanctions</li>
-              <li>Notifications push / email · Reporting avancé</li>
-              <li>50 Go stockage sécurisé · Hébergement France OVH</li>
-              <li>Multi utilisateurs</li>
-              <li>Idéal : PME en croissance · équipes terrain · structures multi-sites · gestion RH centralisée</li>
+              {(t('homePage.pricing.standardFeatures', { returnObjects: true }) as string[]).map((f, i) => <li key={i}>{f}</li>)}
             </ul>
-            <button type="button" className="btn-plan btn-plan-primary" onClick={() => goToPlanConfig('Standard')}>Essayer 30 jours gratuit</button>
+            <button type="button" className="btn-plan btn-plan-primary" onClick={() => goToPlanConfig('Standard')}>{t('homePage.pricing.trialBtn')}</button>
           </div>
 
           {/* ── BUSINESS ── */}
@@ -717,42 +630,33 @@ export default function HomePage() {
               padding: '4px 12px', borderRadius: 999,
               letterSpacing: '0.08em', textTransform: 'uppercase',
               boxShadow: '0 4px 10px rgba(184,134,11,0.32)',
-            }}>★ Haut de gamme</div>
-            <div className="price-tier" style={{ color: '#b8860b' }}>Premium</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#b8860b', marginBottom: 4 }}>À partir de</div>
+            }}>{t('homePage.pricing.premiumBadge')}</div>
+            <div className="price-tier" style={{ color: '#b8860b' }}>{t('homePage.pricing.premiumTier')}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#b8860b', marginBottom: 4 }}>{t('homePage.pricing.from')}</div>
             <div className="price-amount" style={{ color: '#92670a' }}>
               <span className="currency">€</span>{prices.premium}<span className="period" style={{ color: '#b8860b' }}>{pricePeriod}</span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 600, fontStyle: 'italic', marginTop: 4 }}>
               {monthly ? (
-                <span style={{ color: '#16a34a' }}>✓ Sans engagement de durée</span>
+                <span style={{ color: '#16a34a' }}>{t('homePage.pricing.noCommitment')}</span>
               ) : (
-                <span style={{ color: '#b8860b' }}>✓ Engagement annuel · conditions préférentielles</span>
+                <span style={{ color: '#b8860b' }}>{t('homePage.pricing.annualPref')}</span>
               )}
             </div>
             {!monthly && (
               <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ fontSize: 17, fontWeight: 700, color: '#cbb778', textDecoration: 'line-through' }}>
-                  {formatPrice(monthlyBase.premium)} € HT / mois
+                  {t('homePage.pricing.perMonthStrike', { price: formatPrice(monthlyBase.premium) })}
                 </span>
                 <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>
-                  Économie : {formatPrice(annualSavings.premium)} € HT / an
+                  {t('homePage.pricing.savings', { amount: formatPrice(annualSavings.premium) })}
                 </span>
               </div>
             )}
-            <div className="price-included" style={{ marginTop: 12 }}>50 collaborateurs inclus · 200 Go stockage sécurisé</div>
+            <div className="price-included" style={{ marginTop: 12 }}>{t('homePage.pricing.premiumIncluded')}</div>
             <div className="price-per">{priceCommitmentLabel}</div>
             <ul className="price-desc-list">
-              <li>Tout le pack Standard</li>
-              <li>Multi-filiales sur devis · tableaux de bord avancés</li>
-              <li>Sécurité renforcée</li>
-              <li>Audit logs avancés</li>
-              <li>Supervision avancée</li>
-              <li>200 Go stockage sécurisé · Hébergement France OVH</li>
-              <li>Administrateurs illimités · Onboarding accompagné</li>
-              <li>SLA prioritaire</li>
-              <li>API &amp; futures intégrations</li>
-              <li>Idéal : PME structurées · groupes multi-sites · conformité &amp; sécurité avancées · organisations en croissance</li>
+              {(t('homePage.pricing.premiumFeatures', { returnObjects: true }) as string[]).map((f, i) => <li key={i}>{f}</li>)}
             </ul>
             <button
               type="button"
@@ -764,7 +668,7 @@ export default function HomePage() {
                 boxShadow: '0 6px 18px rgba(184,134,11,0.32)',
               }}
             >
-              Essayer 30 jours gratuit
+              {t('homePage.pricing.trialBtn')}
             </button>
           </div>
 
@@ -792,14 +696,14 @@ export default function HomePage() {
                 borderRadius: 99, padding: '3px 12px', fontSize: 10, fontWeight: 800,
                 letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', marginBottom: 12,
               }}>
-                ★ Sur mesure
+                {t('homePage.pricing.enterpriseBadge')}
               </div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 6 }}>Enterprise Plus</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 6 }}>{t('homePage.pricing.enterpriseTier')}</div>
               <div style={{ fontSize: 28, fontWeight: 800, color: '#fde68a', letterSpacing: '-0.02em', lineHeight: 1 }}>
-                Sur devis
+                {t('homePage.pricing.enterpriseQuote')}
               </div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6, lineHeight: 1.5 }}>
-                Tarification personnalisée<br />selon votre structure &amp; volume
+                {t('homePage.pricing.enterpriseDesc')}
               </div>
               {/* CTA redirigé vers le site corporate Concorde Tech Innovation
                   (page contact) — c'est une offre sur mesure, le checkout
@@ -815,7 +719,7 @@ export default function HomePage() {
                 }}
                 onClick={goToConcordeTechContact}
               >
-                Demander un devis →
+                {t('homePage.pricing.enterpriseCta')}
               </button>
             </div>
 
@@ -825,21 +729,13 @@ export default function HomePage() {
             {/* Droite : features en 2 colonnes */}
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>
-                Tout le pack Premium, plus :
+                {t('homePage.pricing.enterprisePlusTitle')}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 32px' }}>
-                {[
-                  'IA RH avancée',
-                  'Recherche documentaire intelligente',
-                  'Workflows intelligents',
-                  'API avancées &amp; SSO',
-                  'Hébergement dédié possible',
-                  'Architecture sur mesure',
-                  'Déploiement multi-entités',
-                ].map((f, i) => (
+                {(t('homePage.pricing.enterpriseFeatures', { returnObjects: true }) as string[]).map((f, i) => (
                   <div key={i} style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', gap: 7 }}>
                     <span style={{ color: '#fde68a', fontWeight: 800, fontSize: 11 }}>✓</span>
-                    <span dangerouslySetInnerHTML={{ __html: f }} />
+                    <span>{f}</span>
                   </div>
                 ))}
               </div>
@@ -849,7 +745,7 @@ export default function HomePage() {
         </div>
 
         <div className="pricing-footnote">
-          Sans engagement de durée · TVA en sus · Facturation Stripe sécurisée
+          {t('homePage.pricing.footnote')}
         </div>
 
         {/* Informations commerciales — bloc légal/marketing en petite typographie
@@ -874,30 +770,17 @@ export default function HomePage() {
             fontSize: 10, fontWeight: 800, color: '#0040a1',
             textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10,
           }}>
-            Informations commerciales
+            {t('homePage.pricing.infoTitle')}
           </div>
           <div style={{ marginBottom: 8, fontWeight: 600, color: '#334155' }}>
-            Conditions tarifaires susceptibles d'évoluer selon :
+            {t('homePage.pricing.infoLead')}
           </div>
           <ul style={{ margin: 0, paddingLeft: 18, marginBottom: 12 }}>
-            <li>les fonctionnalités activées ;</li>
-            <li>le volume d'utilisation ;</li>
-            <li>le nombre d'utilisateurs ;</li>
-            <li>les modules complémentaires ;</li>
-            <li>les besoins de stockage ;</li>
-            <li>et les futures évolutions de la plateforme.</li>
+            {(t('homePage.pricing.infoItems', { returnObjects: true }) as string[]).map((it, i) => <li key={i}>{it}</li>)}
           </ul>
-          <p style={{ margin: '0 0 6px 0' }}>
-            Les abonnements <strong>annuels</strong> bénéficient de conditions tarifaires préférentielles.
-            Les abonnements <strong>mensuels</strong> restent disponibles aux tarifs standards affichés.
-          </p>
-          <p style={{ margin: '0 0 6px 0' }}>
-            Les fonctionnalités <strong>IA avancées</strong> peuvent nécessiter l'activation de modules
-            ou options complémentaires selon les usages et la volumétrie.
-          </p>
-          <p style={{ margin: 0 }}>
-            <strong>Déploiement et accompagnement</strong> possibles selon les besoins du client.
-          </p>
+          <p style={{ margin: '0 0 6px 0' }}>{t('homePage.pricing.infoP1')}</p>
+          <p style={{ margin: '0 0 6px 0' }}>{t('homePage.pricing.infoP2')}</p>
+          <p style={{ margin: 0 }}>{t('homePage.pricing.infoP3')}</p>
         </div>
       </section>
 
@@ -909,45 +792,45 @@ export default function HomePage() {
           regroupées par catégorie) est inspirée de la grille tarifaire dougs.fr.
           ──────────────────────────────────────────────────────────────────── */}
       <section id="comparison" className="comparison-section">
-        <div className="section-tag" style={{ margin: '0 auto', textAlign: 'center', display: 'block' }}>Comparatif détaillé</div>
+        <div className="section-tag" style={{ margin: '0 auto', textAlign: 'center', display: 'block' }}>{t('homePage.comparison.tag')}</div>
         <h2 className="section-title" style={{ margin: '8px auto 0', textAlign: 'center' }}>
-          Tout ce qui est inclus dans <span className="accent">chaque pack</span>
+          {t('homePage.comparison.titleA')} <span className="accent">{t('homePage.comparison.titleAccent')}</span>
         </h2>
         <p className="section-sub" style={{ margin: '12px auto 36px', textAlign: 'center' }}>
-          La matrice complète des modules et fonctionnalités, pack par pack. Choisissez en toute transparence.
+          {t('homePage.comparison.sub')}
         </p>
 
         <div className="comparison-wrapper">
           <table className="comparison-table">
             <thead>
               <tr>
-                <th className="comp-corner">Fonctionnalités</th>
+                <th className="comp-corner">{t('homePage.comparison.corner')}</th>
                 <th className="comp-plan">
-                  <div className="comp-plan-name">Starter</div>
+                  <div className="comp-plan-name">{t('homePage.pricing.starterTier')}</div>
                   <div className="comp-plan-price">
-                    à partir de <strong>{prices.starter} €</strong> HT{pricePeriod}
+                    {t('homePage.comparison.fromShort')} <strong>{prices.starter} €</strong> HT{pricePeriod}
                   </div>
                   <button type="button" className="comp-cta" onClick={() => goToPlanConfig('Starter')}>
-                    Essai gratuit
+                    {t('homePage.comparison.trial')}
                   </button>
                 </th>
                 <th className="comp-plan comp-plan-featured">
-                  <div className="comp-plan-badge">⭐ Le plus populaire</div>
-                  <div className="comp-plan-name">Standard</div>
+                  <div className="comp-plan-badge">{t('homePage.pricing.popular')}</div>
+                  <div className="comp-plan-name">{t('homePage.pricing.standardTier')}</div>
                   <div className="comp-plan-price">
-                    à partir de <strong>{prices.standard} €</strong> HT{pricePeriod}
+                    {t('homePage.comparison.fromShort')} <strong>{prices.standard} €</strong> HT{pricePeriod}
                   </div>
                   <button type="button" className="comp-cta comp-cta-primary" onClick={() => goToPlanConfig('Standard')}>
-                    Essai gratuit
+                    {t('homePage.comparison.trial')}
                   </button>
                 </th>
                 <th className="comp-plan comp-plan-premium-th">
-                  <div className="comp-plan-name" style={{ color: '#b8860b' }}>Premium</div>
+                  <div className="comp-plan-name" style={{ color: '#b8860b' }}>{t('homePage.pricing.premiumTier')}</div>
                   <div className="comp-plan-price">
-                    à partir de <strong>{prices.premium} €</strong> HT{pricePeriod}
+                    {t('homePage.comparison.fromShort')} <strong>{prices.premium} €</strong> HT{pricePeriod}
                   </div>
                   <button type="button" className="comp-cta comp-cta-premium" onClick={() => goToPlanConfig('Premium')}>
-                    Essai gratuit
+                    {t('homePage.comparison.trial')}
                   </button>
                 </th>
               </tr>
@@ -982,18 +865,18 @@ export default function HomePage() {
       <div className="promo-cta-wrap">
         <div className="promo-cta reveal">
           <div className="promo-cta-badge">
-            🎁 Essai gratuit 1 mois — sans carte bancaire
+            {t('homePage.promo.badge')}
           </div>
-          <h2>Rejoignez les entreprises<br />qui ont fait le choix de la sérénité.</h2>
-          <p>Testez Concorde Workforce gratuitement pendant 1 mois — sans CB, sans engagement.<br />Déploiement en 2 semaines · Support francophone humain · ROI mesurable dès J+30.</p>
+          <h2>{t('homePage.promo.titleA')}<br />{t('homePage.promo.titleB')}</h2>
+          <p>{t('homePage.promo.textA')}<br />{t('homePage.promo.textB')}</p>
           <div className="promo-features">
-            <div className="promo-feat-item"><span className="promo-feat-check">✓</span> 1 mois gratuit sans CB</div>
-            <div className="promo-feat-item"><span className="promo-feat-check">✓</span> Onboarding expert inclus</div>
-            <div className="promo-feat-item"><span className="promo-feat-check">✓</span> Sans engagement de durée</div>
-            <div className="promo-feat-item"><span className="promo-feat-check">✓</span> Annulation en 1 clic</div>
+            <div className="promo-feat-item"><span className="promo-feat-check">✓</span> {t('homePage.promo.feat1')}</div>
+            <div className="promo-feat-item"><span className="promo-feat-check">✓</span> {t('homePage.promo.feat2')}</div>
+            <div className="promo-feat-item"><span className="promo-feat-check">✓</span> {t('homePage.promo.feat3')}</div>
+            <div className="promo-feat-item"><span className="promo-feat-check">✓</span> {t('homePage.promo.feat4')}</div>
           </div>
           <button type="button" className="btn-cta-light" onClick={() => goToSignup()}>
-            Démarrer mon essai gratuit →
+            {t('homePage.promo.cta')}
           </button>
         </div>
       </div>
@@ -1007,36 +890,36 @@ export default function HomePage() {
               <span>Concorde Workforce</span>
             </div>
             <div className="footer-desc">
-              La plateforme RH &amp; pointage conçue pour les équipes terrain en Afrique francophone et en Europe. Contrôle, conformité, sérénité.
+              {t('homePage.footer.desc')}
             </div>
             <div className="footer-flags">🇫🇷 🇧🇪 🇲🇦 🇸🇳</div>
           </div>
           <div className="footer-col">
-            <h4>Produit</h4>
+            <h4>{t('homePage.footer.productTitle')}</h4>
             <div className="footer-links">
-              <a href="#pricing">Tarifs</a>
-              <a href="#how">Démo</a>
-              <a href="#download">Application mobile</a>
-              <a href="/download">concordeworkly.com</a>
-              <a href="#temoignages">Cas clients</a>
+              <a href="#pricing">{t('homePage.footer.productPricing')}</a>
+              <a href="#how">{t('homePage.footer.productDemo')}</a>
+              <a href="#download">{t('homePage.footer.productMobile')}</a>
+              <a href="/download">{t('homePage.footer.productSite')}</a>
+              <a href="#temoignages">{t('homePage.footer.productCases')}</a>
             </div>
           </div>
           <div className="footer-col">
-            <h4>Ressources</h4>
+            <h4>{t('homePage.footer.resourcesTitle')}</h4>
             <div className="footer-links">
-              <a onClick={() => navigate('/contact-sales')}>Contact commercial</a>
-              <a onClick={() => navigate('/about')}>À propos</a>
-              <a onClick={() => navigate('/login')}>Se connecter</a>
-              <a onClick={() => navigate('/signup')}>Créer un compte</a>
+              <a onClick={() => navigate('/contact-sales')}>{t('homePage.footer.resourcesContact')}</a>
+              <a onClick={() => navigate('/about')}>{t('homePage.footer.resourcesAbout')}</a>
+              <a onClick={() => navigate('/login')}>{t('homePage.footer.resourcesLogin')}</a>
+              <a onClick={() => navigate('/signup')}>{t('homePage.footer.resourcesSignup')}</a>
             </div>
           </div>
         </div>
         <div className="footer-bottom">
-          <span>© 2026 Concorde Workforce · Tous droits réservés</span>
+          <span>{t('homePage.footer.copyright')}</span>
           <span className="footer-bottom-links">
-            <a href="/confidentialite">Confidentialité</a>
-            <a href="/cgu">CGU</a>
-            <a href="/mentions-legales">Mentions légales</a>
+            <a href="/confidentialite">{t('homePage.footer.privacy')}</a>
+            <a href="/cgu">{t('homePage.footer.cgu')}</a>
+            <a href="/mentions-legales">{t('homePage.footer.legal')}</a>
           </span>
         </div>
       </footer>
@@ -1059,7 +942,11 @@ export default function HomePage() {
           <CloseIcon />
         </IconButton>
         <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
-          <InlineAuthCard defaultTab="register" hidePlanPicker />
+          {/* Wrapper .home-page : réinjecte les variables CSS --hp-* et les styles
+              scopés de la carte d'auth (le Dialog est portalisé hors de .home-page). */}
+          <div className="home-page home-page-dialog">
+            <InlineAuthCard defaultTab="register" hidePlanPicker />
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -25,6 +25,12 @@ interface TransferResult {
   totalJoursTransferes: number;
   details: TransferLine[];
 }
+interface SoldeLine {
+  empcod: string;
+  emplib?: string | null;
+  annee?: string | null;
+  cetjours: number;
+}
 
 const CetPage: React.FC = () => {
   const { t } = useTranslation();
@@ -33,11 +39,24 @@ const CetPage: React.FC = () => {
   const [maxJours, setMaxJours] = useState<number>(10);
   const [annee, setAnnee] = useState(String(new Date().getFullYear()));
   const [preview, setPreview] = useState<TransferResult | null>(null);
+  const [soldes, setSoldes] = useState<SoldeLine[]>([]);
   const [openConfirm, setOpenConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const feedback = useFeedbackSnackbar();
 
   const canModify = hasPermission('Données de Base', 'modify');
+
+  // Charge l'état réel des soldes CET cumulés par salarié (vue de consultation permanente,
+  // indépendante de l'aperçu/transfert). La réponse .NET peut être enveloppée ($values).
+  const loadSoldes = () => {
+    if (!soccod) return;
+    apiInstance.get(`/Cet/soldes/${soccod}`)
+      .then(({ data }) => {
+        const list: SoldeLine[] = Array.isArray(data) ? data : ((data as any)?.$values ?? []);
+        setSoldes(list);
+      })
+      .catch(() => { /* silencieux : la consultation reste vide en cas d'erreur */ });
+  };
 
   useEffect(() => {
     if (!soccod) return;
@@ -47,6 +66,8 @@ const CetPage: React.FC = () => {
         setMaxJours(typeof data?.maxjours === 'number' ? data.maxjours : 10);
       })
       .catch(() => { /* defaults already set */ });
+    loadSoldes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [soccod]);
 
   if (!hasPermission('Données de Base', 'consult')) {
@@ -92,6 +113,7 @@ const CetPage: React.FC = () => {
     try {
       const { data } = await apiInstance.post<TransferResult>(`/Cet/apply/${soccod}/${annee}`);
       setPreview(data);
+      loadSoldes(); // rafraîchit la consultation des soldes CET après le transfert
       feedback.showSuccess(t('conge.cet.msg.applySuccess', { employees: data.employesTraites, days: data.totalJoursTransferes }));
     } catch (e) {
       feedback.showError(e, t('conge.cet.msg.applyError'));
@@ -150,9 +172,16 @@ const CetPage: React.FC = () => {
       {/* Application du transfert */}
       <Box sx={{ p: 4, borderRadius: 3, border: '1px solid #e2e8f0', bgcolor: '#fff', mt: 3 }}>
         <Typography sx={{ fontSize: 16, fontWeight: 700, mb: 1, color: '#191c1e' }}>{t('conge.cet.apply.title')}</Typography>
-        <Typography sx={{ fontSize: 13, color: '#475569', mb: 3 }}>
+        <Typography sx={{ fontSize: 13, color: '#475569', mb: 2 }}>
           {t('conge.cet.apply.description')}
         </Typography>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', p: 1.5, mb: 3, borderRadius: 2, bgcolor: '#fff7ed', border: '1px solid #fed7aa' }}>
+          <Typography sx={{ fontSize: 13, color: '#9a3412' }}>
+            {t('conge.cet.apply.manualNote', {
+              defaultValue: 'Le transfert est une action manuelle : il ne se déclenche pas automatiquement à la date limite (celle-ci est seulement indicative). Lancez d’abord un Aperçu, puis cliquez sur Appliquer pour épargner les congés non pris vers le CET.',
+            })}
+          </Typography>
+        </Box>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
           <TextField
             label={t('conge.cet.apply.year')}
@@ -218,6 +247,44 @@ const CetPage: React.FC = () => {
           )}
         </Box>
       )}
+
+      {/* Consultation permanente : solde CET cumulé par salarié */}
+      <Box sx={{ p: 4, borderRadius: 3, border: '1px solid #e2e8f0', bgcolor: '#fff', mt: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+          <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#191c1e' }}>
+            {t('conge.cet.balances.title', { defaultValue: 'Soldes CET cumulés' })}
+          </Typography>
+          <Button variant="outlined" size="small" onClick={loadSoldes} disabled={loading} sx={{ textTransform: 'none', fontWeight: 700 }}>
+            {t('conge.cet.balances.refresh', { defaultValue: 'Actualiser' })}
+          </Button>
+        </Box>
+        {soldes.length === 0 ? (
+          <Typography sx={{ color: '#64748b', textAlign: 'center', py: 3 }}>
+            {t('conge.cet.balances.empty', { defaultValue: 'Aucun solde CET enregistré pour le moment.' })}
+          </Typography>
+        ) : (
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>{t('conge.cet.balances.empcod', { defaultValue: 'Matricule' })}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t('conge.cet.balances.name', { defaultValue: 'Salarié' })}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">{t('conge.cet.balances.cet', { defaultValue: 'CET cumulé' })}</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {soldes.map((s) => (
+                <TableRow key={s.empcod}>
+                  <TableCell sx={{ fontWeight: 600 }}>{s.empcod}</TableCell>
+                  <TableCell>{s.emplib || '—'}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, color: s.cetjours > 0 ? '#7c3aed' : '#94a3b8' }}>
+                    {(s.cetjours ?? 0).toFixed(1)} j
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </Box>
 
       <Dialog open={openConfirm} onClose={() => setOpenConfirm(false)}>
         <DialogTitle>{t('conge.cet.confirm.title')}</DialogTitle>

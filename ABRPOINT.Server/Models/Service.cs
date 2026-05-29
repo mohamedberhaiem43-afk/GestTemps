@@ -25,6 +25,16 @@ public partial class Service : BaseEntity
     [StringLength(1)]
     public string? Serloc { get; set; }
 
+    // Localisation (texte libre) du service — distincte de Serloc qui est un flag O/N
+    // « service externe ». Ajoutée pour l'écran Structure organisationnelle.
+    [Column("serlieu")]
+    [StringLength(60)]
+    public string? Serlieu { get; set; }
+
+    [Column("seremail")]
+    [StringLength(256)]
+    public string? Seremail { get; set; }
+
     [Column("effectif")]
     public int? Effectif { get; set; }
 }

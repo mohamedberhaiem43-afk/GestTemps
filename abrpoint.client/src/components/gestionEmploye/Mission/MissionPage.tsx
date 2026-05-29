@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box, Typography, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, MenuItem, Chip, Snackbar, Alert, CircularProgress, Tooltip, InputAdornment, Skeleton
@@ -194,6 +194,15 @@ const MissionPage: React.FC = () => {
 
   const noNatures = !naturesQ.isLoading && (naturesQ.data ?? []).length === 0;
 
+  // La nature d'absence est figée sur « Formation et mission » (l'endpoint natures ne
+  // renvoie QUE des natures abscng=6) et n'est plus affichée dans le formulaire pour
+  // alléger la saisie. On l'affecte automatiquement à l'ouverture d'une création.
+  useEffect(() => {
+    if (dialogOpen && editingId == null && !form.abscod && naturesQ.data?.length) {
+      setForm(f => ({ ...f, abscod: naturesQ.data![0].abscod }));
+    }
+  }, [dialogOpen, editingId, form.abscod, naturesQ.data]);
+
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: 'auto' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 2 }}>
@@ -372,20 +381,8 @@ const MissionPage: React.FC = () => {
                 ))}
               </TextField>
             )}
-            <TextField
-              label={t('mission.dialog.absenceNature')}
-              size="small"
-              select
-              required
-              value={form.abscod}
-              onChange={e => setForm({ ...form, abscod: e.target.value })}
-              helperText={noNatures ? t('mission.dialog.absenceHintNone') : t('mission.dialog.absenceHintAvailable')}
-              disabled={noNatures}
-            >
-              {(naturesQ.data ?? []).map(n => (
-                <MenuItem key={n.abscod} value={n.abscod}>{n.abscod} — {n.abslib}</MenuItem>
-              ))}
-            </TextField>
+            {/* Nature d'absence masquée : auto-affectée à « Formation et mission »
+                (cf. effet ci-dessus) pour minimiser les champs de saisie. */}
             <TextField
               label={t('mission.dialog.object')}
               size="small"

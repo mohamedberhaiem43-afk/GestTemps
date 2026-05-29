@@ -25,6 +25,10 @@ public partial class Section : BaseEntity
     [StringLength(10)]
     public string? Sectype { get; set; }
 
+    [Column("secemail")]
+    [StringLength(256)]
+    public string? Secemail { get; set; }
+
     [Column("effectif")]
     public int? Effectif { get; set; }
 }

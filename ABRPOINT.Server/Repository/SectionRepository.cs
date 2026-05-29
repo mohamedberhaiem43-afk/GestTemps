@@ -90,6 +90,7 @@ namespace ABRPOINT.Server.Repository
 
             if (entity.Seclib != null) existing.Seclib = entity.Seclib;
             if (entity.Sectype != null) existing.Sectype = entity.Sectype;
+            if (entity.Secemail != null) existing.Secemail = entity.Secemail;
             if (entity.Effectif != null) existing.Effectif = entity.Effectif;
             await _dbContext.SaveChangesAsync();
         }

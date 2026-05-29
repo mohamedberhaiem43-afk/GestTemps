@@ -55,6 +55,38 @@ namespace ABRPOINT.Server.Controllers
             public List<CetTransferLine> Details { get; set; } = new();
         }
 
+        public sealed class CetSoldeLine
+        {
+            public string Empcod { get; set; } = string.Empty;
+            public string? Emplib { get; set; }
+            public string? Annee { get; set; }
+            public float Cetjours { get; set; }
+        }
+
+        /// <summary>
+        /// Liste permanente des soldes CET cumulés par salarié pour la société. Permet de
+        /// consulter à tout moment l'état réel du CET (indépendamment d'un aperçu/transfert).
+        /// </summary>
+        [HttpGet("soldes/{soccod}")]
+        public async Task<IActionResult> GetSoldes(string soccod)
+        {
+            var list = await (
+                from s in _db.Soldes
+                join e in _db.Employes on new { s.Soccod, s.Empcod } equals new { e.Soccod, e.Empcod } into ej
+                from e in ej.DefaultIfEmpty()
+                where s.Soccod == soccod
+                select new CetSoldeLine
+                {
+                    Empcod = s.Empcod,
+                    Emplib = e != null ? e.Emplib : null,
+                    Annee = s.Annee,
+                    Cetjours = s.Cetjours ?? 0f,
+                }).ToListAsync();
+
+            // Comptes alimentés en premier, puis tri par matricule.
+            return Ok(list.OrderByDescending(x => x.Cetjours).ThenBy(x => x.Empcod).ToList());
+        }
+
         /// <summary>Renvoie les paramètres CET pour la société. Crée la ligne par défaut si absente.</summary>
         [HttpGet("parametres/{soccod}")]
         public async Task<IActionResult> GetParametres(string soccod)

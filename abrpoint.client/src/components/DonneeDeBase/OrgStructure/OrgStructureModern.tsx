@@ -11,7 +11,7 @@ import MapIcon from '@mui/icons-material/Map';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import FileDownloadIcon from '@mui/icons-material/FileUpload';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import BadgeIcon from '@mui/icons-material/Badge';
 import LocationCityIcon from '@mui/icons-material/LocationCity';
@@ -89,7 +89,7 @@ function OrgStructureContent() {
     }));
     const srvs: OrgUnit[] = services.map((s: any) => ({
       code: s.sercod, libelle: s.serlib, type: 'service' as const,
-      location: s.serloc || '', email: s.seremail || s.sermail || s.email || '', responsable: '', soccod: s.soccod,
+      location: s.serlieu || '', email: s.seremail || s.sermail || s.email || '', responsable: '', soccod: s.soccod,
     }));
     const secs: OrgUnit[] = sections.map((s: any) => ({
       code: s.seccod, libelle: s.seclib || '', type: 'section' as const,
@@ -120,13 +120,13 @@ function OrgStructureContent() {
     try {
       if (editUnit) {
         if (dialogMode === 'direction') await apiInstance.put(`/Directions`, { soccod, dircod: form.code, dirlib: form.libelle, dirloc: form.location, diremail: form.email });
-        else if (dialogMode === 'service') await apiInstance.put(`/Services/${soccod}/${form.code}`, { soccod, sercod: form.code, serlib: form.libelle, serloc: form.location, seremail: form.email, sermail: form.email });
-        else await apiInstance.put(`/Sections/${soccod}/${form.code}`, { soccod, seccod: form.code, seclib: form.libelle, secemail: form.email, secmail: form.email });
+        else if (dialogMode === 'service') await apiInstance.put(`/Services/${soccod}/${form.code}`, { soccod, sercod: form.code, serlib: form.libelle, serlieu: form.location, seremail: form.email });
+        else await apiInstance.put(`/Sections/${soccod}/${form.code}`, { soccod, seccod: form.code, seclib: form.libelle, secemail: form.email });
         feedback.showSuccess(t('donneeBase.orgStructure.msg.updated'));
       } else {
         if (dialogMode === 'direction') await apiInstance.post(`/Directions`, { soccod, dircod: form.code, dirlib: form.libelle, dirloc: form.location, diremail: form.email });
-        else if (dialogMode === 'service') await apiInstance.post(`/Services`, { soccod, sercod: form.code || undefined, serlib: form.libelle, serloc: form.location, effectif: 0, seremail: form.email, sermail: form.email });
-        else await apiInstance.post(`/Sections`, { soccod, seccod: form.code || undefined, seclib: form.libelle, effectif: 0, secemail: form.email, secmail: form.email });
+        else if (dialogMode === 'service') await apiInstance.post(`/Services`, { soccod, sercod: form.code || undefined, serlib: form.libelle, serlieu: form.location, effectif: 0, seremail: form.email });
+        else await apiInstance.post(`/Sections`, { soccod, seccod: form.code || undefined, seclib: form.libelle, effectif: 0, secemail: form.email });
         feedback.showSuccess(t('donneeBase.orgStructure.msg.added'));
       }
       setDialogOpen(false); fetchData();

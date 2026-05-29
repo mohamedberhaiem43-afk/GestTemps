@@ -1220,6 +1220,29 @@
 }
 .home-page .reveal.visible { opacity: 1; transform: translateY(0); }
 
+/* ── InlineAuthCard rendu dans la POPUP d'inscription (Dialog MUI) ──
+   Le Dialog est portalisé HORS de .home-page : ni les variables --hp-* ni les
+   sélecteurs scopés `.home-page .auth-card …` ne s'appliquaient, et la classe
+   `.reveal` (opacity:0 sans l'IntersectionObserver de la home) rendait le
+   formulaire invisible → « design perdu ». On réapplique le contexte .home-page
+   sur un wrapper en neutralisant les propriétés plein-écran et en forçant
+   l'affichage du contenu. */
+.home-page-dialog {
+  min-height: auto;
+  padding-top: 0;
+  background: transparent;
+  overflow-x: visible;
+}
+.home-page-dialog .auth-card {
+  border: none;
+  box-shadow: none;
+  padding: 4px 2px;
+}
+.home-page-dialog .auth-card.reveal {
+  opacity: 1;
+  transform: none;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 1024px) {
   .home-page .features-grid,

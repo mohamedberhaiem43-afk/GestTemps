@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import DownloadIcon from '@mui/icons-material/FileDownload';
+import DownloadIcon from '@mui/icons-material/FileUpload';
 import PrintIcon from '@mui/icons-material/Print';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';

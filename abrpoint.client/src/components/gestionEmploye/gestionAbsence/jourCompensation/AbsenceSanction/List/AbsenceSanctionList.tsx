@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import FileDownloadIcon from '@mui/icons-material/FileUpload';
 import {
   MaterialReactTable,
   useMaterialReactTable,

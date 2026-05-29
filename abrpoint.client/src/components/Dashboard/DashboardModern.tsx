@@ -17,7 +17,7 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import FileDownloadIcon from '@mui/icons-material/FileUpload';
 import TuneIcon from '@mui/icons-material/Tune';
 import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';

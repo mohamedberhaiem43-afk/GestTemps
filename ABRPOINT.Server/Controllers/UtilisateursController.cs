@@ -919,6 +919,9 @@ namespace GestionDesTickets.Server.Controllers
                 soccod,
                 sitcod,
                 soclib,
+                // Pays souscrit (FR/BE/MA/SN/TN/DZ…). Exposé pour les affichages dépendant
+                // du pays côté client (ex : devise dans le cahier de congé). Source : Tenant.
+                countryCode = tenant?.CountryCode,
                 tenantStatus = tenant?.Status,
                 planCode = ABRPOINT.Server.Tenancy.PlanCatalog.Normalize(tenant?.PlanCode),
                 isTrialing,

@@ -860,6 +860,11 @@ const EmployeModernInner = () => {
         };
         const onSuccess = async (res: any) => {
             queryClient.invalidateQueries({ queryKey: ['employe'] });
+            // Invalide aussi toutes les listes d'employés (clé préfixe ['employees', …]) :
+            // useGetEmployee, useGetAllEmployees ET useGetFemmeLibs partagent ce préfixe. Sans
+            // ça, la liste déroulante de la gestion allaitement ne reflétait un changement de
+            // sexe / un nouvel ajout qu'après actualisation manuelle (cache staleTime 5 min).
+            queryClient.invalidateQueries({ queryKey: ['employees'] });
             queryClient.invalidateQueries({ queryKey: ['employee-horaires', soccod, formData.empcod] });
             setIsSaving(false);
             // Animation succès joue à chaque save/update — confirmation visuelle
@@ -1291,21 +1296,10 @@ const EmployeModernInner = () => {
                                         </Box>
                                         <Box>
                                             <Typography sx={labelStyle}>{t('employe.field.birthPlace')}</Typography>
-                                            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
-                                            <DatePicker
-                                                value={formData.empdnais ? dayjs(formData.empdnais) : null}
-                                                onChange={(v) => setFormData(p => ({ ...p, empdnais: v && v.isValid() ? v.format('YYYY-MM-DD') : '' }))}
-                                                format="DD/MM/YYYY"
-                                                views={['year', 'month', 'day']}
-                                                openTo="year"
-                                                minDate={dayjs().subtract(100, 'year')}
-                                                maxDate={dayjs().subtract(16, 'year')}
-                                                slotProps={{
-                                                textField: { size: 'small', fullWidth: true, sx: fieldStyle },
-                                                calendarHeader: { format: 'MMMM YYYY' },
-                                                }}
-                                            />
-                                            </LocalizationProvider>
+                                            {/* Lieu de naissance = chaîne de caractères (emplnais), pas une date.
+                                                Avant : un DatePicker lié par erreur à empdnais (la date de naissance),
+                                                ce qui écrasait la date et empêchait toute saisie textuelle du lieu. */}
+                                            <TextField name="emplnais" value={formData.emplnais || ''} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder="Ex: Paris" />
 
                                         </Box>
                                         <Box>

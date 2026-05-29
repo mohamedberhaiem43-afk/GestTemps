@@ -12,7 +12,7 @@ import { saveAs } from 'file-saver';
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import DownloadIcon from '@mui/icons-material/FileDownload';
+import DownloadIcon from '@mui/icons-material/FileUpload';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PrintIcon from '@mui/icons-material/Print';
 import CloseIcon from '@mui/icons-material/Close';

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { MaterialReactTable, useMaterialReactTable, type MRT_Row, MRT_RowSelectionState, MRT_GlobalFilterTextField, MRT_ToggleFiltersButton, MRT_ColumnDef } from 'material-react-table';
 import { Box, Button, lighten, ListItemIcon, MenuItem } from '@mui/material';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import FileDownloadIcon from '@mui/icons-material/FileUpload';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useGetAllaitement from '../../../hooks/allaitementHooks/useGetAllaitement';

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useGetNoteDeFraisByEmp, useGetNoteDeFraisBySoc } from '../../../hooks/expenseHooks/useGetNoteDeFrais';
 import { useAddNoteDeFrais, useDeleteNoteDeFrais, useUpdateNoteDeFraisStatus } from '../../../hooks/expenseHooks/useAddNoteDeFrais';
 import { NoteDeFrais } from '../../../models/NoteDeFrais';
@@ -192,6 +192,15 @@ function RemboursementModernContent() {
         });
         setQuickMissionOpen(true);
     };
+    // Nature d'absence masquée : figée sur « Formation et mission » (les natures
+    // renvoyées sont toutes abscng=6). Affectation auto si le dialog est ouvert avant
+    // le chargement de la liste — le champ n'est plus affiché pour alléger la saisie.
+    useEffect(() => {
+        if (quickMissionOpen && !quickMission.abscod && missionNatures.length) {
+            setQuickMission(m => ({ ...m, abscod: missionNatures[0].abscod }));
+        }
+    }, [quickMissionOpen, quickMission.abscod, missionNatures]);
+
     const submitQuickMission = async () => {
         if (!quickMission.misobj?.trim() || !quickMission.abscod || !quickMission.misdatedeb || !quickMission.misdatefin || !quickMission.empcod) {
             showSnack(t('mission.msg.requiredFields', 'Objet, nature, dates et collaborateur requis.'), 'error');
@@ -1232,25 +1241,7 @@ function RemboursementModernContent() {
                             size="small"
                             sx={{ gridColumn: '1 / -1' }}
                         />
-                        <TextField
-                            select
-                            label={t('mission.fields.abscod', 'Nature')}
-                            value={quickMission.abscod}
-                            onChange={(e) => setQuickMission(m => ({ ...m, abscod: e.target.value }))}
-                            required
-                            fullWidth
-                            size="small"
-                            disabled={missionNatures.length === 0}
-                            helperText={missionNatures.length === 0
-                                ? t('mission.msg.noNature', 'Aucune nature configurée (Données de base → Absences, imputation 1 ou 5).')
-                                : undefined}
-                        >
-                            {missionNatures.map((n) => (
-                                <MenuItem key={n.abscod} value={n.abscod}>
-                                    {n.abslib}
-                                </MenuItem>
-                            ))}
-                        </TextField>
+                        {/* Nature d'absence masquée : auto « Formation et mission » (cf. effet). */}
                         <TextField
                             label={t('mission.fields.misdest', 'Destination')}
                             value={quickMission.misdest ?? ''}

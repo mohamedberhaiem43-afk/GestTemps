@@ -5,6 +5,7 @@ using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Provisioning;
 using ABRPOINT.Server.Services;
 using ABRPOINT.Server.Tenancy;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -34,6 +35,39 @@ builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
 // Register DinkToPdf (wkhtmltopdf) for HTML→PDF conversion
 builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
+
+// ── DataProtection : persistance (et chiffrement optionnel) des clés ────────────
+// Sans configuration explicite, ASP.NET Core stocke les clés DataProtection dans
+// ~/.aspnet/DataProtection-Keys À L'INTÉRIEUR du conteneur → perdues à chaque
+// redéploiement/recréation. Conséquence concrète : tous les cookies d'auth, tokens
+// de reset password et tokens anti-CSRF deviennent invalides au redémarrage
+// (utilisateurs déconnectés + liens de réinitialisation cassés). On persiste donc
+// les clés sur un volume monté (DATAPROTECTION_KEYS_PATH → à mapper sur un volume
+// Docker/host durable) et on fixe un nom d'application stable pour que toutes les
+// instances partagent le même trousseau de clés.
+var dpKeysPath = Environment.GetEnvironmentVariable("DATAPROTECTION_KEYS_PATH")
+    ?? builder.Configuration["DataProtection:KeysPath"]
+    ?? "/var/dataprotection-keys";
+try { Directory.CreateDirectory(dpKeysPath); } catch { /* best-effort : le volume monté fournit le dossier */ }
+var dpBuilder = builder.Services.AddDataProtection()
+    .SetApplicationName("ConcordeWorkforce")
+    .PersistKeysToFileSystem(new DirectoryInfo(dpKeysPath));
+
+// Chiffrement des clés au repos (optionnel). Linux n'a pas de DPAPI : si un certificat
+// X.509 (avec clé privée) est fourni via DATAPROTECTION_CERT_PATH (+ _PASSWORD), on
+// chiffre le trousseau avec. Sans certificat, les clés sont persistées en clair sur le
+// volume — celui-ci DOIT alors être en accès restreint (perms 700, volume privé).
+var dpCertPath = Environment.GetEnvironmentVariable("DATAPROTECTION_CERT_PATH")
+    ?? builder.Configuration["DataProtection:CertPath"];
+if (!string.IsNullOrWhiteSpace(dpCertPath) && File.Exists(dpCertPath))
+{
+    var dpCertPwd = Environment.GetEnvironmentVariable("DATAPROTECTION_CERT_PASSWORD")
+        ?? builder.Configuration["DataProtection:CertPassword"];
+    var dpCert = string.IsNullOrEmpty(dpCertPwd)
+        ? new System.Security.Cryptography.X509Certificates.X509Certificate2(dpCertPath)
+        : new System.Security.Cryptography.X509Certificates.X509Certificate2(dpCertPath, dpCertPwd);
+    dpBuilder.ProtectKeysWithCertificate(dpCert);
+}
 
 var dbHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
 var dbName = Environment.GetEnvironmentVariable("DB_NAME");
