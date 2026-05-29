@@ -91,7 +91,9 @@ export const PUBLIC_PATHS = new Set<string>([
   // pouvoir les consulter avant de soumettre leurs données. URLs déclarées aussi
   // dans App Store Connect (Privacy Policy URL) et Play Console (Privacy/ToS).
   '/confidentialite',
+  '/mentions-legales',
   '/cgu',
+  '/verify-email',
 ]);
 
 /**

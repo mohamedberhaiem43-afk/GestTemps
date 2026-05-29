@@ -650,7 +650,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     // Mentions légales — pages publiques (cf. PUBLIC_PATHS) requises par les stores
     // (Apple Privacy Policy URL, Google Play Privacy + ToS) et le RGPD.
     case '/confidentialite': content = <PrivacyPolicyPage />; break;
-    case '/mentions-legale': content = <LegalNoticesPage />; break;
+    case '/mentions-legales': content = <LegalNoticesPage />; break;
     case '/cgu': content = <TermsOfServicePage />; break;
     default: content = <DashboardModernSync />;
   }

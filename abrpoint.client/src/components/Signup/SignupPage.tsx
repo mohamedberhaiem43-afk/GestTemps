@@ -579,8 +579,7 @@ export default function SignupPage() {
         sessionStorage.setItem('signupAddons', JSON.stringify(pickerAddons));
       }
       // After successful signup, redirect to login page
-      navigate('/login', { state: { email: email.trim() } });
-      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      navigate('/verify-email', { state: { email: email.trim() } });
     } catch (e: any) {
       // Handle specific error codes
       if (e?.response?.status === 429) {
