@@ -21,7 +21,7 @@
     "production": {
       "channel": "production",
       "autoIncrement": true,
-      "prebuildCommand": "bash scripts/check-pins-filled.sh",
+      "prebuildCommand": "prebuild --clean",
       "android": {
         "buildType": "app-bundle"
       },

@@ -1,22 +1,29 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Garde-fou EAS prebuild : refuse un build de production tant que les pins
-# de certificat sont restés en mode `placeholder-*` dans network_security_config.xml
+# Garde-fou pinning : refuse un build de production tant que les pins de
+# certificat sont restés en mode `placeholder-*` dans network_security_config.xml
 # et app.json.
 #
-# À brancher dans eas.json :
-#   {
-#     "build": {
-#       "production": {
-#         "prebuildCommand": "bash scripts/check-pins-filled.sh"
-#       }
-#     }
-#   }
+# Branché via le hook EAS Build `eas-build-pre-install` (cf. package.json) :
+# il s'exécute sur le serveur EAS avant l'installation des deps. Le check ne
+# BLOQUE que le profil `production` — les profils dev/preview peuvent
+# légitimement conserver des pins placeholder.
 #
-# OU à lancer en CI/CD avant `eas build --profile production`.
+# Peut aussi se lancer manuellement en CI/CD avant `eas build --profile
+# production` (aucun EAS_BUILD_PROFILE → enforcement systématique).
+#
+# NB : ne PAS mettre dans `prebuildCommand` (qui attend les arguments d'
+# `expo prebuild`, ex. `prebuild --clean`, pas un script shell).
 # =============================================================================
 
 set -euo pipefail
+
+# Sur EAS, n'appliquer le garde-fou qu'au profil production. Hors EAS (CI/CD
+# manuel, EAS_BUILD_PROFILE absent) on applique toujours.
+if [[ -n "${EAS_BUILD_PROFILE:-}" && "${EAS_BUILD_PROFILE}" != "production" ]]; then
+  echo "ℹ️  Profil EAS '${EAS_BUILD_PROFILE}' — vérification pinning ignorée (production uniquement)."
+  exit 0
+fi
 
 CONFIG_XML="$(dirname "$0")/../assets/network_security_config.xml"
 APP_JSON="$(dirname "$0")/../app.json"
@@ -30,9 +37,15 @@ check_file_for_placeholders() {
     ERR=1
     return
   fi
-  if grep -q "placeholder-" "$file"; then
+  # Retire les commentaires XML (<!-- ... -->) avant de chercher : la doc de
+  # network_security_config.xml mentionne « placeholder- » et déclencherait
+  # sinon un faux positif alors que les vrais pins sont remplis. (Sans effet
+  # sur app.json, qui est du JSON pur sans commentaires.)
+  local stripped
+  stripped="$(perl -0777 -pe 's/<!--.*?-->//gs' "$file")"
+  if grep -q "placeholder-" <<<"$stripped"; then
     echo "❌ $label contient encore des pins placeholder. Lancer scripts/generate-le-pins.sh pour les remplir." >&2
-    grep -n "placeholder-" "$file" >&2
+    grep -n "placeholder-" <<<"$stripped" >&2
     ERR=1
   else
     echo "✅ $label : aucun placeholder détecté."

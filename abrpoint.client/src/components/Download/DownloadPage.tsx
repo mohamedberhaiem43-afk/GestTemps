@@ -27,6 +27,12 @@ const STORE_LINKS = {
 const APK_DIRECT_URL = '/api/download/android';
 const APK_INFO_URL = '/api/download/android/info';
 
+// Build Android (APK) publié sur Expo / EAS — lien de téléchargement officiel tant
+// que l'app n'est pas sur les stores. La page Expo expose le bouton « Install » qui
+// sert le .apk signé. Sert de source garantie quand aucun APK auto-hébergé n'est
+// disponible via /api/download/android (sinon ce dernier reste prioritaire).
+const EXPO_BUILD_URL = 'https://expo.dev/accounts/concorde-tech-innovation/projects/concorde-workly/builds/72ec5992-7f5e-41ba-9ea6-bac3415b7022';
+
 interface ApkInfo {
   available: boolean;
   fileName?: string;
@@ -153,18 +159,17 @@ export default function DownloadPage() {
                     </span>
                   </a>
                 ) : (
-                  // APK pas encore publié : on N'affiche PAS de lien cliquable (qui
-                  // déclencherait un téléchargement de 404 sauvegardé en "android.txt").
-                  // À la place, message clair + CTA vers le Play Store / contact support.
-                  <div className="dl-apk-unavailable">
-                    <div className="dl-apk-unavailable-icon">📦</div>
-                    <div className="dl-apk-unavailable-title">APK pas encore publié</div>
-                    <div className="dl-apk-unavailable-text">
-                      La première version Android est en préparation. En attendant, utilisez
-                      le Google Play ci-dessous (si disponible) ou contactez-nous pour
-                      recevoir l'APK en avant-première.
-                    </div>
-                  </div>
+                  // Aucun APK auto-hébergé : on sert le build officiel publié sur Expo.
+                  // Lien externe (page Expo "Install") → target _blank, pas d'attribut
+                  // download (c'est une page, pas un fichier direct).
+                  <a className="dl-btn dl-btn-primary" href={EXPO_BUILD_URL} target="_blank" rel="noreferrer">
+                    <span className="dl-btn-icon">⬇</span>
+                    <span className="dl-btn-content">
+                      <span className="dl-btn-small">Télécharger l'app Android</span>
+                      <span className="dl-btn-large">Installation directe (APK)</span>
+                      <span className="dl-btn-meta">Build officiel hébergé sur Expo</span>
+                    </span>
+                  </a>
                 )}
                 <a className="dl-btn dl-btn-secondary" href={STORE_LINKS.android} target="_blank" rel="noreferrer">
                   <span className="dl-btn-icon">▶</span>
@@ -173,7 +178,7 @@ export default function DownloadPage() {
                     <span className="dl-btn-large">Google Play</span>
                   </span>
                 </a>
-                {apkInfo?.available && (
+                {apkInfo !== null && (
                   <details className="dl-howto">
                     <summary>Comment installer l'APK ?</summary>
                     <ol>
@@ -242,13 +247,13 @@ export default function DownloadPage() {
                     </span>
                   </a>
                 ) : (
-                  <div className="dl-apk-unavailable dl-apk-unavailable--inline">
-                    <span className="dl-apk-unavailable-icon">📦</span>
-                    <span>
-                      <strong>APK pas encore publié.</strong>{' '}
-                      Reviendra ici dès la première mise en ligne.
+                  <a className="dl-btn dl-btn-apk-inline" href={EXPO_BUILD_URL} target="_blank" rel="noreferrer">
+                    <span className="dl-btn-icon">⬇</span>
+                    <span className="dl-btn-content">
+                      <span className="dl-btn-large">Télécharger l'APK Android (Expo)</span>
+                      <span className="dl-btn-meta">Build officiel hébergé sur Expo</span>
                     </span>
-                  </div>
+                  </a>
                 )}
               </>
             )}

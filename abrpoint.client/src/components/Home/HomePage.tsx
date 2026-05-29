@@ -329,18 +329,16 @@ export default function HomePage() {
   // Économies annuelles exactes issues de l'email officiel
   // Starter : (99−69)×12 = 360 € HT · Standard : (219−119)×12 = 1 200 € HT · Premium : (449−249)×12 = 2 400 € HT
   const annualSavings = { starter: 360, standard: 1200, premium: 2400 };
-  const annualTotal = {
-    starter:  annualMonthly.starter * 12,
-    standard: annualMonthly.standard * 12,
-    premium:  annualMonthly.premium * 12,
-  };
+  // 2026-05-29 — Le prix affiché est TOUJOURS mensuel, y compris en engagement
+  // annuel : on montre le tarif mensuel réduit (annualMonthly = 69/119/249) facturé
+  // annuellement, au lieu du total annuel. Plus lisible pour comparer les deux cycles.
   const prices = {
-    starter:  monthly ? formatPrice(monthlyBase.starter)  : formatPrice(annualTotal.starter),
-    standard: monthly ? formatPrice(monthlyBase.standard) : formatPrice(annualTotal.standard),
-    premium:  monthly ? formatPrice(monthlyBase.premium)  : formatPrice(annualTotal.premium),
+    starter:  monthly ? formatPrice(monthlyBase.starter)  : formatPrice(annualMonthly.starter),
+    standard: monthly ? formatPrice(monthlyBase.standard) : formatPrice(annualMonthly.standard),
+    premium:  monthly ? formatPrice(monthlyBase.premium)  : formatPrice(annualMonthly.premium),
   };
-  const pricePeriod = monthly ? ' / mois HT' : ' / an HT';
-  const priceCommitmentLabel = monthly ? 'Sans engagement · tarif mensuel' : 'tarif annuel · facturation unique';
+  const pricePeriod = ' / mois HT';
+  const priceCommitmentLabel = monthly ? 'Sans engagement · tarif mensuel' : 'Par mois · engagement annuel (facturé annuellement)';
 
   // 2026-05-23 — Tous les CTAs « Essayer 30 jours gratuit » / « Créer un
   // compte » naviguent désormais directement vers /signup (au lieu de
@@ -630,7 +628,7 @@ export default function HomePage() {
             {!monthly && (
               <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ fontSize: 17, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
-                  {formatPrice(monthlyBase.starter * 12)} € HT / an
+                  {formatPrice(monthlyBase.starter)} € HT / mois
                 </span>
                 <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>
                   Économie : {formatPrice(annualSavings.starter)} € HT / an
@@ -669,7 +667,7 @@ export default function HomePage() {
             {!monthly && (
               <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ fontSize: 17, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
-                  {formatPrice(monthlyBase.standard * 12)} € HT / an
+                  {formatPrice(monthlyBase.standard)} € HT / mois
                 </span>
                 <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>
                   Économie : {formatPrice(annualSavings.standard)} € HT / an
@@ -727,7 +725,7 @@ export default function HomePage() {
             {!monthly && (
               <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ fontSize: 17, fontWeight: 700, color: '#cbb778', textDecoration: 'line-through' }}>
-                  {formatPrice(monthlyBase.premium * 12)} € HT / an
+                  {formatPrice(monthlyBase.premium)} € HT / mois
                 </span>
                 <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>
                   Économie : {formatPrice(annualSavings.premium)} € HT / an

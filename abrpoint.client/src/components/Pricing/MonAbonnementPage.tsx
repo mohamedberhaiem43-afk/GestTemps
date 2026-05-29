@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import {
   Box, Paper, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
   RadioGroup, FormControlLabel, Radio, TextField, Alert, CircularProgress, Stack, Divider,
-  LinearProgress,
+  LinearProgress, Switch,
 } from '@mui/material';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import CancelIcon from '@mui/icons-material/CancelOutlined';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
@@ -136,6 +137,10 @@ const formatDate = (d: string | null) => {
   catch { return d; }
 };
 
+// Formatage monétaire FR aligné sur la maquette (« 249,00 € »). Centralisé ici
+// pour la carte « facture en direct » (variante A) et le récap modules (variante C).
+const eur = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+
 const statusLabel = (s: string): { label: string; color: 'success' | 'warning' | 'error' | 'info' | 'default' } => {
   switch (s) {
     case 'Active': return { label: 'Actif', color: 'success' };
@@ -176,6 +181,12 @@ export default function MonAbonnementPage() {
   const [info, setInfo] = useState<SubscriptionInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Cycle affiché dans la carte « facture en direct » (variante A). Le cycle réellement
+  // souscrit n'est pas exposé par /billing/subscription : ce toggle sert donc à prévisualiser
+  // le tarif de base mensuel vs annuel-mensualisé dans le total ESTIMÉ. Les autres lignes
+  // (overage, modules) reflètent l'usage réel. Défaut : mensuel (= tarif catalogue de base).
+  const [cycleA, setCycleA] = useState<Cycle>('monthly');
 
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelMode, setCancelMode] = useState<'period_end' | 'immediate'>('period_end');
@@ -686,148 +697,255 @@ export default function MonAbonnementPage() {
           surplus est automatiquement facturé via l'item Stripe user_supp à
           chaque ajout (cf. EmployesController ligne 785 + EmployeeBillingSync).
       */}
-      {info?.plan && info?.usage && (
-        <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: '20px', border: '1px solid #e2e8f0', mb: 3 }}>
-          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-            <Box sx={{
-              width: 48, height: 48, borderRadius: '12px', bgcolor: '#eef2f8',
-              color: '#0040a1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <RocketLaunchIcon />
-            </Box>
-            <Box>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Votre formule en détail
-              </Typography>
-              <Typography sx={{ fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
-                Pack {info.plan.displayName} · {info.usage.activeEmployees} collaborateur{info.usage.activeEmployees > 1 ? 's' : ''} actif{info.usage.activeEmployees > 1 ? 's' : ''}
-              </Typography>
-            </Box>
-          </Stack>
+      {/* ─── Carte « facture en direct » (maquette variante A + B intégrée) ────────
+          Récap visuel du pack avec jauge de sièges RÉELLE (usage.activeEmployees)
+          et total ESTIMÉ recalculé en direct : base (mensuel/annuel selon le toggle)
+          + overage réel + modules réellement actifs. La décomposition ligne par ligne
+          (variante B) est intégrée dans la carte navy du total. Aucun slider de démo :
+          les chiffres reflètent ce qui est réellement facturé. */}
+      {info?.plan && info?.usage && (() => {
+        const plan = info.plan!;
+        const usage = info.usage!;
+        const isPremium = `${plan.code ?? ''} ${plan.displayName ?? ''}`.toLowerCase().includes('premium');
+        const base = cycleA === 'annual' ? plan.flatPriceAnnualMonthlyEur : plan.flatPriceMonthlyEur;
+        const overageCost = usage.extraCostMonthlyEur || usage.extraEmployees * plan.overageRatePerEmployeeEur;
+        const addonsCost = subscribedAddons.reduce((s, k) => s + (ADDON_LABELS[k]?.priceMonthlyEur ?? 0), 0);
+        const totalHT = base + overageCost + addonsCost;
+        const totalTTC = totalHT * 1.2;
+        const scale = Math.max(plan.includedEmployees, usage.activeEmployees, 1);
+        const usedPct = (Math.min(usage.activeEmployees, plan.includedEmployees) / scale) * 100;
+        const overPct = (Math.max(0, usage.activeEmployees - plan.includedEmployees) / scale) * 100;
+        const annualSavePct = plan.flatPriceMonthlyEur > 0
+          ? Math.round((1 - plan.flatPriceAnnualMonthlyEur / plan.flatPriceMonthlyEur) * 100)
+          : 0;
 
-          {/* Grille des conditions tarifaires — exactement ce qui est facturé */}
-          <Box sx={{
-            display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
-            gap: 2, mb: 3,
+        return (
+          <Paper elevation={0} sx={{
+            borderRadius: '18px', border: '1px solid #E4EAF3', mb: 3, overflow: 'hidden',
+            boxShadow: '0 1px 2px rgba(20,52,107,.06), 0 12px 32px -16px rgba(20,52,107,.28)',
           }}>
-            <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <Typography sx={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
-                Tarif mensuel
-              </Typography>
-              <Typography sx={{ fontWeight: 800, color: '#0f172a', fontSize: 18, mt: 0.5 }}>
-                {info.plan.flatPriceMonthlyEur.toFixed(0)} € HT
-                <Typography component="span" sx={{ fontSize: 11, color: '#64748b', fontWeight: 600, ml: 0.5 }}>/ mois</Typography>
-              </Typography>
-            </Box>
-            <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <Typography sx={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
-                Tarif annuel
-              </Typography>
-              <Typography sx={{ fontWeight: 800, color: '#0f172a', fontSize: 18, mt: 0.5 }}>
-                {info.plan.flatPriceAnnualMonthlyEur.toFixed(0)} € HT
-                <Typography component="span" sx={{ fontSize: 11, color: '#64748b', fontWeight: 600, ml: 0.5 }}>/ mois</Typography>
-              </Typography>
-              <Typography sx={{ fontSize: 10, color: '#16a34a', fontWeight: 700, mt: 0.3 }}>
-                soit {(info.plan.flatPriceAnnualMonthlyEur * 12).toFixed(0)} € HT / an
-              </Typography>
-            </Box>
-            <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <Typography sx={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
-                Inclus dans le pack
-              </Typography>
-              <Typography sx={{ fontWeight: 800, color: '#0f172a', fontSize: 18, mt: 0.5 }}>
-                {info.plan.includedEmployees}
-                <Typography component="span" sx={{ fontSize: 11, color: '#64748b', fontWeight: 600, ml: 0.5 }}>collaborateurs</Typography>
-              </Typography>
-            </Box>
-            <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <Typography sx={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
-                Collaborateur supplémentaire
-              </Typography>
-              <Typography sx={{ fontWeight: 800, color: '#0f172a', fontSize: 18, mt: 0.5 }}>
-                {info.plan.overageRatePerEmployeeEur.toFixed(2)} € HT
-                <Typography component="span" sx={{ fontSize: 11, color: '#64748b', fontWeight: 600, ml: 0.5 }}>/ mois / emp.</Typography>
-              </Typography>
-            </Box>
-          </Box>
+            <Box sx={{ p: { xs: 2.5, md: 3.5 } }}>
+              {/* En-tête : identité du pack + toggle cycle */}
+              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'flex-start' }} spacing={2}>
+                <Stack direction="row" spacing={1.75}>
+                  <Box sx={{
+                    width: 48, height: 48, borderRadius: '14px', flex: 'none',
+                    background: 'linear-gradient(135deg,#22489a,#14346B)',
+                    display: 'grid', placeItems: 'center', boxShadow: '0 8px 18px -8px rgba(20,52,107,.6)',
+                  }}>
+                    <RocketLaunchIcon sx={{ color: '#fff', fontSize: 24 }} />
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#6A7691' }}>
+                      Votre formule en détail
+                    </Typography>
+                    <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mt: 0.4 }}>
+                      <Typography sx={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.01em', color: '#0F1B33' }}>
+                        Pack {plan.displayName}
+                      </Typography>
+                      {isPremium && (
+                        <Box component="span" sx={{
+                          fontSize: 10.5, fontWeight: 800, letterSpacing: '.06em', color: '#7a5a16',
+                          background: 'linear-gradient(180deg,#fbe7b3,#f3d488)', border: '1px solid #e7c97e',
+                          px: 1.1, py: '3px', borderRadius: '999px', textTransform: 'uppercase',
+                        }}>
+                          Haut de gamme
+                        </Box>
+                      )}
+                    </Stack>
+                    <Typography sx={{ fontSize: 13, color: '#6A7691', mt: 0.5 }}>
+                      {usage.activeEmployees} collaborateur{usage.activeEmployees > 1 ? 's' : ''} actif{usage.activeEmployees > 1 ? 's' : ''}
+                      {info.currentPeriodEndsAt ? ` · prochaine échéance le ${formatDate(info.currentPeriodEndsAt)}` : ''}
+                    </Typography>
+                  </Box>
+                </Stack>
 
-          {/* Jauge d'occupation des sièges */}
-          <Box sx={{ mb: 3 }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
-                Sièges occupés
-              </Typography>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: info.usage.isOverCapacity ? '#b45309' : '#0040a1' }}>
-                {info.usage.activeEmployees} / {info.plan.includedEmployees}
-                {info.usage.extraEmployees > 0 && (
-                  <Typography component="span" sx={{ fontSize: 12, color: '#b45309', fontWeight: 700, ml: 1 }}>
-                    (+{info.usage.extraEmployees} en supplément)
+                {/* Toggle cycle (prévisualisation tarif de base) */}
+                <Box sx={{
+                  display: 'inline-flex', alignItems: 'center', flex: 'none',
+                  background: '#EEF3FB', border: '1px solid #DCE6F6', borderRadius: '999px', p: '4px',
+                }}>
+                  {(['monthly', 'annual'] as Cycle[]).map((cy) => {
+                    const active = cycleA === cy;
+                    return (
+                      <Box
+                        key={cy}
+                        component="button"
+                        type="button"
+                        onClick={() => setCycleA(cy)}
+                        sx={{
+                          font: 'inherit', fontSize: 13, fontWeight: 700, border: 0, cursor: 'pointer',
+                          px: 1.9, py: 0.9, borderRadius: '999px', display: 'flex', alignItems: 'center', gap: 0.9,
+                          transition: '.2s',
+                          background: active ? '#14346B' : 'transparent',
+                          color: active ? '#fff' : '#6A7691',
+                          boxShadow: active ? '0 4px 12px -4px rgba(20,52,107,.5)' : 'none',
+                        }}
+                      >
+                        {cy === 'monthly' ? 'Mensuel' : 'Annuel'}
+                        {cy === 'annual' && annualSavePct > 0 && (
+                          <Box component="span" sx={{
+                            fontSize: 10, fontWeight: 800, color: '#fff', px: 0.75, py: '2px', borderRadius: '6px',
+                            bgcolor: active ? 'rgba(255,255,255,.22)' : '#16A34A',
+                          }}>
+                            −{annualSavePct}%
+                          </Box>
+                        )}
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Stack>
+
+              {/* Grille : jauge de sièges (gauche) + total estimé / décomposition (droite) */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.4fr 1fr' }, gap: 2.5, mt: 3 }}>
+                {/* Bloc jauge de sièges — données RÉELLES */}
+                <Box sx={{ border: '1px solid #E4EAF3', borderRadius: '14px', p: 2.25 }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: '#6A7691' }}>
+                      Sièges occupés
+                    </Typography>
+                    <Typography sx={{ fontSize: 22, fontWeight: 800, color: '#0F1B33', fontVariantNumeric: 'tabular-nums' }}>
+                      {usage.activeEmployees}
+                      <Typography component="span" sx={{ fontSize: 14, color: '#6A7691', fontWeight: 600 }}> / {plan.includedEmployees} inclus</Typography>
+                    </Typography>
+                  </Stack>
+                  <Box sx={{
+                    height: 14, borderRadius: '8px', background: '#EEF3FB', mt: 1.75, mb: 0.75,
+                    display: 'flex', overflow: 'hidden', border: '1px solid #DCE6F6',
+                  }}>
+                    <Box sx={{ width: `${usedPct}%`, background: 'linear-gradient(90deg,#22489a,#14346B)', transition: '.35s' }} />
+                    <Box sx={{ width: `${overPct}%`, background: 'repeating-linear-gradient(45deg,#E8870B,#E8870B 6px,#f5a23d 6px,#f5a23d 12px)', transition: '.35s' }} />
+                  </Box>
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography sx={{ fontSize: 12.5, color: '#6A7691' }}>0</Typography>
+                    <Typography sx={{ fontSize: 12.5, color: '#6A7691' }}>{plan.includedEmployees} inclus</Typography>
+                  </Stack>
+                  {usage.isOverCapacity && (
+                    <Stack direction="row" alignItems="center" spacing={1.1} sx={{
+                      mt: 1.6, background: '#FCEFD9', border: '1px solid #f3d6a3', color: '#8a5208',
+                      borderRadius: '10px', px: 1.5, py: 1.25, fontSize: 13, fontWeight: 600,
+                    }}>
+                      <WarningAmberRoundedIcon sx={{ fontSize: 18, color: '#8a5208' }} />
+                      <Box component="span">
+                        <Box component="b" sx={{ color: '#7a4708' }}>{usage.extraEmployees} collaborateur{usage.extraEmployees > 1 ? 's' : ''}</Box>
+                        {' '}au-delà du seuil · facturé{usage.extraEmployees > 1 ? 's' : ''} {eur(plan.overageRatePerEmployeeEur)} HT / mois chacun
+                      </Box>
+                    </Stack>
+                  )}
+                  <Typography sx={{ fontSize: 11.5, color: '#94a3b8', mt: 1.5 }}>
+                    {usage.isOverCapacity
+                      ? 'Facturation Stripe déjà synchronisée — aucune action requise.'
+                      : 'Vous pouvez pré-acheter des sièges supplémentaires ci-dessous.'}
                   </Typography>
-                )}
-              </Typography>
-            </Stack>
-            <LinearProgress
-              variant="determinate"
-              value={Math.min(100, (info.usage.activeEmployees / Math.max(1, info.plan.includedEmployees)) * 100)}
-              sx={{
-                height: 8, borderRadius: 4, bgcolor: '#e2e8f0',
-                '& .MuiLinearProgress-bar': {
-                  bgcolor: info.usage.isOverCapacity ? '#f59e0b' : '#0040a1',
-                  borderRadius: 4,
-                },
-              }}
-            />
-            {info.usage.isOverCapacity && (
-              <Alert severity="info" sx={{ mt: 2, borderRadius: '12px' }}>
-                Vous avez dépassé l'effectif inclus dans votre pack — un supplément de{' '}
-                <strong>{info.usage.extraCostMonthlyEur.toFixed(2)} € HT / mois</strong> sera ajouté
-                à votre prochaine facture ({info.usage.extraEmployees} collaborateur{info.usage.extraEmployees > 1 ? 's' : ''}{' '}
-                × {info.plan.overageRatePerEmployeeEur.toFixed(2)} €). Aucune action requise — la
-                facturation Stripe est déjà synchronisée.
-              </Alert>
-            )}
-          </Box>
+                </Box>
 
-          {/* CTA d'ajout de collaborateur — ouvre un dialog inline qui pré-achète N
-              sièges supplémentaires via /billing/add-seats. Pas de redirection vers
-              la page de création employé : l'admin commit financièrement les sièges
-              ici, et les employés peuvent être créés ensuite sans nouvelle prompt
-              d'overage (les sièges sont déjà couverts). */}
-          {canManage && (
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-              <Button
-                variant="contained"
-                onClick={openAddSeatsDialog}
-                startIcon={<GroupAddIcon />}
-                disabled={!info?.hasActiveStripeSubscription}
-                sx={{
-                  textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3,
-                  bgcolor: '#0040a1', '&:hover': { bgcolor: '#003080' },
-                }}
-              >
-                Ajouter un collaborateur
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => setChangePlanOpen(true)}
-                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3 }}
-              >
-                Changer de pack
-              </Button>
-            </Stack>
-          )}
-          {canManage && !info?.hasActiveStripeSubscription && (
-            <Typography sx={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic', mt: 1 }}>
-              L'ajout de sièges nécessite un abonnement Stripe actif. Activez d'abord votre formule.
-            </Typography>
-          )}
-          {!canManage && (
-            <Typography sx={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
-              Contactez un administrateur pour ajouter un collaborateur.
-            </Typography>
-          )}
-        </Paper>
-      )}
+                {/* Carte navy — total estimé avec décomposition (variante B intégrée) */}
+                <Box sx={{
+                  background: 'linear-gradient(170deg,#1B3A6B,#0f2750)', borderRadius: '14px',
+                  p: 2.5, color: '#fff', display: 'flex', flexDirection: 'column',
+                }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#9fb4dc' }}>
+                    Total estimé
+                  </Typography>
+
+                  {/* Ligne base abonnement */}
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 1.1, borderBottom: '1px solid rgba(255,255,255,.1)' }}>
+                    <Typography sx={{ fontSize: 13.5, color: '#c3d1ec' }}>Abonnement {plan.displayName}</Typography>
+                    <Typography sx={{ fontSize: 13.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{eur(base)}</Typography>
+                  </Stack>
+
+                  {/* Ligne overage (collaborateurs supp.) */}
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 1.1, borderBottom: '1px solid rgba(255,255,255,.1)' }}>
+                    <Typography sx={{ fontSize: 13.5, color: overageCost > 0 ? '#c3d1ec' : '#8fa3cb' }}>
+                      Collaborateurs supp.{usage.extraEmployees > 0 ? ` ×${usage.extraEmployees}` : ''}
+                    </Typography>
+                    <Typography sx={{ fontSize: 13.5, fontWeight: overageCost > 0 ? 700 : 600, fontVariantNumeric: 'tabular-nums', color: overageCost > 0 ? '#fff' : '#8fa3cb' }}>
+                      {overageCost > 0 ? `+ ${eur(overageCost)}` : '0,00 €'}
+                    </Typography>
+                  </Stack>
+
+                  {/* Lignes modules : tout le catalogue, actifs chiffrés / inactifs grisés */}
+                  {ADDON_KEYS.map((k) => {
+                    const meta = ADDON_LABELS[k];
+                    const on = subscribedAddons.includes(k);
+                    return (
+                      <Stack key={k} direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 1.1, borderBottom: '1px solid rgba(255,255,255,.1)' }}>
+                        <Typography sx={{ fontSize: 13.5, color: on ? '#c3d1ec' : '#8fa3cb' }}>{meta.label}</Typography>
+                        <Typography sx={{ fontSize: 13.5, fontWeight: on ? 700 : 600, fontVariantNumeric: 'tabular-nums', color: on ? '#fff' : '#8fa3cb' }}>
+                          {on ? `+ ${eur(meta.priceMonthlyEur)}` : '— non activé'}
+                        </Typography>
+                      </Stack>
+                    );
+                  })}
+
+                  {/* Grand total */}
+                  <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mt: 1.75, pt: 1.75, borderTop: '1.5px solid rgba(255,255,255,.25)' }}>
+                    <Typography sx={{ fontSize: 13, color: '#c3d1ec', fontWeight: 600 }}>Total HT / mois</Typography>
+                    <Typography sx={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.01em', fontVariantNumeric: 'tabular-nums' }}>
+                      {eur(totalHT)}
+                      <Typography component="span" sx={{ fontSize: 14, fontWeight: 600, color: '#9fb4dc' }}> HT</Typography>
+                    </Typography>
+                  </Stack>
+                  <Typography sx={{ fontSize: 12, color: '#8fa3cb', textAlign: 'right', mt: 0.5 }}>
+                    soit {eur(totalTTC)} TTC / mois (TVA 20 %)
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Actions — handlers Stripe inchangés */}
+              {canManage && (
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 2.75, flexWrap: 'wrap' }}>
+                  <Button
+                    variant="contained"
+                    onClick={openAddSeatsDialog}
+                    startIcon={<GroupAddIcon />}
+                    disabled={!info?.hasActiveStripeSubscription}
+                    sx={{
+                      textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 2.5,
+                      bgcolor: '#14346B', boxShadow: '0 8px 18px -8px rgba(20,52,107,.6)', '&:hover': { bgcolor: '#0f2c5c' },
+                    }}
+                  >
+                    Ajouter un collaborateur
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={openAddonsDialog}
+                    startIcon={<ExtensionIcon />}
+                    sx={{
+                      textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 2.5,
+                      background: 'linear-gradient(135deg,#8b46f0,#6d28d9)', boxShadow: '0 8px 18px -8px rgba(124,58,237,.6)',
+                      '&:hover': { background: 'linear-gradient(135deg,#7d3ae0,#5f23c2)' },
+                    }}
+                  >
+                    Gérer mes modules
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setChangePlanOpen(true)}
+                    sx={{
+                      textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 2.5,
+                      color: '#14346B', borderColor: '#E4EAF3', '&:hover': { borderColor: '#14346B' },
+                    }}
+                  >
+                    Changer de pack →
+                  </Button>
+                </Stack>
+              )}
+              {canManage && !info?.hasActiveStripeSubscription && (
+                <Typography sx={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic', mt: 1 }}>
+                  L'ajout de sièges nécessite un abonnement Stripe actif. Activez d'abord votre formule.
+                </Typography>
+              )}
+              {!canManage && (
+                <Typography sx={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic', mt: 2 }}>
+                  Contactez un administrateur pour ajouter un collaborateur ou gérer les modules.
+                </Typography>
+              )}
+            </Box>
+          </Paper>
+        );
+      })()}
 
       {/* ─── Modules actifs ────────────────────────────────────────────────────
           Récapitulatif des fonctionnalités débloquées par le pack ET par les
@@ -1236,60 +1354,56 @@ export default function MonAbonnementPage() {
                   spacing={2}
                   sx={{
                     px: 3, py: 2,
-                    bgcolor: checked ? '#faf5ff' : 'transparent',
+                    bgcolor: checked ? '#F3EEFE' : 'transparent',
                     transition: 'background-color 0.15s',
                   }}
                 >
+                  {/* Interrupteur (variante C) — pilote directement le brouillon */}
+                  <Switch
+                    checked={checked}
+                    onChange={() => toggleAddonInDraft(key)}
+                    sx={{
+                      '& .MuiSwitch-switchBase.Mui-checked': { color: '#7C3AED' },
+                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#7C3AED', opacity: 1 },
+                    }}
+                  />
                   <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: 14 }}>
+                    <Typography sx={{ fontWeight: 700, color: '#0F1B33', fontSize: 14 }}>
                       {meta.label}
                     </Typography>
-                    <Typography sx={{ fontSize: 12, color: '#64748b', lineHeight: 1.45, mt: 0.25 }}>
+                    <Typography sx={{ fontSize: 12, color: '#6A7691', lineHeight: 1.45, mt: 0.25 }}>
                       {meta.description}
                     </Typography>
                   </Box>
+                  {/* Prix MENSUEL uniquement (cf. demande : pas d'affichage annuel) */}
                   <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                    <Typography sx={{ fontWeight: 800, color: '#7c3aed', fontSize: 14 }}>
+                    <Typography sx={{ fontWeight: 800, color: '#7C3AED', fontSize: 15 }}>
                       +{meta.priceMonthlyEur}€
                       <Typography component="span" sx={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
                         {' '}/mois
                       </Typography>
                     </Typography>
-                    <Typography sx={{ fontSize: 10.5, color: '#94a3b8' }}>
-                      ({meta.priceMonthlyEur * 12}€/an)
-                    </Typography>
                   </Box>
-                  <Chip
-                    label={checked ? 'Activé' : 'Désactivé'}
-                    onClick={() => toggleAddonInDraft(key)}
-                    sx={{
-                      cursor: 'pointer', fontWeight: 700, minWidth: 90,
-                      bgcolor: checked ? '#7c3aed' : '#e2e8f0',
-                      color: checked ? '#fff' : '#64748b',
-                      '&:hover': { bgcolor: checked ? '#6d28d9' : '#cbd5e1' },
-                    }}
-                  />
                 </Stack>
               );
             })}
           </Stack>
-          {addonsDraft.length > 0 && (
-            <Box sx={{ px: 3, py: 2, bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
-                  Total estimé modules
+          {/* Impact en direct (variante C) — mensuel uniquement */}
+          <Box sx={{ px: 3, py: 2, bgcolor: '#EEF3FB', borderTop: '1px solid #DCE6F6' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography sx={{ fontSize: 13, color: '#6A7691' }}>
+                Impact sur votre facture
+              </Typography>
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography sx={{ fontWeight: 800, color: '#14346B', fontSize: 19, fontVariantNumeric: 'tabular-nums' }}>
+                  {draftMonthlyTotal > 0 ? '+' : ''}{eur(draftMonthlyTotal)} HT /mois
                 </Typography>
-                <Box sx={{ textAlign: 'right' }}>
-                  <Typography sx={{ fontWeight: 800, color: '#7c3aed', fontSize: 16 }}>
-                    +{draftMonthlyTotal}€ /mois
-                  </Typography>
-                  <Typography sx={{ fontSize: 11, color: '#94a3b8' }}>
-                    ou {draftMonthlyTotal * 12}€ /an (× 12)
-                  </Typography>
-                </Box>
-              </Stack>
-            </Box>
-          )}
+                <Typography sx={{ fontSize: 11.5, color: '#7C3AED', fontWeight: 700 }}>
+                  {addonsDraft.length} module{addonsDraft.length > 1 ? 's' : ''} actif{addonsDraft.length > 1 ? 's' : ''}
+                </Typography>
+              </Box>
+            </Stack>
+          </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button

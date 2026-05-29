@@ -2,9 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, TextField, Button, CircularProgress, Alert, Link, Checkbox, FormControlLabel,
-  Paper, Stack, InputAdornment, MenuItem,
-
-
+  Paper, Stack, InputAdornment, MenuItem, ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -19,7 +17,7 @@ import apiInstance from '../API/apiInstance';
 import { sendSupportMessage } from '../../services/ContactService';
 import { useAuth } from '../helper/AuthProvider';
 import GetRestCountries from '../../services/RestCountriesService/GetRestCountries';
-import PlanPicker, { type PlanKey, type Cycle, type AddonKey } from './PlanPicker';
+import { type PlanKey, type Cycle, type AddonKey } from './PlanPicker';
 // import VerifyEmailPage from './VerifyEmailPage'; // removed unused import
 import { BadgeIcon } from 'lucide-react';
 
@@ -196,10 +194,14 @@ export default function SignupPage() {
   const [pickerPlan, setPickerPlan] = useState<PlanKey>(
     (planFromPricing?.plan as PlanKey) ?? 'Standard'
   );
-  const [pickerCycle, setPickerCycle] = useState<Cycle>(
+  // 2026-05-29 — Le signup ne propose plus QUE le choix du nom de pack. Le cycle
+  // n'est plus sélectionnable ici (pré-réglé : annuel par défaut ou hérité de la
+  // pricing page) et les modules/addons se gèrent ensuite depuis « Mon abonnement ».
+  // On conserve ces valeurs pour garder le payload POST /signup strictement inchangé.
+  const [pickerCycle] = useState<Cycle>(
     (planFromPricing?.cycle as Cycle) ?? 'annual'
   );
-  const [pickerAddons, setPickerAddons] = useState<AddonKey[]>([]);
+  const pickerAddons: AddonKey[] = [];
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -662,17 +664,40 @@ export default function SignupPage() {
         </Box>
 
         <Stack spacing={2.5}>
-          {/* Sélection du pack en tête : c'est la décision structurante (elle ouvre
-              ou ferme les modules de l'app pendant les 30j d'essai). Pré-rempli si
-              l'utilisateur vient de la pricing page, modifiable sinon. */}
-          <PlanPicker
-            selectedPlan={pickerPlan}
-            onPlanChange={setPickerPlan}
-            selectedCycle={pickerCycle}
-            onCycleChange={setPickerCycle}
-            selectedAddons={pickerAddons}
-            onAddonsChange={setPickerAddons}
-          />
+          {/* Sélection du pack — version simplifiée (2026-05-29) : uniquement le choix
+              du NOM de pack via 3 boutons, sans détails ni modules. Le pack choisi est
+              posé sur Tenant.PlanCode au signup et débloque les bons modules via /me
+              pendant l'essai 30j. Les détails et les modules optionnels se consultent
+              et s'ajustent ensuite depuis « Mon abonnement ». */}
+          <Box>
+            <Typography sx={{ fontWeight: 800, fontSize: 16, color: '#0f172a', mb: 1 }}>
+              Choisissez votre formule
+            </Typography>
+            <ToggleButtonGroup
+              value={pickerPlan}
+              exclusive
+              fullWidth
+              onChange={(_, v) => { if (v) setPickerPlan(v as PlanKey); }}
+              sx={{
+                '& .MuiToggleButton-root': {
+                  textTransform: 'none', fontWeight: 700, py: 1.25, fontSize: 15,
+                  border: '2px solid #e2e8f0', borderRadius: 2,
+                  '&.Mui-selected': {
+                    bgcolor: '#0040a1', color: '#fff', borderColor: '#0040a1',
+                    '&:hover': { bgcolor: '#003080' },
+                  },
+                },
+              }}
+            >
+              <ToggleButton value="Starter">Starter</ToggleButton>
+              <ToggleButton value="Standard">Standard</ToggleButton>
+              <ToggleButton value="Premium">Premium</ToggleButton>
+            </ToggleButtonGroup>
+            <Typography sx={{ fontSize: 12, color: '#64748b', mt: 1 }}>
+              30 jours d'essai gratuit sans carte bancaire. Vous pourrez comparer les
+              détails des packs et activer des modules plus tard depuis « Mon abonnement ».
+            </Typography>
+          </Box>
 
           {/* Ordre des champs (2026-05) : Pays + ID entreprise EN PREMIER, puis email
               pro, puis nom de société (souvent auto-rempli depuis l'API Sirene/BCE),
