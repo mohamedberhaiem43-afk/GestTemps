@@ -21,7 +21,7 @@ public partial class Ferier : BaseEntity
     public DateTime? Ferdate { get; set; }
 
     [Column("fermotif")]
-    [StringLength(20)]
+    [StringLength(100)]
     public string? Fermotif { get; set; }
 
     [Column("ferfixe")]

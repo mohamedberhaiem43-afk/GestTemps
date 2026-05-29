@@ -20,11 +20,13 @@ export interface ModuleDef {
   feature: keyof PlanFeatures | null;
   addonKey: string | null;
   note?: string;
+  /** Module non auto-souscrivable : tarif « Sur devis » (nécessite un contact commercial). */
+  quoteOnly?: boolean;
 }
 
 export const MODULE_CATALOG: ModuleDef[] = [
   { label: 'Assistant RH IA',                description: 'Aide à la rédaction, recherche multi-sources, automatisations RH.',           priceMonthlyEur: 49,  feature: 'ragAi',               addonKey: 'aiAssistantRh' },
-  { label: 'IA documentaire avancée',        description: 'Recherche RAG, embeddings vectoriels sur vos archives.',                      priceMonthlyEur: 149, feature: 'ragAi',               addonKey: 'iaDocumentaireAvancee' },
+  { label: 'IA documentaire avancée',        description: 'Recherche RAG, embeddings vectoriels sur vos archives.',                      priceMonthlyEur: 149, feature: 'ragAi',               addonKey: 'iaDocumentaireAvancee', quoteOnly: true },
   { label: 'Signature électronique',         description: 'Parapheur multi-signataires, archivage légal eIDAS.',                        priceMonthlyEur: 19,  feature: 'electronicSignature', addonKey: 'signatureElectronique' },
   { label: 'API avancée',                    description: 'Accès programmatique étendu pour intégrer votre SIRH, paie ou ERP.',         priceMonthlyEur: 79,  feature: 'apiAccess',           addonKey: 'apiAvancee' },
   { label: 'Support prioritaire étendu',     description: 'Réponse <2h ouvrées, hotline dédiée, account manager.',                      priceMonthlyEur: 49,  feature: 'prioritySupport',     addonKey: 'supportPrioritaire' },

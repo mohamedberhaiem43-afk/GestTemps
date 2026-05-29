@@ -43,6 +43,7 @@ import { useAuth } from '../helper/AuthProvider';
 import SuccessAnimation from '../helper/SuccessAnimation';
 import OnboardingNextStepHint from '../Dashboard/OnboardingNextStepHint';
 import Employe from '../../models/Employe';
+import { PHONE_COUNTRIES, parsePhone, formatPhone } from '../Inputs/PhoneInput';
 import apiInstance from '../API/apiInstance';
 import useGetDirectionLibs from '../../hooks/directionHooks/useGetDirectionLibs';
 import useGetFonctionsLibs from '../../hooks/fonctionHooks/useGetFonctionsLibs';
@@ -722,6 +723,32 @@ const EmployeModernInner = () => {
     const handleSelect = (name: string) => (event: any) =>
         setFormData(prev => ({ ...prev, [name]: event.target.value }));
 
+    // Met à jour un champ téléphone (emptel/empmob) en recombinant indicatif + numéro
+    // dans la chaîne unique stockée en base (cf. PhoneInput).
+    const handlePhoneField = (name: 'emptel' | 'empmob', dial: string, num: string) =>
+        setFormData(prev => ({ ...prev, [name]: formatPhone(dial, num) }));
+
+    // Sélecteur d'indicatif rendu en startAdornment, sans bordure, pour épouser fieldStyle.
+    const dialAdornment = (name: 'emptel' | 'empmob', dial: string, num: string) => (
+        <Select
+            value={dial}
+            variant="standard"
+            disableUnderline
+            onChange={(e) => handlePhoneField(name, e.target.value, num)}
+            sx={{ mr: 1, fontSize: 13, '& .MuiSelect-select': { py: 0, pr: '20px !important' } }}
+            renderValue={(d) => {
+                const c = PHONE_COUNTRIES.find((x) => x.dial === d);
+                return <span>{c ? `${c.flag} ${c.dial}` : d}</span>;
+            }}
+        >
+            {PHONE_COUNTRIES.map((c) => (
+                <MenuItem key={`${c.dial}-${c.name}`} value={c.dial}>
+                    {c.flag}&nbsp;{c.name}&nbsp;({c.dial})
+                </MenuItem>
+            ))}
+        </Select>
+    );
+
     // Ancre la date à midi UTC pour empêcher les décalages de jour lors de la
     // sérialisation JSON (Date.toISOString convertit en UTC). Sans ça, en GMT+1
     // une saisie « 2026-05-04 » devient « 2026-05-03T23:00Z » → enregistrée en
@@ -773,18 +800,17 @@ const EmployeModernInner = () => {
             } catch { /* on laisse continuer ; la validation suivante affichera l'erreur */ }
         }
 
-        // À la création, l'email est utilisé pour générer le compte Utilisateur. Sans email,
-        // l'employé n'aura pas d'accès à l'application — on alerte explicitement avant de
-        // laisser passer.
-        const isCreating = mode === 'save';
-        if (isCreating && !String(formData.empemail || '').trim()) {
-            const proceed = window.confirm(
-                "Aucun email renseigné.\n\n" +
-                "Sans adresse email, cet employé ne pourra pas se connecter à l'application " +
-                "(aucun compte utilisateur ne peut être créé).\n\n" +
-                "Voulez-vous continuer quand même ?"
-            );
-            if (!proceed) return;
+        // Champs obligatoires de la fiche collaborateur : nom complet (emplib), email
+        // (empemail) et type de contrat (empcontrat). L'email reste indispensable pour
+        // générer le compte Utilisateur ; on bloque désormais l'enregistrement plutôt que
+        // de seulement avertir.
+        const missing: string[] = [];
+        if (!String(formData.emplib || '').trim()) missing.push('le nom complet');
+        if (!String(formData.empemail || '').trim()) missing.push("l'email");
+        if (!String(formData.empcontrat || '').trim()) missing.push('le type de contrat');
+        if (missing.length) {
+            showSnackbar(`Veuillez renseigner ${missing.join(', ')}.`, 'error');
+            return;
         }
 
         // Pré-validation des champs structurellement obligatoires (avant le setIsSaving),
@@ -1242,7 +1268,7 @@ const EmployeModernInner = () => {
                                                 sx={fieldStyle} placeholder={t('employe.field.autoPlaceholder')} />
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>{t('employe.field.fullName')}</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.field.fullName')} <span style={{ color: '#dc2626' }}>*</span></Typography>
                                             <TextField name="emplib" value={formData.emplib} onChange={handleField} size="small" fullWidth sx={fieldStyle} placeholder={t('employe.field.fullNamePlaceholder')} />
                                         </Box>
                                         <Box>
@@ -1299,7 +1325,7 @@ const EmployeModernInner = () => {
                                             <TextField name="empnbp" type="number" value={formData.empnbp ?? 0} onChange={handleField} size="small" fullWidth sx={fieldStyle} />
                                         </Box>
                                         <Box>
-                                            <Typography sx={labelStyle}>{t('employe.field.email')}</Typography>
+                                            <Typography sx={labelStyle}>{t('employe.field.email')} <span style={{ color: '#dc2626' }}>*</span></Typography>
                                             <TextField name="empemail" type="email" value={formData.empemail || ''} onChange={handleField} size="small" fullWidth sx={fieldStyle}
                                                 InputProps={{ startAdornment: <EmailIcon sx={{ fontSize: 16, color: '#94a3b8', mr: 1 }} /> }}
                                                 placeholder={t('employe.field.emailPlaceholder')} />
@@ -1353,14 +1379,18 @@ const EmployeModernInner = () => {
                                         </Box>
                                         <Box>
                                             <Typography sx={labelStyle}>{t('employe.phone')}</Typography>
-                                            <TextField name="emptel" value={formData.emptel || ''} onChange={handleField} size="small" fullWidth sx={fieldStyle}
-                                                InputProps={{ startAdornment: <PhoneIcon sx={{ fontSize: 16, color: '#94a3b8', mr: 1 }} /> }}
+                                            <TextField value={parsePhone(formData.emptel || '').number}
+                                                onChange={(e) => handlePhoneField('emptel', parsePhone(formData.emptel || '').dial, e.target.value)}
+                                                size="small" fullWidth sx={fieldStyle}
+                                                InputProps={{ startAdornment: dialAdornment('emptel', parsePhone(formData.emptel || '').dial, parsePhone(formData.emptel || '').number) }}
                                                 placeholder={t('employe.field.phonePlaceholder')} />
                                         </Box>
                                         <Box>
                                             <Typography sx={labelStyle}>{t('employe.field.mobile')}</Typography>
-                                            <TextField name="empmob" value={formData.empmob || ''} onChange={handleField} size="small" fullWidth sx={fieldStyle}
-                                                InputProps={{ startAdornment: <PhoneIcon sx={{ fontSize: 16, color: '#94a3b8', mr: 1 }} /> }}
+                                            <TextField value={parsePhone(formData.empmob || '').number}
+                                                onChange={(e) => handlePhoneField('empmob', parsePhone(formData.empmob || '').dial, e.target.value)}
+                                                size="small" fullWidth sx={fieldStyle}
+                                                InputProps={{ startAdornment: dialAdornment('empmob', parsePhone(formData.empmob || '').dial, parsePhone(formData.empmob || '').number) }}
                                                 placeholder={t('employe.field.phonePlaceholder')} />
                                         </Box>
                                     </Box>
@@ -1401,7 +1431,7 @@ const EmployeModernInner = () => {
                                                 </Box>
                                             ))}
                                             <Box>
-                                                <Typography sx={labelStyle}>{t('employe.field.contractType')}</Typography>
+                                                <Typography sx={labelStyle}>{t('employe.field.contractType')} <span style={{ color: '#dc2626' }}>*</span></Typography>
                                                 <FormControl fullWidth size="small">
                                                     <Select value={formData.empcontrat || ''} onChange={handleSelect('empcontrat')} sx={selectStyle} displayEmpty>
                                                         <MenuItem value=""><em style={{ color: '#aaa' }}>—</em></MenuItem>

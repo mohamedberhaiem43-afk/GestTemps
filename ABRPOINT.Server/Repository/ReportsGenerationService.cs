@@ -448,13 +448,18 @@ namespace ABRPOINT.Server.Repository
                 // ou si le déploiement contenant le fix migrator n'a pas encore eu lieu,
                 // on retombe sur un SELECT sans socimg — le PDF ne portera pas le logo
                 // société (placeholder vide) mais ne renverra plus 400.
+                // LEFT JOIN (et non INNER) : si la ligne Societe correspondant au soccod de
+                // l'employé est absente ou que le soccod ne matche pas exactement, un INNER JOIN
+                // renvoyait 0 ligne → emp = null → NullReferenceException dans
+                // ReplaceAllPlaceholders → 500 sur get-report. Avec LEFT JOIN, les données
+                // employé suffisent à générer le PDF (placeholders société laissés vides).
                 dynamic? emp;
                 try
                 {
                     emp = connection.QueryFirstOrDefault(@"
                         select e.*, s.soclib, s.socadr, s.soctel, s.socfax, s.socemail, s.socresp, s.socimg
                         from employe e
-                        inner join ""Societe"" s on e.soccod = s.soccod
+                        left join ""Societe"" s on e.soccod = s.soccod
                         where e.empcod = @empcod and e.soccod = @soccod",
                         new { empcod, soccod });
                 }
@@ -463,8 +468,17 @@ namespace ABRPOINT.Server.Repository
                     emp = connection.QueryFirstOrDefault(@"
                         select e.*, s.soclib, s.socadr, s.soctel, s.socfax, s.socemail, s.socresp
                         from employe e
-                        inner join ""Societe"" s on e.soccod = s.soccod
+                        left join ""Societe"" s on e.soccod = s.soccod
                         where e.empcod = @empcod and e.soccod = @soccod",
+                        new { empcod, soccod });
+                }
+
+                // Dernier filet : si même l'employé est introuvable (emp == null), on retombe
+                // sur la fiche employé seule plutôt que de planter sur un emp null.
+                if (emp == null)
+                {
+                    emp = connection.QueryFirstOrDefault(
+                        "select * from employe where empcod = @empcod and soccod = @soccod",
                         new { empcod, soccod });
                 }
 

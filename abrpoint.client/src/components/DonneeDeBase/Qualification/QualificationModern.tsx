@@ -15,6 +15,7 @@ import { Qualification as QualificationModel } from '../../../models/Qualificati
 import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
 import apiInstance from '../../API/apiInstance';
+import ExcelImportButton from '../shared/ExcelImportButton';
 import '../shared/RefModern.css';
 
 const emptyForm: QualificationModel = { quacod: '', qualib: '', soccod: '', catcod: null };
@@ -89,6 +90,20 @@ function QualificationModernContent() {
           <Typography className="ref-header-sub">{t('donneeBase.qualification.subtitle')}</Typography>
         </Box>
         <Box className="ref-header-actions">
+          {!isEditMode && canAdd && (
+            <ExcelImportButton
+              label={t('donneeBase.qualification.importLabel', { defaultValue: 'Importer Qualifications' })}
+              endpoint="/BulkImport/qualifications"
+              extraBody={{ Soccod: soccod }}
+              columnMap={{
+                Qualib: ['libellé qualification', 'qualib', 'libelle', 'libellé', 'qualification', 'nom'],
+                Catcod: ['exonéré retenue source', 'catcod', 'exonéré', 'exonere', 'categorie', 'catégorie'],
+              }}
+              labelMap={{ Qualib: 'Libellé qualification', Catcod: 'Exonéré retenue source' }}
+              templateExample={{ Qualib: 'Cadre', Catcod: 'Non' }}
+              onImported={refetch}
+            />
+          )}
           {isEditMode && <Button className="ref-cancel-btn" variant="outlined" onClick={() => setForm({ ...emptyForm, soccod: soccod || '' })}>{t('donneeBase.common.cancel')}</Button>}
           {((isEditMode && canModify) || (!isEditMode && canAdd)) && (
             <Button className="ref-save-btn" variant="contained" startIcon={<SaveIcon />} onClick={handleSubmit} disabled={isLoading}>

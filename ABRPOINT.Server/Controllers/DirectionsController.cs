@@ -52,14 +52,30 @@ namespace ABRPOINT.Server.Controllers
         [HttpPost]
         public async Task<ActionResult<Direction>> Post([FromBody] Direction direction)
         {
-            if (direction == null) return BadRequest();
+            if (direction == null)
+                return BadRequest(new { message = "Données de la direction manquantes." });
+
+            // Le soccod est indispensable (clé tenant + base de génération du code). Sans lui,
+            // l'insertion partait avec un Dircod (PK) null → exception → 500 opaque.
+            if (string.IsNullOrWhiteSpace(direction.Soccod))
+                return BadRequest(new { message = "La société (soccod) est obligatoire pour créer une direction." });
+
             // Auto-génération du code si non fourni — le frontend peut se contenter du libellé.
-            if (string.IsNullOrWhiteSpace(direction.Dircod) && !string.IsNullOrWhiteSpace(direction.Soccod))
+            if (string.IsNullOrWhiteSpace(direction.Dircod))
             {
                 direction.Dircod = await SequentialCodeGenerator.NextDirectionCodeAsync(_db, direction.Soccod);
             }
-            await _directionRepository.AddAsync(direction);
-            return Ok(direction);
+
+            try
+            {
+                await _directionRepository.AddAsync(direction);
+                return Ok(direction);
+            }
+            catch (Exception ex)
+            {
+                // Remonte un message exploitable (ex. code déjà existant) ; détail dans les logs.
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         // PUT api/Directions

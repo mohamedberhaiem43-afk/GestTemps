@@ -47,7 +47,29 @@ public class BulkImportController : ControllerBase
 
     public sealed record ImportReport(int Inserted, int Skipped, int Created, List<string> Errors);
 
-    public sealed class ServiceRow { public string? Serlib { get; set; } public string? Serloc { get; set; } }
+    /// <summary>Parse tolérant d'un effectif saisi en texte (« 12 », « 12,0 », vide). Null si invalide.</summary>
+    private static int? ParseEffectif(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        var cleaned = raw.Trim().Replace(" ", "").Replace(",", ".");
+        if (double.TryParse(cleaned, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var d))
+            return (int)Math.Round(d);
+        return null;
+    }
+
+    /// <summary>Normalise un indicateur oui/non en « 1 » / « 0 » (Serloc = service externe).</summary>
+    private static string? NormalizeFlag(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        return raw.Trim().ToLowerInvariant() switch
+        {
+            "1" or "oui" or "yes" or "y" or "o" or "x" or "true" or "vrai" or "externe" => "1",
+            _ => "0",
+        };
+    }
+
+    public sealed class ServiceRow { public string? Serlib { get; set; } public string? Serloc { get; set; } public string? Effectif { get; set; } }
     public sealed class FonctionRow { public string? Fonlib { get; set; } public string? Fontype { get; set; } }
     public sealed class DirectionRow
     {
@@ -62,6 +84,7 @@ public class BulkImportController : ControllerBase
         public string? Seccod { get; set; }
         public string? Seclib { get; set; }
         public string? Sectype { get; set; }
+        public string? Effectif { get; set; }
     }
     public sealed class VilleRow { public string? Vilcod { get; set; } public string? Villib { get; set; } }
     public sealed class PaysRow { public string? Natcod { get; set; } public string? Natlib { get; set; } }
@@ -128,7 +151,13 @@ public class BulkImportController : ControllerBase
             try
             {
                 var code = gen.Next();
-                _db.Services.Add(new Service { Sercod = code, Soccod = soccod, Serlib = lib, CreatedAt = DateTime.UtcNow });
+                _db.Services.Add(new Service
+                {
+                    Sercod = code, Soccod = soccod, Serlib = lib,
+                    Serloc = NormalizeFlag(row.Serloc),
+                    Effectif = ParseEffectif(row.Effectif),
+                    CreatedAt = DateTime.UtcNow,
+                });
                 existing.Add(lib.ToLowerInvariant());
                 inserted++;
             }
@@ -400,7 +429,7 @@ public class BulkImportController : ControllerBase
                     : row.Seccod!.Trim();
                 if (existingCodes.Contains(code.ToUpperInvariant()) || existingLibs.Contains(lib.ToLowerInvariant())) { skipped++; continue; }
 
-                _db.Sections.Add(new Section { Seccod = code, Soccod = soccod, Seclib = lib, Sectype = row.Sectype?.Trim(), CreatedAt = DateTime.UtcNow });
+                _db.Sections.Add(new Section { Seccod = code, Soccod = soccod, Seclib = lib, Sectype = row.Sectype?.Trim(), Effectif = ParseEffectif(row.Effectif), CreatedAt = DateTime.UtcNow });
                 await _db.SaveChangesAsync();
                 existingCodes.Add(code.ToUpperInvariant());
                 existingLibs.Add(lib.ToLowerInvariant());
@@ -547,7 +576,9 @@ public class BulkImportController : ControllerBase
             try
             {
                 var code = await SequentialCodeGenerator.NextQualifCodeAsync(_db, soccod);
-                _db.Qualifs.Add(new Qualif { Quacod = code, Soccod = soccod, Qualib = lib, Catcod = row.Catcod?.Trim(), CreatedAt = DateTime.UtcNow });
+                // Catcod = indicateur « exonéré de la retenue à la source » (« 1 »/« 0 » côté
+                // formulaire). On normalise oui/non → 1/0 pour rester cohérent avec la saisie unitaire.
+                _db.Qualifs.Add(new Qualif { Quacod = code, Soccod = soccod, Qualib = lib, Catcod = NormalizeFlag(row.Catcod) ?? "0", CreatedAt = DateTime.UtcNow });
                 await _db.SaveChangesAsync();
                 existingLibs.Add(lib.ToLowerInvariant());
                 inserted++;

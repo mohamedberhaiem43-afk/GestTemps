@@ -20,7 +20,7 @@ import useGetRepos from '../../../hooks/Repos/useGetRepos';
 import useAddRepos from '../../../hooks/Repos/useAddRepos';
 import useUpdateRepos from '../../../hooks/Repos/useUpdateRepos';
 import useDeleteRepos from '../../../hooks/Repos/useDeleteRepos';
-import { fetchJoursFeriesFr, toFerier } from '../../../hooks/Repos/useImportJoursFeriesFr';
+import { fetchPublicHolidays, toFerier } from '../../../hooks/Repos/useImportJoursFeriesFr';
 import AlertModal from '../../AlertModal/AlertModal';
 import { useAuth } from '../../helper/AuthProvider';
 import OnboardingNextStepHint from '../../Dashboard/OnboardingNextStepHint';
@@ -194,7 +194,7 @@ function ReposModernInner() {
 
     setImporting(true);
     try {
-      const items = await fetchJoursFeriesFr(yearNum);
+      const items = await fetchPublicHolidays(yearNum);
       // Index par yyyy-mm-dd des fériés déjà présents pour cette année.
       const existing = new Set<string>(
         ferierList

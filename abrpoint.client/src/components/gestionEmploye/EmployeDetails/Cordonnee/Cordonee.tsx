@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Grid } from "@mui/material";
 import InputComponent from "../../../Inputs/Input";
+import PhoneInput from "../../../Inputs/PhoneInput";
 import SelectInputComponent from "../../../SelectInputComponent/SelectInputComponent";
 import { useTranslation } from 'react-i18next';
 import useGetVillesLibs from "../../../../hooks/villeHooks/useGetVillesLibs";
@@ -70,19 +71,17 @@ export default function Cordonees({ onChange, empData }: EmployeDetailsProps) {
         />
       </Grid>
       <Grid item xs={3}>
-        <InputComponent
-          type='tel'
+        <PhoneInput
           label={t('employe.contact.tel') || 'Tél'}
-          value={formData.emptel}
-          setValue={(value: any) => handleChange({ target: { name: 'emptel', value } })}
+          value={formData.emptel || ''}
+          onChange={(value) => handleChange({ target: { name: 'emptel', value } })}
         />
       </Grid>
       <Grid item xs={3}>
-        <InputComponent
-          type='number'
+        <PhoneInput
           label={t('employe.contact.mobile') || 'Mobile'}
-          value={formData.empmob}
-          setValue={(value: any) => handleChange({ target: { name: 'empmob', value } })}
+          value={formData.empmob || ''}
+          onChange={(value) => handleChange({ target: { name: 'empmob', value } })}
         />
       </Grid>
       <Grid item xs={3}>

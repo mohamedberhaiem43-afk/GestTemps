@@ -304,19 +304,22 @@ namespace ABRPOINT.Server.Repository
                 // (qui contient seulement la date du dernier contrat via SyncEmployeContractDates).
                 // Sans ce changement, un employé avec plusieurs contrats successifs ne ferait
                 // remonter que son dernier contrat dans la liste d'échéance.
+                // Pas de jointure sur Societe : un INNER JOIN sur "Societe" vidait
+                // silencieusement la liste sur les tenants dont la ligne Societe est
+                // absente/mal-référencée (même cause que le 500 du rapport Conges). Le
+                // périmètre société est déjà garanti par e.Soccod == soccod.
                 var result = await (
-                    from s in _dbContext.Societes
-                    join e in _dbContext.Employes on s.Soccod equals e.Soccod
+                    from e in _dbContext.Employes
                     join c in _dbContext.Contrats on new { e.Soccod, e.Empcod } equals new { c.Soccod, c.Empcod }
                     join su in _dbContext.Socusers on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
-                    where s.Soccod == soccod
+                    where e.Soccod == soccod
                           && c.Empsort.HasValue
                           && c.Empsort >= echdeb
                           && c.Empsort <= echfinEnd
                           && su.Uticod == uticod
                     select new EcheanceContrat
                     {
-                        Soccod = s.Soccod,
+                        Soccod = e.Soccod,
                         Concod = c.Concod,
                         Sitcod = e.Sitcod,
                         // Fallback Empmat → Empcod : sur les tenants migrés depuis des bases

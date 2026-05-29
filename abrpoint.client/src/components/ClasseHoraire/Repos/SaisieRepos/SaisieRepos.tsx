@@ -174,6 +174,7 @@ export default function SaisieRepos() {
                         type="number"
                         label="Année"
                         value={formState.annee}
+                        maxLength={4}
                         setValue={(value) => setFormState({ ...formState, annee: value })}
                       />
                     </Grid>
@@ -182,6 +183,7 @@ export default function SaisieRepos() {
                         type="text"
                         label="Motif"
                         value={formState.fermotif}
+                        maxLength={100}
                         setValue={(value) => setFormState({ ...formState, fermotif: value })}
                       />
                     </Grid>

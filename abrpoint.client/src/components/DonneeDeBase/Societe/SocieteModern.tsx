@@ -10,7 +10,6 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import ScheduleIcon from '@mui/icons-material/Schedule';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import useAddSociete from '../../../hooks/societeHooks/useAddSociete';
@@ -583,22 +582,6 @@ function SocieteModernContent() {
             <Box className="soc-field soc-field--tva">
               <label>{t('societe.form.tva000')}</label>
               <input type="text" value={form.soctva000} readOnly />
-            </Box>
-          </Box>
-        </Box>
-
-        {/* Card: Travail */}
-        <Box className="soc-card soc-card--work">
-          <Box className="soc-card-header">
-            <Box className="soc-card-icon"><ScheduleIcon fontSize="small" /></Box>
-            <Typography className="soc-card-title">{t('societe.card.work')}</Typography>
-          </Box>
-          <Box className="soc-form-grid">
-            {/* Champ "Heures par mois" (socmois) retiré de l'UI (2026-05) : redondant
-                avec le paramétrage centralisé via /dashboard/societe (table parametre).
-                Le champ reste en base pour rétrocompat, simplement masqué côté formulaire. */}
-            <Box className="soc-info-box">
-              <p>{t('societe.form.workInfo')}</p>
             </Box>
           </Box>
         </Box>

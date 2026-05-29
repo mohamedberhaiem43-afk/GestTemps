@@ -666,13 +666,16 @@ namespace ABRPOINT.Server.Repository
             try
             {
                 // Utiliser une jointure avec Socusers au lieu de Contains
+                // Gestion allaitement : on liste TOUTES les collaboratrices (sexe = "F"),
+                // quelle que soit leur situation familiale. L'ancien filtre
+                // (Empsitfam == "M" || "D") excluait les célibataires et les fiches sans
+                // situation renseignée → la liste apparaissait vide côté web.
                 var employes = await (
                     from e in _dbContext.Employes
                     join su in _dbContext.Socusers
                         on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
                     where e.Soccod == soccod
                         && e.Empsexe == "F"
-                        && (e.Empsitfam == "M" || e.Empsitfam == "D")
                         && su.Uticod == uticod
                     select new { e.Empcod, e.Emplib }
                 ).ToListAsync();

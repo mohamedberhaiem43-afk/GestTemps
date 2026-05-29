@@ -85,7 +85,9 @@ function FonctionModernContent() {
             <ExcelImportButton
               endpoint="/BulkImport/fonctions"
               extraBody={{ Soccod: soccod }}
-              columnMap={{ Fonlib: ['fonlib', 'libelle', 'libellé', 'fonction', 'nom'], Fontype: ['fontype', 'type'] }}
+              columnMap={{ Fonlib: ['fonlib', 'libelle', 'libellé', 'fonction', 'nom', 'libellé fonction'], Fontype: ['fontype', 'type'] }}
+              labelMap={{ Fonlib: 'Libellé fonction', Fontype: 'Type' }}
+              templateExample={{ Fonlib: 'Opérateur de production', Fontype: '' }}
               onImported={() => refetch()}
               label={t('donneeBase.fonction.importExcel')}
             />

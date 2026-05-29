@@ -226,11 +226,18 @@ function RubriqueModernContent() {
               endpoint="/BulkImport/rubriques"
               extraBody={{ Soccod: soccod }}
               columnMap={{
-                Rubcod: ['rubcod', 'code'],
+                Rubcod: ['rubcod', 'code', 'code rubrique'],
                 Rublib: ['rublib', 'libelle', 'libellé', 'rubrique', 'nom', 'designation', 'désignation'],
                 Rubunite: ['rubunite', 'unite', 'unité', 'unit'],
                 Vartype: ['vartype', 'variable', 'grandeur', 'type'],
               }}
+              labelMap={{
+                Rubcod: 'Code rubrique',
+                Rublib: 'Libellé',
+                Rubunite: 'Unité',
+                Vartype: 'Type',
+              }}
+              templateExample={{ Rubcod: '', Rublib: 'Prime de transport', Rubunite: 'MAD', Vartype: 'Gain' }}
               onImported={() => refetch()}
               label={t('donneeBase.rubrique.importExcel')}
             />

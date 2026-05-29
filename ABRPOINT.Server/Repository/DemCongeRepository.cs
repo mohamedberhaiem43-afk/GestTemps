@@ -432,13 +432,20 @@ namespace ABRPOINT.Server.Repository
                     if (demConge == null)
                         return (false, $"Demande de congé avec le code {concod} introuvable.");
 
-                    // Check if Conge already exists
-                    bool congeExist = await _dbContext.Conges
-                        .Where(c => c.Soccod == soccod && c.Concod == concod)
-                        .AnyAsync();
+                    // La demande a-t-elle déjà été traitée (un Conge existe) ?
+                    var existingConge = await _dbContext.Conges
+                        .FirstOrDefaultAsync(c => c.Soccod == soccod && c.Concod == concod);
 
-                    if (congeExist)
-                        return (false, $"Le congé {concod} a déjà été traité.");
+                    if (existingConge != null)
+                    {
+                        // Déjà refusée → idempotent : l'état voulu est déjà celui en base, on
+                        // renvoie un succès plutôt qu'une 400 (évite l'erreur quand la liste
+                        // affichée était périmée et que l'utilisateur reclique « Refuser »).
+                        if (existingConge.Conrefus == "1")
+                            return (true, "Cette demande est déjà refusée.");
+                        // Déjà acceptée → on ne peut pas la refuser.
+                        return (false, $"Le congé {concod} a déjà été accepté — impossible de le refuser.");
+                    }
 
                     // Create a new Conge entity based on the DemConge with conrefus = 1
                     var conge = new Conge

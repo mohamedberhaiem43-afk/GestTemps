@@ -69,20 +69,31 @@ public class ServicesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] Service service)
     {
+        if (service == null)
+            return BadRequest(new { message = "Données du service manquantes." });
+
+        // Le soccod est indispensable : c'est la clé tenant et la base de la génération du code.
+        // Sans lui, l'insertion partait avec un code (PK) null → DbUpdateException → 400 opaque.
+        if (string.IsNullOrWhiteSpace(service.Soccod))
+            return BadRequest(new { message = "La société (soccod) est obligatoire pour créer un service." });
+
+        // Auto-génération du code si non fourni.
+        if (string.IsNullOrWhiteSpace(service.Sercod))
+        {
+            service.Sercod = await SequentialCodeGenerator.NextServiceCodeAsync(_db, service.Soccod);
+        }
+
         try
         {
-            if (service == null) return BadRequest();
-            // Auto-génération du code si non fourni.
-            if (string.IsNullOrWhiteSpace(service.Sercod) && !string.IsNullOrWhiteSpace(service.Soccod))
-            {
-                service.Sercod = await SequentialCodeGenerator.NextServiceCodeAsync(_db, service.Soccod);
-            }
             await _servicesRepository.AddAsync(service);
             return Ok(service);
         }
         catch (Exception ex)
         {
-            return BadRequest(new { message = "Erreur interne. Consultez les logs serveur pour le détail." });
+            // Le repository lève une Exception au message explicite pour les cas métier
+            // (ex. code déjà existant). On le remonte au client ; le détail technique reste
+            // dans les logs serveur.
+            return BadRequest(new { message = ex.Message });
         }
     }
 

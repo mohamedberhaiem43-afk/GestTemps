@@ -11,6 +11,8 @@ interface InputComponentProps {
   name?: string;
   readOnly?: boolean;
   required?: boolean;
+  /** Longueur max. côté saisie — à aligner sur la colonne SQL pour éviter les 400 de validation. */
+  maxLength?: number;
 }
 
 export default function InputComponent({
@@ -21,7 +23,8 @@ export default function InputComponent({
   onChange,
   name,
   readOnly = false,
-  required = false
+  required = false,
+  maxLength,
 }: InputComponentProps): JSX.Element {
   // 2026-05-27 — Refonte du rendu type="date" :
   //   AVANT : MUI X DatePicker avec dropdown année + locale fr. UX moins
@@ -99,6 +102,7 @@ export default function InputComponent({
         }}
         fullWidth
         readOnly={readOnly}
+        inputProps={maxLength != null ? { maxLength } : undefined}
       />
     </>
   );

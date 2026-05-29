@@ -159,13 +159,17 @@ const Service = () => {
   try {
     await Promise.all(
       Object.values(editedServices).map(async (service) => {
-        const sanitizedService = {
-          sercod: service.sercod,
-          soccod: service.soccod,
-          serlib: service.serlib,
-          serloc: service.serloc,
-          effectif: service.effectif,
+        // soccod est obligatoire côté serveur pour auto-générer le code (sercod) ;
+        // s'il n'a pas été saisi dans la ligne, on retombe sur la société active.
+        const effectif = Number.isFinite(service.effectif) ? service.effectif : 0;
+        const sanitizedService: Record<string, unknown> = {
+          soccod: service.soccod?.trim() || soccod,
+          serlib: service.serlib ?? '',
+          serloc: service.serloc ?? '0',
+          effectif,
         };
+        // sercod vide → laisser le serveur le générer ; sinon respecter la saisie.
+        if (service.sercod?.trim()) sanitizedService.sercod = service.sercod.trim();
 
         const response = await apiInstance.post(`/Services`, sanitizedService);
         setServices((prev) => [...prev, response.data]);
@@ -181,16 +185,21 @@ const Service = () => {
   const handleEditServices = async () => {
     try {
       await Promise.all(
-        Object.values(editedServices).map(async (service) => {
+        // La clé de editedServices = rowId = sercod (cf. getRowId). On l'utilise comme
+        // repli quand la cellule « code » n'a pas été éditée — sinon service.sercod était
+        // undefined et le PUT partait sur /Services/undefined/undefined.
+        Object.entries(editedServices).map(async ([rowId, service]) => {
+          const sercod = service.sercod?.trim() || rowId;
+          const scod = service.soccod?.trim() || soccod;
           const sanitizedService = {
-            sercod: service.sercod,
-            soccod: service.soccod,
+            sercod,
+            soccod: scod,
             serlib: service.serlib,
             serloc: service.serloc,
             effectif: service.effectif,
           };
 
-          await apiInstance.put(`/Services/${service.soccod}/${service.sercod}`, sanitizedService);
+          await apiInstance.put(`/Services/${scod}/${sercod}`, sanitizedService);
         })
       );
 
@@ -264,7 +273,13 @@ const Service = () => {
         <ExcelImportButton
           endpoint="/BulkImport/services"
           extraBody={{ Soccod: soccod }}
-          columnMap={{ Serlib: ['serlib', 'libelle', 'libellé', 'service', 'nom'] }}
+          columnMap={{
+            Serlib: ['libellé service', 'serlib', 'libelle', 'libellé', 'service', 'nom'],
+            Serloc: ['service externe', 'serloc', 'externe', 'externalisé'],
+            Effectif: ['effectif', 'effectif théorique', 'nombre'],
+          }}
+          labelMap={{ Serlib: 'Libellé service', Serloc: 'Service externe', Effectif: 'Effectif' }}
+          templateExample={{ Serlib: 'Comptabilité', Serloc: 'Non', Effectif: 5 }}
           onImported={() => {
             // Refresh local list après import
             apiInstance.get(`/Services/get-services/${soccod}`).then(r => setServices(r.data)).catch(() => {});

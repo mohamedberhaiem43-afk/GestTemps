@@ -94,11 +94,28 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                if (entity != null)
+                if (entity == null) return;
+
+                // Mise à jour par fusion : on ne remplace que les champs fournis (non null).
+                // Avant, Update(entity) global effaçait `dirtitre`/`dirresp`/`dirrespar` quand
+                // l'écran OrgStructure n'envoyait que libellé/localisation/email. Charger
+                // l'existant évite aussi tout conflit de tracking EF Core.
+                var existing = await _dbContext.Directions
+                    .FirstOrDefaultAsync(d => d.Dircod == entity.Dircod && d.Soccod == entity.Soccod);
+                if (existing == null)
                 {
-                    _dbContext.Directions.Update(entity);
+                    await _dbContext.Directions.AddAsync(entity);
                     await _dbContext.SaveChangesAsync();
+                    return;
                 }
+
+                if (entity.Dirlib != null) existing.Dirlib = entity.Dirlib;
+                if (entity.Dirloc != null) existing.Dirloc = entity.Dirloc;
+                if (entity.Dirtitre != null) existing.Dirtitre = entity.Dirtitre;
+                if (entity.Dirresp != null) existing.Dirresp = entity.Dirresp;
+                if (entity.Dirrespar != null) existing.Dirrespar = entity.Dirrespar;
+                if (entity.Diremail != null) existing.Diremail = entity.Diremail;
+                await _dbContext.SaveChangesAsync();
             }
             catch (Exception ex)
             {

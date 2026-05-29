@@ -344,6 +344,8 @@ builder.Services.AddScoped<ABRPOINT.Server.Services.IGeoZoneValidator, ABRPOINT.
 // Import des villes françaises depuis l'API publique geo.api.gouv.fr.
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<ABRPOINT.Server.Services.IFrenchCitiesImportService, ABRPOINT.Server.Services.FrenchCitiesImportService>();
+// Jours fériés multi-pays (calendrier.api.gouv.fr / date.nager.at / fallback connaissance).
+builder.Services.AddScoped<ABRPOINT.Server.Services.IPublicHolidayService, ABRPOINT.Server.Services.PublicHolidayService>();
 
 builder.Services.AddHttpClient("PythonApi", client =>
 {

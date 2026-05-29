@@ -1335,7 +1335,8 @@ export default function MonAbonnementPage() {
               // Inclus par le pack → coché + verrouillé (pas re-facturé). Sinon
               // activable seulement si c'est un addon backend valide (addonKey).
               const included = moduleIsIncludedByPack(m);
-              const toggleable = !!m.addonKey && !included;
+              // « Sur devis » : non auto-souscrivable depuis l'UI (nécessite un devis commercial).
+              const toggleable = !!m.addonKey && !included && !m.quoteOnly;
               const checked = included || (m.addonKey ? addonsDraft.includes(m.addonKey) : false);
               return (
                 <Stack
@@ -1378,18 +1379,25 @@ export default function MonAbonnementPage() {
                       {m.description}{m.note ? ` · ${m.note}` : ''}
                     </Typography>
                   </Box>
-                  {/* Prix MENSUEL uniquement. Barré si inclus (déjà couvert par le pack). */}
+                  {/* Prix MENSUEL uniquement. Barré si inclus (déjà couvert par le pack).
+                      Module « Sur devis » non inclus → on affiche « Sur devis » au lieu d'un tarif. */}
                   <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                    <Typography sx={{
-                      fontWeight: 800, fontSize: 15,
-                      color: included ? '#15803d' : '#7C3AED',
-                      textDecoration: included ? 'line-through' : 'none',
-                    }}>
-                      +{m.priceMonthlyEur}€
-                      <Typography component="span" sx={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
-                        {' '}/mois
+                    {m.quoteOnly && !included ? (
+                      <Typography sx={{ fontWeight: 800, fontSize: 14, color: '#14346B' }}>
+                        Sur devis
                       </Typography>
-                    </Typography>
+                    ) : (
+                      <Typography sx={{
+                        fontWeight: 800, fontSize: 15,
+                        color: included ? '#15803d' : '#7C3AED',
+                        textDecoration: included ? 'line-through' : 'none',
+                      }}>
+                        +{m.priceMonthlyEur}€
+                        <Typography component="span" sx={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
+                          {' '}/mois
+                        </Typography>
+                      </Typography>
+                    )}
                   </Box>
                 </Stack>
               );

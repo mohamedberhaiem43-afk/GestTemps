@@ -196,12 +196,14 @@ function OrgStructureContent() {
             endpoint="/BulkImport/directions"
             extraBody={{ Soccod: soccod }}
             columnMap={{
-              Dircod: ['dircod', 'code', 'code direction'],
-              Dirlib: ['dirlib', 'libelle', 'libellé', 'libelle direction', 'libellé direction', 'direction', 'nom'],
-              Dirloc: ['dirloc', 'localisation', 'lieu'],
-              Diremail: ['diremail', 'email', 'mail'],
-              Dirresp: ['dirresp', 'responsable'],
+              Dircod: ['code direction', 'dircod', 'code'],
+              Dirlib: ['libellé direction', 'dirlib', 'libelle', 'libellé', 'libelle direction', 'direction', 'nom'],
+              Dirloc: ['localisation', 'dirloc', 'lieu'],
+              Diremail: ['email', 'diremail', 'mail'],
+              Dirresp: ['responsable', 'dirresp'],
             }}
+            labelMap={{ Dircod: 'Code direction', Dirlib: 'Libellé direction', Dirloc: 'Localisation', Diremail: 'Email', Dirresp: 'Responsable' }}
+            templateExample={{ Dircod: '', Dirlib: 'Direction Générale', Dirloc: 'Siège', Diremail: 'dg@exemple.fr', Dirresp: 'Jean Dupont' }}
             onImported={fetchData}
           />
           <ExcelImportButton
@@ -209,9 +211,12 @@ function OrgStructureContent() {
             endpoint="/BulkImport/services"
             extraBody={{ Soccod: soccod }}
             columnMap={{
-              Serlib: ['serlib', 'libelle', 'libellé', 'libelle service', 'libellé service', 'service', 'nom'],
-              Serloc: ['serloc', 'localisation', 'lieu'],
+              Serlib: ['libellé service', 'serlib', 'libelle', 'libellé', 'libelle service', 'service', 'nom'],
+              Serloc: ['service externe', 'serloc', 'externe', 'externalisé'],
+              Effectif: ['effectif', 'effectif théorique', 'nombre'],
             }}
+            labelMap={{ Serlib: 'Libellé service', Serloc: 'Service externe', Effectif: 'Effectif' }}
+            templateExample={{ Serlib: 'Comptabilité', Serloc: 'Non', Effectif: 5 }}
             onImported={fetchData}
           />
           <ExcelImportButton
@@ -219,10 +224,13 @@ function OrgStructureContent() {
             endpoint="/BulkImport/sections"
             extraBody={{ Soccod: soccod }}
             columnMap={{
-              Seccod: ['seccod', 'code', 'code section'],
-              Seclib: ['seclib', 'libelle', 'libellé', 'libelle section', 'libellé section', 'section', 'nom'],
-              Sectype: ['sectype', 'type'],
+              Seccod: ['code section', 'seccod', 'code'],
+              Seclib: ['libellé section', 'seclib', 'libelle', 'libellé', 'libelle section', 'section', 'nom'],
+              Sectype: ['type', 'sectype'],
+              Effectif: ['effectif', 'nombre'],
             }}
+            labelMap={{ Seccod: 'Code section', Seclib: 'Libellé section', Sectype: 'Type', Effectif: 'Effectif' }}
+            templateExample={{ Seccod: '', Seclib: 'Section Nord', Sectype: '', Effectif: 10 }}
             onImported={fetchData}
           />
         </Box>

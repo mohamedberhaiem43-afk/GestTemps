@@ -371,7 +371,7 @@ const useNavigationItems = (): NavGroup[] => {
         href: '/dashboard/conges',
         icon: CalendarDays,
         items: [
-          ...(canSee('gestion-de-conge') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
+          ...(canSee('gestion-de-conge') ? [{ label: t('navigation.leaveValidation'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
           // Les entrées "Demande d'absence" / "Demande de télétravail" sont des
           // formulaires de SAISIE pour le collaborateur. L'admin n'en a pas
           // besoin (il ne pose pas de demande pour lui-même via cet écran) :
@@ -407,7 +407,7 @@ const useNavigationItems = (): NavGroup[] => {
           // ...(canSee('jour-de-compensation') && planAllows('compensationDays') ? [{ label: t('navigation.compensationDay'), href: '/dashboard/jour-de-compensation', icon: Clock3 }] : []),
           ...(canSee('autorisation-de-sortie') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorization'), href: '/dashboard/autorisation-de-sortie', icon: Timer }] : []),
           ...(canSee('autorisation-de-sortie-generale') && planAllows('generalExit') ? [{ label: t('navigation.generalExit'), href: '/dashboard/autorisation-de-sortie-generale', icon: Timer }] : []),
-          ...(canSee('demande-autorisation') && planAllows('authorizationManagement') ? [{ label: t('navigation.exitAuthorizationRequest'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
+          ...(canSee('demande-autorisation') && planAllows('authorizationManagement') ? [{ label: t('navigation.authorizationValidation'), href: '/dashboard/demande-autorisation', icon: Timer }] : []),
           // Validation heures sup. — admin/manager uniquement (les employés n'ont
           // pas accès à ce groupe car la nav "Demandes et validations" est filtrée
           // plus haut sur isEmp). Stocké dans la table autoriser avec marker
@@ -424,8 +424,8 @@ const useNavigationItems = (): NavGroup[] => {
         href: '/dashboard/temps',
         icon: SlidersHorizontal,
         items: [
-          ...(canSee('saisie-classe-horaire') ? [{ label: t('navigation.workSchedule'), href: '/dashboard/saisie-classe-horaire', icon: Clock3 }] : []),
           ...(canSee('saisie-poste-de-travail') ? [{ label: t('navigation.workStation'), href: '/dashboard/saisie-poste-de-travail', icon: Briefcase }] : []),
+          ...(canSee('saisie-classe-horaire') ? [{ label: t('navigation.workSchedule'), href: '/dashboard/saisie-classe-horaire', icon: Clock3 }] : []),
         ],
       },
       // Préparation paie & rapports analytiques : aligné sur le flag commercial

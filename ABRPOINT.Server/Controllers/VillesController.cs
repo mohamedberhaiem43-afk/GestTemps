@@ -3,6 +3,7 @@ using ABRPOINT.Server.Helpers;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Services;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,12 +19,14 @@ namespace ABRPOINT.Server.Controllers
         private readonly IVilleRepository _villeRepository;
         private readonly ApplicationDbContext _db;
         private readonly IFrenchCitiesImportService _frenchCitiesImport;
+        private readonly ICurrentTenant _currentTenant;
 
-        public VillesController(IVilleRepository villeRepository, ApplicationDbContext db, IFrenchCitiesImportService frenchCitiesImport)
+        public VillesController(IVilleRepository villeRepository, ApplicationDbContext db, IFrenchCitiesImportService frenchCitiesImport, ICurrentTenant currentTenant)
         {
             _villeRepository = villeRepository;
             _db = db;
             _frenchCitiesImport = frenchCitiesImport;
+            _currentTenant = currentTenant;
         }
 
         // GET api/Villes/next-code — code séquentiel auto-généré (6 chiffres pour cohabiter avec INSEE).
@@ -34,14 +37,17 @@ namespace ABRPOINT.Server.Controllers
             return Ok(new { code });
         }
 
-        // POST api/Villes/import-france — importe les ~35k communes françaises depuis geo.api.gouv.fr.
-        // Idempotent : les villes déjà présentes (par code INSEE) sont sautées.
+        // POST api/Villes/import-france — importe les villes du PAYS souscrit par le tenant
+        // (FR → geo.api.gouv.fr ; autres → countriesnow.space). Le nom de route reste
+        // « import-france » pour compat front, mais l'import est désormais multi-pays.
+        // Idempotent : les villes déjà présentes (par code/libellé) sont sautées.
         [HttpPost("import-france")]
         public async Task<IActionResult> ImportFrance(CancellationToken ct)
         {
             try
             {
-                var report = await _frenchCitiesImport.ImportAsync(ct);
+                var country = _currentTenant.Current?.CountryCode;
+                var report = await _frenchCitiesImport.ImportAsync(country, ct);
                 return Ok(report);
             }
             catch (HttpRequestException ex)

@@ -351,6 +351,34 @@ const EffectifsGlobaux = () => {
                 ServiceLib: ['servicelib', 'service', 'serlib', 'departement', 'département'],
                 FonctionLib: ['fonctionlib', 'fonction', 'fonlib', 'poste', 'job'],
               }}
+              labelMap={{
+                Empcod: 'Matricule',
+                Emplib: 'Nom complet',
+                Emplnais: 'Lieu de naissance',
+                Empdnais: 'Date de naissance',
+                Empsexe: 'Sexe',
+                Empcin: 'CIN',
+                Emptel: 'Téléphone',
+                Empemail: 'Email',
+                Empadr: 'Adresse',
+                Empemb: "Date d'embauche",
+                ServiceLib: 'Service',
+                FonctionLib: 'Fonction',
+              }}
+              templateExample={{
+                Empcod: '',
+                Emplib: 'Jean Dupont',
+                Emplnais: 'Paris',
+                Empdnais: '1990-01-15',
+                Empsexe: 'M',
+                Empcin: 'AB123456',
+                Emptel: '0612345678',
+                Empemail: 'jean.dupont@example.com',
+                Empadr: '12 rue de la Paix, 75002 Paris',
+                Empemb: '2024-09-01',
+                ServiceLib: 'Production',
+                FonctionLib: 'Opérateur',
+              }}
               onImported={() => setReloadKey(k => k + 1)}
             />
           )}

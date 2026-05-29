@@ -10,6 +10,7 @@
  * de la déduplication contre les jours déjà saisis et de la boucle d'insertion.
  */
 import { Ferier } from '../../models/Ferier';
+import apiInstance from '../../components/API/apiInstance';
 
 /**
  * Liste des dates fixes (mois-jour) en métropole — pour pré-cocher la case "fixe (annuel)".
@@ -41,6 +42,19 @@ export const fetchJoursFeriesFr = async (year: number | string): Promise<FerieFr
     const mmdd = date.slice(5);
     return { date, label, isFixed: FIXED_DATES.has(mmdd) };
   });
+};
+
+/**
+ * Récupère les jours fériés du PAYS souscrit par le tenant (FR, BE, MA, SN…) via le backend
+ * `GET /Feriers/public-holidays/{year}` — qui choisit la bonne source (gouv.fr, Nager.Date ou
+ * liste interne). Remplace l'appel direct à gouv.fr afin de ne plus être figé sur la France.
+ */
+export const fetchPublicHolidays = async (year: number | string): Promise<FerieFromApi[]> => {
+  const { data } = await apiInstance.get(`/Feriers/public-holidays/${year}`);
+  const list: any[] = Array.isArray(data) ? data : (data?.$values ?? []);
+  return list
+    .filter((h) => h && h.date)
+    .map((h) => ({ date: String(h.date).slice(0, 10), label: h.label ?? '', isFixed: !!h.fixed }));
 };
 
 /**

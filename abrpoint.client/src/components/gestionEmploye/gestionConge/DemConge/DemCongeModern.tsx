@@ -887,6 +887,9 @@ function DemCongeModernInner() {
         },
         onError: (err: any) => {
           showSnack(err?.response?.data?.message || t('conge.demConge.msg.errorGeneric'), 'error');
+          // La demande a pu être traitée entre-temps (liste périmée) : on rafraîchit
+          // pour que la ligne reflète son vrai statut et ne propose plus l'action.
+          refetch();
           reject(err);
         },
       });
@@ -910,6 +913,8 @@ function DemCongeModernInner() {
       })
       .catch((err) => {
         showSnack(err?.response?.data?.message || t('conge.demConge.msg.refuseError'), 'error');
+        // Liste potentiellement périmée → on resynchronise le statut réel.
+        refetch();
         throw err;
       });
   };

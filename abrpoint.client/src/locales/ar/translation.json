@@ -59,6 +59,8 @@
     "leave": "الإجازة",
     "requestsAndValidations": "الإجازات والموافقات",
     "leaveRequest": "طلب إجازة",
+    "leaveValidation": "التحقق من الإجازة",
+    "authorizationValidation": "التحقق من الإذن",
     "leaveBalance": "رصيد الإجازة",
     "leaveTitle": "عنوان الإجازة",
     "generalLeave": "إجازة عامة",

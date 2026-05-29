@@ -1,6 +1,8 @@
 ﻿using ABRPOINT.Server.Annotations.FerierAttributes;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Services;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -13,9 +15,25 @@ namespace ABRPOINT.Server.Controllers
     public class FeriersController : ControllerBase
     {
         private readonly IJourFerieRepository _ferierRepository;
-        public FeriersController(IJourFerieRepository ferierRepository)
+        private readonly IPublicHolidayService _publicHolidays;
+        private readonly ICurrentTenant _currentTenant;
+        public FeriersController(IJourFerieRepository ferierRepository, IPublicHolidayService publicHolidays, ICurrentTenant currentTenant)
         {
             _ferierRepository = ferierRepository;
+            _publicHolidays = publicHolidays;
+            _currentTenant = currentTenant;
+        }
+
+        // GET api/Feriers/public-holidays/2026 — jours fériés officiels du PAYS souscrit par le
+        // tenant (FR via gouv.fr, autres via Nager.Date, fallback connaissance). Sert au
+        // pré-remplissage du calendrier des fériés (cf. ReposModern).
+        [HttpGet("public-holidays/{year}")]
+        public async Task<IActionResult> GetPublicHolidays(int year, System.Threading.CancellationToken ct)
+        {
+            if (year < 1900 || year > 2100) return BadRequest(new { message = "Année invalide." });
+            var country = _currentTenant.Current?.CountryCode;
+            var list = await _publicHolidays.GetAsync(country, year, ct);
+            return Ok(list);
         }
         // GET: api/<DirectionsController>
         [HttpGet]

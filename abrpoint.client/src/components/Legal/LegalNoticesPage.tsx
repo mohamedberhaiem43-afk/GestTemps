@@ -1,5 +1,6 @@
 import { Box, Typography, Container, Divider, Paper } from '@mui/material';
 import DashboardLayoutBasic from '../navigation/Navigation';
+import LegalPdfBanner from './LegalPdfBanner';
 
 interface LegalSectionProps {
   title: string;
@@ -30,6 +31,12 @@ function LegalNoticesPage() {
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700, mb: 4 }}>
           Mentions légales
         </Typography>
+
+        <LegalPdfBanner
+          href="/docs/mentions-legales.pdf"
+          downloadName="CONCORDE TECH INNOVATION - Mentions légales.pdf"
+          label="Mentions légales"
+        />
 
         <Paper elevation={0} variant="outlined" sx={{ p: { xs: 3, md: 5 }, borderRadius: 2 }}>
 

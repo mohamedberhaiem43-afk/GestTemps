@@ -1,4 +1,5 @@
 import { Box, Container, Typography, Paper, Divider, Link as MuiLink } from '@mui/material';
+import LegalPdfBanner from './LegalPdfBanner';
 
 /**
  * Politique de confidentialité — RGPD / Apple App Store / Google Play.
@@ -29,6 +30,12 @@ export default function PrivacyPolicyPage() {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
             Dernière mise à jour : <strong>{VERSION}</strong> · Application : {APP_NAME} · Éditeur : {COMPANY_NAME}
           </Typography>
+
+          <LegalPdfBanner
+            href="/docs/politique-confidentialite.pdf"
+            downloadName="CONCORDE TECH INNOVATION - Politique de confidentialité.pdf"
+            label="Politique de confidentialité"
+          />
 
           <Section title="1. Identité du responsable de traitement">
             <P>

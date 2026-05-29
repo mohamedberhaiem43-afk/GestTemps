@@ -75,6 +75,11 @@ public static class BaseDataSchemaMigrator
         // [StringLength(254)] sur Employe.Empemail.
         var empemail = await ExpandColumnIfNeededAsync(db, "employe", "empemail", "VARCHAR(254)", currentMaxLen: 30, targetMaxLen: 254, makeNotNull: false, ct);
 
+        // Jours fériés / repos : le motif (désignation) était plafonné à VARCHAR(20),
+        // ce qui rejetait des libellés courants (« Commémoration de l'Armistice »…) avec
+        // une 400 de validation à l'ajout. On élargit à 100 caractères.
+        var fermotif = await ExpandColumnIfNeededAsync(db, "ferier", "fermotif", "VARCHAR(100)", currentMaxLen: 20, targetMaxLen: 100, makeNotNull: false, ct);
+
         // RTT (Réduction du Temps de Travail, loi française) :
         // 4 colonnes sur employe + 2 colonnes sur solde. Toutes nullables.
         var rttMethode = await AddColumnIfMissingAsync(db, "employe", "emp_rtt_methode", "VARCHAR(1) NULL", ct);

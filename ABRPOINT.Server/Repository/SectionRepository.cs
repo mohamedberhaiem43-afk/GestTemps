@@ -62,16 +62,36 @@ namespace ABRPOINT.Server.Repository
 
         public async Task<Section?> GetBySeccodAsync(string seccod, string soccod)
         {
-            return await _dbContext.Sections.FindAsync(seccod, soccod);
+            // AsNoTracking : ce read sert surtout aux contrôles d'existence (PUT/DELETE).
+            // Avec FindAsync (tracké), le PUT chargeait l'entité puis appelait Update() sur une
+            // seconde instance de même clé → conflit de tracking EF Core → 500. Le Where explicite
+            // lève aussi toute ambiguïté sur l'ordre de la clé composite {Seccod, Soccod}.
+            return await _dbContext.Sections
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Seccod == seccod && s.Soccod == soccod);
         }
 
         public async Task UpdateAsync(Section entity)
         {
-            if (entity != null)
+            if (entity == null) return;
+
+            // Mise à jour par fusion : on ne remplace que les champs fournis (non null) sur la
+            // ligne existante. Avant, Update(entity) global effaçait `sectype`/`effectif` quand
+            // l'écran OrgStructure n'éditait que le libellé. Charger l'existant évite aussi le
+            // conflit de tracking EF Core (cf. GetBySeccodAsync passé en AsNoTracking).
+            var existing = await _dbContext.Sections
+                .FirstOrDefaultAsync(s => s.Seccod == entity.Seccod && s.Soccod == entity.Soccod);
+            if (existing == null)
             {
-                _dbContext.Sections.Update(entity);
+                await _dbContext.Sections.AddAsync(entity);
                 await _dbContext.SaveChangesAsync();
+                return;
             }
+
+            if (entity.Seclib != null) existing.Seclib = entity.Seclib;
+            if (entity.Sectype != null) existing.Sectype = entity.Sectype;
+            if (entity.Effectif != null) existing.Effectif = entity.Effectif;
+            await _dbContext.SaveChangesAsync();
         }
 
         public async Task<Dictionary<string, string>> GetSecLibsAsync(string soccod)

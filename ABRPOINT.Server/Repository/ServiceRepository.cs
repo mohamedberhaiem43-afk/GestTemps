@@ -80,11 +80,26 @@ namespace ABRPOINT.Server.Repository
 
         public async Task UpdateAsync(Service entity)
         {
-            if (entity != null)
+            if (entity == null) return;
+
+            // Mise à jour par fusion : on charge la ligne existante (suivie) et on n'écrase
+            // QUE les champs réellement fournis (non null). Avant, un Update(entity) global
+            // remettait à null les colonnes absentes du payload — typiquement l'écran
+            // OrgStructure n'envoie pas `effectif`, ce qui l'effaçait à chaque édition.
+            // Charger l'entité existante évite aussi le conflit de tracking EF Core.
+            var existing = await _dbContext.Services
+                .FirstOrDefaultAsync(s => s.Sercod == entity.Sercod && s.Soccod == entity.Soccod);
+            if (existing == null)
             {
-                _dbContext.Services.Update(entity);
+                await _dbContext.Services.AddAsync(entity);
                 await _dbContext.SaveChangesAsync();
+                return;
             }
+
+            if (entity.Serlib != null) existing.Serlib = entity.Serlib;
+            if (entity.Serloc != null) existing.Serloc = entity.Serloc;
+            if (entity.Effectif != null) existing.Effectif = entity.Effectif;
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

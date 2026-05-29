@@ -70,14 +70,19 @@ type PresetPlan = 'Starter' | 'Standard' | 'Premium';
 export interface InlineAuthCardProps {
   presetPlan?: PresetPlan;
   presetNonce?: number;
+  /** Onglet ouvert par défaut (ex. 'register' depuis le CTA « essai gratuit »). */
+  defaultTab?: AuthTab;
+  /** Masque le sélecteur de pack (Starter/Standard/Premium) — cas du CTA essai
+   *  gratuit où le pack n'a pas à être choisi (Standard par défaut). */
+  hidePlanPicker?: boolean;
 }
 
-export default function InlineAuthCard({ presetPlan, presetNonce }: InlineAuthCardProps = {}) {
+export default function InlineAuthCard({ presetPlan, presetNonce, defaultTab, hidePlanPicker }: InlineAuthCardProps = {}) {
   const navigate = useNavigate();
   const { setAuthData, refreshAuth } = useAuth();
   const feedback = useFeedbackSnackbar();
 
-  const [tab, setTab] = useState<AuthTab>('login');
+  const [tab, setTab] = useState<AuthTab>(defaultTab ?? 'login');
 
   // ── LOGIN STATE ─────────────────────────────────────────────────
   // loginStep : 'creds' = email+password normal ; 'forgot' = sous-formulaire
@@ -557,6 +562,7 @@ export default function InlineAuthCard({ presetPlan, presetNonce }: InlineAuthCa
               choisisse explicitement Starter / Standard / Premium AVANT toute autre
               information. Le pack est envoyé à /api/signup comme planCode et applique
               les features correspondantes dès l'entrée en Trialing 30j. */}
+          {!hidePlanPicker && (
           <div className="signup-plan-picker">
             <div className="signup-plan-picker-header">
               <span className="form-label" style={{ margin: 0 }}>Choisissez votre pack d'essai</span>
@@ -603,6 +609,7 @@ export default function InlineAuthCard({ presetPlan, presetNonce }: InlineAuthCa
               🎁 1 mois d'essai gratuit sans carte bancaire — annulable en 1 clic.
             </div>
           </div>
+          )}
 
           {/* Ordre des champs (2026-05) : Pays + ID entreprise + email pro EN
               PREMIER (avant prénom/nom). Le pays détermine le format de l'ID ;

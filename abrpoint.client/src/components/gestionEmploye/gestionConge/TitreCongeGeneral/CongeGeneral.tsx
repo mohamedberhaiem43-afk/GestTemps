@@ -32,6 +32,7 @@ import useUpdateTitreConge from '../../../../hooks/congeHooks/useUpdateTitreCong
 import useGetDroitConge from '../../../../hooks/congeHooks/useGetDroitConge';
 import { getDatePartFromDate } from '../../../helper/TimeConverter/ExtractDateOnly';
 import generateNumeroOrdre from '../../../helper/GenerateNumOrdre';
+import { toOptionMap } from '../../../helper/selectOptions';
 import { SearchIcon } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
@@ -112,8 +113,13 @@ function MiniCalendar({ leaves }: { leaves: Conge[] }) {
 function CongeFormDialog({ open, onClose, editConge, isBulk }: { open: boolean; onClose: () => void; editConge: Conge | null; isBulk?: boolean }) {
   const { t } = useTranslation();
   const { soccod } = useAuth();
-  const { data: absences = [] } = useGetAbsencesLibs();
-  const { data: employeOptions = [] } = useGetEmployee();
+  const { data: absencesRaw = [] } = useGetAbsencesLibs();
+  const { data: employeRaw = [] } = useGetEmployee();
+  // Normalise en dictionnaire { code: libellé } quelle que soit la forme renvoyée par l'API
+  // (dict, $values, tableau d'objets…). Sans ça les <Select> affichaient « [object Object] »
+  // et la valeur pré-sélectionnée à l'édition ne matchait aucune option.
+  const absences = useMemo(() => toOptionMap(absencesRaw), [absencesRaw]);
+  const employeOptions = useMemo(() => toOptionMap(employeRaw), [employeRaw]);
   const { mutate: addConge, isPending: adding } = useAddConge();
   const { mutate: addBulkConges, isPending: bulkAdding } = useAddBulkConges();
   const { mutate: updateConge, isPending: updating } = useUpdateTitreConge();

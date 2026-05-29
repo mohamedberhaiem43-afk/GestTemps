@@ -81,6 +81,7 @@ type AddonDef = {
   stepperUnitLabel?: string;     // libellé à côté du stepper (« tranches × 100 Go », « heures »)
   iconName: AddonIconName;
   accent: 'primary' | 'tertiary';
+  quoteOnly?: boolean;           // tarif « Sur devis » : non sélectionnable, périmètre défini avec le commerce
 };
 const ADDON_CATALOG: Record<AddonKey, AddonDef> = {
   aiAssistantRh: {
@@ -102,6 +103,7 @@ const ADDON_CATALOG: Record<AddonKey, AddonDef> = {
     hasQuantity: false,
     iconName: 'brain',
     accent: 'primary',
+    quoteOnly: true,
   },
   signatureElectronique: {
     displayName: 'Signature électronique avancée',
@@ -253,6 +255,7 @@ const PlanConfigurationPage: React.FC = () => {
     let oneTimeAddons = 0;
     (Object.keys(ADDON_CATALOG) as AddonKey[]).forEach((k) => {
       const def = ADDON_CATALOG[k];
+      if (def.quoteOnly) return; // « Sur devis » : hors total (tarif négocié au cas par cas)
       const qty = addonQuantities[k] ?? 0;
       if (qty <= 0) return;
       if (def.billing === 'monthly') monthlyAddons += def.unitPriceEur * qty;
@@ -455,19 +458,19 @@ const PlanConfigurationPage: React.FC = () => {
                       <div
                         key={key}
                         className={`relative bg-white p-6 rounded-3xl border-2 transition-all ${
-                          a.hasQuantity ? '' : 'cursor-pointer'
+                          a.hasQuantity || a.quoteOnly ? '' : 'cursor-pointer'
                         } ${
                           selected ? 'border-primary shadow-lg shadow-primary/10' : 'border-surface-container-high hover:border-primary/40'
                         }`}
-                        onClick={a.hasQuantity ? undefined : () => toggleAddon(key)}
+                        onClick={a.hasQuantity || a.quoteOnly ? undefined : () => toggleAddon(key)}
                       >
                         <div className="flex items-start justify-between gap-4 mb-4">
                           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${accentBg}`}>
                             <AddonIcon name={a.iconName} />
                           </div>
                           {/* Indicateur de sélection : pastille check pour toggle,
-                              juste un check si stepper > 0. */}
-                          {a.hasQuantity ? (
+                              juste un check si stepper > 0. Masqué pour les modules « Sur devis ». */}
+                          {a.quoteOnly ? null : a.hasQuantity ? (
                             selected && (
                               <div className="w-7 h-7 rounded-full flex items-center justify-center bg-primary text-white">
                                 <Check size={16} />
@@ -489,8 +492,14 @@ const PlanConfigurationPage: React.FC = () => {
                         </h3>
                         <p className="text-sm text-on-surface-variant leading-relaxed mb-4">{a.description}</p>
                         <div className="flex items-baseline gap-1 mb-4">
-                          <span className="text-2xl font-black text-primary font-headline">+{formatPrice(a.unitPriceEur)} €</span>
-                          <span className="text-xs text-outline font-bold">HT {a.unit}</span>
+                          {a.quoteOnly ? (
+                            <span className="text-2xl font-black text-primary font-headline">Sur devis</span>
+                          ) : (
+                            <>
+                              <span className="text-2xl font-black text-primary font-headline">+{formatPrice(a.unitPriceEur)} €</span>
+                              <span className="text-xs text-outline font-bold">HT {a.unit}</span>
+                            </>
+                          )}
                         </div>
                         {/* Stepper de quantité (modules `hasQuantity`). On STOPPE
                             la propagation pour ne pas re-toggler la carte au clic. */}

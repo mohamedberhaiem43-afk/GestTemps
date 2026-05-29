@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Box, Grid } from '@mui/material';
+import {
+    Button, Box, Grid, InputLabel, Input, Stack, CircularProgress,
+    Paper, Typography, Chip, Alert,
+} from '@mui/material';
 import "./Societe.css";
 import InputComponent from '../../Inputs/Input';
-import { Save, Cancel } from '@mui/icons-material';
+import PhoneInput from '../../Inputs/PhoneInput';
+import { Save, Cancel, TravelExplore } from '@mui/icons-material';
 import useAddSociete from '../../../hooks/societeHooks/useAddSociete';
 import useUpdateSociete from '../../../hooks/societeHooks/useUpdateSociete';
 import useGetSocietes from '../../../hooks/societeHooks/useGetSocietes';
@@ -27,6 +31,72 @@ function parseSmig(raw: string): number | null {
     return Number.isFinite(n) ? n : null;
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// Récupération des informations légales/fiscales via le SIRET.
+// Source : API publique recherche-entreprises.api.gouv.fr (Annuaire des
+// Entreprises, INSEE/SIRENE) — sans authentification ni clé, CORS ouvert.
+// ──────────────────────────────────────────────────────────────────────────
+
+interface SiretInfo {
+    siren: string;
+    siret: string;
+    raisonSociale: string;
+    adresse: string;
+    ville: string;
+    /** N° TVA intracommunautaire calculé depuis le SIREN (clé mod 97). */
+    tvaIntra: string;
+    /** Code activité principale (APE/NAF), ex. « 62.01Z ». */
+    ape: string;
+    formeJuridique: string;
+    trancheEffectif: string;
+    /** Régime de TVA estimé (réel normal / simplifié / franchise) à titre indicatif. */
+    regimeFiscal: string;
+}
+
+/** Numéro de TVA intracommunautaire français : « FR » + clé(2) + SIREN(9). */
+function computeTvaIntra(siren: string): string {
+    const n = parseInt(siren, 10);
+    if (!Number.isFinite(n)) return '';
+    const key = (12 + 3 * (n % 97)) % 97;
+    return `FR${key.toString().padStart(2, '0')}${siren}`;
+}
+
+/** Estime un régime de TVA d'après la tranche d'effectif (indicatif uniquement). */
+function estimateRegime(trancheCode: string | null | undefined): string {
+    // Sans CA déclaré, on ne peut qu'indiquer le régime le plus courant : réel normal
+    // pour une entreprise avec salariés, franchise/micro pour 0 salarié.
+    if (!trancheCode || trancheCode === 'NN' || trancheCode === '00') return 'Franchise en base / micro (à vérifier)';
+    return 'Réel normal (à vérifier)';
+}
+
+async function lookupSiret(rawSiret: string): Promise<SiretInfo> {
+    const siret = rawSiret.replace(/\s/g, '');
+    if (!/^\d{9}$|^\d{14}$/.test(siret)) {
+        throw new Error('Saisissez un SIREN (9 chiffres) ou un SIRET (14 chiffres).');
+    }
+    const url = `https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(siret)}&page=1&per_page=1`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Service indisponible (HTTP ${res.status}).`);
+    const data = await res.json();
+    const r = data?.results?.[0];
+    if (!r) throw new Error('Aucune entreprise trouvée pour ce numéro.');
+
+    const siege = r.siege ?? {};
+    const siren: string = r.siren ?? siret.slice(0, 9);
+    return {
+        siren,
+        siret: siege.siret ?? siret,
+        raisonSociale: r.nom_raison_sociale || r.nom_complet || '',
+        adresse: siege.adresse || siege.geo_adresse || '',
+        ville: siege.libelle_commune || '',
+        tvaIntra: computeTvaIntra(siren),
+        ape: r.activite_principale || siege.activite_principale || '',
+        formeJuridique: r.nature_juridique || '',
+        trancheEffectif: r.tranche_effectif_salarie || siege.tranche_effectif_salarie || '',
+        regimeFiscal: estimateRegime(r.tranche_effectif_salarie),
+    };
+}
+
 interface SaisieSocieteProps {
     societeToEdit?: Societe | null;
     onEditComplete?: () => void;
@@ -35,6 +105,35 @@ interface SaisieSocieteProps {
 export function SaisieSociete({ societeToEdit, onEditComplete }: SaisieSocieteProps) {
     const [societeData, setSocieteData] = useState<Societe>(emptyForm);
     const feedback = useFeedbackSnackbar();
+
+    // ── Recherche SIRET (champ transient, non persisté) ──
+    const [siret, setSiret] = useState('');
+    const [siretLoading, setSiretLoading] = useState(false);
+    const [siretError, setSiretError] = useState<string | null>(null);
+    const [siretInfo, setSiretInfo] = useState<SiretInfo | null>(null);
+
+    const handleSiretLookup = async () => {
+        setSiretError(null);
+        setSiretLoading(true);
+        try {
+            const info = await lookupSiret(siret);
+            setSiretInfo(info);
+            // Auto-remplissage des champs d'identité que l'API fournit de façon fiable.
+            // On respecte les longueurs de colonnes (soclib 30, socadr 40, socville 60).
+            setSocieteData((prev) => ({
+                ...prev,
+                soclib: info.raisonSociale ? info.raisonSociale.slice(0, 30) : prev.soclib,
+                socadr: info.adresse ? info.adresse.slice(0, 40) : prev.socadr,
+                socville: info.ville ? info.ville.slice(0, 60) : prev.socville,
+            }));
+            feedback.showSuccess('Informations récupérées depuis l’Annuaire des Entreprises.');
+        } catch (e: any) {
+            setSiretInfo(null);
+            setSiretError(e?.message || 'Échec de la récupération.');
+        } finally {
+            setSiretLoading(false);
+        }
+    };
 
     const { mutate: addSociete, isPending: isAdding } = useAddSociete();
     const { mutate: updateSociete, isPending: isUpdating } = useUpdateSociete();
@@ -85,6 +184,52 @@ export function SaisieSociete({ societeToEdit, onEditComplete }: SaisieSocietePr
         <>
             <Box>
                 <Box component={'form'}>
+                    {/* Recherche par SIRET — pré-remplit l'identité + affiche les données fiscales */}
+                    <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2, bgcolor: '#f8fafc' }}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'flex-end' }}>
+                            <Box sx={{ flex: 1, minWidth: 220 }}>
+                                <InputLabel shrink>SIREN / SIRET</InputLabel>
+                                <Input
+                                    fullWidth
+                                    size="small"
+                                    placeholder="Ex. 552081317 ou 55208131766522"
+                                    value={siret}
+                                    onChange={(e) => setSiret(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSiretLookup(); } }}
+                                />
+                            </Box>
+                            <Button
+                                variant="contained"
+                                startIcon={siretLoading ? <CircularProgress size={18} color="inherit" /> : <TravelExplore />}
+                                onClick={handleSiretLookup}
+                                disabled={siretLoading || !siret.trim()}
+                            >
+                                {siretLoading ? 'Recherche…' : 'Récupérer les informations'}
+                            </Button>
+                        </Stack>
+
+                        {siretError && <Alert severity="warning" sx={{ mt: 1.5 }}>{siretError}</Alert>}
+
+                        {siretInfo && (
+                            <Box sx={{ mt: 2 }}>
+                                <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '.05em', mb: 1 }}>
+                                    Données officielles récupérées
+                                </Typography>
+                                <Stack direction="row" flexWrap="wrap" gap={1}>
+                                    {siretInfo.siren && <Chip size="small" label={`SIREN : ${siretInfo.siren}`} />}
+                                    {siretInfo.tvaIntra && <Chip size="small" color="primary" variant="outlined" label={`TVA intracom. : ${siretInfo.tvaIntra}`} />}
+                                    {siretInfo.ape && <Chip size="small" label={`APE/NAF : ${siretInfo.ape}`} />}
+                                    {siretInfo.formeJuridique && <Chip size="small" label={`Forme juridique : ${siretInfo.formeJuridique}`} />}
+                                    {siretInfo.regimeFiscal && <Chip size="small" color="secondary" variant="outlined" label={`Régime fiscal : ${siretInfo.regimeFiscal}`} />}
+                                </Stack>
+                                <Typography sx={{ fontSize: 11.5, color: '#64748b', mt: 1 }}>
+                                    Raison sociale et adresse ont été pré-remplies. Le n° TVA intracommunautaire et le régime
+                                    fiscal sont indicatifs — reportez-les manuellement dans les champs comptables adaptés.
+                                </Typography>
+                            </Box>
+                        )}
+                    </Paper>
+
                     <Grid container spacing={2}>
                         <Grid item xs={0.7} md={6}>
                             <InputComponent label={t('common.code')} type="text" value={societeData.soccod}
@@ -105,12 +250,12 @@ export function SaisieSociete({ societeToEdit, onEditComplete }: SaisieSocietePr
                                 setValue={(value: any) => setSocieteData({ ...societeData, socadr: value })} />
                         </Grid>
                         <Grid item xs={1.5} md={6}>
-                            <InputComponent label={t('donneeSociete.phone')} type="text" value={societeData.soctel}
-                                setValue={(value: any) => setSocieteData({ ...societeData, soctel: value })} />
+                            <PhoneInput label={t('donneeSociete.phone')} value={societeData.soctel || ''}
+                                onChange={(value) => setSocieteData({ ...societeData, soctel: value })} />
                         </Grid>
                         <Grid item xs={1.5} md={6}>
-                            <InputComponent label={t('donneeSociete.fax')} type="text" value={societeData.socfax}
-                                setValue={(value: any) => setSocieteData({ ...societeData, socfax: value })} />
+                            <PhoneInput label={t('donneeSociete.fax')} value={societeData.socfax || ''}
+                                onChange={(value) => setSocieteData({ ...societeData, socfax: value })} />
                         </Grid>
                         <Grid item xs={1.5} md={6}>
                             <InputComponent label={t('donneeSociete.email')} type="email" value={societeData.socemail}

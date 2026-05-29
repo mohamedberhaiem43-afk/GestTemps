@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Dialog, DialogContent, IconButton } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { useAuth } from '../helper/AuthProvider';
+import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
+import InlineAuthCard from './InlineAuthCard';
 import './HomePage.css';
 
 // Landing publique dérivée de Maquette_Concorde_Workforce.html.
@@ -265,6 +269,8 @@ export default function HomePage() {
   // espace plateforme. Source : /Utilisateurs/me — uticod non null.
   const { uticod } = useAuth();
   const isAuthenticated = Boolean(uticod);
+  // Popup d'inscription (essai gratuit) — ouverte par goToSignup.
+  const [signupOpen, setSignupOpen] = useState(false);
   const [activeStep, setActiveStep] = useState<StepIndex>(0);
   // Par défaut on présente le cycle ANNUEL : 2026-05 — décision commerce,
   // l'engagement annuel est plus avantageux et c'est l'offre à mettre en avant
@@ -346,15 +352,16 @@ export default function HomePage() {
   // connecté, on l'envoie sur son dashboard — le signup n'a aucun sens.
   // L'essai 30j est sans carte bancaire : on ne passe PAS par Stripe Checkout
   // tant que l'utilisateur n'upgrade pas manuellement.
-  const goToSignup = (plan?: 'Starter' | 'Standard' | 'Premium') => {
+  // 2026-05-29 — Le CTA « Essayer 30 jours gratuit » ouvre désormais le formulaire
+  // d'inscription dans une POPUP (meilleure UX, pas de changement de page) et SANS
+  // sélecteur de pack (l'essai démarre en Standard par défaut — l'utilisateur pourra
+  // changer de pack ensuite). Si déjà connecté → dashboard.
+  const goToSignup = (_plan?: 'Starter' | 'Standard' | 'Premium') => {
     if (isAuthenticated) {
       navigate('/dashboard');
       return;
     }
-    // `state.plan` est récupéré par SignupPage (location.state) pour pré-régler
-    // le `planCode` envoyé à /api/signup ; pas de `userCount`, donc SignupPage
-    // shortcut vers /dashboard après création (pas d'étape Stripe).
-    navigate('/signup', { state: plan ? { plan } : undefined });
+    setSignupOpen(true);
   };
   // « Connexion » → page /login dédiée (pattern dougs.fr/signin). Si le visiteur
   // est déjà authentifié, on shortcut directement vers son dashboard pour éviter
@@ -394,6 +401,7 @@ export default function HomePage() {
           <li><a href="#download">Téléchargement</a></li>
         </ul>
         <div className="nav-right">
+          <LanguageSwitcher />
           <button type="button" className="btn-ghost" onClick={goToLogin}>Connexion</button>
           <button type="button" className="btn-primary" onClick={() => goToSignup()}>
             Créer un compte <span>→</span>
@@ -1032,6 +1040,28 @@ export default function HomePage() {
           </span>
         </div>
       </footer>
+
+      {/* Popup d'inscription (essai gratuit 30 j) — formulaire signup direct, sans
+          sélecteur de pack (pack Standard par défaut, modifiable ensuite). */}
+      <Dialog
+        open={signupOpen}
+        onClose={() => setSignupOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        scroll="body"
+        PaperProps={{ sx: { borderRadius: '20px', overflow: 'visible' } }}
+      >
+        <IconButton
+          aria-label="Fermer"
+          onClick={() => setSignupOpen(false)}
+          sx={{ position: 'absolute', top: 8, right: 8, zIndex: 1, color: '#64748b' }}
+        >
+          <CloseIcon />
+        </IconButton>
+        <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <InlineAuthCard defaultTab="register" hidePlanPicker />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

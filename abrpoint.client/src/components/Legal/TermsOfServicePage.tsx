@@ -1,4 +1,5 @@
 import { Box, Container, Typography, Paper, Divider, Link as MuiLink } from '@mui/material';
+import LegalPdfBanner from './LegalPdfBanner';
 
 /**
  * CGU — Conditions Générales d'Utilisation.
@@ -24,6 +25,12 @@ export default function TermsOfServicePage() {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
             Dernière mise à jour : <strong>{VERSION}</strong> · Application : {APP_NAME} · Éditeur : {COMPANY_NAME}
           </Typography>
+
+          <LegalPdfBanner
+            href="/docs/cgu.pdf"
+            downloadName="CONCORDE TECH INNOVATION - Conditions générales d'utilisation et de services.pdf"
+            label="Conditions Générales d'Utilisation et de Services"
+          />
 
           <Section title="1. Objet">
             <P>
