@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Box, Paper, Typography, Chip, Stack, Button, CircularProgress, Alert, Divider, Link,
+  Box, Paper, Typography, Stack, Button, CircularProgress, Alert, Divider, Link,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -8,15 +8,19 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ArrowBackIcon from '@mui/icons-material/ArrowBackIosNew';
 import apiInstance from '../API/apiInstance';
 import { useAuth } from '../helper/AuthProvider';
+import InvoiceReceipt, { type ReceiptSection } from './InvoiceReceipt';
+import { ADDON_LABELS } from './moduleCatalog';
 
 /**
- * Page « Factures Concorde » — liste la facture à venir (preview Stripe basé sur
- * la subscription active + proration) ainsi que l'historique des factures émises
- * (jusqu'à 12 dernières). Source : Stripe Invoice API via /api/billing/invoices.
+ * Page « Factures Concorde » — facture à venir + historique des factures Stripe.
  *
- * Pas de génération PDF côté Concorde : on expose le lien `hostedInvoiceUrl` /
- * `invoicePdf` fournis par Stripe (jusqu'à 30 jours en mode test, durable en
- * production). Pas de stockage local des factures pour rester PCI/RGPD minimaliste.
+ * Présentation en reçu détaillé (design variante B des maquettes, cf. InvoiceReceipt) :
+ *  - Facture à venir : détail LIVE reconstruit depuis /billing/subscription
+ *    (abonnement de base + dépassement de sièges + modules souscrits).
+ *  - Historique : reçu simple alimenté par les montants agrégés Stripe (HT/TVA/TTC),
+ *    Stripe ne fournissant pas le détail ligne par ligne dans ce DTO.
+ *
+ * Justificatifs PDF hébergés par Stripe (lien direct). Pas de stockage local.
  */
 
 interface InvoiceDto {
@@ -41,13 +45,29 @@ interface InvoicesResponse {
   history: InvoiceDto[];
 }
 
-const fmtMoney = (amount: number, currency = 'EUR') => {
-  try {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(amount);
-  } catch {
-    return `${amount.toFixed(2)} ${currency}`;
-  }
-};
+// Forme minimale de /billing/subscription nécessaire pour reconstituer le détail de
+// la facture à venir (aligné sur PlanInfo/UsageInfo côté MonAbonnementPage).
+interface SubPlan {
+  displayName: string;
+  flatPriceMonthlyEur: number;
+  flatPriceAnnualMonthlyEur: number;
+  includedEmployees: number;
+  overageRatePerEmployeeEur: number;
+}
+interface SubUsage {
+  activeEmployees: number;
+  extraEmployees: number;
+  extraCostMonthlyEur: number;
+}
+interface SubResponse {
+  planCode: string | null;
+  plan?: SubPlan | null;
+  usage?: SubUsage | null;
+  currentPeriodEndsAt?: string | null;
+}
+
+const eur = (n: number) =>
+  n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 
 const fmtDate = (d: string | null) => {
   if (!d) return '—';
@@ -68,11 +88,54 @@ const statusChip = (status: string): { label: string; color: 'success' | 'warnin
   }
 };
 
+// Reconstruit les sections du reçu détaillé de la facture à venir depuis l'abonnement.
+function buildUpcomingSections(plan: SubPlan, usage: SubUsage, subscribedAddons: string[]): ReceiptSection[] {
+  const sections: ReceiptSection[] = [
+    {
+      title: 'Abonnement de base',
+      lines: [{
+        label: `Pack ${plan.displayName}`,
+        sublabel: `${plan.includedEmployees} collaborateurs inclus`,
+        amountEur: plan.flatPriceMonthlyEur,
+        kind: 'base',
+      }],
+    },
+  ];
+  if (usage.extraEmployees > 0) {
+    sections.push({
+      title: 'Collaborateurs supplémentaires',
+      tag: { label: 'DÉPASSEMENT', kind: 'over' },
+      lines: [{
+        label: `Sièges au-delà de ${plan.includedEmployees}`,
+        sublabel: `${eur(plan.overageRatePerEmployeeEur)} HT / mois par collaborateur`,
+        qty: `${usage.activeEmployees} actifs → ${usage.extraEmployees} supp.`,
+        amountEur: usage.extraCostMonthlyEur || usage.extraEmployees * plan.overageRatePerEmployeeEur,
+        kind: 'over',
+      }],
+    });
+  }
+  if (subscribedAddons.length > 0) {
+    sections.push({
+      title: 'Modules optionnels',
+      tag: { label: `+${subscribedAddons.length} actif${subscribedAddons.length > 1 ? 's' : ''}`, kind: 'module' },
+      lines: subscribedAddons.map((a) => ({
+        label: ADDON_LABELS[a].label,
+        sublabel: ADDON_LABELS[a].description,
+        amountEur: ADDON_LABELS[a].priceMonthlyEur,
+        kind: 'module' as const,
+      })),
+    });
+  }
+  return sections;
+}
+
 export default function FacturesConcordePage() {
   const navigate = useNavigate();
-  const { planCode } = useAuth();
+  const { planCode, addons } = useAuth();
+  const subscribedAddons = (addons ?? []).filter((a) => ADDON_LABELS[a] != null);
 
   const [data, setData] = useState<InvoicesResponse | null>(null);
+  const [sub, setSub] = useState<SubResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,12 +143,16 @@ export default function FacturesConcordePage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await apiInstance.get<InvoicesResponse>('/billing/invoices');
-        if (!cancelled) setData(res.data);
-      } catch (e: any) {
-        if (!cancelled) {
-          setError(e?.response?.data?.error || 'Impossible de récupérer vos factures.');
-        }
+        // Les deux appels en parallèle : factures Stripe + abonnement (pour le détail
+        // live de la facture à venir). Le second est best-effort (ne bloque pas la page).
+        const [invRes, subRes] = await Promise.allSettled([
+          apiInstance.get<InvoicesResponse>('/billing/invoices'),
+          apiInstance.get<SubResponse>('/billing/subscription'),
+        ]);
+        if (cancelled) return;
+        if (invRes.status === 'fulfilled') setData(invRes.value.data);
+        else setError((invRes.reason as any)?.response?.data?.error || 'Impossible de récupérer vos factures.');
+        if (subRes.status === 'fulfilled') setSub(subRes.value.data);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -103,92 +170,148 @@ export default function FacturesConcordePage() {
 
   const upcoming = data?.upcoming ?? null;
   const history = data?.history ?? [];
+  const hasLiveDetail = !!(sub?.plan && sub?.usage);
 
   return (
     <Box sx={{ maxWidth: 980, mx: 'auto', p: { xs: 2, md: 4 } }}>
       <Button
         startIcon={<ArrowBackIcon sx={{ fontSize: 14 }} />}
         onClick={() => navigate('/dashboard/mon-abonnement')}
-        sx={{ textTransform: 'none', color: '#0040a1', fontWeight: 600, mb: 1, px: 0 }}
+        sx={{ textTransform: 'none', color: '#14346B', fontWeight: 600, mb: 1, px: 0 }}
       >
         Retour
       </Button>
 
-      <Typography variant="h4" sx={{ fontWeight: 800, color: '#0f172a', mb: 0.5 }}>
+      <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F1B33', mb: 0.5 }}>
         Vos prochaines factures
       </Typography>
-      <Typography sx={{ color: '#64748b', mb: 4 }}>
-        Liste des factures émises par Concorde Workforce, à venir et passées. Les justificatifs PDF
-        sont hébergés par Stripe (lien direct ci-dessous).
+      <Typography sx={{ color: '#6A7691', mb: 4 }}>
+        Détail de votre facture à venir et historique de vos factures Concorde Workforce. Les
+        justificatifs PDF sont hébergés par Stripe (lien direct ci-dessous).
       </Typography>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
       <Box sx={{ display: { xs: 'block', md: 'grid' }, gridTemplateColumns: '2fr 1fr', gap: 3 }}>
-        {/* Colonne gauche : timeline factures (à venir + historique) */}
+        {/* Colonne gauche : facture à venir (reçu détaillé) + historique (reçus simples) */}
         <Box>
-          {upcoming && (
-            <Paper elevation={0} sx={{
-              p: { xs: 2, md: 3 }, mb: 2, borderRadius: '16px',
-              border: '1px solid #cdd9ee', bgcolor: '#f8fafc',
-            }}>
-              <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1.5 }}>
-                <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#0040a1' }} />
-                <Typography sx={{ fontWeight: 700, color: '#0040a1', fontSize: 14 }}>
-                  À venir — {fmtDate(upcoming.periodStart)}
-                </Typography>
-              </Stack>
-              <InvoiceRow inv={upcoming} />
+          {/* ── Facture à venir ── */}
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#14346B', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1.5 }}>
+            Facture à venir{upcoming?.periodStart ? ` — ${fmtDate(upcoming.periodStart)}` : ''}
+          </Typography>
+
+          {hasLiveDetail ? (
+            <Box sx={{ mb: 3 }}>
+              <InvoiceReceipt
+                title="Détail de votre prochaine facture"
+                cycleLabel={`Pack ${sub!.plan!.displayName}`}
+                sections={buildUpcomingSections(sub!.plan!, sub!.usage!, subscribedAddons)}
+              />
+            </Box>
+          ) : upcoming ? (
+            <Box sx={{ mb: 3 }}>
+              <InvoiceReceipt
+                title={upcoming.description || 'Abonnement Concorde Workforce'}
+                cycleLabel={planCode ? `Pack ${planCode}` : undefined}
+                sections={[{
+                  title: 'Abonnement',
+                  lines: [{
+                    label: upcoming.description || 'Abonnement Concorde Workforce',
+                    sublabel: (upcoming.periodStart || upcoming.periodEnd)
+                      ? `du ${fmtDate(upcoming.periodStart)} au ${fmtDate(upcoming.periodEnd)}`
+                      : undefined,
+                    amountEur: upcoming.amountHt,
+                    kind: 'base',
+                  }],
+                }]}
+                subtotalHt={upcoming.amountHt}
+                tvaAmount={upcoming.tax ?? undefined}
+                totalTtc={upcoming.amountTtc}
+              />
+            </Box>
+          ) : (
+            <Paper elevation={0} sx={{ p: 4, mb: 3, textAlign: 'center', borderRadius: '16px', border: '1px solid #E4EAF3' }}>
+              <Typography sx={{ color: '#6A7691' }}>Aucune facture à venir pour l'instant.</Typography>
             </Paper>
           )}
 
-          {history.length === 0 && !upcoming && (
-            <Paper elevation={0} sx={{ p: 4, textAlign: 'center', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-              <Typography sx={{ color: '#64748b', mb: 1 }}>Aucune facture à afficher pour l'instant.</Typography>
-              <Typography sx={{ color: '#94a3b8', fontSize: 13 }}>
-                Vos factures apparaîtront ici dès le premier prélèvement Stripe.
+          {/* ── Historique ── */}
+          {history.length > 0 && (
+            <>
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#6A7691', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1.5 }}>
+                Historique
               </Typography>
-            </Paper>
-          )}
-
-          {history.map((inv, idx) => (
-            <Paper key={inv.id} elevation={0} sx={{
-              p: { xs: 2, md: 3 }, mb: 2, borderRadius: '16px',
-              border: '1px solid #e2e8f0',
-            }}>
-              <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1.5 }}>
-                <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: idx === 0 ? '#0040a1' : '#cbd5e1' }} />
-                <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: 14 }}>
-                  le {fmtDate(inv.issuedAt)}
-                </Typography>
-                <Box sx={{ flex: 1 }} />
-                <Chip
-                  label={statusChip(inv.status).label}
-                  size="small"
-                  color={statusChip(inv.status).color === 'default' ? undefined : statusChip(inv.status).color}
-                  sx={{ fontWeight: 700 }}
-                />
+              <Stack spacing={2.5}>
+                {history.map((inv) => {
+                  const sc = statusChip(inv.status);
+                  return (
+                    <Box key={inv.id}>
+                      <InvoiceReceipt
+                        title={`Facture du ${fmtDate(inv.issuedAt)}`}
+                        cycleLabel={sc.label}
+                        totalLabel="Total payé"
+                        sections={[{
+                          title: 'Détail',
+                          lines: [{
+                            label: inv.description || 'Abonnement Concorde Workforce',
+                            sublabel: (inv.periodStart || inv.periodEnd)
+                              ? `du ${fmtDate(inv.periodStart)} au ${fmtDate(inv.periodEnd)}`
+                              : undefined,
+                            amountEur: inv.amountHt,
+                            kind: 'base',
+                          }],
+                        }]}
+                        subtotalHt={inv.amountHt}
+                        tvaAmount={inv.tax ?? undefined}
+                        totalTtc={inv.amountTtc}
+                      />
+                      {(inv.hostedInvoiceUrl || inv.invoicePdf) && (
+                        <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: 1 }}>
+                          {inv.hostedInvoiceUrl && (
+                            <Button
+                              size="small" variant="outlined"
+                              endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
+                              component={Link} href={inv.hostedInvoiceUrl} target="_blank" rel="noopener noreferrer"
+                              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px' }}
+                            >
+                              Voir
+                            </Button>
+                          )}
+                          {inv.invoicePdf && (
+                            <Button
+                              size="small" variant="contained"
+                              endIcon={<DownloadIcon sx={{ fontSize: 14 }} />}
+                              component={Link} href={inv.invoicePdf} target="_blank" rel="noopener noreferrer"
+                              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px', bgcolor: '#14346B', '&:hover': { bgcolor: '#0f2c5c' } }}
+                            >
+                              PDF
+                            </Button>
+                          )}
+                        </Stack>
+                      )}
+                    </Box>
+                  );
+                })}
               </Stack>
-              <InvoiceRow inv={inv} />
-            </Paper>
-          ))}
+            </>
+          )}
         </Box>
 
         {/* Colonne droite : récap pack + explication du calcul */}
         <Box>
           <Paper elevation={0} sx={{
-            p: 3, borderRadius: '16px', border: '1px solid #e2e8f0', mb: 2,
+            p: 3, borderRadius: '16px', border: '1px solid #E4EAF3', mb: 2,
             position: { md: 'sticky' }, top: { md: 16 },
           }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#0040a1', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#14346B', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
               Votre pack
             </Typography>
-            <Typography sx={{ fontWeight: 800, color: '#0f172a', mb: 0.5, fontSize: 18 }}>
-              {planCode || 'Aucun pack'}
+            <Typography sx={{ fontWeight: 800, color: '#0F1B33', mb: 0.5, fontSize: 18 }}>
+              {sub?.plan?.displayName || planCode || 'Aucun pack'}
             </Typography>
-            {upcoming && (
-              <Typography sx={{ color: '#64748b', fontSize: 13 }}>
-                Prochaine échéance : <strong>{fmtDate(upcoming.periodStart)}</strong>
+            {(sub?.currentPeriodEndsAt || upcoming?.periodStart) && (
+              <Typography sx={{ color: '#6A7691', fontSize: 13 }}>
+                Prochaine échéance : <strong>{fmtDate(sub?.currentPeriodEndsAt ?? upcoming?.periodStart ?? null)}</strong>
               </Typography>
             )}
 
@@ -198,68 +321,13 @@ export default function FacturesConcordePage() {
               Calcul de votre facture
             </Typography>
             <Typography sx={{ color: '#475569', fontSize: 13, lineHeight: 1.6 }}>
-              Votre abonnement Concorde Workforce couvre la période indiquée. Les montants
-              affichés sont calculés au prorata si vous changez de pack en cours de période
-              (Stripe applique automatiquement la régularisation sur la facture suivante).
+              La facture à venir reprend votre abonnement de base, les éventuels collaborateurs
+              au-delà du seuil inclus, et vos modules optionnels. En cas de changement de pack en
+              cours de période, Stripe applique automatiquement la régularisation au prorata.
             </Typography>
           </Paper>
         </Box>
       </Box>
-    </Box>
-  );
-}
-
-function InvoiceRow({ inv }: { inv: InvoiceDto }) {
-  return (
-    <Box>
-      <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: 15, mb: 0.5 }}>
-        {inv.description || 'Abonnement Concorde Workforce'}
-      </Typography>
-      {(inv.periodStart || inv.periodEnd) && (
-        <Typography sx={{ color: '#64748b', fontSize: 13, mb: 1.5 }}>
-          du {fmtDate(inv.periodStart)} au {fmtDate(inv.periodEnd)}
-        </Typography>
-      )}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent="space-between">
-        <Box>
-          <Typography sx={{ color: '#475569', fontSize: 13 }}>
-            Total HT : <strong style={{ color: '#0f172a' }}>{fmtMoney(inv.amountHt, inv.currency)}</strong>
-          </Typography>
-          <Typography sx={{ color: '#475569', fontSize: 13 }}>
-            Total TTC : <strong style={{ color: '#0f172a' }}>{fmtMoney(inv.amountTtc, inv.currency)}</strong>
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1}>
-          {inv.hostedInvoiceUrl && (
-            <Button
-              size="small"
-              variant="outlined"
-              endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
-              component={Link}
-              href={inv.hostedInvoiceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '10px' }}
-            >
-              Voir
-            </Button>
-          )}
-          {inv.invoicePdf && (
-            <Button
-              size="small"
-              variant="contained"
-              endIcon={<DownloadIcon sx={{ fontSize: 14 }} />}
-              component={Link}
-              href={inv.invoicePdf}
-              target="_blank"
-              rel="noopener noreferrer"
-              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px' }}
-            >
-              PDF
-            </Button>
-          )}
-        </Stack>
-      </Stack>
     </Box>
   );
 }

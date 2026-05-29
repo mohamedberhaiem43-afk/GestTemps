@@ -192,6 +192,9 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
   ) ?? null;
 
   const [selected, setSelected] = useState<PlanKey | null>(null);
+  // Cycle de facturation choisi dans la modale (toggle Mensuel / Annuel — image 2).
+  // Défaut « annual » : l'engagement annuel est l'offre mise en avant (le moins cher).
+  const [cycle, setCycle] = useState<'monthly' | 'annual'>('annual');
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
@@ -252,7 +255,7 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
       try {
         const res = await apiInstance.post<PreviewResponse>('/billing/preview-plan-change', {
           planCode: selected,
-          billingCycle: 'monthly',
+          billingCycle: cycle,
           userCount: 1, // le backend clampe sur Math.max(1, employés actifs)
         });
         if (!cancelled) setPreview(res.data);
@@ -266,7 +269,7 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
       }
     })();
     return () => { cancelled = true; };
-  }, [selected, currentKey, open, canChangeInPlace]);
+  }, [selected, currentKey, open, canChangeInPlace, cycle]);
 
   const isDowngrade = useMemo(() => {
     if (!selected || !currentKey) return false;
@@ -290,7 +293,7 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
     try {
       const res = await apiInstance.post('/billing/change-plan', {
         planCode: selected,
-        billingCycle: 'monthly',
+        billingCycle: cycle,
         userCount: 1,
       });
       const newPlan = res.data?.newPlan ?? selected;
@@ -307,11 +310,11 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
       // Parent va ouvrir DevisPackDialog par-dessus — on n'a plus à naviguer.
       // On ferme la modale "Choisissez votre pack" pour laisser place au devis.
       onClose();
-      onViewDevis(key, 'monthly');
+      onViewDevis(key, cycle);
       return;
     }
     onClose();
-    navigate(`/dashboard/devis-pack?plan=${key}&cycle=monthly`);
+    navigate(`/dashboard/devis-pack?plan=${key}&cycle=${cycle}`);
   };
 
   return (
@@ -322,13 +325,44 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
       fullWidth
       PaperProps={{ sx: { borderRadius: '20px' } }}
     >
-      <DialogTitle sx={{ fontWeight: 800, pb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 2 }}>
+      <DialogTitle sx={{ fontWeight: 800, pb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, pr: 2, flexWrap: 'wrap' }}>
         <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a' }}>
           Choisissez votre pack
         </Typography>
-        <IconButton onClick={onClose} disabled={submitting} size="small" aria-label="Fermer">
-          <CloseIcon />
-        </IconButton>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          {/* Toggle Mensuel / Annuel (image 2) */}
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', background: '#eef3fb', border: '1px solid #dce6f6', borderRadius: '999px', p: '4px' }}>
+            {(['monthly', 'annual'] as const).map((cy) => {
+              const active = cycle === cy;
+              return (
+                <Box
+                  key={cy}
+                  component="button"
+                  type="button"
+                  onClick={() => setCycle(cy)}
+                  sx={{
+                    font: 'inherit', fontSize: 13, fontWeight: 700, border: 0, cursor: 'pointer',
+                    px: 1.8, py: 0.8, borderRadius: '999px', display: 'flex', alignItems: 'center', gap: 0.75,
+                    transition: '.2s', background: active ? '#14346B' : 'transparent', color: active ? '#fff' : '#6A7691',
+                  }}
+                >
+                  {cy === 'monthly' ? 'Mensuel' : 'Annuel'}
+                  {cy === 'annual' && (
+                    <Box component="span" sx={{
+                      fontSize: 10, fontWeight: 800, color: '#fff', px: 0.7, py: '2px', borderRadius: '6px',
+                      bgcolor: active ? 'rgba(255,255,255,.22)' : '#16A34A',
+                    }}>
+                      −45%
+                    </Box>
+                  )}
+                </Box>
+              );
+            })}
+          </Box>
+          <IconButton onClick={onClose} disabled={submitting} size="small" aria-label="Fermer">
+            <CloseIcon />
+          </IconButton>
+        </Stack>
       </DialogTitle>
       <DialogContent sx={{ pt: 1 }}>
         <Box
@@ -361,21 +395,23 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
                 sx={{
                   position: 'relative',
                   p: 3,
-                  pt: (isPopular || isPremium) ? 4.5 : 3,
+                  pt: (isPopular || isPremium || isCurrent) ? 4.5 : 3,
                   borderRadius: '16px',
-                  border: isSelected
+                  border: isCurrent
+                    ? '2px solid #16A34A'
+                    : isSelected
                     ? `2px solid ${isPremium ? goldBorder : '#0040a1'}`
                     : isPremium
                       ? `2px solid ${goldBorder}`
                       : isPopular
                         ? '1.5px solid #0040a1'
                         : '1px solid #e2e8f0',
-                  bgcolor: isCurrent ? '#f8fafc' : isPremium ? '#fffdf5' : '#fff',
+                  bgcolor: isCurrent ? '#f6fef9' : isPremium ? '#fffdf5' : '#fff',
                   cursor: cardClickable ? 'pointer' : 'default',
                   transition: 'all 0.2s',
                   display: 'flex',
                   flexDirection: 'column',
-                  boxShadow: isPremium ? '0 10px 30px rgba(212,175,55,0.18)' : 'none',
+                  boxShadow: isCurrent ? '0 0 0 4px #E7F6ED' : isPremium ? '0 10px 30px rgba(212,175,55,0.18)' : 'none',
                   '&:hover': cardClickable ? {
                     borderColor: isPremium ? goldBorder : '#0040a1',
                     boxShadow: isPremium
@@ -384,7 +420,18 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
                   } : {},
                 }}
               >
-                {isPopular && !isPremium && (
+                {isCurrent && (
+                  <Box
+                    sx={{
+                      position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+                      bgcolor: '#16A34A', color: '#fff', px: 1.5, py: 0.4, borderRadius: '999px',
+                      fontWeight: 700, fontSize: 10, letterSpacing: '0.06em', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    ✓ VOTRE PACK ACTUEL · {cycle === 'annual' ? 'ANNUEL' : 'MENSUEL'}
+                  </Box>
+                )}
+                {isPopular && !isPremium && !isCurrent && (
                   <Box
                     sx={{
                       position: 'absolute',
@@ -405,7 +452,7 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
                     ✦ POPULAIRE ✦
                   </Box>
                 )}
-                {isPremium && (
+                {isPremium && !isCurrent && (
                   <Box
                     sx={{
                       position: 'absolute',
@@ -434,30 +481,32 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
 
                 {(() => {
                   // Prix issu du backend si fetch OK, sinon constante PLAN_META (fallback).
-                  // Affichage : « dès {annuel} € HT/mois » + petit rappel mensuel pour
-                  // rendre la grille tarifaire transparente (l'engagement annuel est
-                  // moins cher, mais l'admin doit voir le prix mensuel sans engagement).
+                  // Le prix affiché suit le toggle Mensuel / Annuel (image 2), toujours
+                  // exprimé « par mois ». La boîte bleue rappelle les sièges inclus + l'overage.
                   const cat = catalog?.[key];
                   const annual = cat?.flatPriceAnnualMonthlyEur ?? meta.baseEur;
-                  const monthly = cat?.flatPriceMonthlyEur;
+                  const monthly = cat?.flatPriceMonthlyEur ?? meta.baseEur;
+                  const price = cycle === 'annual' ? annual : monthly;
                   return (
-                    <Box sx={{ mb: 1 }}>
+                    <Box sx={{ mb: 1.5 }}>
                       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-                        <Typography sx={{ color: '#64748b', fontSize: 14 }}>dès</Typography>
-                        <Typography sx={{ fontSize: 28, fontWeight: 800, color: isPremium ? goldText : '#0f172a' }}>
-                          {annual.toFixed(0)} €
+                        <Typography sx={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.02em', color: isPremium ? goldText : '#0f172a' }}>
+                          {price.toFixed(0)} €
                         </Typography>
-                        <Typography sx={{ color: '#64748b', fontSize: 13 }}>HT/mois</Typography>
+                        <Typography sx={{ color: '#64748b', fontSize: 13 }}>HT /mois</Typography>
                       </Box>
-                      {monthly != null && monthly !== annual && (
-                        <Typography sx={{ fontSize: 11, color: '#64748b', mt: 0.5 }}>
-                          ou <strong>{monthly.toFixed(0)} €</strong> HT/mois sans engagement
-                        </Typography>
-                      )}
+                      <Typography sx={{ fontSize: 12, color: '#64748b', mt: 0.3 }}>
+                        {cycle === 'annual' ? 'engagement annuel' : 'sans engagement'}
+                      </Typography>
                       {cat && (
-                        <Typography sx={{ fontSize: 11, color: '#64748b', mt: 0.3 }}>
-                          {cat.includedEmployees} salariés inclus · +{cat.overageRatePerEmployeeEur.toFixed(2)} € / collab. supp.
-                        </Typography>
+                        <Box sx={{ mt: 1.5, bgcolor: '#EEF3FB', border: '1px solid #DCE6F6', borderRadius: '11px', px: 1.5, py: 1.25 }}>
+                          <Typography sx={{ fontSize: 13, color: '#0F1B33' }}>
+                            <strong>{cat.includedEmployees} salariés</strong> inclus
+                          </Typography>
+                          <Typography sx={{ fontSize: 12.5, color: '#E8870B', fontWeight: 600, mt: 0.3 }}>
+                            + {cat.overageRatePerEmployeeEur.toFixed(2)} € / collaborateur supplémentaire
+                          </Typography>
+                        </Box>
                       )}
                     </Box>
                   );
@@ -473,8 +522,9 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
                     disabled
                     startIcon={<CheckIcon />}
                     sx={{
-                      bgcolor: '#e2e8f0 !important',
-                      color: '#475569 !important',
+                      bgcolor: '#E7F6ED !important',
+                      color: '#15803d !important',
+                      border: '1px solid #bfe6cd',
                       textTransform: 'none',
                       fontWeight: 700,
                       borderRadius: '10px',

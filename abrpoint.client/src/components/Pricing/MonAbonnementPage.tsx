@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Box, Paper, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
   RadioGroup, FormControlLabel, Radio, TextField, Alert, CircularProgress, Stack, Divider,
-  LinearProgress, Switch,
+  LinearProgress, Switch, Slider,
 } from '@mui/material';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
@@ -12,14 +12,14 @@ import CreditCardIcon from '@mui/icons-material/CreditCard';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
-import RemoveIcon from '@mui/icons-material/Remove';
-import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
 import apiInstance from '../API/apiInstance';
 import { useAuth, type PlanFeatures } from '../helper/AuthProvider';
 import ChangePlanModal from './ChangePlanModal';
 import DevisPackDialog from './DevisPackDialog';
 import StorageUsageCard from './StorageUsageCard';
+import InvoiceReceipt, { type ReceiptSection } from './InvoiceReceipt';
+import { MODULE_CATALOG, ADDON_LABELS, type ModuleDef } from './moduleCatalog';
 
 /**
  * Libellés user-friendly des feature flags PlanFeatures (cf. PlanCatalog côté backend).
@@ -53,50 +53,8 @@ const FEATURE_LABELS: Partial<Record<keyof PlanFeatures, { label: string; icon: 
   bulkImport: { label: 'Import Excel en masse', icon: '⬆️' },
 };
 
-/**
- * Catalogue des modules optionnels affichés dans « Mon abonnement ».
- *
- * - `addonKey` : clé reconnue par le backend (PlanCatalog.ValidAddonKeys). SEULS ces
- *   modules sont activables/désactivables via PUT /billing/addons. Les modules sans
- *   addonKey (stockage, domaine) ne sont PAS des addons facturables individuellement :
- *   ils se gèrent ailleurs (blocs de stockage / pack Premium) et sont en lecture seule.
- * - `feature` : flag PlanFeatures qui, s'il est vrai, indique que le module est DÉJÀ
- *   inclus (par le pack ou un addon) → on l'affiche « inclus / actif » au lieu de le
- *   proposer à l'achat.
- *
- * Prix en €/mois HT (grille commerciale 2026).
- */
-interface ModuleDef {
-  label: string;
-  description: string;
-  priceMonthlyEur: number;
-  feature: keyof PlanFeatures | null;
-  addonKey: string | null;
-  note?: string;
-}
-
-const MODULE_CATALOG: ModuleDef[] = [
-  { label: 'Assistant RH IA',                description: 'Aide à la rédaction, recherche multi-sources, automatisations RH.',           priceMonthlyEur: 49,  feature: 'ragAi',               addonKey: 'aiAssistantRh' },
-  { label: 'IA documentaire avancée',        description: 'Recherche RAG, embeddings vectoriels sur vos archives.',                      priceMonthlyEur: 149, feature: 'ragAi',               addonKey: 'iaDocumentaireAvancee' },
-  { label: 'Signature électronique',         description: 'Parapheur multi-signataires, archivage légal eIDAS.',                        priceMonthlyEur: 19,  feature: 'electronicSignature', addonKey: 'signatureElectronique' },
-  { label: 'API avancée',                    description: 'Accès programmatique étendu pour intégrer votre SIRH, paie ou ERP.',         priceMonthlyEur: 79,  feature: 'apiAccess',           addonKey: 'apiAvancee' },
-  { label: 'Support prioritaire étendu',     description: 'Réponse <2h ouvrées, hotline dédiée, account manager.',                      priceMonthlyEur: 49,  feature: 'prioritySupport',     addonKey: 'supportPrioritaire' },
-  { label: 'Stockage supplémentaire 100 Go', description: '100 Go d\'espace sécurisé en plus.',                                          priceMonthlyEur: 29,  feature: null,                  addonKey: null, note: 'Se gère depuis la carte « Stockage » plus bas.' },
-  { label: 'Domaine personnalisé',           description: 'Votre espace sur votre propre domaine + personnalisation de marque.',        priceMonthlyEur: 19,  feature: 'customBranding',      addonKey: null, note: 'Inclus dans le pack Premium.' },
-];
-
-// Map dérivée (clé addon backend → meta) pour la décomposition du total (carte A) et
-// la carte récap « modules actifs », qui raisonnent en clés d'addons souscrits
-// (Tenant.Addons). Ne contient que les modules réellement activables comme addons.
-const ADDON_LABELS: Record<string, { label: string; description: string; priceMonthlyEur: number }> =
-  Object.fromEntries(
-    MODULE_CATALOG.filter((m) => m.addonKey).map((m) => [
-      m.addonKey as string,
-      { label: m.label, description: m.description, priceMonthlyEur: m.priceMonthlyEur },
-    ]),
-  );
-
-const ADDON_KEYS = Object.keys(ADDON_LABELS);
+// Catalogue des modules optionnels + map dérivée des addons : source unique partagée
+// avec FacturesConcordePage (cf. moduleCatalog.ts).
 
 type PlanKey = 'Starter' | 'Standard' | 'Premium';
 type Cycle = 'monthly' | 'annual';
@@ -749,15 +707,52 @@ export default function MonAbonnementPage() {
         const isPremium = `${plan.code ?? ''} ${plan.displayName ?? ''}`.toLowerCase().includes('premium');
         const base = cycleA === 'annual' ? plan.flatPriceAnnualMonthlyEur : plan.flatPriceMonthlyEur;
         const overageCost = usage.extraCostMonthlyEur || usage.extraEmployees * plan.overageRatePerEmployeeEur;
-        const addonsCost = subscribedAddons.reduce((s, k) => s + (ADDON_LABELS[k]?.priceMonthlyEur ?? 0), 0);
-        const totalHT = base + overageCost + addonsCost;
-        const totalTTC = totalHT * 1.2;
         const scale = Math.max(plan.includedEmployees, usage.activeEmployees, 1);
         const usedPct = (Math.min(usage.activeEmployees, plan.includedEmployees) / scale) * 100;
         const overPct = (Math.max(0, usage.activeEmployees - plan.includedEmployees) / scale) * 100;
         const annualSavePct = plan.flatPriceMonthlyEur > 0
           ? Math.round((1 - plan.flatPriceAnnualMonthlyEur / plan.flatPriceMonthlyEur) * 100)
           : 0;
+
+        // Sections du reçu détaillé (variante B / image 1). Construites depuis les
+        // données réelles : abonnement de base, dépassement de sièges, modules souscrits.
+        const receiptSections: ReceiptSection[] = [
+          {
+            title: 'Abonnement de base',
+            lines: [{
+              label: `Pack ${plan.displayName}`,
+              sublabel: `${plan.includedEmployees} collaborateurs inclus`,
+              amountEur: base,
+              kind: 'base',
+            }],
+          },
+        ];
+        if (usage.extraEmployees > 0) {
+          receiptSections.push({
+            title: 'Collaborateurs supplémentaires',
+            tag: { label: 'DÉPASSEMENT', kind: 'over' },
+            lines: [{
+              label: `Sièges au-delà de ${plan.includedEmployees}`,
+              sublabel: `${eur(plan.overageRatePerEmployeeEur)} HT / mois par collaborateur`,
+              qty: `${usage.activeEmployees} actifs → ${usage.extraEmployees} supp.`,
+              amountEur: overageCost,
+              kind: 'over',
+            }],
+          });
+        }
+        if (subscribedAddons.length > 0) {
+          receiptSections.push({
+            title: 'Modules optionnels',
+            tag: { label: `+${subscribedAddons.length} actif${subscribedAddons.length > 1 ? 's' : ''}`, kind: 'module' },
+            lines: subscribedAddons.map((a) => ({
+              label: ADDON_LABELS[a].label,
+              sublabel: ADDON_LABELS[a].description,
+              amountEur: ADDON_LABELS[a].priceMonthlyEur,
+              kind: 'module' as const,
+            })),
+          });
+        }
+        const receiptCycleLabel = `Pack ${plan.displayName} · ${cycleA === 'annual' ? 'Engagement annuel' : 'Engagement mensuel'}`;
 
         return (
           <Paper elevation={0} sx={{
@@ -837,8 +832,8 @@ export default function MonAbonnementPage() {
                 </Box>
               </Stack>
 
-              {/* Grille : jauge de sièges (gauche) + total estimé / décomposition (droite) */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.4fr 1fr' }, gap: 2.5, mt: 3 }}>
+              {/* Jauge de sièges (données réelles) + reçu détaillé « Détail de votre facture » (image 1) */}
+              <Box sx={{ mt: 3 }}>
                 {/* Bloc jauge de sièges — données RÉELLES */}
                 <Box sx={{ border: '1px solid #E4EAF3', borderRadius: '14px', p: 2.25 }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -880,56 +875,9 @@ export default function MonAbonnementPage() {
                   </Typography>
                 </Box>
 
-                {/* Carte navy — total estimé avec décomposition (variante B intégrée) */}
-                <Box sx={{
-                  background: 'linear-gradient(170deg,#1B3A6B,#0f2750)', borderRadius: '14px',
-                  p: 2.5, color: '#fff', display: 'flex', flexDirection: 'column',
-                }}>
-                  <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#9fb4dc' }}>
-                    Total estimé
-                  </Typography>
-
-                  {/* Ligne base abonnement */}
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 1.1, borderBottom: '1px solid rgba(255,255,255,.1)' }}>
-                    <Typography sx={{ fontSize: 13.5, color: '#c3d1ec' }}>Abonnement {plan.displayName}</Typography>
-                    <Typography sx={{ fontSize: 13.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{eur(base)}</Typography>
-                  </Stack>
-
-                  {/* Ligne overage (collaborateurs supp.) */}
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 1.1, borderBottom: '1px solid rgba(255,255,255,.1)' }}>
-                    <Typography sx={{ fontSize: 13.5, color: overageCost > 0 ? '#c3d1ec' : '#8fa3cb' }}>
-                      Collaborateurs supp.{usage.extraEmployees > 0 ? ` ×${usage.extraEmployees}` : ''}
-                    </Typography>
-                    <Typography sx={{ fontSize: 13.5, fontWeight: overageCost > 0 ? 700 : 600, fontVariantNumeric: 'tabular-nums', color: overageCost > 0 ? '#fff' : '#8fa3cb' }}>
-                      {overageCost > 0 ? `+ ${eur(overageCost)}` : '0,00 €'}
-                    </Typography>
-                  </Stack>
-
-                  {/* Lignes modules : tout le catalogue, actifs chiffrés / inactifs grisés */}
-                  {ADDON_KEYS.map((k) => {
-                    const meta = ADDON_LABELS[k];
-                    const on = subscribedAddons.includes(k);
-                    return (
-                      <Stack key={k} direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 1.1, borderBottom: '1px solid rgba(255,255,255,.1)' }}>
-                        <Typography sx={{ fontSize: 13.5, color: on ? '#c3d1ec' : '#8fa3cb' }}>{meta.label}</Typography>
-                        <Typography sx={{ fontSize: 13.5, fontWeight: on ? 700 : 600, fontVariantNumeric: 'tabular-nums', color: on ? '#fff' : '#8fa3cb' }}>
-                          {on ? `+ ${eur(meta.priceMonthlyEur)}` : '— non activé'}
-                        </Typography>
-                      </Stack>
-                    );
-                  })}
-
-                  {/* Grand total */}
-                  <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mt: 1.75, pt: 1.75, borderTop: '1.5px solid rgba(255,255,255,.25)' }}>
-                    <Typography sx={{ fontSize: 13, color: '#c3d1ec', fontWeight: 600 }}>Total HT / mois</Typography>
-                    <Typography sx={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.01em', fontVariantNumeric: 'tabular-nums' }}>
-                      {eur(totalHT)}
-                      <Typography component="span" sx={{ fontSize: 14, fontWeight: 600, color: '#9fb4dc' }}> HT</Typography>
-                    </Typography>
-                  </Stack>
-                  <Typography sx={{ fontSize: 12, color: '#8fa3cb', textAlign: 'right', mt: 0.5 }}>
-                    soit {eur(totalTTC)} TTC / mois (TVA 20 %)
-                  </Typography>
+                {/* Reçu détaillé « Détail de votre facture » (image 1) — remplace l'ancien total navy */}
+                <Box sx={{ mt: 2.5 }}>
+                  <InvoiceReceipt sections={receiptSections} cycleLabel={receiptCycleLabel} />
                 </Box>
               </Box>
 
@@ -1532,17 +1480,10 @@ export default function MonAbonnementPage() {
             </Box>
           )}
 
-          {/* Stepper -/+ pour le nombre de sièges. Min=1, Max=500 (limite serveur). */}
-          <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="center" sx={{ my: 1.5 }}>
-            <Button
-              variant="outlined"
-              onClick={() => setAddSeatsCount((n) => Math.max(1, n - 1))}
-              disabled={addSeatsCount <= 1 || addSeatsSubmitting}
-              sx={{ minWidth: 48, width: 48, height: 48, borderRadius: '12px' }}
-            >
-              <RemoveIcon />
-            </Button>
-            <Box sx={{ flexGrow: 1, textAlign: 'center', py: 1, bgcolor: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+          {/* Curseur roulant pour le nombre de sièges (design image 3). Plage 1–50 ;
+              au-delà, relancer l'opération (le backend accepte jusqu'à 500). */}
+          <Box sx={{ my: 1.5 }}>
+            <Box sx={{ textAlign: 'center', py: 1.25, bgcolor: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe', mb: 2 }}>
               <Typography sx={{ fontSize: 11, color: '#1e40af', fontWeight: 700, textTransform: 'uppercase' }}>
                 Sièges à ajouter
               </Typography>
@@ -1550,15 +1491,24 @@ export default function MonAbonnementPage() {
                 +{addSeatsCount}
               </Typography>
             </Box>
-            <Button
-              variant="outlined"
-              onClick={() => setAddSeatsCount((n) => Math.min(500, n + 1))}
-              disabled={addSeatsCount >= 500 || addSeatsSubmitting}
-              sx={{ minWidth: 48, width: 48, height: 48, borderRadius: '12px' }}
-            >
-              <AddIcon />
-            </Button>
-          </Stack>
+            <Box sx={{ px: 1.5 }}>
+              <Slider
+                value={addSeatsCount}
+                min={1}
+                max={50}
+                step={1}
+                disabled={addSeatsSubmitting}
+                valueLabelDisplay="auto"
+                marks={[{ value: 1, label: '1' }, { value: 25, label: '25' }, { value: 50, label: '50' }]}
+                onChange={(_, v) => setAddSeatsCount(Array.isArray(v) ? v[0] : v)}
+                sx={{
+                  color: '#0040a1',
+                  '& .MuiSlider-thumb': { width: 22, height: 22, boxShadow: '0 2px 8px rgba(0,64,161,.4)' },
+                  '& .MuiSlider-rail': { opacity: 0.3 },
+                }}
+              />
+            </Box>
+          </Box>
 
           {/* Récap chiffré du coût mensuel additionnel pour les sièges ajoutés */}
           {info?.plan && (
