@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Route, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, TextField, Button, CircularProgress, Alert, Link, Checkbox, FormControlLabel,
   Paper, Stack, InputAdornment, MenuItem,
@@ -20,7 +20,7 @@ import { sendSupportMessage } from '../../services/ContactService';
 import { useAuth } from '../helper/AuthProvider';
 import GetRestCountries from '../../services/RestCountriesService/GetRestCountries';
 import PlanPicker, { type PlanKey, type Cycle, type AddonKey } from './PlanPicker';
-import VerifyEmailPage from './VerifyEmailPage';
+// import VerifyEmailPage from './VerifyEmailPage'; // removed unused import
 import { BadgeIcon } from 'lucide-react';
 
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$/;
