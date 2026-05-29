@@ -146,8 +146,10 @@ function FilterEtatPeriodique() {
             const formattedStartMonth = String(startMonth).padStart(2, '0');
             const formattedEndMonth = String(endMonth).padStart(2, '0');
     
-            setStartDate(`${startYear}-${formattedStartMonth}-${joudeb}`);
-            setEndDate(`${endYear}-${formattedEndMonth}-${joufin}`);
+            // Jour paddé (joudeb/joufin = "1") → évite "2026-04-1" = Invalid
+            // Date sur Safari → RangeError au toISOString().
+            setStartDate(`${startYear}-${formattedStartMonth}-${String(joudeb).padStart(2, '0')}`);
+            setEndDate(`${endYear}-${formattedEndMonth}-${String(joufin).padStart(2, '0')}`);
         }
     }, [mois, annee, paramMois]);
     const handleApplyFilter = () => {

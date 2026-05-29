@@ -582,8 +582,10 @@ function EtatPeriodiqueModernInner() {
     let sm = moisdeb === 'P' ? mo - 1 : mo, em = moisfin === 'P' ? mo - 1 : mo;
     let sy = sm === 0 ? parseInt(annee) - 1 : parseInt(annee), ey = em === 0 ? parseInt(annee) - 1 : parseInt(annee);
     sm = sm === 0 ? 12 : sm; em = em === 0 ? 12 : em;
-    setDateDebut(`${sy}-${String(sm).padStart(2, '0')}-${joudeb}`);
-    setDateFin(`${ey}-${String(em).padStart(2, '0')}-${joufin}`);
+    // Jour paddé aussi (joudeb/joufin arrivent en "1") → évite "2026-04-1"
+    // = Invalid Date sur Safari → RangeError au toISOString().
+    setDateDebut(`${sy}-${String(sm).padStart(2, '0')}-${String(joudeb).padStart(2, '0')}`);
+    setDateFin(`${ey}-${String(em).padStart(2, '0')}-${String(joufin).padStart(2, '0')}`);
   }, [mois, annee, paramMois]);
 
   const handleSearch = () => {

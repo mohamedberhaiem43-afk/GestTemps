@@ -153,8 +153,10 @@ function EtatRetard() {
         em = em === 0 ? 12 : em;
         const pad = (n: number) => String(n).padStart(2, '0');
         setAnnee(year.toString());
-        setDateDebut(`${sy}-${pad(sm)}-${joudeb}`);
-        setDateFin(`${ey}-${pad(em)}-${joufin}`);
+        // joudeb/joufin non paddés ("1") → "2026-04-1" = Invalid Date sur Safari
+        // → RangeError au toISOString(). On padde le jour comme le mois.
+        setDateDebut(`${sy}-${pad(sm)}-${String(joudeb).padStart(2, '0')}`);
+        setDateFin(`${ey}-${pad(em)}-${String(joufin).padStart(2, '0')}`);
       })
       .catch((err) => console.error('Params error:', err));
   }, [soccod]);
@@ -181,7 +183,13 @@ function EtatRetard() {
   // « Horaire » affichait la même valeur que « Pointage » → aucune utilité.
   const rows = useMemo(() => {
     const minRetard = retmin || 0;
-    return (rawData as RetardRow[]).map((row) => {
+    // Déballage ReferenceHandler.Preserve ({ $id, $values }) → tableau (cf.
+    // EtatPériodique / EtatPrésence). Sans ça, `.map` jetait « x.map is not a
+    // function » quand le backend sérialise la collection en objet.
+    const source = Array.isArray(rawData)
+      ? (rawData as RetardRow[])
+      : (((rawData as any)?.$values as RetardRow[]) ?? []);
+    return source.map((row) => {
       const retardMatinRaw = toMinutes(row.preretmateup);
       const retardAmRaw = toMinutes(row.preretameup);
       const avanceMatinRaw = toMinutes(row.preretmatsup);

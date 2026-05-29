@@ -112,8 +112,10 @@ function CahierCongePage() {
         endMonth = endMonth === 0 ? 12 : endMonth;
         const fmtM = (m: number) => String(m).padStart(2, '0');
         setAnnee(currentYear.toString());
-        setDateDebut(`${startYear}-${fmtM(startMonth)}-${joudeb}`);
-        setDateFin(`${endYear}-${fmtM(endMonth)}-${joufin}`);
+        // Jour paddé (joudeb/joufin = "1") → évite "2026-04-1" = Invalid Date
+        // sur Safari → RangeError au toISOString().
+        setDateDebut(`${startYear}-${fmtM(startMonth)}-${String(joudeb).padStart(2, '0')}`);
+        setDateFin(`${endYear}-${fmtM(endMonth)}-${String(joufin).padStart(2, '0')}`);
       })
       .catch((err) => console.error('Error loading params:', err));
   }, [soccod]);

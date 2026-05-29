@@ -175,7 +175,15 @@ function EtatPresence() {
     selectedRegime || 'T',
   );
 
-  const rows: EtatPresenceModel[] = useMemo(() => (rawData as EtatPresenceModel[]) || [], [rawData]);
+  // Le backend peut sérialiser la collection au format ReferenceHandler.Preserve
+  // ({ $id, $values: [...] }) au lieu d'un tableau nu (présence de cycles dans le
+  // graphe d'objets). On déballe $values comme le fait déjà EtatPériodique : sans
+  // ça, `rawData` était un objet truthy et `filteredRows.filter(...)` (calcul des
+  // KPIs) jetait « o.filter is not a function » au clic sur Filtrer.
+  const rows: EtatPresenceModel[] = useMemo(() => {
+    if (Array.isArray(rawData)) return rawData as EtatPresenceModel[];
+    return ((rawData as any)?.$values as EtatPresenceModel[]) ?? [];
+  }, [rawData]);
 
   // ── Filtre recherche
   const filteredRows = useMemo(() => {

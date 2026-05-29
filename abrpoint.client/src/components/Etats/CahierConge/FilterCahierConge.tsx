@@ -85,8 +85,10 @@ function FilterCahierConge() {
 
                 const formattedStartMonth = String(startMonth).padStart(2, '0');
                 const formattedEndMonth = String(endMonth).padStart(2, '0');
-                const initialDateDebut = `${startYear}-${formattedStartMonth}-${joudeb}`;
-                const initialDateFin = `${endYear}-${formattedEndMonth}-${joufin}`;
+                // Jour paddé (joudeb/joufin = "1") → évite "2026-04-1" = Invalid
+                // Date sur Safari → RangeError au toISOString().
+                const initialDateDebut = `${startYear}-${formattedStartMonth}-${String(joudeb).padStart(2, '0')}`;
+                const initialDateFin = `${endYear}-${formattedEndMonth}-${String(joufin).padStart(2, '0')}`;
 
                 setAnnee(currentYear.toString());
                 setStartDate(initialDateDebut);

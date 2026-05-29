@@ -113,10 +113,14 @@ function EtatAbsence() {
         let ey = em === 0 ? year - 1 : year;
         sm = sm === 0 ? 12 : sm;
         em = em === 0 ? 12 : em;
-        const pad = (n: number) => String(n).padStart(2, '0');
+        // joudeb/joufin arrivent du backend en string NON paddé (« 1 » et non
+        // « 01 »). Sans padding, on produisait « 2026-04-1 » que Safari parse en
+        // Invalid Date → toISOString() → « RangeError: Invalid Date » qui crashe
+        // toute la page (cf. correctif identique dans EtatPresence).
+        const pad = (n: number | string) => String(n).padStart(2, '0');
         setAnnee(year.toString());
-        setDateDebut(`${sy}-${pad(sm)}-${joudeb}`);
-        setDateFin(`${ey}-${pad(em)}-${joufin}`);
+        setDateDebut(`${sy}-${pad(sm)}-${pad(joudeb)}`);
+        setDateFin(`${ey}-${pad(em)}-${pad(joufin)}`);
       })
       .catch((err) => console.error('Params error:', err));
   }, [soccod]);
@@ -131,7 +135,7 @@ function EtatAbsence() {
   }, [annee]);
 
   // ── Data fetching
-  const { data: absenceData = [], isLoading, refetch } = useGetEtatAbsence(
+  const { data: absenceRaw = [], isLoading, refetch } = useGetEtatAbsence(
     new Date(dateDebut),
     new Date(dateFin),
     effectiveEmpcods,
@@ -140,6 +144,14 @@ function EtatAbsence() {
     absParams.presNonOpt,
     absParams.sansPointageInvalide,
     absParams.radioValue,
+  );
+
+  // Déballage ReferenceHandler.Preserve ({ $id, $values }) → tableau (cf.
+  // EtatPériodique / EtatPrésence). Sans ça, `absenceData.map/.filter` jetait
+  // « x.filter is not a function » quand le backend sérialise la collection en objet.
+  const absenceData = useMemo(
+    () => (Array.isArray(absenceRaw) ? absenceRaw : ((absenceRaw as any)?.$values ?? [])) as typeof absenceRaw,
+    [absenceRaw],
   );
 
   // ── Handlers
