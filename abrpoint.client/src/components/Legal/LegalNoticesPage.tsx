@@ -1,5 +1,6 @@
 import { Box, Typography, Container, Divider, Paper } from '@mui/material';
 import DashboardLayoutBasic from '../navigation/Navigation';
+import { useNavigate } from 'react-router-dom';
 
 interface LegalSectionProps {
   title: string;

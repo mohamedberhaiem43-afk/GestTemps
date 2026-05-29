@@ -2,7 +2,7 @@
 <Report ScriptLanguage="CSharp" ReportInfo.Created="07/27/2025 08:36:08" ReportInfo.Modified="05/28/2026 01:30:00" ReportInfo.CreatorVersion="2024.1.7.0">
   <Dictionary>
     <PostgresDataConnection Name="Connection" ConnectionString="Server=DESKTOP-0NRALJP;Database=ABRPOINT;User Id=sa;Password=admin123.0;">
-      <TableDataSource Name="Table" Alias="Absence" DataType="System.Int32" Enabled="true" SelectCommand="select s.soclib,s.socadr,abs.abslib,sanc.concod,sanc.conmotif,sanc.condep,sanc.conret,sanc.connbjour,e.empmat,e.emplib,e.empfonc,e.empadr&#13;&#10;from societe s,absence abs,sanction sanc,employe e&#13;&#10;where s.soccod = e.soccod and e.empcod = sanc.empcod and abs.abscod = sanc.abscod&#13;&#10;and s.soccod = @soccod and e.empcod = @empcod and sanc.concod = @concod">
+      <TableDataSource Name="Table" Alias="Absence" DataType="System.Int32" Enabled="true" SelectCommand="select s.soclib,s.socadr,abs.abslib,sanc.concod,sanc.conmotif,sanc.condep,sanc.conret,sanc.connbjour,e.empmat,e.emplib,e.empfonc,e.empadr&#13;&#10;from &quot;Societe&quot; s,absence abs,sanction sanc,employe e&#13;&#10;where s.soccod = e.soccod and e.empcod = sanc.empcod and abs.abscod = sanc.abscod&#13;&#10;and s.soccod = @soccod and e.empcod = @empcod and sanc.concod = @concod">
         <Column Name="soclib" DataType="System.String"/>
         <Column Name="socadr" DataType="System.String"/>
         <Column Name="abslib" DataType="System.String"/>
