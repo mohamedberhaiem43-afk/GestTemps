@@ -69,6 +69,10 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
+        // Libellés des sites pour les déroulants (sitcod → sitlib). Scopé par accès :
+        // admin → tous les sites de la société ; non-admin → uniquement ses sites (Socuser).
+        // Aligne le contenu des filtres (états, écrans de saisie) sur le modèle d'isolation
+        // par site, comme l'endpoint Get({soccod}) ci-dessus.
         [HttpGet("get-sitlibs/{soccod}")]
         public async Task<IActionResult> GetSitLibsBySociety(string soccod)
         {
@@ -80,6 +84,17 @@ namespace ABRPOINT.Server.Controllers
                 }
 
                 var sitLibs = await _siteRepository.GetSitLibsAsync(soccod);
+
+                var caller = SiteAccess.CallerUticod(HttpContext) ?? string.Empty;
+                if (!await SiteAccess.IsAdminAsync(_db, caller))
+                {
+                    var sitcods = await SiteAccess.AccessibleSitcodsAsync(_db, soccod, caller);
+                    var allowed = new HashSet<string>(sitcods, StringComparer.OrdinalIgnoreCase);
+                    sitLibs = sitLibs
+                        .Where(kv => kv.Key != null && allowed.Contains(kv.Key))
+                        .ToDictionary(kv => kv.Key, kv => kv.Value);
+                }
+
                 return Ok(sitLibs);
             }
             catch (InvalidOperationException ex)

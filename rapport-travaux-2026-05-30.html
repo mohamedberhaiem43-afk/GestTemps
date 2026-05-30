@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Rapport des travaux — 30 mai 2026</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #1f2a37;
+    font-size: 12.5px;
+    line-height: 1.55;
+    margin: 0;
+  }
+  .cover {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    color: #fff;
+    padding: 38px 34px;
+    border-radius: 10px;
+    margin-bottom: 26px;
+  }
+  .cover .kicker { text-transform: uppercase; letter-spacing: 2px; font-size: 11px; opacity: .85; margin: 0 0 10px; }
+  .cover h1 { font-size: 26px; margin: 0 0 8px; font-weight: 700; }
+  .cover p { margin: 4px 0; font-size: 13px; opacity: .95; }
+  .meta-line { margin-top: 16px; font-size: 12px; opacity: .9; border-top: 1px solid rgba(255,255,255,.25); padding-top: 12px; }
+
+  h2 {
+    color: #1e3a8a;
+    font-size: 16px;
+    margin: 26px 0 6px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  h2 .num {
+    display: inline-block;
+    background: #2563eb; color: #fff;
+    width: 24px; height: 24px; line-height: 24px;
+    text-align: center; border-radius: 50%;
+    font-size: 12px; margin-right: 8px; vertical-align: middle;
+  }
+  .intro {
+    background: #f1f5f9;
+    border-left: 4px solid #2563eb;
+    padding: 14px 16px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+  }
+  .card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 10px 0;
+    page-break-inside: avoid;
+  }
+  .card h3 { margin: 0 0 4px; font-size: 13.5px; color: #111827; }
+  .card .before { color: #b91c1c; }
+  .card .after { color: #047857; }
+  .label { font-weight: 600; }
+  ul { margin: 6px 0; padding-left: 20px; }
+  li { margin: 3px 0; }
+  .tag {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 2px 8px; border-radius: 12px; margin-left: 6px; vertical-align: middle;
+  }
+  .tag-fix { background: #fee2e2; color: #b91c1c; }
+  .tag-new { background: #dcfce7; color: #047857; }
+  .tag-sec { background: #fef3c7; color: #92400e; }
+  .summary-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .summary-table th, .summary-table td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; font-size: 12px; }
+  .summary-table th { background: #1e3a8a; color: #fff; font-weight: 600; }
+  .summary-table tr:nth-child(even) td { background: #f8fafc; }
+  .footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #6b7280; text-align: center; }
+  .note { background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:10px 14px; font-size:11.5px; margin-top:10px; }
+</style>
+</head>
+<body>
+
+  <div class="cover">
+    <p class="kicker">Concorde Workforce — Gestion du temps & des présences</p>
+    <h1>Rapport des travaux réalisés</h1>
+    <p>Synthèse fonctionnelle des corrections et améliorations</p>
+    <div class="meta-line">
+      <strong>Date :</strong> 30 mai 2026 &nbsp;•&nbsp;
+      <strong>Destinataire :</strong> Lecture générale (non technique) &nbsp;•&nbsp;
+      <strong>Périmètre :</strong> Application web & mobile
+    </div>
+  </div>
+
+  <div class="intro">
+    Ce document présente, en termes simples, l'ensemble des interventions effectuées sur la plateforme.
+    Les travaux portent sur la <strong>sécurité des accès par site</strong>, la <strong>fiabilité de la gestion des
+    utilisateurs et des rôles</strong>, l'<strong>automatisation de certaines saisies</strong> et l'<strong>amélioration
+    des messages affichés</strong>. Aucun détail technique n'est inclus : seuls les effets concrets pour les
+    utilisateurs sont décrits.
+  </div>
+
+  <h2><span class="num">1</span>Sécurité des accès par site <span class="tag tag-sec">Sécurité</span></h2>
+  <p>Renforcement majeur du cloisonnement des données : chaque utilisateur ne voit désormais que les informations
+     des sites qui lui sont autorisés.</p>
+
+  <div class="card">
+    <h3>Cloisonnement des données par site</h3>
+    <p>Auparavant, certains utilisateurs pouvaient consulter des données dépassant leur périmètre. Désormais l'accès
+       est strictement limité aux sites attribués à chaque personne, pour l'ensemble des écrans :</p>
+    <ul>
+      <li>Gestion des employés — seuls les employés des sites autorisés s'affichent.</li>
+      <li>Contrats, échéances et créations de contrats.</li>
+      <li>Données de base (filiales, sociétés, directions, services, sections, sites…).</li>
+      <li>États et statistiques (présences, retards, absences, congés).</li>
+      <li>Files de validation (congés, autorisations, télétravail, absences, heures supplémentaires).</li>
+    </ul>
+    <p class="after"><span class="label">Résultat :</span> chaque profil ne manipule que les données de son périmètre,
+       sans fuite d'information entre sites.</p>
+  </div>
+
+  <div class="card">
+    <h3>Notifications par e-mail et dans l'application ciblées</h3>
+    <p class="before"><span class="label">Avant :</span> les notifications pouvaient être envoyées trop largement.</p>
+    <p class="after"><span class="label">Après :</span> seules les personnes concernées (responsables et administrateurs
+       du site de l'employé) reçoivent les notifications liées à ses demandes.</p>
+  </div>
+
+  <div class="card">
+    <h3>Limitation des droits du rôle « Manager »</h3>
+    <p>Un manager qui ne disposait que d'un droit de consultation pouvait, dans certains cas, ajouter des données de
+       base. Ce point a été corrigé : les actions sont désormais conformes aux droits réellement accordés.</p>
+  </div>
+
+  <h2><span class="num">2</span>Fiabilité de la gestion des utilisateurs & des rôles <span class="tag tag-fix">Corrections</span></h2>
+
+  <div class="card">
+    <h3>Connexion impossible après un changement de rôle</h3>
+    <p class="before"><span class="label">Avant :</span> après avoir modifié le rôle d'un utilisateur, son compte se
+       retrouvait bloqué à la connexion.</p>
+    <p class="after"><span class="label">Après :</span> le changement de rôle n'empêche plus la connexion.</p>
+  </div>
+
+  <div class="card">
+    <h3>Le nouveau rôle n'était pas pris en compte à la connexion</h3>
+    <p class="before"><span class="label">Avant :</span> un utilisateur promu (administrateur, responsable RH…) accédait
+       toujours à la plateforme avec son ancien rôle (simple employé).</p>
+    <p class="after"><span class="label">Après :</span> les droits correspondant au nouveau rôle s'appliquent
+       immédiatement.</p>
+  </div>
+
+  <div class="card">
+    <h3>Affichage correct du rôle en modification</h3>
+    <p class="before"><span class="label">Avant :</span> à l'ouverture d'une fiche, un Manager ou un Responsable RH
+       s'affichait comme « Employé », et un Responsable RH également administrateur s'affichait comme « Administrateur ».</p>
+    <p class="after"><span class="label">Après :</span> le rôle réellement attribué est affiché correctement.</p>
+  </div>
+
+  <div class="card">
+    <h3>Statut et données du profil</h3>
+    <ul>
+      <li>Un utilisateur actif n'est plus affiché « inactif » par erreur sur sa page de profil.</li>
+      <li>Le rôle affiché sur le profil correspond bien au rôle actuel.</li>
+      <li>Les données de la fiche à modifier se chargent désormais sans avoir besoin d'actualiser la page.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Affichage des photos des utilisateurs</h3>
+    <p>La photo de chaque utilisateur, lorsqu'elle existe, est désormais affichée sur la page de gestion des utilisateurs.</p>
+  </div>
+
+  <div class="card">
+    <h3>Prise en compte du site et du service lors de la modification <span class="tag tag-new">Nouveau</span></h3>
+    <ul>
+      <li>La modification du <strong>site</strong> d'un utilisateur est désormais correctement enregistrée.</li>
+      <li>Un champ <strong>« Service »</strong> a été ajouté à la fiche utilisateur : un manager associé à un service
+          ne consulte que les données de son service (en complément de la restriction par site).</li>
+    </ul>
+  </div>
+
+  <h2><span class="num">3</span>Automatisation des saisies <span class="tag tag-new">Amélioration</span></h2>
+
+  <div class="card">
+    <h3>Codes générés automatiquement</h3>
+    <ul>
+      <li><span class="label">Code société :</span> proposé automatiquement lors de la création d'une société.</li>
+      <li><span class="label">Code utilisateur :</span> proposé automatiquement lors de la création d'un utilisateur.</li>
+    </ul>
+    <p class="after">Moins de saisie manuelle, moins de risques de doublon ou d'erreur.</p>
+  </div>
+
+  <div class="card">
+    <h3>Correction d'un blocage à la création d'un administrateur</h3>
+    <p class="before"><span class="label">Avant :</span> l'ajout d'un nouvel utilisateur administrateur provoquait une erreur.</p>
+    <p class="after"><span class="label">Après :</span> la création d'un administrateur fonctionne normalement.</p>
+  </div>
+
+  <h2><span class="num">4</span>Clarté des messages affichés <span class="tag tag-fix">Ergonomie</span></h2>
+
+  <div class="card">
+    <h3>Message explicite sur la limite de sites du forfait</h3>
+    <p class="before"><span class="label">Avant :</span> message générique « Erreur lors de l'ajout du site ».</p>
+    <p class="after"><span class="label">Après :</span> message clair indiquant que le forfait en cours ne permet pas
+       d'ajouter davantage de sites (ex. 5 maximum pour l'offre Standard).</p>
+  </div>
+
+  <h2>Récapitulatif</h2>
+  <table class="summary-table">
+    <thead>
+      <tr><th>Domaine</th><th>Nature</th><th>Bénéfice principal</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Accès par site</td><td>Sécurité</td><td>Chaque utilisateur ne voit que ses sites</td></tr>
+      <tr><td>Notifications</td><td>Sécurité</td><td>Envoi ciblé aux bonnes personnes</td></tr>
+      <tr><td>Droits du manager</td><td>Correction</td><td>Actions conformes aux droits</td></tr>
+      <tr><td>Connexion / rôles</td><td>Correction</td><td>Connexion et droits fiables après changement de rôle</td></tr>
+      <tr><td>Affichage profil & rôle</td><td>Correction</td><td>Informations exactes affichées</td></tr>
+      <tr><td>Site & service utilisateur</td><td>Nouveau</td><td>Périmètre de consultation plus précis</td></tr>
+      <tr><td>Codes auto-générés</td><td>Amélioration</td><td>Saisie simplifiée et fiabilisée</td></tr>
+      <tr><td>Messages</td><td>Ergonomie</td><td>Information claire pour l'utilisateur</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <strong>Mise en service :</strong> ces évolutions nécessitent une mise à jour de l'application (côté serveur et côté
+    interface). Pour activer le filtrage par service d'un manager déjà existant, il suffit d'ouvrir sa fiche, de
+    sélectionner son service, puis d'enregistrer.
+  </div>
+
+  <div class="footer">
+    Concorde Workforce — Rapport interne du 30 mai 2026 — Document de synthèse à usage non technique.
+  </div>
+
+</body>
+</html>

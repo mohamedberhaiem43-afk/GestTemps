@@ -140,6 +140,19 @@ namespace ABRPOINT.Server.Controllers
                 || string.Equals(dbUser?.Utirole,
                 PermissionCatalog.Roles.ResponsableRH, StringComparison.OrdinalIgnoreCase);
 
+            // 4. SEC AI — isolation par site : on borne la société demandée au périmètre RÉEL
+            //    du caller (table Socuser). Un non-admin ne doit pas pouvoir cibler une société
+            //    hors de ses accès via request.Soccod. Admin = visibilité globale (inchangé).
+            if (!serverIsAdmin)
+            {
+                var accessibleSocs = await SiteAccess.AccessibleSoccodsAsync(_db, uticod);
+                if (accessibleSocs.Count > 0
+                    && (string.IsNullOrWhiteSpace(soccod) || !accessibleSocs.Contains(soccod)))
+                {
+                    soccod = accessibleSocs[0];
+                }
+            }
+
             return new UserChatContext
             {
                 Uticod = uticod,
@@ -205,6 +218,13 @@ namespace ABRPOINT.Server.Controllers
                 .Where(e => e.Soccod == ctx.Soccod
                          && (e.Empemb == null || e.Empemb <= today)
                          && (e.Empsort == null || e.Empsort > today));
+            // Isolation par site : un non-admin ne voit que les employés de SES sites (Socuser).
+            // Liste vide (aucun site) → IN () → aucun employé renvoyé.
+            if (!ctx.IsAdmin)
+            {
+                var allowedSites = await SiteAccess.AccessibleSitcodsAsync(_db, ctx.Soccod, ctx.Uticod);
+                empQuery = empQuery.Where(e => e.Sitcod != null && allowedSites.Contains(e.Sitcod));
+            }
             if (!ctx.IsAdmin && ctx.IsManager && !string.IsNullOrEmpty(ctx.Sercod))
                 empQuery = empQuery.Where(e => e.Sercod == ctx.Sercod);
 
@@ -434,8 +454,26 @@ Pour poser un congé, [aller à la page demande de congé](#) ou consultez [NAVI
             var debut = DateTime.Parse(p.DateDebut);
             var fin = DateTime.Parse(p.DateFin);
 
+            // Isolation par site : pour un non-admin, on ne laisse JAMAIS passer "ALL"
+            // (= tous les employés de la société). On le convertit en la liste concrète des
+            // employés de SES sites ; un empcod ciblé hors de ses sites est écarté (sentinelle).
+            List<string> empcodsToQuery;
+            if (ctx.IsAdmin)
+            {
+                empcodsToQuery = p.Empcods.Count == 0 ? new List<string> { "ALL" } : p.Empcods;
+            }
+            else
+            {
+                var isAll = p.Empcods.Count == 0
+                    || p.Empcods.Any(e => string.Equals(e, "ALL", StringComparison.OrdinalIgnoreCase));
+                empcodsToQuery = await SiteAccess.ScopedEmpcodsAsync(
+                    _db, ctx.Soccod, ctx.Uticod, isAll ? null : p.Empcods);
+                if (empcodsToQuery.Count == 1 && empcodsToQuery[0] == SiteAccess.NoAccessSentinel)
+                    return Ok(new { response = "🔒 Vous n'avez accès à aucun employé sur vos sites pour cette consultation." });
+            }
+
             var allResults = new List<PresenceDto>();
-            foreach (var empcod in p.Empcods.Count == 0 ? new List<string> { "ALL" } : p.Empcods)
+            foreach (var empcod in empcodsToQuery)
             {
                 var res = await _presenceRepo.GetEmpEtatPeriodiqueAsync(ctx.Soccod, empcod, debut, fin);
                 allResults.AddRange(res);
@@ -484,10 +522,23 @@ Pour poser un congé, [aller à la page demande de congé](#) ou consultez [NAVI
 
             var p = ExtractParametersManually(request.NewMessage, ctx.Soccod);
 
+            // Isolation par site : un non-admin ne peut pas demander "ALL" (toute la société).
+            // On borne aux employés de SES sites ; un code ciblé hors site est écarté.
+            var empcods = p.Empcods;
+            if (!ctx.IsAdmin)
+            {
+                var isAll = p.Empcods.Count == 0
+                    || p.Empcods.Any(e => string.Equals(e, "ALL", StringComparison.OrdinalIgnoreCase));
+                empcods = await SiteAccess.ScopedEmpcodsAsync(
+                    _db, ctx.Soccod, ctx.Uticod, isAll ? null : p.Empcods);
+                if (empcods.Count == 1 && empcods[0] == SiteAccess.NoAccessSentinel)
+                    return Ok(new { response = "🔒 Vous n'avez accès à aucun employé sur vos sites pour cette consultation." });
+            }
+
             var args = new KernelArguments
             {
                 ["soccod"] = ctx.Soccod,
-                ["empcods"] = p.Empcods,
+                ["empcods"] = empcods,
                 ["mois"] = p.Mois,
                 ["annee"] = p.Annee,
                 ["semaine"] = p.Semaine ?? "0",

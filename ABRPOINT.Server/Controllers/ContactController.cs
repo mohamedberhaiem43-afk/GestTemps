@@ -1,5 +1,6 @@
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -22,11 +23,13 @@ namespace ABRPOINT.Server.Controllers
 
         private readonly IEmailService _emailService;
         private readonly ILogger<ContactController> _log;
+        private readonly ICurrentTenant _currentTenant;
 
-        public ContactController(IEmailService emailService, ILogger<ContactController> log)
+        public ContactController(IEmailService emailService, ILogger<ContactController> log, ICurrentTenant currentTenant)
         {
             _emailService = emailService;
             _log = log;
+            _currentTenant = currentTenant;
         }
 
         [HttpPost("support")]
@@ -50,20 +53,53 @@ namespace ABRPOINT.Server.Controllers
             var safeSubject = System.Net.WebUtility.HtmlEncode(subject);
             var safeMessage = System.Net.WebUtility.HtmlEncode(message).Replace("\n", "<br/>");
 
-            var emailSubject = $"[Support] {subject}";
-            var infoCard = Services.EmailTemplates.InfoCard(new Dictionary<string, string>
+            // Pack du tenant courant (formulaire ouvert depuis l'espace connecté → le middleware
+            // de tenancy a résolu le tenant). On mentionne le pack dans le mail support pour que
+            // l'équipe priorise : Premium — ou l'addon « Support Prioritaire » — = traitement
+            // prioritaire. Formulaire anonyme (landing publique) : aucun tenant → section omise.
+            var tenant = _currentTenant.Current;
+            string? planDisplay = null;
+            var isPriority = false;
+            if (tenant != null)
+            {
+                var plan = PlanCatalog.GetPlan(tenant.PlanCode);
+                planDisplay = plan?.DisplayName
+                    ?? (string.IsNullOrWhiteSpace(tenant.PlanCode) ? "—" : tenant.PlanCode);
+                var feats = PlanCatalog.GetEffectiveFeatures(tenant.PlanCode, tenant.Addons);
+                isPriority = string.Equals(plan?.Code, PlanCatalog.PremiumCode, StringComparison.OrdinalIgnoreCase)
+                             || feats.PrioritySupport;
+            }
+
+            var priorityTag = isPriority ? "[PRIORITAIRE] " : string.Empty;
+            var emailSubject = $"[Support] {priorityTag}{subject}";
+
+            var cardData = new Dictionary<string, string>
             {
                 ["Nom"] = safeName,
                 ["Email"] = safeEmail,
                 ["Sujet"] = safeSubject,
-            });
+            };
+            if (tenant != null)
+            {
+                cardData["Société"] = System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—");
+                cardData["Pack"] = System.Net.WebUtility.HtmlEncode(planDisplay ?? "—")
+                    + (isPriority ? " ⭐ PRIORITAIRE" : string.Empty);
+            }
+            var infoCard = Services.EmailTemplates.InfoCard(cardData);
+
+            // Bannière priorité en tête du message pour un repérage immédiat côté support.
+            var priorityBanner = isPriority
+                ? "<div style=\"background:#fef3c7;border-left:3px solid #d97706;padding:10px 16px;border-radius:6px;font-size:14px;font-weight:700;color:#92400e;margin-bottom:14px;\">⭐ Client Premium — demande à traiter en priorité.</div>"
+                : string.Empty;
+
             var inner =
+                priorityBanner +
                 "<p>Un visiteur a envoyé un message via le formulaire support.</p>" +
                 infoCard +
                 "<p style=\"font-size:13px;color:#475569;font-weight:700;margin-top:18px;\">Message :</p>" +
                 $"<div style=\"background:#f8fafc;border-left:3px solid #0040a1;padding:12px 18px;border-radius:6px;font-size:14px;line-height:1.55;color:#334155;\">{safeMessage}</div>";
             var body = Services.EmailTemplates.Wrap(
-                title: "Nouveau message support",
+                title: isPriority ? "Nouveau message support ⭐ PRIORITAIRE" : "Nouveau message support",
                 preview: $"De {name} — {subject}",
                 innerHtml: inner);
 

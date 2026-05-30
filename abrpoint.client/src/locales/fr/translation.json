@@ -131,7 +131,6 @@
         "200 Go stockage sécurisé · Hébergement France OVH",
         "Administrateurs illimités · Onboarding accompagné",
         "SLA prioritaire",
-        "API & futures intégrations",
         "Idéal : PME structurées · groupes multi-sites · conformité & sécurité avancées · organisations en croissance"
       ],
       "enterpriseBadge": "★ Sur mesure",
@@ -195,7 +194,7 @@
         { "type": "feature", "label": "Notes de frais", "starter": false, "standard": true, "premium": true },
         { "type": "section", "label": "Reporting & tableaux de bord" },
         { "type": "feature", "label": "Tableaux de bord avancés", "starter": false, "standard": true, "premium": true },
-        { "type": "feature", "label": "Journaux d'audit (RGPD)", "starter": false, "standard": false, "premium": true },
+        { "type": "feature", "label": "Journaux d'audit", "starter": false, "standard": false, "premium": true },
         { "type": "section", "label": "Multi-sites & multi-sociétés" },
         { "type": "feature", "label": "Multi-sites", "starter": false, "standard": "Jusqu'à 5 sites", "premium": "Illimité" },
         { "type": "feature", "label": "Multi-filiales / multi-sociétés", "starter": false, "standard": false, "premium": true },
@@ -5163,7 +5162,7 @@
     },
     "audit": {
       "title": "Historique des conversations IA",
-      "subtitle": "Toutes les questions posées par votre équipe à l'assistant IA, conservées 12 mois (RGPD).",
+      "subtitle": "Toutes les questions posées par votre équipe à l'assistant IA, conservées 12 mois.",
       "adminOnly": "Réservé aux administrateurs.",
       "empty": "Aucune conversation enregistrée pour le moment.",
       "sourceCount": "{{count}} source utilisée",

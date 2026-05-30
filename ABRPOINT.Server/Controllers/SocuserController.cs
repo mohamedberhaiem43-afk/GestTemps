@@ -137,48 +137,66 @@ namespace ABRPOINT.Server.Controllers
                 .Distinct()
                 .ToHashSet();
 
+            // IgnoreQueryFilters : on doit voir AUSSI les lignes soft-deletées.
+            // La PK (Soccod,Uticod,Sitcod) reste physiquement en base après un
+            // soft-delete (DeletedAt != null) ; un simple Add() sur un site
+            // précédemment révoqué viole alors PK_socuser (23505). On réactive
+            // la ligne existante au lieu de réinsérer.
             var existing = await _db.Socusers
+                .IgnoreQueryFilters()
                 .Where(s => s.Soccod == req.Soccod && s.Uticod == req.Uticod)
                 .ToListAsync(ct);
-
-            var existingSet = existing
-                .Where(s => s.Sitcod != null)
-                .Select(s => s.Sitcod!)
-                .ToHashSet();
-
-            // À ajouter : présents dans desired, absents dans existing.
-            var toAdd = desired.Where(s => !existingSet.Contains(s)).ToList();
-            // À retirer : présents dans existing, absents dans desired.
-            var toRemove = existing.Where(s => s.Sitcod != null && !desired.Contains(s.Sitcod)).ToList();
 
             var exercice = string.IsNullOrWhiteSpace(req.Exercice)
                 ? DateTime.UtcNow.Year.ToString()
                 : req.Exercice;
 
-            foreach (var sitcod in toAdd)
+            int added = 0, removed = 0;
+
+            // Ajout / réactivation des sites souhaités.
+            foreach (var sitcod in desired)
             {
-                _db.Socusers.Add(new Socuser
+                var row = existing.FirstOrDefault(s => s.Sitcod == sitcod);
+                if (row == null)
                 {
-                    Soccod = req.Soccod,
-                    Uticod = req.Uticod,
-                    Sitcod = sitcod,
-                    Exercice = exercice,
-                });
+                    _db.Socusers.Add(new Socuser
+                    {
+                        Soccod = req.Soccod,
+                        Uticod = req.Uticod,
+                        Sitcod = sitcod,
+                        Exercice = exercice,
+                    });
+                    added++;
+                }
+                else if (row.DeletedAt != null)
+                {
+                    // Réactiver une affectation précédemment révoquée.
+                    row.DeletedAt = null;
+                    row.Exercice = exercice;
+                    added++;
+                }
+                // Sinon : déjà active → no-op (idempotent).
             }
+
+            // Retrait (soft-delete) des sites actifs absents de la liste souhaitée.
+            var toRemove = existing
+                .Where(s => s.Sitcod != null && s.DeletedAt == null && !desired.Contains(s.Sitcod))
+                .ToList();
             if (toRemove.Count > 0)
             {
                 _db.Socusers.RemoveRange(toRemove);
+                removed = toRemove.Count;
             }
 
-            if (toAdd.Count > 0 || toRemove.Count > 0)
+            if (added > 0 || removed > 0)
             {
                 await _db.SaveChangesAsync(ct);
             }
 
             return Ok(new
             {
-                added = toAdd.Count,
-                removed = toRemove.Count,
+                added,
+                removed,
                 total = desired.Count,
             });
         }
