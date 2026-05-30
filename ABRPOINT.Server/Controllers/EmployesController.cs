@@ -509,7 +509,9 @@ namespace ABRPOINT.Server.Controllers
         [CanGetEmploye]
         public async Task<Dictionary<string?, EmployeStat>> GetStatistics(string soccod)
         {
-            var x = await _employeRepository.GetStatistics(soccod);
+            // Scopé par site : les stats ne couvrent que les employés des sites du demandeur.
+            var caller = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var x = await _employeRepository.GetStatistics(soccod, caller);
             return x;
         }
         [HttpGet("get-sexe-stats/{soccod}")]
@@ -518,7 +520,8 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                return await _employeRepository.GetEmployeeCountBySexAsync(soccod);
+                var caller = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                return await _employeRepository.GetEmployeeCountBySexAsync(soccod, caller);
             }
             catch (Exception)
             {

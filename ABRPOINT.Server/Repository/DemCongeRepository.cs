@@ -45,7 +45,36 @@ namespace ABRPOINT.Server.Repository
             // côté contrôleur.
             try
             {
-                var admins = await _utilisateurRepository.GetAdminsEmailsAsync();
+                // Isolation PAR SITE : on n'envoie l'email qu'aux managers/admins rattachés
+                // au SITE de l'employé demandeur (Socuser), et non plus à tous les admins du
+                // tenant. Fallback : si le site est introuvable, on retombe sur tous les admins.
+                var sitcodDem = await _dbContext.Employes.AsNoTracking()
+                    .Where(e => e.Soccod == demconge.Soccod && e.Empcod == demconge.Empcod)
+                    .Select(e => e.Sitcod)
+                    .FirstOrDefaultAsync();
+
+                List<string> admins;
+                if (!string.IsNullOrEmpty(sitcodDem))
+                {
+                    var adminCode = ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Administrator;
+                    var managerCode = ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Manager;
+                    admins = await _dbContext.Utilisateurs.AsNoTracking()
+                        .Where(u => (u.Utiactif == null || (u.Utiactif != "0" && u.Utiactif != "Non"))
+                                    && (u.Utiadm == "1" || u.Utirole == adminCode || u.Utirole == managerCode
+                                        || (u.Utirole != null && EF.Functions.ILike(u.Utirole, "%manager%")))
+                                    && u.Utimail != null && u.Utimail != ""
+                                    && _dbContext.Socusers.Any(s => s.Soccod == demconge.Soccod
+                                                                    && s.Sitcod == sitcodDem
+                                                                    && s.Uticod == u.Uticod))
+                        .Select(u => u.Utimail!)
+                        .Distinct()
+                        .ToListAsync();
+                }
+                else
+                {
+                    admins = (await _utilisateurRepository.GetAdminsEmailsAsync()).ToList();
+                }
+
                 foreach (var email in admins)
                 {
                     try

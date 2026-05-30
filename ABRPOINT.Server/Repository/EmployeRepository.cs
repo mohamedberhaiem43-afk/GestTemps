@@ -169,12 +169,30 @@ namespace ABRPOINT.Server.Repository
             target.EmpRttForfaitJours = source.EmpRttForfaitJours;
         }
 
-        public async Task<Dictionary<string?, EmployeStat>> GetStatistics(string soccod)
+        /// <summary>
+        /// Restreint une requête employés aux sites accessibles au demandeur. uticod null =
+        /// appelant legacy non scopé (rétrocompat). Admin = aucune restriction. Sinon : sites
+        /// Socuser du demandeur, + service si manager.
+        /// </summary>
+        private async Task<IQueryable<Employe>> ApplySiteScopeAsync(IQueryable<Employe> query, string soccod, string? uticod)
+        {
+            if (string.IsNullOrEmpty(uticod)) return query;
+            if (await IsPrivilegedViewerAsync(uticod)) return query;
+            query = query.Where(e => e.Sitcod != null &&
+                _dbContext.Socusers.Any(s => s.Soccod == soccod && s.Uticod == uticod && s.Sitcod == e.Sitcod));
+            var managerSercod = await GetManagerServiceCodeAsync(soccod, uticod);
+            if (!string.IsNullOrEmpty(managerSercod))
+                query = query.Where(e => e.Sercod == managerSercod);
+            return query;
+        }
+
+        public async Task<Dictionary<string?, EmployeStat>> GetStatistics(string soccod, string? uticod = null)
         {
             try
             {
-                var result = await _dbContext.Employes
-                                .Where(e => e.Soccod == soccod)
+                var baseQuery = await ApplySiteScopeAsync(
+                    _dbContext.Employes.Where(e => e.Soccod == soccod), soccod, uticod);
+                var result = await baseQuery
                                 .GroupBy(e => e.Empniv ?? "Inconnu")
                                 .Select(g => new
                                 {
@@ -196,12 +214,13 @@ namespace ABRPOINT.Server.Repository
             }
         }
 
-        public async Task<Dictionary<string, int>> GetEmployeeCountBySexAsync(string soccod)
+        public async Task<Dictionary<string, int>> GetEmployeeCountBySexAsync(string soccod, string? uticod = null)
         {
             try
             {
-                var result = await _dbContext.Employes
-                    .Where(e => e.Soccod == soccod)
+                var baseQuery = await ApplySiteScopeAsync(
+                    _dbContext.Employes.Where(e => e.Soccod == soccod), soccod, uticod);
+                var result = await baseQuery
                     .GroupBy(e => e.Empsexe ?? "Unknown")
                     .Select(g => new
                     {
@@ -514,15 +533,26 @@ namespace ABRPOINT.Server.Repository
             {
                 var query = _dbContext.Employes
                     .AsNoTracking()
-                    .Where(e => e.Soccod == soccod &&
-                           _dbContext.Socusers.Any(s => s.Soccod == soccod &&
-                                                        s.Uticod == uticod &&
-                                                        s.Sitcod == e.Sitcod));
+                    .Where(e => e.Soccod == soccod);
 
-                string? managerSercod = await GetManagerServiceCodeAsync(soccod, uticod);
-                if (!string.IsNullOrEmpty(managerSercod))
+                // Admin / Responsable RH : visibilité COMPLÈTE sur tout le personnel de la
+                // société. Sans ce bypass, la liste était filtrée par les sites Socuser du
+                // demandeur (et par service pour un manager) — d'où une liste VIDE pour le
+                // RH dès qu'un employé était créé sur un site auquel le RH n'était pas
+                // rattaché (ex. employé ajouté par un manager d'un autre site).
+                var isPrivileged = await IsPrivilegedViewerAsync(uticod);
+                if (!isPrivileged)
                 {
-                    query = query.Where(e => e.Sercod == managerSercod);
+                    query = query.Where(e =>
+                        _dbContext.Socusers.Any(s => s.Soccod == soccod &&
+                                                     s.Uticod == uticod &&
+                                                     s.Sitcod == e.Sitcod));
+
+                    string? managerSercod = await GetManagerServiceCodeAsync(soccod, uticod);
+                    if (!string.IsNullOrEmpty(managerSercod))
+                    {
+                        query = query.Where(e => e.Sercod == managerSercod);
+                    }
                 }
 
                 // On joint Utilisateurs côté serveur (LEFT JOIN sur Empcod=Uticod
@@ -615,10 +645,14 @@ namespace ABRPOINT.Server.Repository
                                   && su.Uticod == uticod
                             select e;
 
-                string? managerSercod = await GetManagerServiceCodeAsync(soccod, uticod);
-                if (!string.IsNullOrEmpty(managerSercod))
+                // Admin / RH : pas de restriction service automatique (visibilité globale).
+                if (!await IsPrivilegedViewerAsync(uticod))
                 {
-                    query = query.Where(e => e.Sercod == managerSercod);
+                    string? managerSercod = await GetManagerServiceCodeAsync(soccod, uticod);
+                    if (!string.IsNullOrEmpty(managerSercod))
+                    {
+                        query = query.Where(e => e.Sercod == managerSercod);
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(sitcod))
@@ -2195,6 +2229,23 @@ namespace ABRPOINT.Server.Repository
             return result;
         }
 
+        /// <summary>
+        /// Vrai si l'utilisateur a une visibilité GLOBALE sur le personnel : SEUL
+        /// l'administrateur (Utiadm='1' ou rôle Administrator) n'est jamais limité par site.
+        /// Tous les autres profils (Responsable RH, Manager, employé…) sont scopés à leurs
+        /// sites rattachés (Socuser) — décision métier : accès par site selon les droits.
+        /// </summary>
+        private async Task<bool> IsPrivilegedViewerAsync(string uticod)
+        {
+            var user = await _dbContext.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == uticod)
+                .Select(u => new { u.Utiadm, u.Utirole })
+                .FirstOrDefaultAsync();
+            if (user == null) return false;
+            return user.Utiadm == "1"
+                || ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(user.Utirole);
+        }
+
         private async Task<string?> GetManagerServiceCodeAsync(string soccod, string uticod)
         {
             var user = await _dbContext.Utilisateurs.AsNoTracking()
@@ -2204,6 +2255,15 @@ namespace ABRPOINT.Server.Repository
             {
                 if (user.Utirole == "Chef de service" || user.Utirole == "Manager" || user.Utirole == "Responsable")
                 {
+                    // Source prioritaire : le service affecté au compte (socuser.sercod), saisi
+                    // depuis l'écran Utilisateur. Fallback : le service de la fiche employé liée
+                    // (comptes existants où le manager est aussi un employé).
+                    var socuserSercod = await _dbContext.Socusers.AsNoTracking()
+                        .Where(s => s.Soccod == soccod && s.Uticod == uticod && s.Sercod != null)
+                        .Select(s => s.Sercod)
+                        .FirstOrDefaultAsync();
+                    if (!string.IsNullOrEmpty(socuserSercod)) return socuserSercod;
+
                     var emp = await _dbContext.Employes.AsNoTracking()
                         .FirstOrDefaultAsync(e => e.Soccod == soccod && e.Empcod == uticod);
                     return emp?.Sercod;

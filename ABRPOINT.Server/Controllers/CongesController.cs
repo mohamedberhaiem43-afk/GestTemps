@@ -112,6 +112,9 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
+                // Isolation par site : ne garder que les empcods des sites du demandeur.
+                empcods = await ABRPOINT.Server.Authorization.SiteAccess.FilterEmpcodsByAccessAsync(
+                    _context, soccod, ABRPOINT.Server.Authorization.SiteAccess.CallerUticod(HttpContext) ?? string.Empty, empcods);
                 List<CahierConge> cahierConge = await _congeRepository.GetCahierCongeAsync(soccod, datedebut, datefin,empcods);
                 return cahierConge;
             }
@@ -140,11 +143,13 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("get-cahier-de-conge-report/{soccod}/{datedebut}/{datefin}")]
         [CanGetCahierConge]
-        public IActionResult GenerateCahierCongeReport(string soccod,DateTime datedebut,DateTime datefin, 
+        public async Task<IActionResult> GenerateCahierCongeReport(string soccod,DateTime datedebut,DateTime datefin,
             [FromQuery]List<string> empcods, [FromQuery] string justified = "", [FromQuery] string absenceType = "")
         {
             try
             {
+                empcods = await ABRPOINT.Server.Authorization.SiteAccess.FilterEmpcodsByAccessAsync(
+                    _context, soccod, ABRPOINT.Server.Authorization.SiteAccess.CallerUticod(HttpContext) ?? string.Empty, empcods);
                 var pdfBytes = _reportsGenerationRepository.GenerateCahierCongeReport(soccod, datedebut, datefin, empcods, justified, absenceType);
                 return File(pdfBytes, "application/pdf", "CahierDeConge.pdf");
             }
@@ -160,6 +165,8 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
+                empcods = await ABRPOINT.Server.Authorization.SiteAccess.FilterEmpcodsByAccessAsync(
+                    _context, soccod, ABRPOINT.Server.Authorization.SiteAccess.CallerUticod(HttpContext) ?? string.Empty, empcods);
                 var pdfBytes = _reportsGenerationRepository.GenerateDroitCongeReport(soccod,datedebut,datefin,empcods);
                 return File(pdfBytes, "application/pdf", "DroitDeConge.pdf");
             }
@@ -186,6 +193,8 @@ namespace ABRPOINT.Server.Controllers
                 {
                     return BadRequest("Invalid date format for datedebut or datefin.");
                 }
+                empcods = await ABRPOINT.Server.Authorization.SiteAccess.FilterEmpcodsByAccessAsync(
+                    _context, soccod, ABRPOINT.Server.Authorization.SiteAccess.CallerUticod(HttpContext) ?? string.Empty, empcods);
                 List<DroitCongeDto> result = new List<DroitCongeDto>();
                 foreach (var empcod in empcods)
                 {

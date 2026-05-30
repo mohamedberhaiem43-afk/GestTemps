@@ -45,5 +45,9 @@ namespace ABRPOINT.Server.Dtaos
         /// <summary>Rôle RBAC. Si null, le repository force "Employee" par défaut.</summary>
         [StringLength(50)]
         public string? Utirole { get; set; }
+
+        /// <summary>Service affecté (socuser.sercod) — ex. service géré par un manager. Optionnel.</summary>
+        [StringLength(4)]
+        public string? Sercod { get; set; }
     }
 }

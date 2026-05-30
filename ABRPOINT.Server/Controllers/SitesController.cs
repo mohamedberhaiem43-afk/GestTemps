@@ -1,4 +1,5 @@
 using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Tenancy;
@@ -17,14 +18,17 @@ namespace ABRPOINT.Server.Controllers
     {
         private readonly ISiteRepository _siteRepository;
         private readonly ICurrentTenant _currentTenant;
+        private readonly ApplicationDbContext _db;
 
-        public SitesController(ISiteRepository siteRepository, ICurrentTenant currentTenant)
+        public SitesController(ISiteRepository siteRepository, ICurrentTenant currentTenant, ApplicationDbContext db)
         {
             _siteRepository = siteRepository;
             _currentTenant = currentTenant;
+            _db = db;
         }
 
-        // GET: api/Sites/SOC01
+        // GET: api/Sites/SOC01 — limité aux sites auxquels l'utilisateur est rattaché
+        // (Socuser) ; admin → tous les sites de la société. Avant : tous les sites du soccod.
         [HttpGet("{soccod}")]
         public async Task<IActionResult> Get(string soccod)
         {
@@ -35,6 +39,14 @@ namespace ABRPOINT.Server.Controllers
                     return BadRequest(new { message = "Le code société (soccod) est obligatoire" });
                 }
                 var sites = await _siteRepository.GetAllAsync(soccod);
+
+                var caller = SiteAccess.CallerUticod(HttpContext) ?? string.Empty;
+                if (!await SiteAccess.IsAdminAsync(_db, caller))
+                {
+                    var sitcods = await SiteAccess.AccessibleSitcodsAsync(_db, soccod, caller);
+                    var allowed = new HashSet<string>(sitcods, StringComparer.OrdinalIgnoreCase);
+                    sites = sites.Where(s => s.Sitcod != null && allowed.Contains(s.Sitcod)).ToList();
+                }
                 return Ok(sites);
             }
             catch (Exception ex)
@@ -119,6 +131,7 @@ namespace ABRPOINT.Server.Controllers
 
         // POST api/Sites
         [Authorize]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Add)]
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Site site)
         {
@@ -171,6 +184,7 @@ namespace ABRPOINT.Server.Controllers
 
         // PUT api/Sites
         [Authorize]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Modify)]
         [HttpPut]
         public async Task<IActionResult> Put([FromBody] Site site)
         {
@@ -197,6 +211,7 @@ namespace ABRPOINT.Server.Controllers
 
         // DELETE api/Sites/SOC01/SITE01
         [Authorize]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Delete)]
         [HttpDelete("{soccod}/{sitcod}")]
         public async Task<IActionResult> Delete(string soccod, string sitcod)
         {

@@ -115,6 +115,12 @@ public static class BaseDataSchemaMigrator
         await AddColumnIfMissingAsync(db, "section", "secemail", "VARCHAR(256) NULL", ct);
         await AddColumnIfMissingAsync(db, "section", "seclieu", "VARCHAR(60) NULL", ct);
 
+        // Service du compte utilisateur (socuser.sercod) : permet d'affecter un service à un
+        // utilisateur (ex. manager) directement depuis l'écran « Utilisateur », sans qu'il
+        // soit nécessairement un employé. Utilisé par GetManagerServiceCodeAsync pour scoper
+        // un manager à son service (fallback sur employe.sercod pour les comptes existants).
+        await AddColumnIfMissingAsync(db, "socuser", "sercod", "VARCHAR(4) NULL", ct);
+
         // RTT (Réduction du Temps de Travail, loi française) :
         // 4 colonnes sur employe + 2 colonnes sur solde. Toutes nullables.
         var rttMethode = await AddColumnIfMissingAsync(db, "employe", "emp_rtt_methode", "VARCHAR(1) NULL", ct);

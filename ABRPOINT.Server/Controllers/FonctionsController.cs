@@ -60,6 +60,7 @@ namespace ABRPOINT.Server.Controllers
 
         // POST api/Fonctions
         [HttpPost]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Add)]
         public async Task<IActionResult> Post([FromBody] Fonction fonction)
         {
             try
@@ -80,6 +81,7 @@ namespace ABRPOINT.Server.Controllers
 
         // PUT api/Fonctions/SOC01/F01
         [HttpPut("{soccod}/{foncod}")]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Modify)]
         public async Task<IActionResult> Put(string soccod, string foncod, [FromBody] Fonction fonction)
         {
             if (fonction == null || foncod != fonction.Foncod)
@@ -93,6 +95,7 @@ namespace ABRPOINT.Server.Controllers
 
         // DELETE api/Fonctions/SOC01/F01
         [HttpDelete("{soccod}/{foncod}")]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Delete)]
         public async Task<IActionResult> Delete(string soccod, string foncod)
         {
             var fonction = await _fonctionRepository.GetByFonccodAsync(soccod, foncod);

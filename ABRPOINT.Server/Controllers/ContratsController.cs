@@ -260,22 +260,31 @@ namespace ABRPOINT.Server.Controllers
                 var monthStart = new DateTime(now.Year, now.Month, 1);
                 var monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
-                // Query employees with contracts expiring this month, joined with employee names
-                var expiring = await (
-                    from e in _dbContext.Employes
-                    where e.Soccod == soccod && e.Actif == "A"
+                var baseQuery = _dbContext.Employes
+                    .Where(e => e.Soccod == soccod && e.Actif == "A"
                         && e.Empsort.HasValue
                         && e.Empsort.Value >= monthStart
-                        && e.Empsort.Value <= monthEnd
-                    select new {
+                        && e.Empsort.Value <= monthEnd);
+
+                // Isolation par site : un non-admin ne voit que les contrats expirants des
+                // employés de SES sites (Socuser). Avant : tous les contrats du soccod.
+                var caller = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+                if (!await ABRPOINT.Server.Authorization.SiteAccess.IsAdminAsync(_dbContext, caller))
+                {
+                    baseQuery = baseQuery.Where(e => e.Sitcod != null &&
+                        _dbContext.Socusers.Any(s => s.Soccod == soccod && s.Uticod == caller && s.Sitcod == e.Sitcod));
+                }
+
+                var expiring = await baseQuery
+                    .Select(e => new {
                         empcod = e.Empcod,
                         emplib = e.Emplib,
                         empsort = e.Empsort,
                         empemb = e.Empemb,
                         contype = e.Empcontrat ?? "CDD",
                         soccod = e.Soccod
-                    }
-                ).ToListAsync();
+                    })
+                    .ToListAsync();
 
                 return Ok(expiring);
             }

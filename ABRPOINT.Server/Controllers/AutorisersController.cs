@@ -294,7 +294,8 @@ namespace ABRPOINT.Server.Controllers
                         .Where(e => e.Soccod == autoriser.Soccod && e.Empcod == autoriser.Empcod)
                         .Select(e => e.Emplib)
                         .FirstOrDefaultAsync() ?? autoriser.Empcod;
-                    _ = _notify.NotifyManagersAsync(
+                    _ = _notify.NotifyManagersForEmployeeAsync(
+                        autoriser.Soccod ?? string.Empty, autoriser.Empcod ?? string.Empty,
                         "⏱️ Nouvelle demande d'heures supplémentaires",
                         $"{employeName} attend votre validation.",
                         new { type = "overtime_request_pending", concod = autoriser.Concod, soccod = autoriser.Soccod });
@@ -407,6 +408,16 @@ namespace ABRPOINT.Server.Controllers
                     .Where(a => a.Soccod == soccod
                                 && a.Conmotif != null
                                 && EF.Functions.ILike(a.Conmotif, "%" + OvertimeMotifMarker + "%"));
+
+                // Isolation PAR SITE : un valideur non-admin ne voit que les demandes
+                // d'heures sup. des employés rattachés à SES sites (Socuser).
+                var callerHs = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+                if (!await SiteAccess.IsAdminAsync(_db, callerHs))
+                {
+                    query = query.Where(a => _db.Employes.Any(e =>
+                        e.Soccod == a.Soccod && e.Empcod == a.Empcod && e.Sitcod != null &&
+                        _db.Socusers.Any(s => s.Uticod == callerHs && s.Soccod == e.Soccod && s.Sitcod == e.Sitcod)));
+                }
 
                 if (!string.IsNullOrWhiteSpace(etat))
                 {

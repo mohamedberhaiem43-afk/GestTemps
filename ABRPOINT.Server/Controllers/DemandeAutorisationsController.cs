@@ -231,7 +231,8 @@ namespace ABRPOINT.Server.Controllers
                         .Select(e => e.Emplib)
                         .FirstOrDefaultAsync()
                         ?? demande.Empcod ?? "Un collaborateur";
-                    _ = _notify.NotifyManagersAsync(
+                    _ = _notify.NotifyManagersForEmployeeAsync(
+                        demande.Soccod ?? string.Empty, demande.Empcod ?? string.Empty,
                         "⏱️ Autorisation de sortie à valider",
                         $"{who} attend votre validation.",
                         new { type = "auth_request_created", id = (result as DemandeAutorisation)?.Id, soccod = demande.Soccod });

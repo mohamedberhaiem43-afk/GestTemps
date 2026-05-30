@@ -50,6 +50,7 @@ namespace ABRPOINT.Server.Controllers
 
         // POST api/Directions
         [HttpPost]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Add)]
         public async Task<ActionResult<Direction>> Post([FromBody] Direction direction)
         {
             if (direction == null)
@@ -80,6 +81,7 @@ namespace ABRPOINT.Server.Controllers
 
         // PUT api/Directions
         [HttpPut]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Modify)]
         public async Task<IActionResult> Put([FromBody] Direction direction)
         {
             if (direction == null) return BadRequest();
@@ -89,6 +91,7 @@ namespace ABRPOINT.Server.Controllers
 
         // DELETE api/Directions/SOC01/D01
         [HttpDelete("{soccod}/{dircod}")]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Delete)]
         public async Task<IActionResult> Delete(string soccod, string dircod)
         {
             var direction = await _directionRepository.GetAsync(soccod, dircod);

@@ -432,7 +432,8 @@ namespace ABRPOINT.Server.Controllers
                         .Select(e => e.Emplib)
                         .FirstOrDefaultAsync()
                         ?? conge.Empcod ?? "Un employé";
-                    _ = _notify.NotifyManagersAsync(
+                    _ = _notify.NotifyManagersForEmployeeAsync(
+                        conge.Soccod ?? string.Empty, conge.Empcod ?? string.Empty,
                         "🗓️ Demande de congé à valider",
                         $"{who} attend votre validation.",
                         new { type = "leave_request_created", concod = conge.Concod, soccod = conge.Soccod });

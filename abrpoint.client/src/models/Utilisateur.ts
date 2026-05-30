@@ -12,6 +12,7 @@ export default interface UtilisateurDto {
   uti2fa_enabled: string | null;
   soccod: string | null;
   sitcod: string | null;
+  sercod?: string | null;
 }
 export interface User {
   uticod: string | null;
@@ -47,6 +48,7 @@ export interface TwoFAResponse {
 //   - D'autres alias historiques (rh, superviseur) qui peuvent encore exister en base.
 export const ROLE_LABELS: Record<string, string> = {
   Administrator: "Administrateur",
+  ResponsableRH: "Responsable RH",
   Manager: "Manager",
   Employee: "Employé",
   // Aliases legacy

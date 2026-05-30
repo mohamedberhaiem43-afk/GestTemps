@@ -24,4 +24,10 @@ public partial class Socuser : BaseEntity
     [Column("exercice")]
     [StringLength(4)]
     public string? Exercice { get; set; }
+
+    // Service affecté à l'utilisateur sur cette société (ex. manager scopé à son service).
+    // Nullable : la plupart des comptes n'ont pas de service. Cf. BaseDataSchemaMigrator.
+    [Column("sercod")]
+    [StringLength(4)]
+    public string? Sercod { get; set; }
 }

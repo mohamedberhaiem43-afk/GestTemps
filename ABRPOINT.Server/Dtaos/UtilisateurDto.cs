@@ -14,5 +14,10 @@ namespace ABRPOINT.Server.Dtaos
         public string? Utiactif { get; set; }
         public string? Utiadm { get; set; }
         public string? Utimail { get; set; }
+        // Rôle réel (Administrator/Manager/ResponsableRH/Employee/custom) : sans lui, la
+        // popup d'édition retombait sur Employé/Administrateur au lieu du vrai rôle.
+        public string? Utirole { get; set; }
+        // Service affecté (socuser.sercod) : alimente le champ service de la fiche utilisateur.
+        public string? Sercod { get; set; }
     }
 }

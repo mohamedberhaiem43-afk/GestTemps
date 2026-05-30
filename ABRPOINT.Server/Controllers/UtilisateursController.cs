@@ -252,9 +252,14 @@ namespace GestionDesTickets.Server.Controllers
                 var plan = PlanCatalog.GetPlan(_currentTenant.Current?.PlanCode);
                 if (plan?.IncludedAdmins is int adminQuota)
                 {
+                    // NB : on ne peut pas appeler PermissionCatalog.IsAdminRole() dans le
+                    // prédicat — EF Core ne sait pas le traduire en SQL (InvalidOperationException).
+                    // On inline la même logique (égalité insensible à la casse au rôle
+                    // "Administrator") sous une forme traduisible via ToLower().
+                    var adminRoleLower = ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Administrator.ToLower();
                     var currentAdmins = await _dbContext.Utilisateurs.AsNoTracking()
                         .CountAsync(u => u.Utiadm == "1"
-                                      || ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(u.Utirole));
+                                      || (u.Utirole != null && u.Utirole.ToLower() == adminRoleLower));
                     if (currentAdmins >= adminQuota)
                     {
                         return StatusCode(402, new
@@ -298,6 +303,7 @@ namespace GestionDesTickets.Server.Controllers
                     Uticod = utilisateur.Uticod,
                     Soccod = soccod,
                     Sitcod = sitcod,
+                    Sercod = string.IsNullOrWhiteSpace(dto.Sercod) ? null : dto.Sercod,
                 };
                 await _utilisateurRepository.AddAsync(utilisateur, socuser);
                 return Ok(new { uticod = utilisateur.Uticod });
@@ -1201,13 +1207,15 @@ namespace GestionDesTickets.Server.Controllers
         // PUT api/<UtilisateursController>/update-user/soccod/sitcod
         [HttpPut("update-user/{soccod}/{sitcod}")]
         [Admin]
-        public async Task<bool> Put([FromBody] UtilisateurUpdate utilisateur, string soccod, string sitcod)
+        public async Task<bool> Put([FromBody] UtilisateurUpdate utilisateur, string soccod, string sitcod, [FromQuery] string? sercod = null)
         {
             try
             {
                 if (utilisateur.Utilisateur != null)
                 {
-                    await _utilisateurRepository.UpdateUserAsync(utilisateur);
+                    // soccod/sitcod (route) + sercod (query) → persistance de l'affectation
+                    // site/service de l'utilisateur dans Socuser.
+                    await _utilisateurRepository.UpdateUserAsync(utilisateur, soccod, sitcod, sercod);
                     return true;
                 }
 

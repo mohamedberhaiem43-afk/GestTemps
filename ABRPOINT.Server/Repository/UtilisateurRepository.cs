@@ -277,8 +277,10 @@ namespace ABRPOINT.Server.Repository
                         Utiactif = u.Utiactif,
                         Utiadm = u.Utiadm,
                         Utimail = u.Utimail,
+                        Utirole = u.Utirole,
                         Soccod = s.Soccod,
-                        Sitcod = s.Sitcod
+                        Sitcod = s.Sitcod,
+                        Sercod = s.Sercod
                     })
                 .FirstOrDefaultAsync(u => u.Uticod == uticod);
 
@@ -290,7 +292,7 @@ namespace ABRPOINT.Server.Repository
             throw new NotImplementedException();
         }
 
-        public async Task<bool> UpdateUserAsync(UtilisateurUpdate utilisateur)
+        public async Task<bool> UpdateUserAsync(UtilisateurUpdate utilisateur, string? soccod = null, string? sitcod = null, string? sercod = null)
         {
             try
             {
@@ -334,6 +336,42 @@ namespace ABRPOINT.Server.Repository
                 existing.UtiFailedLogins = 0;
                 existing.UtiLockoutUntil = null;
                 await _dbContext.SaveChangesAsync();
+
+                // 1b. Affectation site/service (table Socuser). Le SITE fait partie de la PK
+                //     (soccod, uticod, sitcod) : un changement de site = suppression de
+                //     l'ancienne ligne + (ré)insertion de la nouvelle. Le service (sercod) est
+                //     une colonne normale, mise à jour en place. On gère la 1re affectation de
+                //     l'utilisateur (le formulaire Utilisateur ne gère qu'un site/service).
+                //     Avant : la modification du site dans la popup n'était JAMAIS persistée.
+                if (!string.IsNullOrWhiteSpace(soccod) && !string.IsNullOrWhiteSpace(sitcod))
+                {
+                    var uticod = utilisateur.Utilisateur.Uticod;
+                    var current = await _dbContext.Socusers.IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(s => s.Uticod == uticod && s.DeletedAt == null);
+                    var target = await _dbContext.Socusers.IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(s => s.Soccod == soccod && s.Sitcod == sitcod && s.Uticod == uticod);
+
+                    if (current != null && (current.Soccod != soccod || current.Sitcod != sitcod))
+                        _dbContext.Socusers.Remove(current); // l'utilisateur change de site/société
+
+                    if (target != null)
+                    {
+                        target.DeletedAt = null;   // réactive une éventuelle ligne soft-deleted
+                        target.Sercod = sercod;
+                    }
+                    else
+                    {
+                        _dbContext.Socusers.Add(new Socuser
+                        {
+                            Soccod = soccod,
+                            Uticod = uticod,
+                            Sitcod = sitcod,
+                            Sercod = sercod,
+                            Exercice = current?.Exercice,
+                        });
+                    }
+                    await _dbContext.SaveChangesAsync();
+                }
 
                 // 2. Update password separately only if provided
                 if (!string.IsNullOrEmpty(utilisateur.Utilisateur.Utimps))

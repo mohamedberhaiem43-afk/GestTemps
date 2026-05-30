@@ -1,4 +1,6 @@
 ﻿using ABRPOINT.Server.Annotations.SocieteAttributes;
+using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
@@ -19,18 +21,26 @@ namespace ABRPOINT.Server.Controllers
     {
         private readonly ISocieteRepository _societeRepository;
         private readonly ICurrentTenant _currentTenant;
+        private readonly ApplicationDbContext _db;
 
-        public SocietesController(ISocieteRepository societeRepository, ICurrentTenant currentTenant)
+        public SocietesController(ISocieteRepository societeRepository, ICurrentTenant currentTenant, ApplicationDbContext db)
         {
             _societeRepository = societeRepository;
             _currentTenant = currentTenant;
+            _db = db;
         }
 
-        // GET: api/Services
+        // GET: api/Societes — limité aux sociétés accessibles à l'utilisateur (Socuser) ;
+        // admin → toutes. Avant : énumération de TOUTES les sociétés du tenant.
         [HttpGet]
         public async Task<IEnumerable<Societe>> Get()
         {
-            return await _societeRepository.GetAllAsync();
+            var all = await _societeRepository.GetAllAsync();
+            var caller = SiteAccess.CallerUticod(HttpContext) ?? string.Empty;
+            if (await SiteAccess.IsAdminAsync(_db, caller)) return all;
+            var soccods = await SiteAccess.AccessibleSoccodsAsync(_db, caller);
+            var allowed = new HashSet<string>(soccods, StringComparer.OrdinalIgnoreCase);
+            return all.Where(s => s.Soccod != null && allowed.Contains(s.Soccod)).ToList();
         }
         [HttpGet("get-soclibs")]
         public async Task<IActionResult> GetSoclibs()
@@ -78,6 +88,16 @@ namespace ABRPOINT.Server.Controllers
         [HttpGet("{soccod}")]
         public async Task<ActionResult<Societe>> Get(string soccod)
         {
+            // Isolation : l'utilisateur ne peut lire que les sociétés auxquelles il est
+            // rattaché (admin = toutes). Avant : aucun contrôle, lecture cross-société.
+            var caller = SiteAccess.CallerUticod(HttpContext) ?? string.Empty;
+            if (!await SiteAccess.IsAdminAsync(_db, caller))
+            {
+                var soccods = await SiteAccess.AccessibleSoccodsAsync(_db, caller);
+                if (!soccods.Contains(soccod, StringComparer.OrdinalIgnoreCase))
+                    return Forbid();
+            }
+
             var service = await _societeRepository.GetBySoccodAsync(soccod);
             if (service == null)
             {

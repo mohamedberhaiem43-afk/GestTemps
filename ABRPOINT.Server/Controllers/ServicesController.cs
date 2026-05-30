@@ -67,6 +67,7 @@ public class ServicesController : ControllerBase
 
     // POST api/Services
     [HttpPost]
+    [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Add)]
     public async Task<IActionResult> Post([FromBody] Service service)
     {
         if (service == null)
@@ -99,6 +100,7 @@ public class ServicesController : ControllerBase
 
     // PUT api/Services/SOC01/SER01
     [HttpPut("{soccod}/{sercod}")]
+    [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Modify)]
     public async Task<IActionResult> Put(string soccod, string sercod, [FromBody] Service service)
     {
         if (service == null || sercod != service.Sercod)
@@ -112,6 +114,7 @@ public class ServicesController : ControllerBase
 
     // DELETE api/Services/SOC01/SER01
     [HttpDelete("{soccod}/{sercod}")]
+    [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Delete)]
     public async Task<IActionResult> Delete(string soccod, string sercod)
     {
         var service = await _servicesRepository.GetBySercodAsync(sercod, soccod);

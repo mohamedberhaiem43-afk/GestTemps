@@ -300,6 +300,9 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
+                // Isolation par site : on restreint les empcods aux employés des sites du
+                // demandeur (admin = tout). Empêche l'énumération d'employés d'autres sites.
+                empcods = await SiteAccess.ScopedEmpcodsAsync(_db, soccod, SiteAccess.CallerUticod(HttpContext) ?? string.Empty, empcods);
                 IEnumerable<EtatEmpPresence> result = await _presenceRepository.GetAllAsync(soccod, dateDebut, dateFin, regime, empcods);
                 return Ok(result);
             }
@@ -315,6 +318,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
+                empcods = await SiteAccess.ScopedEmpcodsAsync(_db, soccod, SiteAccess.CallerUticod(HttpContext) ?? string.Empty, empcods);
                 byte[] pdfBytes = _reportGenerationService.GenerateEtatRetardReport(soccod, dateDebut, dateFin, regime,empcods);
                 return File(pdfBytes, "application/pdf", "EtatRetard.pdf");
             }
@@ -329,6 +333,7 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
+                empcods = await SiteAccess.ScopedEmpcodsAsync(_db, soccod, SiteAccess.CallerUticod(HttpContext) ?? string.Empty, empcods);
                 byte[] pdfBytes = _reportGenerationService.GenerateEtatPresenceReport(soccod, dateDebut, dateFin, regime,empcods);
                 return File(pdfBytes, "application/pdf", "EtatPresence.pdf");
             }

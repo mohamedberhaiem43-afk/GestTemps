@@ -392,7 +392,8 @@ namespace ABRPOINT.Server.Controllers
                         var who = await _db.Employes.AsNoTracking()
                             .Where(e => e.Soccod == soccod && e.Empcod == dto.Empcod)
                             .Select(e => e.Emplib).FirstOrDefaultAsync() ?? dto.Empcod;
-                        _ = _notify.NotifyManagersAsync(
+                        _ = _notify.NotifyManagersForEmployeeAsync(
+                            soccod ?? string.Empty, dto.Empcod ?? string.Empty,
                             "🏦 Demande d'alimentation CET à valider",
                             $"{who} demande à transférer {dto.Nbjours:0.#} jour(s) de « {type.Abslib} » vers le CET.",
                             new { type = "cet_alimentation_created", id = req.Id, soccod });

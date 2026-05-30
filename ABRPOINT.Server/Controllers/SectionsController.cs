@@ -64,6 +64,7 @@ namespace ABRPOINT.Server.Controllers
 
         // POST api/Sections
         [HttpPost]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Add)]
         public async Task<IActionResult> Post([FromBody] Section section)
         {
             if (section == null || string.IsNullOrWhiteSpace(section.Soccod))
@@ -96,6 +97,7 @@ namespace ABRPOINT.Server.Controllers
 
         // PUT api/Sections/SOC01/SEC01
         [HttpPut("{soccod}/{seccod}")]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Modify)]
         public async Task<IActionResult> Put(string soccod, string seccod, [FromBody] Section section)
         {
             if (section == null || seccod != section.Seccod || soccod != section.Soccod)
@@ -115,6 +117,7 @@ namespace ABRPOINT.Server.Controllers
 
         // DELETE api/Sections/SOC01/SEC01
         [HttpDelete("{soccod}/{seccod}")]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Delete)]
         public async Task<IActionResult> Delete(string soccod, string seccod)
         {
             var section = await _sectionRepository.GetBySeccodAsync(seccod, soccod);

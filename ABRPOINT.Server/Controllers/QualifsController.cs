@@ -80,6 +80,7 @@ namespace ABRPOINT.Server.Controllers
 
         // POST api/Qualifs
         [HttpPost]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Add)]
         public async Task<IActionResult> Post([FromBody] Qualif qualif)
         {
             try
@@ -104,6 +105,7 @@ namespace ABRPOINT.Server.Controllers
 
         // PUT api/Qualifs/SOC01/Q01
         [HttpPut("{soccod}/{quacod}")]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Modify)]
         public async Task<IActionResult> Put(string soccod, string quacod, [FromBody] Qualif qualif)
         {
             if (qualif == null || quacod != qualif.Quacod)
@@ -117,6 +119,7 @@ namespace ABRPOINT.Server.Controllers
 
         // DELETE api/Qualifs/SOC01/Q01
         [HttpDelete("{soccod}/{quacod}")]
+        [RequirePermission(PermissionCatalog.Modules.DonneesDeBase, PermissionCatalog.Actions.Delete)]
         public async Task<IActionResult> Delete(string soccod, string quacod)
         {
             try

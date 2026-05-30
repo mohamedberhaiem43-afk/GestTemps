@@ -177,7 +177,8 @@ public class TeletravailController : ControllerBase
                 var period = entity.StartDate.Date == entity.EndDate.Date
                     ? entity.StartDate.ToString("dd/MM/yyyy")
                     : $"{entity.StartDate:dd/MM/yyyy} → {entity.EndDate:dd/MM/yyyy}";
-                _ = _notify.NotifyManagersAsync(
+                _ = _notify.NotifyManagersForEmployeeAsync(
+                    entity.Soccod ?? string.Empty, entity.Empcod ?? string.Empty,
                     "🏠 Demande de télétravail à valider",
                     $"{who} demande le télétravail du {period}.",
                     new { type = "teletravail_request_created", id = entity.Id, soccod = entity.Soccod });
@@ -226,7 +227,8 @@ public class TeletravailController : ControllerBase
                 var period = entity.StartDate.Date == entity.EndDate.Date
                     ? entity.StartDate.ToString("dd/MM/yyyy")
                     : $"{entity.StartDate:dd/MM/yyyy} → {entity.EndDate:dd/MM/yyyy}";
-                _ = _notify.NotifyManagersAsync(
+                _ = _notify.NotifyManagersForEmployeeAsync(
+                    entity.Soccod ?? string.Empty, entity.Empcod ?? string.Empty,
                     "🏠 Demande de télétravail annulée",
                     $"La demande du {period} a été annulée par le collaborateur.",
                     new { type = "teletravail_request_cancelled", id = entity.Id, soccod = entity.Soccod });
@@ -461,8 +463,20 @@ public class TeletravailController : ControllerBase
     {
         // On applique le filtre sur l'entité, puis on projette via la base
         // pour conserver le JOIN employé/utilisateur.
-        var filtered = filter(_db.Teletravails.AsNoTracking())
-            .Select(t => t.Id);
+        var query = filter(_db.Teletravails.AsNoTracking());
+
+        // Isolation PAR SITE : un décideur non-admin ne voit que les demandes des
+        // employés rattachés à SES sites (Socuser). Sans ce filtre, la file « pending »
+        // exposait toutes les demandes du tenant, tous sites confondus.
+        var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        if (!await SiteAccess.IsAdminAsync(_db, caller, ct))
+        {
+            query = query.Where(t => _db.Employes.Any(e =>
+                e.Soccod == t.Soccod && e.Empcod == t.Empcod && e.Sitcod != null &&
+                _db.Socusers.Any(s => s.Uticod == caller && s.Soccod == e.Soccod && s.Sitcod == e.Sitcod)));
+        }
+
+        var filtered = query.Select(t => t.Id);
         return await BaseProjection()
             .Where(d => filtered.Contains(d.Id))
             .OrderByDescending(d => d.RequestedAt)

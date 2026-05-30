@@ -156,6 +156,9 @@ namespace ABRPOINT.Server.Controllers
                 return BadRequest(new { Message = "Veuillez saisie les employÃ© des absences." });
             try
             {
+                // Isolation par site : ne garder que les empcods des sites du demandeur.
+                empcods = await ABRPOINT.Server.Authorization.SiteAccess.FilterEmpcodsByAccessAsync(
+                    _db, soccod, ABRPOINT.Server.Authorization.SiteAccess.CallerUticod(HttpContext) ?? string.Empty, empcods);
                 List<EtatAbsence> etatAbsences = await _absenceRepository.GetEtatAbsenceAsync(soccod, datedebut, datefin, absaut, absret,
                     presNonOpt, sansPointageInvalide, radioValue, empcods);
                 return Ok(etatAbsences);
@@ -188,7 +191,10 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
-                var codes = (empcods ?? "").Split(',').ToList();
+                var codes = (empcods ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+                // Isolation par site : restreindre aux empcods des sites du demandeur.
+                codes = await ABRPOINT.Server.Authorization.SiteAccess.FilterEmpcodsByAccessAsync(
+                    _db, soccod, ABRPOINT.Server.Authorization.SiteAccess.CallerUticod(HttpContext) ?? string.Empty, codes);
                 var reportData = new EtatAbsenceReport
                 {
                     //Soccod = soccod,

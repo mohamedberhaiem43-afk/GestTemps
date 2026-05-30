@@ -10,10 +10,10 @@ namespace ABRPOINT.Server.Interfaces
         Task<Employe> GetByEmpcod(string soccod, string empcod);
         Task<Dictionary<string, string>> GetEmpLibs(string soccod, string uticod, string? sitcod = null, string? sercod = null, string? dircod = null, string? empreg = null);
         Task<Dictionary<string, string>> GetFemmeLibs(string soccod, string uticod);
-        Task<Dictionary<string?, EmployeStat>> GetStatistics(string soccod);
+        Task<Dictionary<string?, EmployeStat>> GetStatistics(string soccod, string? uticod = null);
         Task<IList<EmployeePresenceDto>> GetBySitcodAndDircod(string soccod, string uticod, string site, List<string>? empcods = null, string? empreg = null,
                                                                            string? service = null, DateTime? debut = null, DateTime? fin = null);
-        Task<Dictionary<string, int>> GetEmployeeCountBySexAsync(string soccod);
+        Task<Dictionary<string, int>> GetEmployeeCountBySexAsync(string soccod, string? uticod = null);
         Task<EmpEtatConge> GetEmpEtatConge(string soccod, string empcod, string moisdeb, string moisfin, string annee);
         Task<IEnumerable<EmployeDto>> GetAllAsync(string soccod, string uticod);
         Task<IEnumerable<EmpHoraireDto>> GetEmployesHoraire(string soccod, string empcod);

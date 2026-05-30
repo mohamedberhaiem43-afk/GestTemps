@@ -17,6 +17,12 @@ public interface IUserNotificationService
 {
     Task<int> NotifyUserAsync(string uticod, string title, string body, object? data = null, CancellationToken ct = default);
     Task<int> NotifyManagersAsync(string title, string body, object? data = null, CancellationToken ct = default);
+    /// <summary>
+    /// Notifie les valideurs (managers/admins) RATTACHÉS AU SITE de l'employé demandeur
+    /// (isolation par site). Si le site de l'employé est introuvable, retombe sur tous les
+    /// managers/admins du tenant pour ne pas perdre la notification de validation.
+    /// </summary>
+    Task<int> NotifyManagersForEmployeeAsync(string soccod, string empcod, string title, string body, object? data = null, CancellationToken ct = default);
     /// <summary>Cible explicitement les admins (Utirole=Administrator OU Utiadm=1).</summary>
     Task<int> NotifyAdminsAsync(string title, string body, object? data = null, CancellationToken ct = default);
 }
@@ -69,6 +75,37 @@ public sealed class UserNotificationService : IUserNotificationService
                              u.Utirole == adminCode))
                 .Select(u => u.Uticod!)
                 .ToListAsync(ct);
+            return await SendToUsersAsync(db, push, uticods, title, body, data, ct);
+        });
+
+    public Task<int> NotifyManagersForEmployeeAsync(string soccod, string empcod, string title, string body, object? data = null, CancellationToken ct = default)
+        => RunInScopeAsync(async (db, push) =>
+        {
+            var managerCode = PermissionCatalog.Roles.Manager;
+            var adminCode = PermissionCatalog.Roles.Administrator;
+
+            // Site de l'employé demandeur : sert à ne notifier que les valideurs de CE site.
+            var sitcod = await db.Employes.AsNoTracking()
+                .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                .Select(e => e.Sitcod)
+                .FirstOrDefaultAsync(ct);
+
+            var baseQ = db.Utilisateurs.AsNoTracking()
+                .Where(u => (u.Utiactif == null || (u.Utiactif != "0" && u.Utiactif != "Non")) &&
+                            (u.Utirole == managerCode ||
+                             (u.Utirole != null && EF.Functions.ILike(u.Utirole, "%manager%")) ||
+                             u.Utiadm == "1" ||
+                             u.Utirole == adminCode));
+
+            // Isolation par site : seuls les managers/admins rattachés au site de l'employé
+            // (Socuser) sont notifiés. Fallback tenant-wide si le site est inconnu.
+            if (!string.IsNullOrEmpty(sitcod))
+            {
+                baseQ = baseQ.Where(u => db.Socusers.Any(s =>
+                    s.Soccod == soccod && s.Sitcod == sitcod && s.Uticod == u.Uticod));
+            }
+
+            var uticods = await baseQ.Select(u => u.Uticod!).ToListAsync(ct);
             return await SendToUsersAsync(db, push, uticods, title, body, data, ct);
         });
 

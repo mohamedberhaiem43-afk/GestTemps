@@ -172,7 +172,8 @@ public class DemandeAbsenceController : ControllerBase
                     ? entity.StartDate.ToString("dd/MM/yyyy")
                     : $"{entity.StartDate:dd/MM/yyyy} → {entity.EndDate:dd/MM/yyyy}";
                 var justifBadge = entity.JustificationUrl != null ? " (justificatif joint)" : " (sans justificatif)";
-                _ = _notify.NotifyManagersAsync(
+                _ = _notify.NotifyManagersForEmployeeAsync(
+                    entity.Soccod ?? string.Empty, entity.Empcod ?? string.Empty,
                     "🏥 Demande d'absence à valider",
                     $"{who} demande une absence du {period}{justifBadge}.",
                     new { type = "absence_request_created", id = entity.Id, soccod = entity.Soccod });
@@ -214,7 +215,8 @@ public class DemandeAbsenceController : ControllerBase
                 var period = entity.StartDate.Date == entity.EndDate.Date
                     ? entity.StartDate.ToString("dd/MM/yyyy")
                     : $"{entity.StartDate:dd/MM/yyyy} → {entity.EndDate:dd/MM/yyyy}";
-                _ = _notify.NotifyManagersAsync(
+                _ = _notify.NotifyManagersForEmployeeAsync(
+                    entity.Soccod ?? string.Empty, entity.Empcod ?? string.Empty,
                     "🏥 Demande d'absence annulée",
                     $"La demande du {period} a été annulée par le collaborateur.",
                     new { type = "absence_request_cancelled", id = entity.Id, soccod = entity.Soccod });
@@ -556,7 +558,20 @@ public class DemandeAbsenceController : ControllerBase
         Func<IQueryable<DemandeAbsence>, IQueryable<DemandeAbsence>> filter,
         CancellationToken ct)
     {
-        var filtered = filter(_db.DemandesAbsence.AsNoTracking()).Select(d => d.Id);
+        var query = filter(_db.DemandesAbsence.AsNoTracking());
+
+        // Isolation PAR SITE : un décideur non-admin ne voit que les demandes des
+        // employés rattachés à SES sites (Socuser). Sans ce filtre, la file « pending »
+        // exposait toutes les demandes d'absence du tenant, tous sites confondus.
+        var caller = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        if (!await SiteAccess.IsAdminAsync(_db, caller, ct))
+        {
+            query = query.Where(d => _db.Employes.Any(e =>
+                e.Soccod == d.Soccod && e.Empcod == d.Empcod && e.Sitcod != null &&
+                _db.Socusers.Any(s => s.Uticod == caller && s.Soccod == e.Soccod && s.Sitcod == e.Sitcod)));
+        }
+
+        var filtered = query.Select(d => d.Id);
         return await BaseProjection()
             .Where(p => filtered.Contains(p.Id))
             .OrderByDescending(p => p.RequestedAt)

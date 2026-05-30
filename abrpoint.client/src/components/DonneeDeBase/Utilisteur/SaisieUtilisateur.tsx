@@ -1,5 +1,5 @@
 import { useFeedbackSnackbar, extractErrorMessage } from "../../helper/FeedbackSnackbar";
-import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react";
 import { useTranslation } from "react-i18next";
 import useGetSocLibs from "../../../hooks/societeHooks/useGetSocLibs";
 import useGetSiteLibs from "../../../hooks/siteHooks/useGetSiteLibs";
@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useUserContext } from "../../helper/UserProvider";
 import UtilisateurService from "../../../services/UtilisateurService/UtilisateurService";
 import RolesService from "../../../services/RolesService/RolesService";
+import apiInstance from "../../API/apiInstance";
 import { Role } from "../../../models/Role";
 import "./Utilisateur.css";
 import useUpdateUser from "../../../hooks/userHooks/useUpdateUser";
@@ -37,6 +38,7 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
         const [utirole, setRole] = useState("Employee");
         const [societe, setSociete] = useState("");
         const [site, setSite] = useState("");
+        const [sercod, setSercod] = useState("");
         const { data: socLibs = [] } = useGetSocLibs();
         const { data: sitLibs = [] } = useGetSiteLibs();
         const { selectedUser } = useUserContext();
@@ -50,6 +52,33 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
         const roleChoices = rolesData.length > 0
             ? rolesData.map((r) => ({ value: r.roleName, label: ROLE_LABELS[r.roleName] ?? r.roleName }))
             : ROLE_OPTIONS;
+
+        // Services de la société sélectionnée (pour le champ « Service » : un manager y est
+        // rattaché → il ne consulte que les données de SON service). Dict { sercod: serlib }.
+        const { data: servLibs = {} } = useQuery<Record<string, string>>({
+            queryKey: ['servlibs-form', societe],
+            queryFn: async () => (await apiInstance.get(`/Services/get-servlibs/${societe}`)).data,
+            enabled: !!societe,
+        });
+
+        // Liste complète des utilisateurs (même clé que la page liste → cache partagé)
+        // pour auto-générer le prochain code en création : max numérique existant + 1,
+        // sur 6 chiffres (format "000002"). Supprime la saisie manuelle et les collisions.
+        const { data: allUsers = [] } = useQuery<any[]>({
+            queryKey: ['utilisateurs'],
+            queryFn: () => UtilisateurService.getAllWithoutParams(),
+        });
+        const nextUticod = useMemo(() => {
+            const list = Array.isArray(allUsers) ? allUsers : [];
+            const maxNum = list.reduce((max, u) => {
+                const n = parseInt(String(u?.uticod ?? '').trim(), 10);
+                return Number.isFinite(n) && n > max ? n : max;
+            }, 0);
+            return String(maxNum + 1).padStart(6, '0');
+        }, [allUsers]);
+        // Code affiché/soumis : existant en édition, auto-généré en création (recalculé
+        // à la volée → pas de figeage pendant le chargement de la liste).
+        const effectiveUticod = selectedUser ? uticod : nextUticod;
 
         const { mutateAsync: addUser, error: addError } = useAddUser();
         const { mutateAsync: updateUser, error: updateError } = useUpdateUser();
@@ -109,6 +138,7 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
             setRole(loadedUser.utirole || (loadedUser.utiadm === "1" ? "Administrator" : "Employee"));
             setSociete(loadedUser.soccod || "");
             setSite(loadedUser.sitcod || "");
+            setSercod(loadedUser.sercod || "");
             // Jamais de pré-remplissage du mot de passe (le DTO renvoie le hash) : on
             // le laisse vide pour que la sauvegarde ne ré-encode pas un hash existant.
             setMotPasse("");
@@ -116,12 +146,10 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
 
         const feedback = useFeedbackSnackbar();
 
-        // Sync role with admin checkbox (utilise les noms officiels PermissionCatalog.Roles)
-        useEffect(() => {
-            if (utiadm && utirole !== 'Administrator') {
-                setRole('Administrator');
-            }
-        }, [utiadm]);
+        // NB : on NE force PLUS le rôle à "Administrator" quand utiadm est vrai. Cet ancien
+        // effet écrasait le vrai rôle au chargement (ex. un ResponsableRH également admin
+        // s'affichait « Administrateur »). Le rôle est désormais la source de vérité (le
+        // backend dérive Utiadm du rôle), donc on laisse le rôle chargé tel quel.
 
         const handleRoleChange = (newRole: string) => {
             setRole(newRole);
@@ -133,23 +161,30 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
         };
 
         const handleSave = async () => {
-            if (!uticod || !utiprn || !utinom || !societe || !site) {
+            // En création, le code est auto-généré (effectiveUticod) ; en édition on
+            // conserve le code chargé (uticod, en lecture seule).
+            const codeToUse = selectedUser ? uticod : nextUticod;
+            if (!codeToUse || !utiprn || !utinom || !societe || !site) {
                 feedback.showError(t('utilisateur.form.requiredFields'));
                 return false;
             }
 
             const payload = {
                 user: {
-                    uticod,
+                    uticod: codeToUse,
                     utinom,
                     utiprn,
                     utimail,
                     utimps,
                     utiadm: utiadm ? "1" : "0",
                     utirole,
+                    // Création : le service part dans le corps (CreateUtilisateurDto.Sercod).
+                    sercod: sercod || null,
                 },
                 soccod: societe,
-                sitcod: site
+                sitcod: site,
+                // Édition : le service est transmis en query (update-user).
+                sercod: sercod || null,
             };
 
             try {
@@ -185,11 +220,15 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                             <input
                                 type="text"
                                 placeholder={t('utilisateur.form.codePlaceholder')}
-                                value={uticod}
-                                onChange={(e) => setCode(e.target.value)}
-                                readOnly={!!selectedUser}
-                                className={selectedUser ? 'bg-slate-50 cursor-not-allowed' : ''}
+                                value={effectiveUticod}
+                                readOnly
+                                className="bg-slate-50 cursor-not-allowed"
                             />
+                            {!selectedUser && (
+                                <small style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>
+                                    {t('utilisateur.form.codeAutoGenerated', { defaultValue: 'Code généré automatiquement' })}
+                                </small>
+                            )}
                         </div>
                         <div className="aut-form-field">
                             <label>{t('utilisateur.form.name')}</label>
@@ -258,6 +297,19 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                                     {roleChoices.map((opt) => (
                                         <option key={opt.value} value={opt.value}>
                                             {opt.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        {profil === false && (
+                            <div className="aut-form-field">
+                                <label>{t('utilisateur.form.service', { defaultValue: 'Service' })}</label>
+                                <select value={sercod} onChange={(e) => setSercod(e.target.value)}>
+                                    <option value="">{t('utilisateur.form.serviceNone', { defaultValue: 'Aucun (tous les services)' })}</option>
+                                    {Object.entries(servLibs || {}).map(([k, v]) => (
+                                        <option key={k} value={k}>
+                                            {String(v)}
                                         </option>
                                     ))}
                                 </select>

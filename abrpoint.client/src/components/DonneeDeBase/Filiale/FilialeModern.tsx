@@ -113,7 +113,33 @@ function FilialeModernContent() {
       setForm({ ...emptyForm, soccod: soccod || '' });
       refetch();
     };
-    const onError = (err: any) => feedback.showError(err, t('donneeBase.common.saveError'));
+    const onError = (err: any) => {
+      const status = err?.response?.status;
+      const data = err?.response?.data;
+      const code: string | undefined = data?.code;
+      const apiMsg = data?.message || (typeof data === 'string' ? data : '');
+
+      // 402 plan_limit_sites = quota du plan atteint (cf. SitesController.Post → Standard
+      // = 5 sites max). On affiche un message clair "votre pack ne permet pas plus de N
+      // sites" en `warning` avec un CTA "Mettre à niveau", au lieu de l'erreur générique.
+      if (status === 402 && code === 'plan_limit_sites') {
+        feedback.showWarning(apiMsg || t('donneeBase.filiale.planLimitDefault', { defaultValue: 'Limite de sites atteinte pour votre pack actuel.' }), {
+          action: (
+            <Button
+              size="small"
+              color="inherit"
+              onClick={() => { window.location.href = '/dashboard/mon-abonnement'; }}
+              sx={{ fontWeight: 800, textTransform: 'none' }}
+            >
+              {t('societe.msg.upgradeCta', { defaultValue: 'Mettre à niveau' })}
+            </Button>
+          ),
+        });
+        return;
+      }
+
+      feedback.showError(err, t('donneeBase.common.saveError'));
+    };
     if (isEditMode) { updateSite(payload, { onSuccess, onError }); } else { addSite(payload, { onSuccess, onError }); }
   };
 
