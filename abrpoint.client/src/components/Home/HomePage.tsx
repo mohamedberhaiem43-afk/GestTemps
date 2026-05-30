@@ -4,6 +4,7 @@ import { Dialog, DialogContent, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
+import { openCookieConsent } from '../helper/CookieConsent';
 import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 import InlineAuthCard from './InlineAuthCard';
 import './HomePage.css';
@@ -920,6 +921,7 @@ export default function HomePage() {
             <a href="/confidentialite">{t('homePage.footer.privacy')}</a>
             <a href="/cgu">{t('homePage.footer.cgu')}</a>
             <a href="/mentions-legales">{t('homePage.footer.legal')}</a>
+            <a onClick={() => openCookieConsent()} style={{ cursor: 'pointer' }}>{t('homePage.footer.cookies', { defaultValue: 'Cookies' })}</a>
           </span>
         </div>
       </footer>

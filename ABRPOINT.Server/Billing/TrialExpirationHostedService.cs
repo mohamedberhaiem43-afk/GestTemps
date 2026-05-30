@@ -33,13 +33,15 @@ public sealed class TrialExpirationHostedService : BackgroundService
                 var billing = scope.ServiceProvider.GetService<IBillingService>();
                 if (billing != null)
                 {
-                    // 1) Rappel J-10 (best-effort, échec local n'empêche pas la bascule).
-                    //    Envoyé avant le sweep d'expiration : si le job a accumulé du retard,
-                    //    on préfère prévenir l'admin trop tôt plutôt que pas du tout.
-                    //    Le seuil J-10 (au lieu de J-4) laisse à l'admin/manager 10 jours pour
-                    //    décider sereinement de convertir ou non l'essai en abonnement payant.
-                    try { await billing.SendTrialExpiryRemindersAsync(daysBeforeEnd: 10, stoppingToken); }
-                    catch (Exception remEx) { _log.LogWarning(remEx, "Trial reminder sweep a échoué (continu avec expiration sweep)."); }
+                    // 1) Rappels fin d'essai : J-4, J-2 puis le jour J (J-0). Best-effort
+                    //    (un échec local n'empêche pas la bascule). Anti-doublon par jour géré
+                    //    dans SendTrialExpiryRemindersAsync (flag TrialReminderSentAt) → chaque
+                    //    offset n'est envoyé qu'une seule fois.
+                    foreach (var daysBefore in new[] { 4, 2, 0 })
+                    {
+                        try { await billing.SendTrialExpiryRemindersAsync(daysBeforeEnd: daysBefore, stoppingToken); }
+                        catch (Exception remEx) { _log.LogWarning(remEx, "Trial reminder J-{Days} sweep a échoué.", daysBefore); }
+                    }
 
                     // 2) Rappel J-7 renouvellement abonnement payant (best-effort). Distinct
                     //    du J-10 essai : ici on cible les tenants déjà Active dont la période

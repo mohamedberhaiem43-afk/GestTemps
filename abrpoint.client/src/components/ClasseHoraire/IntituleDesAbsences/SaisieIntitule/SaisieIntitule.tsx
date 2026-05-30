@@ -41,6 +41,11 @@ export default function SaisieIntitule() {
   const [abssanc, setAbssanc] = useState("S");
   const [autoriser, setAutoriser] = useState(false);
   const [abscng, setAbscng] = useState("");
+  // CET (Compte Épargne Temps) : alimentation depuis ce type (abspeutcet + plafond annuel)
+  // et/ou prise de congé puisant dans le CET (absprendcet).
+  const [peutCet, setPeutCet] = useState(false);
+  const [maxCet, setMaxCet] = useState<string>("");
+  const [prendCet, setPrendCet] = useState(false);
   const [mode,setMode] = useState('save');
   const feedback = useFeedbackSnackbar();
   // Erreur 403 = problème de permission → on garde le composant dédié (ForbiddenMessage)
@@ -71,6 +76,9 @@ export default function SaisieIntitule() {
       abspayer: isPayer ? "O" : "N",
       absaut: autoriser ? 1 : 0,
       rubcod: typeImputation,
+      abspeutcet: peutCet ? "1" : "0",
+      absmaxcet: maxCet === "" ? null : Number(maxCet),
+      absprendcet: prendCet ? "1" : "0",
     };
   
     if (mode === "save") {
@@ -114,6 +122,9 @@ export default function SaisieIntitule() {
       setIsPayer(selectedAbsence.abspayer === "O");
       setIsFerier(selectedAbsence.absferier === "O");
       setAbscng(selectedAbsence.abscng);
+      setPeutCet(selectedAbsence.abspeutcet === "1");
+      setMaxCet(selectedAbsence.absmaxcet != null ? String(selectedAbsence.absmaxcet) : "");
+      setPrendCet(selectedAbsence.absprendcet === "1");
       setMode('edit');
     }
     
@@ -132,6 +143,9 @@ export default function SaisieIntitule() {
     setIsPayer(false);
     setIsFerier(false);
     setAbscng('0');
+    setPeutCet(false);
+    setMaxCet('');
+    setPrendCet(false);
     setMode('save');
   };
 
@@ -339,8 +353,52 @@ export default function SaisieIntitule() {
             </Grid>
             </Grid>
           </Box>
-          
-        </Grid> 
+
+          {/* CET (Compte Épargne Temps) — alimentation depuis ce type + prise depuis le CET. */}
+          <Box component="fieldset" sx={{ mt: 1 }}>
+            <legend>
+              <Typography color={'primary'}>{t('intituleAbsence.cet.legend', { defaultValue: 'Compte Épargne Temps (CET)' })}</Typography>
+            </legend>
+            <Grid container spacing={1} alignItems="center">
+              <Grid item xs={5}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={peutCet}
+                      onChange={(e) => setPeutCet(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label={<Typography fontSize="small">{t('intituleAbsence.cet.canFeed', { defaultValue: 'Peut alimenter le CET' })}</Typography>}
+                />
+              </Grid>
+              <Grid item xs={3}>
+                <InputLabel shrink>{t('intituleAbsence.cet.maxPerYear', { defaultValue: 'Max jours/an' })}</InputLabel>
+                <Input
+                  type="number"
+                  size="small"
+                  value={maxCet}
+                  disabled={!peutCet}
+                  onChange={(e) => setMaxCet(e.target.value)}
+                  inputProps={{ min: 0, step: 0.5 }}
+                />
+              </Grid>
+              <Grid item xs={4}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={prendCet}
+                      onChange={(e) => setPrendCet(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label={<Typography fontSize="small">{t('intituleAbsence.cet.drawsFrom', { defaultValue: 'Se prend depuis le CET' })}</Typography>}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+
+        </Grid>
       </Grid>
        {/* Forbidden message */}
       {forbiddenMsg && <ForbiddenMessage message={forbiddenMsg} />}

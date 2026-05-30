@@ -168,7 +168,37 @@ public class AuditLogsController : ControllerBase
             .Take(100)
             .ToListAsync(ct);
 
-        return Ok(new { actions, tables });
+        // Liste des utilisateurs apparaissant dans les journaux, pour alimenter la
+        // liste déroulante du filtre côté UI. On ne renvoie que les uticods réellement
+        // présents dans AuditLog (pas tout l'annuaire) puis on hydrate le libellé
+        // (prénom + nom) en un seul round-trip via WHERE uticod IN (...).
+        var auditUticods = await _db.AuditLogs.AsNoTracking()
+            .Where(a => a.Uticod != null)
+            .Select(a => a.Uticod!)
+            .Distinct()
+            .Take(500)
+            .ToListAsync(ct);
+
+        var labels = auditUticods.Count == 0
+            ? new Dictionary<string, string?>()
+            : await _db.Utilisateurs.AsNoTracking()
+                .Where(u => auditUticods.Contains(u.Uticod!))
+                .Select(u => new { u.Uticod, u.Utiprn, u.Utinom })
+                .ToDictionaryAsync(
+                    u => u.Uticod!,
+                    u => string.Join(' ', new[] { u.Utiprn, u.Utinom }.Where(x => !string.IsNullOrWhiteSpace(x))).Trim(),
+                    ct);
+
+        var users = auditUticods
+            .Select(uc => new
+            {
+                uticod = uc,
+                label = labels.TryGetValue(uc, out var l) && !string.IsNullOrWhiteSpace(l) ? l : uc,
+            })
+            .OrderBy(u => u.label)
+            .ToList();
+
+        return Ok(new { actions, tables, users });
     }
 
     /// <summary>

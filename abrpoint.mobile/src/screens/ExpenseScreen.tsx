@@ -97,6 +97,8 @@ export default function ExpenseScreen({ navigation }: any) {
   const defaultForm = { titre: '', categorie: 'Repas', categorieDetail: '', montant: '', devise: 'EUR', projet: '', dateDepense: new Date(), missionId: null as number | null };
   const [form, setForm] = useState(defaultForm);
   const [imageUri, setImageUri] = useState<string | null>(null);
+  // Analyse OCR du reçu en cours (remplissage auto des champs depuis la pièce jointe).
+  const [scanning, setScanning] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
@@ -136,16 +138,57 @@ export default function ExpenseScreen({ navigation }: any) {
 
   const onRefresh = async () => { setRefreshing(true); await loadExpenses(); setRefreshing(false); };
 
+  const EXPENSE_CATEGORIES = ['Transport', 'Repas', 'Equipement', 'Logement', 'Autre'];
+
+  // Remplissage automatique des champs (montant, devise, date, motif, catégorie) à
+  // partir d'une photo de reçu via l'OCR backend (/DocumentScan/scan-receipt).
+  // Best-effort : un échec d'analyse ne bloque jamais l'ajout de la pièce jointe ;
+  // l'utilisateur peut toujours saisir/corriger manuellement.
+  const autofillFromReceipt = async (uri: string) => {
+    setScanning(true);
+    try {
+      const res = await apiService.scanReceipt(uri);
+      if (res?.success && res.extractedData && (res.confidence ?? 0) >= 0.3) {
+        const d = res.extractedData;
+        setForm(prev => {
+          const next = { ...prev };
+          if (d.titre) next.titre = String(d.titre);
+          if (d.montant) next.montant = String(d.montant).replace(',', '.');
+          if (d.devise) next.devise = String(d.devise).toUpperCase();
+          if (d.categorie) {
+            if (EXPENSE_CATEGORIES.includes(d.categorie)) next.categorie = d.categorie;
+            else { next.categorie = 'Autre'; next.categorieDetail = String(d.categorie); }
+          }
+          if (d.date && /^\d{4}-\d{2}-\d{2}$/.test(d.date)) {
+            const parsed = new Date(`${d.date}T00:00:00`);
+            if (!isNaN(parsed.getTime())) next.dateDepense = parsed;
+          }
+          return next;
+        });
+      }
+    } catch {
+      // silencieux : l'autofill est un confort, pas une étape obligatoire
+    } finally {
+      setScanning(false);
+    }
+  };
+
   const handleCapture = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Erreur', 'Accès caméra requis'); return; }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: true });
-    if (!result.canceled && result.assets[0]) setImageUri(result.assets[0].uri);
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri);
+      autofillFromReceipt(result.assets[0].uri);
+    }
   };
 
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ImagePicker.MediaTypeOptions.Images });
-    if (!result.canceled && result.assets[0]) setImageUri(result.assets[0].uri);
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri);
+      autofillFromReceipt(result.assets[0].uri);
+    }
   };
 
   const openNewForm = () => {
@@ -162,6 +205,12 @@ export default function ExpenseScreen({ navigation }: any) {
     }
     if (form.categorie === 'Autre' && !form.categorieDetail.trim()) {
       Alert.alert('Erreur', 'Précisez la nature de la dépense (catégorie "Autre")');
+      return;
+    }
+    // Le backend exige une mission rattachée (MissionId > 0). On le valide AVANT l'envoi
+    // pour éviter un 400 affiché comme une erreur générique « Impossible d'ajouter ».
+    if (!form.missionId) {
+      Alert.alert('Mission requise', 'Veuillez sélectionner la mission à laquelle rattacher cette note de frais.');
       return;
     }
     if (!user?.soccod || !user?.uticod) return;
@@ -192,8 +241,15 @@ export default function ExpenseScreen({ navigation }: any) {
       setForm(defaultForm);
       setImageUri(null);
       loadExpenses();
-    } catch (e) {
-      Alert.alert('Erreur', "Impossible d'ajouter la note de frais");
+    } catch (e: any) {
+      // Surfacer le motif réel renvoyé par le backend (ex. « Une mission doit être
+      // sélectionnée. ») plutôt qu'un message générique : l'utilisateur comprenait mal
+      // pourquoi la création échouait alors que tout semblait correct.
+      const msg = e?.response?.data?.message
+        ?? e?.response?.data?.error
+        ?? e?.message
+        ?? "Impossible d'ajouter la note de frais";
+      Alert.alert('Erreur', msg);
     } finally {
       setSubmitting(false);
     }
@@ -522,10 +578,16 @@ export default function ExpenseScreen({ navigation }: any) {
                     </TouchableOpacity>
                   )}
                 </View>
+                {scanning && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 10 }}>
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                    <Text style={{ color: COLORS.primary, fontSize: 12 }}>Analyse du reçu… remplissage automatique des champs</Text>
+                  </View>
+                )}
               </View>
 
               <View style={styles.formFooter}>
-                <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
+                <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting || scanning}>
                   {submitting ? (
                     <ActivityIndicator color="#fff" />
                   ) : (

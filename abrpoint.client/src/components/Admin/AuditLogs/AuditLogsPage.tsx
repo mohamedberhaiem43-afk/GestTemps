@@ -269,11 +269,20 @@ export default function AuditLogsPage() {
           />
           <TextField
             size="small"
-            label={t('auditLogs.user', 'Utilisateur (uticod)')}
+            select
+            label={t('auditLogs.user', 'Utilisateur')}
             value={draftFilters.uticod}
             onChange={(e) => setDraftFilters((f) => ({ ...f, uticod: e.target.value }))}
-            sx={{ minWidth: 160 }}
-          />
+            sx={{ minWidth: 200 }}
+          >
+            <MenuItem value="">{t('auditLogs.allUsers', 'Tous')}</MenuItem>
+            {(facets?.users ?? []).map((u) => (
+              <MenuItem key={u.uticod} value={u.uticod}>
+                {u.label}
+                {u.label !== u.uticod ? ` (${u.uticod})` : ''}
+              </MenuItem>
+            ))}
+          </TextField>
           <TextField
             size="small"
             select

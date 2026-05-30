@@ -230,7 +230,7 @@
       "resourcesTitle": "Resources",
       "resourcesContact": "Sales contact", "resourcesAbout": "About", "resourcesLogin": "Log in", "resourcesSignup": "Create account",
       "copyright": "© 2026 Concorde Workforce · All rights reserved",
-      "privacy": "Privacy", "cgu": "Terms", "legal": "Legal notice"
+      "privacy": "Privacy", "cgu": "Terms", "legal": "Legal notice", "cookies": "Cookies"
     }
   },
   "cookieConsent": {
@@ -300,6 +300,7 @@
     "absenceRequest": "Absence Request",
     "absenceValidation": "Absence Approvals",
     "leaveBalance": "Leave Balance",
+    "feedCet": "Fund Time-Savings Account",
     "leaveTitle": "Leave Title",
     "generalLeave": "General Leave",
     "absences": "Absences & Authorizations",

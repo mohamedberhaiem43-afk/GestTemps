@@ -6,6 +6,7 @@ using ABRPOINT.Server.Models;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -28,6 +29,38 @@ public class CongeCetSoldeIntegrationTests
     private static ApplicationDbContext NewContext(string name)
         => new(new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase($"{name}-{Guid.NewGuid()}").Options);
+
+    // Le CetController s'appuie désormais sur ICongeCalculationService pour le « solde
+    // restant » (alignement KPI). En intégration on stube ce service avec la base numérique
+    // historique des scénarios : SoldeAnterieur = Conge - Empconge (lu sur la même InMemory DB).
+    private sealed class StubCongeCalc : ICongeCalculationService
+    {
+        private readonly ApplicationDbContext _db;
+        public StubCongeCalc(ApplicationDbContext db) => _db = db;
+
+        public Task<ABRPOINT.Server.Dtaos.NombreConge> CalculerNbJourAndHreCongePaye(string soccod, string empcod, DateTime? predat, string codpost)
+            => throw new NotImplementedException();
+
+        public async Task<ABRPOINT.Server.Dtaos.EmpEtatConge> GetEmpEtatCongeAsync(string soccod, string empcod, string moisdeb, string moisfin, string annee)
+        {
+            var s = await _db.Soldes.FirstOrDefaultAsync(x => x.Soccod == soccod && x.Empcod == empcod);
+            double conge = s?.Conge ?? 0;
+            double sa = (s?.Conge ?? 0) - (s?.Empconge ?? 0);
+            return new ABRPOINT.Server.Dtaos.EmpEtatConge(0, 0, conge, sa);
+        }
+    }
+
+    private sealed class StubRttCalc : ABRPOINT.Server.CalculService.Rtt.IRttCalculationService
+    {
+        public Task<ABRPOINT.Server.CalculService.Rtt.RttSoldeDto> GetRttSoldeAsync(string soccod, string empcod)
+            => Task.FromResult(new ABRPOINT.Server.CalculService.Rtt.RttSoldeDto());
+        public Task<ABRPOINT.Server.CalculService.Rtt.RttSoldeDto> RecalculateRttForEmployeeAsync(string soccod, string empcod, int year)
+            => Task.FromResult(new ABRPOINT.Server.CalculService.Rtt.RttSoldeDto());
+        public Task IncrementUsedAsync(string soccod, string empcod, int year, float jours) => Task.CompletedTask;
+        public Task<int> ResetEndOfYearAsync(string soccod, int targetYear) => Task.FromResult(0);
+    }
+
+    private static CetController NewCtrl(ApplicationDbContext db) => new(db, new StubCongeCalc(db), new StubRttCalc());
 
     // ─── Scénario 1 : Cycle complet année N → CET ──────────────────────────
 
@@ -52,7 +85,7 @@ public class CongeCetSoldeIntegrationTests
         await db.SaveChangesAsync();
 
         // 2. Apply CET → on doit transférer 5 j (sous le cap 10), et ne PAS perdre.
-        var cetCtrl = new CetController(db);
+        var cetCtrl = NewCtrl(db);
         var apply = ((await cetCtrl.Apply(Soc, "2026")) as OkObjectResult)!.Value as CetController.CetTransferResult;
 
         // 3. Vérifications
@@ -80,14 +113,14 @@ public class CongeCetSoldeIntegrationTests
         db.Soldes.Add(new Solde { Soccod = Soc, Empcod = Emp, Annee = "2026", Conge = 30f, Empconge = 5f, Cetjours = 0f });
         await db.SaveChangesAsync();
 
-        var cetCtrl = new CetController(db);
+        var cetCtrl = NewCtrl(db);
         var apply = ((await cetCtrl.Apply(Soc, "2026")) as OkObjectResult)!.Value as CetController.CetTransferResult;
 
         apply!.TotalJoursTransferes.Should().Be(10f);
 
         var solde = await db.Soldes.FirstAsync();
         solde.Cetjours.Should().Be(10f);
-        solde.Conge.Should().Be(5f); // ramené au pris
+        solde.Conge.Should().Be(20f); // décrément simple : 30 - 10 transférés
 
         // Invariant : 30 alloués, 5 pris, 10 au CET, 15 perdus (non tracés explicitement
         // mais déductibles : 30 - 5 - 10 = 15).
@@ -115,7 +148,7 @@ public class CongeCetSoldeIntegrationTests
         );
         await db.SaveChangesAsync();
 
-        var cetCtrl = new CetController(db);
+        var cetCtrl = NewCtrl(db);
         await cetCtrl.Apply("S1", "2026");
 
         // S1 : modifié.
@@ -139,7 +172,7 @@ public class CongeCetSoldeIntegrationTests
         // Cas réel : l'admin clique 2× sur "Enregistrer" → on ne doit pas créer 2 lignes
         // Parametre, ni planter sur la clé unique.
         await using var db = NewContext("scenario-idempotent");
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         await ctrl.UpdateParametres(new CetController.CetParametersDto { Soccod = Soc, Datelim = "31-05", Maxjours = 10f });
         await ctrl.UpdateParametres(new CetController.CetParametersDto { Soccod = Soc, Datelim = "15-06", Maxjours = 20f });
@@ -167,7 +200,7 @@ public class CongeCetSoldeIntegrationTests
         );
         await db.SaveChangesAsync();
 
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
         var preview = ((await ctrl.Preview(Soc, "2026")) as OkObjectResult)!.Value as CetController.CetTransferResult;
         var apply = ((await ctrl.Apply(Soc, "2026")) as OkObjectResult)!.Value as CetController.CetTransferResult;
 
@@ -202,5 +235,35 @@ public class CongeCetSoldeIntegrationTests
         solde.Empconge.Should().Be(17f);
         solde.RttJours.Should().Be(11f);
         solde.RttUtilises.Should().Be(4f);
+    }
+
+    // ─── Scénario 7 : Prise d'un congé financé par le CET (besoin 2) ────────
+
+    [Fact]
+    public async Task Scenario_AcceptCetLeave_DecrementsCetjours()
+    {
+        // Un type d'absence Abscng='C' puise dans le CET. À l'acceptation de la demande,
+        // Solde.Cetjours doit baisser du nombre de jours pris (miroir du décrément RTT).
+        await using var db = NewContext("scenario-cet-leave");
+        db.Absences.Add(new Absence { Soccod = Soc, Abscod = "CET", Abslib = "Congé CET", Absprendcet = "1" });
+        db.Soldes.Add(new Solde { Soccod = Soc, Empcod = Emp, Annee = "2026", Cetjours = 8f });
+        db.Demconges.Add(new Demconge
+        {
+            Soccod = Soc, Concod = "D2606001", Empcod = Emp, Abscod = "CET",
+            Connbjour = 3f, Condep = new DateTime(2026, 6, 1), Conret = new DateTime(2026, 6, 4),
+        });
+        await db.SaveChangesAsync();
+
+        var repo = new ABRPOINT.Server.Repository.DemCongeRepository(
+            db,
+            Mock.Of<IUtilisateurRepository>(),
+            Mock.Of<IEmailService>(),
+            Mock.Of<ABRPOINT.Server.CalculService.Rtt.IRttCalculationService>(),
+            Mock.Of<ILogger<ABRPOINT.Server.Repository.DemCongeRepository>>());
+
+        var (ok, _) = await repo.AcceptDemCongeAsync(Soc, "D2606001", Emp);
+
+        ok.Should().BeTrue();
+        (await db.Soldes.FirstAsync()).Cetjours.Should().Be(5f, "8 - 3 jours pris sur le CET");
     }
 }

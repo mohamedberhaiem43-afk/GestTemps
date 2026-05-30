@@ -615,6 +615,166 @@ Réponds UNIQUEMENT en JSON sans markdown:
 
             return date;
         }
+
+        /// <summary>
+        /// Extraction des champs d'une NOTE DE FRAIS depuis une photo de reçu/justificatif
+        /// (montant, devise, date, marchand→titre, catégorie). Même pipeline vision
+        /// OpenRouter que <see cref="ScanAbsenceJustification"/> ; seul le prompt change.
+        /// Résultat CONSULTATIF — l'utilisateur édite chaque champ avant de soumettre.
+        /// Aucune persistance : cet endpoint ne fait qu'extraire.
+        /// </summary>
+        [HttpPost("scan-receipt")]
+        [RequestSizeLimit(15_000_000)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 15_000_000)]
+        public async Task<IActionResult> ScanReceipt()
+        {
+            try
+            {
+                var form = await Request.ReadFormAsync();
+                var file = form.Files.FirstOrDefault();
+                if (file == null || file.Length == 0)
+                    return BadRequest(new { message = "Aucun fichier fourni." });
+
+                var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf" };
+                if (!allowedTypes.Contains(file.ContentType.ToLower()))
+                    return BadRequest(new { message = "Type de fichier non supporté (JPG, PNG, WebP, GIF, PDF acceptés)." });
+
+                string base64Data;
+                using (var ms = new MemoryStream())
+                {
+                    await file.CopyToAsync(ms);
+                    base64Data = Convert.ToBase64String(ms.ToArray());
+                }
+
+                var apiKey = _config["OpenRouter:ApiKey"];
+                var model = _config["OpenRouter:VisionModel"] ?? "google/gemini-2.0-flash-001";
+                if (string.IsNullOrWhiteSpace(apiKey) || apiKey.StartsWith("REPLACE_WITH_", StringComparison.OrdinalIgnoreCase))
+                    return StatusCode(500, new { message = "Clé API OpenRouter non configurée." });
+
+                var prompt = @"Tu es un assistant expert en extraction de données à partir de reçus, factures et
+justificatifs de dépense professionnelle (ticket de caisse, facture restaurant, péage, hôtel, taxi…).
+
+Analyse ce document et extrais les informations pour pré-remplir une NOTE DE FRAIS.
+
+Réponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de commentaires) avec cette structure exacte :
+{
+  ""confidence"": 0.95,
+  ""extractedData"": {
+    ""montant"": ""0.00"",
+    ""devise"": ""EUR"",
+    ""date"": ""DD/MM/YYYY"",
+    ""titre"": ""Libellé court de la dépense (ex: Déjeuner client, Taxi gare, Hôtel Ibis)"",
+    ""categorie"": ""Transport"" | ""Repas"" | ""Equipement"" | ""Logement"" | ""Autre""
+  }
+}
+
+Règles importantes :
+- montant = MONTANT TOTAL TTC, en chiffres avec un point décimal (ex: ""42.50""). Aucun symbole monétaire.
+- devise = code ISO 4217 (EUR, USD, GBP, CHF, TND, MAD, DZD, CAD, XOF, AED). Déduis-la du symbole/pays ; EUR par défaut.
+- date au format DD/MM/YYYY (date d'émission du reçu).
+- categorie : choisis la plus proche parmi la liste fournie ; ""Autre"" si aucune ne correspond.
+- titre : 2 à 4 mots, à partir du nom du marchand et de la nature de la dépense.
+- Si le document n'est PAS un reçu/justificatif de dépense, retourne confidence < 0.3 et des chaînes vides.
+- Ne laisse aucune valeur null : chaîne vide """" si l'info est absente.";
+
+                var client = _httpClientFactory.CreateClient();
+                object requestBody;
+                var isPdf = file.ContentType.ToLower() == "application/pdf";
+                if (isPdf)
+                {
+                    string pdfText;
+                    using (var pdfStream = new MemoryStream())
+                    {
+                        await file.CopyToAsync(pdfStream);
+                        pdfStream.Position = 0;
+                        using var pdfDoc = PdfDocument.Open(pdfStream);
+                        var textParts = new System.Text.StringBuilder();
+                        foreach (var page in pdfDoc.GetPages()) textParts.AppendLine(page.Text);
+                        pdfText = textParts.ToString();
+                    }
+                    if (string.IsNullOrWhiteSpace(pdfText))
+                        return Ok(new { success = false, message = "Le PDF ne contient pas de texte extractible. Essayez une photo." });
+                    requestBody = new
+                    {
+                        model,
+                        messages = new[]
+                        {
+                            new { role = "system", content = "Tu es un assistant expert en extraction de données de reçus. Réponds UNIQUEMENT en JSON valide." },
+                            new { role = "user", content = $"Voici le contenu textuel extrait d'un PDF :\n\n---\n{pdfText}\n---\n\n{prompt}" }
+                        },
+                        temperature = 0.1,
+                        max_tokens = 1000
+                    };
+                }
+                else
+                {
+                    requestBody = new
+                    {
+                        model,
+                        messages = new[]
+                        {
+                            new
+                            {
+                                role = "user",
+                                content = new object[]
+                                {
+                                    new { type = "image_url", image_url = new { url = $"data:{file.ContentType};base64,{base64Data}" } },
+                                    new { type = "text", text = prompt }
+                                }
+                            }
+                        },
+                        temperature = 0.1,
+                        max_tokens = 1000
+                    };
+                }
+
+                var request = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions")
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(requestBody), System.Text.Encoding.UTF8, "application/json")
+                };
+                request.Headers.Add("Authorization", $"Bearer {apiKey}");
+                request.Headers.Add("HTTP-Referer", "https://localhost:5173");
+                request.Headers.Add("X-Title", "ABRPOINT GestTemps");
+
+                var response = await client.SendAsync(request);
+                var respContent = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                    return StatusCode(502, new { message = "Erreur du service AI.", statusCode = (int)response.StatusCode });
+
+                var apiResp = JsonSerializer.Deserialize<OpenRouterResponse>(respContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var responseText = apiResp?.Choices?.FirstOrDefault()?.Message?.Content;
+                if (string.IsNullOrEmpty(responseText))
+                    return Ok(new { success = false, message = "Impossible d'extraire les données." });
+
+                var cleanedJson = CleanJsonResponse(responseText);
+                ReceiptExtractionResult? result;
+                try
+                {
+                    result = JsonSerializer.Deserialize<ReceiptExtractionResult>(cleanedJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+                catch
+                {
+                    return Ok(new { success = false, message = "Les données extraites n'ont pas pu être analysées." });
+                }
+                if (result?.ExtractedData == null)
+                    return Ok(new { success = false, message = "Aucune donnée de reçu détectée." });
+
+                result.ExtractedData.Date = ConvertDateFormat(result.ExtractedData.Date);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Reçu analysé (confiance : {result.Confidence:P0})",
+                    confidence = result.Confidence,
+                    extractedData = result.ExtractedData
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ScanReceipt] Error: {ex}");
+                return StatusCode(500, new { message = "Erreur lors de l'analyse du reçu." });
+            }
+        }
     }
 
     // OpenRouter (OpenAI-compatible) Response Models
@@ -666,6 +826,22 @@ Réponds UNIQUEMENT en JSON sans markdown:
         public string AbsenceCategory { get; set; } = "";
         public string Reason { get; set; } = "";
         public string Issuer { get; set; } = "";
+    }
+
+    // Extraction result models — reçu / note de frais (cf. ScanReceipt)
+    public class ReceiptExtractionResult
+    {
+        public double Confidence { get; set; }
+        public ReceiptExtractedData ExtractedData { get; set; } = new();
+    }
+
+    public class ReceiptExtractedData
+    {
+        public string Montant { get; set; } = "";
+        public string Devise { get; set; } = "";
+        public string? Date { get; set; } = "";
+        public string Titre { get; set; } = "";
+        public string Categorie { get; set; } = "";
     }
 
     public class EmployeExtractedData

@@ -44,7 +44,11 @@ export const AuditLogsApi = {
     const res = await apiInstance.get(BASE, { params });
     return res.data;
   },
-  facets: async (): Promise<{ actions: string[]; tables: string[] }> => {
+  facets: async (): Promise<{
+    actions: string[];
+    tables: string[];
+    users: { uticod: string; label: string }[];
+  }> => {
     const res = await apiInstance.get(`${BASE}/facets`);
     return res.data;
   },

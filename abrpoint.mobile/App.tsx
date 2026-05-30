@@ -20,6 +20,7 @@ import PresenceHistoryScreen from './src/screens/PresenceHistoryScreen';
 import LeaveRequestScreen from './src/screens/LeaveRequestScreen';
 import ExpenseScreen from './src/screens/ExpenseScreen';
 import BalanceScreen from './src/screens/BalanceScreen';
+import AlimenterCetScreen from './src/screens/AlimenterCetScreen';
 import DigitalVaultScreen from './src/screens/DigitalVaultScreen';
 import AuthorizationScreen from './src/screens/AuthorizationScreen';
 import DemandeAutorisationScreen from './src/screens/DemandeAutorisationScreen';
@@ -70,6 +71,7 @@ function AppStack() {
       <Stack.Screen name="LeaveRequest" component={LeaveRequestScreen} />
       <Stack.Screen name="Expense" component={ExpenseScreen} />
       <Stack.Screen name="Balance" component={BalanceScreen} />
+      <Stack.Screen name="AlimenterCet" component={AlimenterCetScreen} />
       <Stack.Screen name="DigitalVault" component={DigitalVaultScreen} />
       <Stack.Screen name="Authorization" component={AuthorizationScreen} />
       <Stack.Screen name="DemandeAutorisation" component={DemandeAutorisationScreen} />

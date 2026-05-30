@@ -291,10 +291,11 @@ namespace ABRPOINT.Server.Controllers
             // ici au cas où le filtrage côté client est contourné.
             if (!string.IsNullOrWhiteSpace(conge.Abscod))
             {
-                var abscng = await _context.Absences.AsNoTracking()
+                var absInfo = await _context.Absences.AsNoTracking()
                     .Where(a => a.Soccod == conge.Soccod && a.Abscod == conge.Abscod)
-                    .Select(a => a.Abscng)
+                    .Select(a => new { a.Abscng, a.Absprendcet })
                     .FirstOrDefaultAsync();
+                var abscng = absInfo?.Abscng;
                 if (string.Equals(abscng, "R", StringComparison.OrdinalIgnoreCase))
                 {
                     var rttMethode = await _context.Employes.AsNoTracking()
@@ -312,6 +313,33 @@ namespace ABRPOINT.Server.Controllers
                         {
                             code = "rtt_not_eligible",
                             message = "Cet employé n'est pas éligible aux congés RTT. Activez la méthode RTT sur sa fiche (M, H ou F) avant de soumettre ce type de demande."
+                        });
+                    }
+                }
+                // Garde CET — un congé puisant dans le CET (Absprendcet='1') ne peut excéder
+                // le solde CET disponible du salarié. Le décrément effectif a lieu à
+                // l'acceptation (cf. DemCongeRepository.AcceptDemCongeAsync), mais on bloque
+                // dès la création pour ne pas laisser passer une demande inhonorable.
+                else if (absInfo?.Absprendcet == "1")
+                {
+                    var cetDispo = await _context.Soldes.AsNoTracking()
+                        .Where(s => s.Soccod == conge.Soccod && s.Empcod == conge.Empcod)
+                        .Select(s => s.Cetjours)
+                        .FirstOrDefaultAsync() ?? 0f;
+                    var demande = conge.Connbjour ?? 0f;
+                    if (demande <= 0)
+                    {
+                        return BadRequest(new { code = "cet_invalid_days", message = "Le nombre de jours demandé est invalide." });
+                    }
+                    if (demande > cetDispo)
+                    {
+                        _log.LogWarning(
+                            "DemConge.Post — refus prise CET : demande {Demande}j > solde CET {Dispo}j pour Soccod={Soccod} Empcod={Empcod}",
+                            demande, cetDispo, conge.Soccod, conge.Empcod);
+                        return BadRequest(new
+                        {
+                            code = "cet_insufficient",
+                            message = $"Solde CET insuffisant : {cetDispo:0.#} jour(s) disponible(s), {demande:0.#} demandé(s)."
                         });
                     }
                 }

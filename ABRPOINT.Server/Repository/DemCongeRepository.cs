@@ -267,14 +267,19 @@ namespace ABRPOINT.Server.Repository
                     query = query.Where(x => x.e.Sercod == managerSercod);
                 }
 
-                // Étape 3 : Exclure les demandes qui ont déjà un congé correspondant
+                // Étape 3 : Exclure les demandes qui ont déjà un congé correspondant.
+                // On associe par la CLÉ PRIMAIRE (Concod + Soccod), pas par les dates :
+                // accept/refuse créent le Conge avec `Concod = demConge.Concod`, et tout le
+                // reste du code calcule le statut via Concod. L'ancienne correspondance par
+                // Soccod+Empcod+Condep+Conret laissait passer une demande pourtant déjà
+                // acceptée dès que les dates différaient (précision timestamp, dates éditées,
+                // doublon de dates) → elle réapparaissait « en attente » alors que refuse
+                // renvoyait 400 (« déjà accepté »). Aligné désormais sur Concod.
                 var result = await query
                     .Where(x =>
                         !_dbContext.Conges.Any(c =>
                             c.Soccod == x.c.Soccod &&
-                            c.Empcod == x.c.Empcod &&
-                            c.Condep == x.c.Condep &&
-                            c.Conret == x.c.Conret))
+                            c.Concod == x.c.Concod))
                     .Select(x => x.c)
                     .Distinct()
                     .OrderByDescending(c => c.Condat)
@@ -369,18 +374,32 @@ namespace ABRPOINT.Server.Repository
                     // la table Absence (clé Abscod) plutôt qu'un champ dénormalisé.
                     try
                     {
-                        var abscng = await _dbContext.Absences
+                        var absInfo = await _dbContext.Absences
                             .Where(a => a.Soccod == soccod && a.Abscod == demConge.Abscod)
-                            .Select(a => a.Abscng)
+                            .Select(a => new { a.Abscng, a.Absprendcet })
                             .FirstOrDefaultAsync();
 
-                        if (abscng == "R" && demConge.Connbjour.HasValue)
+                        if (absInfo?.Abscng == "R" && demConge.Connbjour.HasValue)
                         {
                             var year = (demConge.Condep ?? DateTime.Now).Year;
                             await _rttService.IncrementUsedAsync(soccod, demConge.Empcod, year, demConge.Connbjour.Value);
                         }
+                        // Congé puisant dans le CET (Absprendcet='1') : on décrémente la réserve
+                        // Cetjours de l'employé du nombre de jours pris (clamp ≥ 0 par sécurité).
+                        // Même logique défensive que le RTT : l'acceptation reste valide même
+                        // si la mise à jour du solde CET échoue.
+                        else if (absInfo?.Absprendcet == "1" && demConge.Connbjour.HasValue && demConge.Connbjour.Value > 0)
+                        {
+                            var solde = await _dbContext.Soldes
+                                .FirstOrDefaultAsync(s => s.Soccod == soccod && s.Empcod == demConge.Empcod);
+                            if (solde != null)
+                            {
+                                solde.Cetjours = Math.Max(0f, (solde.Cetjours ?? 0f) - demConge.Connbjour.Value);
+                                await _dbContext.SaveChangesAsync();
+                            }
+                        }
                     }
-                    catch { /* l'acceptation reste valide même si la maj du solde RTT échoue */ }
+                    catch { /* l'acceptation reste valide même si la maj du solde RTT/CET échoue */ }
 
                     // Notify Employee — synchrone : Task.Run capturait le DbContext scopé
                     // qui était disposé avant l'exécution → l'email n'était jamais envoyé.

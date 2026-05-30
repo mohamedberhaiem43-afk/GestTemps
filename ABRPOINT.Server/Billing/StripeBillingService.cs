@@ -299,22 +299,26 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
 
     public async Task SendTrialExpiryRemindersAsync(int daysBeforeEnd = 4, CancellationToken ct = default)
     {
-        // Cherche les tenants Trialing dont la fin d'essai tombe dans une fenêtre
-        // [daysBeforeEnd-1 .. daysBeforeEnd] jours à partir de maintenant. La fenêtre
-        // d'1 jour absorbe le délai entre 2 sweeps (1h) sans risquer de manquer un
-        // tenant. Le flag TrialReminderSentAt évite le double envoi quand plusieurs
-        // sweeps tombent dans la fenêtre.
-        var now = DateTime.UtcNow;
-        var windowStart = now.AddDays(daysBeforeEnd - 1);
-        var windowEnd = now.AddDays(daysBeforeEnd);
+        // Rappels fin d'essai à J-4, J-2 puis le jour J (J-0) : on cible les tenants
+        // Trialing dont la fin d'essai tombe le JOUR CALENDAIRE « aujourd'hui + daysBeforeEnd ».
+        //
+        // Anti-doublon par JOUR (et non « une seule fois ») : l'ancien flag `== null`
+        // n'autorisait qu'un seul rappel sur toute la durée de l'essai → impossible
+        // d'enchaîner J-4 / J-2 / J-0. On ré-arme chaque jour via `TrialReminderSentAt < today`.
+        // Comme les 3 offsets tombent sur 3 jours distincts, chacun part une fois ; et au
+        // sein d'une même journée le sweep horaire ne renvoie pas (flag posé à aujourd'hui).
+        // Avantage : aucune nouvelle colonne master DB nécessaire.
+        var today = DateTime.UtcNow.Date;
+        var targetDay = today.AddDays(daysBeforeEnd);
+        var nextDay = targetDay.AddDays(1);
 
         await using var master = await _masterFactory.CreateDbContextAsync(ct);
         var candidates = await master.Tenants
             .Where(t => t.Status == "Trialing"
                         && t.TrialEndsAt != null
-                        && t.TrialEndsAt >= windowStart
-                        && t.TrialEndsAt <= windowEnd
-                        && t.TrialReminderSentAt == null)
+                        && t.TrialEndsAt >= targetDay
+                        && t.TrialEndsAt < nextDay
+                        && (t.TrialReminderSentAt == null || t.TrialReminderSentAt < today))
             .ToListAsync(ct);
 
         if (candidates.Count == 0) return;
@@ -360,9 +364,11 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
         }
         current.Set(tenant);
 
-        var daysLabel = daysBeforeEnd == 1 ? "1 jour" : $"{daysBeforeEnd} jours";
-        var title = "⏰ Fin d'essai imminente";
-        var body = $"Votre période d'essai gratuite Concorde Workforce se termine dans {daysLabel}. " +
+        var whenLabel = daysBeforeEnd == 0 ? "aujourd'hui"
+                      : daysBeforeEnd == 1 ? "dans 1 jour"
+                      : $"dans {daysBeforeEnd} jours";
+        var title = daysBeforeEnd == 0 ? "⏰ Votre essai se termine aujourd'hui" : "⏰ Fin d'essai imminente";
+        var body = $"Votre période d'essai gratuite Concorde Workforce se termine {whenLabel}. " +
                    "Finalisez votre paiement Stripe pour continuer sans interruption.";
         var payload = new
         {
@@ -445,11 +451,16 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
 
         var endDateLabel = tenant.TrialEndsAt?.ToString("dd MMMM yyyy",
             new System.Globalization.CultureInfo("fr-FR")) ?? "(date inconnue)";
-        var subject = $"⏰ Votre essai Concorde Workforce se termine dans {daysBeforeEnd} jours";
+        var whenText = daysBeforeEnd == 0 ? "aujourd'hui"
+                     : daysBeforeEnd == 1 ? "dans 1 jour"
+                     : $"dans {daysBeforeEnd} jours";
+        var subject = daysBeforeEnd == 0
+            ? "⏰ Votre essai Concorde Workforce se termine aujourd'hui"
+            : $"⏰ Votre essai Concorde Workforce se termine dans {daysBeforeEnd} jours";
         var bodyHtml = $@"<html><body style=""font-family:Segoe UI,Helvetica,Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:600px;margin:0 auto;padding:24px"">
 <h2 style=""color:#0040a1;margin:0 0 16px"">Bonjour,</h2>
-<p>Votre période d'essai gratuite de <strong>Concorde Workforce</strong> arrive à son terme dans
-<strong style=""color:#dc2626"">{daysBeforeEnd} jours</strong> (fin prévue le <strong>{endDateLabel}</strong>).</p>
+<p>Votre période d'essai gratuite de <strong>Concorde Workforce</strong> arrive à son terme
+<strong style=""color:#dc2626"">{whenText}</strong> (fin prévue le <strong>{endDateLabel}</strong>).</p>
 <p>Pour <strong>conserver vos données</strong> (employés, pointages, contrats, documents du coffre-fort…)
 et continuer à utiliser la plateforme sans interruption, finalisez dès maintenant votre abonnement :</p>
 <p style=""text-align:center;margin:24px 0"">

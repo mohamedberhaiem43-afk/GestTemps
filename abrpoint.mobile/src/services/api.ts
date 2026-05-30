@@ -346,6 +346,33 @@ class ApiService {
     return response.data as { concod?: string };
   }
 
+  // ─── CET : alimentation par le salarié ───────────────────────────────────
+  async getCetEligibilite(soccod: string, empcod: string) {
+    const response = await this.client.get(`/Cet/alimentation/eligibilite/${soccod}/${empcod}`);
+    const d = response.data;
+    return (Array.isArray(d) ? d : (d?.$values ?? [])) as Array<{
+      abscod: string; abslib?: string | null; categorie: string;
+      soldeDisponible: number; dejaTransfere: number;
+      plafondAnnuel?: number | null; resteTransferable: number;
+    }>;
+  }
+
+  async getMyCetAlimentations(soccod: string, empcod: string) {
+    const response = await this.client.get(`/Cet/alimentation/mine/${soccod}/${empcod}`);
+    const d = response.data;
+    return (Array.isArray(d) ? d : (d?.$values ?? [])) as Array<{
+      id: number; abscod?: string | null; abslib?: string | null;
+      nbjours: number; datedemande: string; statut: string; motifrefus?: string | null;
+    }>;
+  }
+
+  async requestCetAlimentation(soccod: string, empcod: string, abscod: string, nbjours: number) {
+    const response = await this.client.post(`/Cet/alimentation?soccod=${encodeURIComponent(soccod)}`, {
+      empcod, abscod, nbjours,
+    });
+    return response.data as { id: number; statut: string; applied: boolean };
+  }
+
   async acceptLeaveRequest(soccod: string, concod: string, empcod: string) {
     const response = await this.client.post(
       `/DemConges/accept-demconge/${soccod}/${concod}/${empcod}`
@@ -752,6 +779,24 @@ class ApiService {
     if (expense.missionId != null) formData.append('MissionId', String(expense.missionId));
 
     const response = await this.client.post('/NoteDeFrais/add', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    });
+    return response.data;
+  }
+
+  // OCR reçu : extrait montant / devise / date / titre / catégorie depuis une photo
+  // de justificatif pour pré-remplir le formulaire de note de frais. Consultatif :
+  // l'utilisateur valide/corrige avant soumission. Endpoint backend /DocumentScan/scan-receipt.
+  async scanReceipt(fileUri: string) {
+    const formData = new FormData();
+    const filename = fileUri.split('/').pop() || 'recu.jpg';
+    formData.append('file', {
+      uri: fileUri,
+      type: 'image/jpeg',
+      name: filename,
+    } as any);
+    const response = await this.client.post('/DocumentScan/scan-receipt', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 60000,
     });

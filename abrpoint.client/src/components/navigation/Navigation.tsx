@@ -97,6 +97,7 @@ const FacturesConcordePage = React.lazy(() => import('../Pricing/FacturesConcord
 const DevisPackPage = React.lazy(() => import('../Pricing/DevisPackPage'));
 const ContactSalesPage = React.lazy(() => import('../Pricing/ContactSalesPage'));
 const CetPage = React.lazy(() => import('../gestionEmploye/gestionConge/Cet/CetPage'));
+const AlimenterCetPage = React.lazy(() => import('../gestionEmploye/gestionConge/AlimenterCet/AlimenterCetPage'));
 const SupportPage = React.lazy(() => import('../Support/SupportPage'));
 const FAQPage = React.lazy(() => import('../Support/FAQPage'));
 const FormationsPage = React.lazy(() => import('../Support/FormationsPage'));
@@ -276,6 +277,7 @@ const useNavigationItems = (): NavGroup[] => {
           items: [
             ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveRequest'), href: '/dashboard/gestion-de-conge', icon: CalendarX }] : []),
             ...(planAllows('leaveManagement') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
+            ...(planAllows('leaveManagement') ? [{ label: t('navigation.feedCet', { defaultValue: 'Alimenter le CET' }), href: '/dashboard/alimenter-cet', icon: Wallet }] : []),
             ...(planAllows('leaveManagement') ? [{ label: t('navigation.absenceRequest'), href: '/dashboard/demande-absence', icon: ClipboardList }] : []),
             ...(planAllows('leaveManagement') ? [{ label: t('navigation.remoteWorkRequest'), href: '/dashboard/demande-teletravail', icon: Laptop }] : []),
             // Demande h.supp côté collaborateur — gated sur authorizationManagement
@@ -629,6 +631,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/gestion-de-solde': content = <SoldeCongeModern />; break;
     case '/dashboard/affectation-solde': content = <SoldeCongeAdmin />; break;
     case '/dashboard/cet': content = <CetPage />; break;
+    case '/dashboard/alimenter-cet': content = <AlimenterCetPage />; break;
     case '/dashboard/calendrier-societe': content = <Calendrier />; break;
     case '/dashboard/chat-bot': content = <Box p={3}>{t('navigation.chatBotPrompt')}</Box>; break;
     case '/dashboard/template-builder': content = <ContractBuilderModern />; break;

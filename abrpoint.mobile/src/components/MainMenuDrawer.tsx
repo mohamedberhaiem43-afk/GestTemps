@@ -33,6 +33,7 @@ const MENU: MenuItem[] = [
   { icon: 'bell-outline',            label: 'Notifications',          route: 'Notifications' },
   { icon: 'cog-outline',             label: 'Préférences notifications', route: 'NotificationPreferences' },
   { icon: 'calendar-month-outline',  label: 'Mes congés',             route: 'LeaveRequest',         requires: 'leaveManagement' },
+  { icon: 'piggy-bank-outline',      label: 'Alimenter le CET',       route: 'AlimenterCet',         requires: 'leaveManagement' },
   { icon: 'exit-run',                label: 'Autorisations sortie',   route: 'DemandeAutorisation',  requires: 'authorizationManagement' },
   { icon: 'receipt',                 label: 'Notes de frais',         route: 'Expense',              requires: 'expenseReports' },
   { icon: 'briefcase-outline',       label: 'Missions',               route: 'Missions',             requires: 'missions' },

@@ -37,6 +37,18 @@ public static class BaseDataSchemaMigrator
         var cetMax = await AddColumnIfMissingAsync(db, "parametre", "parcetmaxjours", "REAL NULL", ct);
         var cetSolde = await AddColumnIfMissingAsync(db, "solde", "cetjours", "REAL NULL", ct);
         var cetAdded = cetDate || cetMax || cetSolde;
+        // Alimentation du CET par le salarié (2026-05-30) :
+        //   - parametre.parcetvalidation : '1'/null = les demandes d'alimentation exigent
+        //     une validation RH/admin/manager ; '0' = application immédiate.
+        //   - absence.abspeutcet : '1' = ce type de congé peut alimenter le CET.
+        //   - absence.absmaxcet  : plafond de jours transférables vers le CET par an pour ce type.
+        await AddColumnIfMissingAsync(db, "parametre", "parcetvalidation", "VARCHAR(1) NULL", ct);
+        await AddColumnIfMissingAsync(db, "absence", "abspeutcet", "VARCHAR(1) NULL", ct);
+        await AddColumnIfMissingAsync(db, "absence", "absmaxcet", "REAL NULL", ct);
+        // absprendcet : "1" = prendre ce type de congé puise dans la réserve CET du salarié
+        // (besoin 2). Drapeau dédié plutôt qu'une valeur Abscng (la valeur 'C' est déjà
+        // utilisée pour « Complément Jour/Forfait »).
+        await AddColumnIfMissingAsync(db, "absence", "absprendcet", "VARCHAR(1) NULL", ct);
         // Société : ville séparée du numéro de rue (champ socadr existant).
         // ⚠ La table société est mappée "Societe" (PascalCase) par EF Core
         // (ApplicationDbContext.ToTable("Societe")) — PG la stocke donc sensible
@@ -188,6 +200,12 @@ public static class BaseDataSchemaMigrator
         // upload un certificat médical / convocation et le manager valide. Cf.
         // Models/DemandeAbsence.cs + DemandeAbsenceController.cs.
         await EnsureDemandeAbsenceTableAsync(db, ct);
+
+        // Alimentation du CET par le salarié (2026-05-30) : demandes de transfert de
+        // jours (RTT, CP…) vers le CET, avec workflow de validation optionnel (cf.
+        // parametre.parcetvalidation). Table dédiée, distincte de demconge : pas de
+        // dates de congé, juste un nombre de jours + un type source. Cf. CetController.
+        await EnsureDemAlimentationCetTableAsync(db, ct);
 
         // Tables mobiles + notifications + known_devices : on délègue à MobileTablesInstaller
         // qui sait déjà créer push_tokens, notifications, notification_preferences,
@@ -486,6 +504,36 @@ CREATE INDEX IF NOT EXISTS ix_demande_absence_soccod_status
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE INDEX IF NOT EXISTS ix_demande_absence_empcod_start
     ON demande_absence (empcod, start_date DESC);", ct);
+        return created;
+    }
+
+    private static async Task<bool> EnsureDemAlimentationCetTableAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        var created = !await TableExistsAsync(db, "dem_alimentation_cet", ct);
+        if (created)
+        {
+            await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE dem_alimentation_cet (
+    id               SERIAL        PRIMARY KEY,
+    soccod           VARCHAR(6)    NULL,
+    empcod           VARCHAR(12)   NULL,
+    abscod           VARCHAR(4)    NULL,
+    nbjours          REAL          NOT NULL DEFAULT 0,
+    annee            VARCHAR(4)    NULL,
+    datedemande      TIMESTAMP     NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    statut           VARCHAR(12)   NOT NULL DEFAULT 'pending',
+    validepar        VARCHAR(12)   NULL,
+    datevalidation   TIMESTAMP     NULL,
+    motifrefus       VARCHAR(200)  NULL
+);", ct);
+        }
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE INDEX IF NOT EXISTS ix_dem_alimentation_cet_soccod_statut
+    ON dem_alimentation_cet (soccod, statut)
+    INCLUDE (empcod, abscod, nbjours, annee);", ct);
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE INDEX IF NOT EXISTS ix_dem_alimentation_cet_empcod
+    ON dem_alimentation_cet (soccod, empcod, datedemande DESC);", ct);
         return created;
     }
 

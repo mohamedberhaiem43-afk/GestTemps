@@ -69,8 +69,8 @@ namespace ABRPOINT.Server.Tests.CalculService
         {
             var data = new List<EtatEmpPresence>
             {
-                new() { Empcod = "E001", Emplib = "Alice", Regime = "FRA", TotalHeure = "8:00", TotalRetard = "0:00" },
-                new() { Empcod = "E002", Emplib = "Bob",   Regime = "FRA", TotalHeure = "7:30", TotalRetard = "0:30" },
+                new() { Empcod = "E001", Emplib = "Alice", Empreg = "FRA", TotalHeure = "8:00", TotalRetard = "0:00" },
+                new() { Empcod = "E002", Emplib = "Bob",   Empreg = "FRA", TotalHeure = "7:30", TotalRetard = "0:30" },
             };
             _presenceRepo.Setup(r => r.GetAllAsync(Soc, DateDeb, DateFin, "FRA", It.IsAny<List<string>>()))
                          .ReturnsAsync(data);

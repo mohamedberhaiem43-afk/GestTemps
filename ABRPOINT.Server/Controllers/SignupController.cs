@@ -640,10 +640,10 @@ public class SignupController : ControllerBase
                 "<p><strong>Première étape :</strong> confirmez votre adresse email en saisissant le code ci-dessous sur l'écran de vérification. Cette étape ne prend que quelques secondes et nous permet de vous garantir l'accès aux notifications et aux fonctions sensibles (réinitialisation de mot de passe, alertes RGPD, etc.).</p>" +
                 verifBlock +
                 Services.EmailTemplates.Button("Vérifier mon email", verifyUrl) +
-                "<p>Vous bénéficiez de <strong>30 jours d'essai gratuit</strong>, sans carte bancaire, avec accès complet à votre pack — pointage web &amp; mobile, gestion RH, congés &amp; absences, et reporting.</p>" +
+                "<p>Vous bénéficiez de <strong>30 jours d'essai gratuit</strong>, sans carte bancaire, avec accès complet à votre pack — pointage web &amp; mobile, gestion RH, congés &amp; absences, géolocalisation, et reporting.</p>" +
                 infoCard +
                 Services.EmailTemplates.StatusBanner(
-                    $"Votre essai gratuit prend fin le {trialEndStr}. Nous vous enverrons un rappel 10 jours avant pour activer votre abonnement Stripe — vous gardez la main jusqu'au dernier moment.",
+                    $"Votre essai gratuit prend fin le {trialEndStr}. Nous vous enverrons des rappels à l'approche de l'échéance (4 jours avant, 2 jours avant, puis le jour J) pour activer votre abonnement Stripe — vous gardez la main jusqu'au dernier moment.",
                     Services.EmailTemplates.StatusKind.Info) +
                 "<p style=\"margin-top:18px;\"><strong>Prochaines étapes recommandées :</strong></p>" +
                 "<ol style=\"padding-left:20px;color:#334155;line-height:1.8;\">" +

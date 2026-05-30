@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableHead, TableRow, TableCell, TableBody, Chip } from '@mui/material';
+import { Box, Typography, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableHead, TableRow, TableCell, TableBody, Chip, FormControlLabel, Switch } from '@mui/material';
 import { useFeedbackSnackbar } from '../../../helper/FeedbackSnackbar';
 import SaveIcon from '@mui/icons-material/Save';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -31,15 +31,28 @@ interface SoldeLine {
   annee?: string | null;
   cetjours: number;
 }
+interface AlimentationLine {
+  id: number;
+  empcod?: string | null;
+  emplib?: string | null;
+  abscod?: string | null;
+  abslib?: string | null;
+  nbjours: number;
+  annee?: string | null;
+  datedemande: string;
+  statut: string;
+}
 
 const CetPage: React.FC = () => {
   const { t } = useTranslation();
   const { soccod, hasPermission } = useAuth();
   const [datelim, setDatelim] = useState('31-05');
   const [maxJours, setMaxJours] = useState<number>(10);
+  const [requireValidation, setRequireValidation] = useState<boolean>(true);
   const [annee, setAnnee] = useState(String(new Date().getFullYear()));
   const [preview, setPreview] = useState<TransferResult | null>(null);
   const [soldes, setSoldes] = useState<SoldeLine[]>([]);
+  const [pendingAlims, setPendingAlims] = useState<AlimentationLine[]>([]);
   const [openConfirm, setOpenConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const feedback = useFeedbackSnackbar();
@@ -58,17 +71,57 @@ const CetPage: React.FC = () => {
       .catch(() => { /* silencieux : la consultation reste vide en cas d'erreur */ });
   };
 
+  // Demandes d'alimentation du CET en attente de validation (workflow salarié → admin).
+  const loadPendingAlims = () => {
+    if (!soccod) return;
+    apiInstance.get(`/Cet/alimentation/pending/${soccod}`)
+      .then(({ data }) => {
+        const list: AlimentationLine[] = Array.isArray(data) ? data : ((data as any)?.$values ?? []);
+        setPendingAlims(list);
+      })
+      .catch(() => { /* silencieux */ });
+  };
+
   useEffect(() => {
     if (!soccod) return;
     apiInstance.get(`/Cet/parametres/${soccod}`)
       .then(({ data }) => {
         setDatelim(data?.datelim ?? '31-05');
         setMaxJours(typeof data?.maxjours === 'number' ? data.maxjours : 10);
+        setRequireValidation(data?.requireValidation !== false);
       })
       .catch(() => { /* defaults already set */ });
     loadSoldes();
+    loadPendingAlims();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [soccod]);
+
+  const approveAlim = async (id: number) => {
+    setLoading(true);
+    try {
+      await apiInstance.post(`/Cet/alimentation/${soccod}/${id}/approve`);
+      feedback.showSuccess(t('conge.cet.alim.approveSuccess', { defaultValue: 'Demande approuvée et transfert appliqué.' }));
+      loadPendingAlims();
+      loadSoldes();
+    } catch (e) {
+      feedback.showError(e, t('conge.cet.alim.approveError', { defaultValue: "Échec de l'approbation." }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refuseAlim = async (id: number) => {
+    setLoading(true);
+    try {
+      await apiInstance.post(`/Cet/alimentation/${soccod}/${id}/refuse`, { motif: '' });
+      feedback.showInfo(t('conge.cet.alim.refuseSuccess', { defaultValue: 'Demande refusée.' }));
+      loadPendingAlims();
+    } catch (e) {
+      feedback.showError(e, t('conge.cet.alim.refuseError', { defaultValue: 'Échec du refus.' }));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!hasPermission('Données de Base', 'consult')) {
     return <AccessDenied message={t('conge.cet.noConsult')} />;
@@ -85,7 +138,7 @@ const CetPage: React.FC = () => {
     }
     setLoading(true);
     try {
-      await apiInstance.put('/Cet/parametres', { soccod, datelim, maxjours: maxJours });
+      await apiInstance.put('/Cet/parametres', { soccod, datelim, maxjours: maxJours, requireValidation });
       feedback.showSuccess(t('conge.cet.msg.saveSuccess'));
     } catch (e) {
       feedback.showError(e, t('conge.cet.msg.saveError'));
@@ -167,7 +220,60 @@ const CetPage: React.FC = () => {
             {t('conge.cet.params.save')}
           </Button>
         </Box>
+        <FormControlLabel
+          sx={{ mt: 2 }}
+          control={
+            <Switch
+              checked={requireValidation}
+              onChange={(e) => setRequireValidation(e.target.checked)}
+              disabled={!canModify}
+            />
+          }
+          label={
+            <Typography sx={{ fontSize: 13 }}>
+              {t('conge.cet.params.requireValidation', { defaultValue: "Les demandes d'alimentation du CET par les salariés doivent être validées (RH/admin/manager)" })}
+            </Typography>
+          }
+        />
       </Box>
+
+      {/* Demandes d'alimentation du CET en attente de validation (workflow salarié) */}
+      {pendingAlims.length > 0 && (
+        <Box sx={{ p: 4, borderRadius: 3, border: '1px solid #e2e8f0', bgcolor: '#fff', mt: 3 }}>
+          <Typography sx={{ fontSize: 16, fontWeight: 700, mb: 2, color: '#191c1e' }}>
+            {t('conge.cet.alim.pendingTitle', { defaultValue: "Demandes d'alimentation en attente" })}
+          </Typography>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>{t('conge.cet.alim.employee', { defaultValue: 'Salarié' })}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t('conge.cet.alim.type', { defaultValue: 'Type' })}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">{t('conge.cet.alim.days', { defaultValue: 'Jours' })}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">{t('conge.cet.alim.actions', { defaultValue: 'Actions' })}</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {pendingAlims.map((a) => (
+                <TableRow key={a.id}>
+                  <TableCell sx={{ fontWeight: 600 }}>{a.emplib || a.empcod}</TableCell>
+                  <TableCell>{a.abslib || a.abscod}</TableCell>
+                  <TableCell align="right">{a.nbjours.toFixed(1)} j</TableCell>
+                  <TableCell align="right">
+                    <Button size="small" variant="contained" onClick={() => approveAlim(a.id)} disabled={!canModify || loading}
+                      sx={{ mr: 1, bgcolor: '#16a34a', textTransform: 'none', '&:hover': { bgcolor: '#15803d' } }}>
+                      {t('conge.cet.alim.approve', { defaultValue: 'Approuver' })}
+                    </Button>
+                    <Button size="small" variant="outlined" color="error" onClick={() => refuseAlim(a.id)} disabled={!canModify || loading}
+                      sx={{ textTransform: 'none' }}>
+                      {t('conge.cet.alim.refuse', { defaultValue: 'Refuser' })}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
+      )}
 
       {/* Application du transfert */}
       <Box sx={{ p: 4, borderRadius: 3, border: '1px solid #e2e8f0', bgcolor: '#fff', mt: 3 }}>

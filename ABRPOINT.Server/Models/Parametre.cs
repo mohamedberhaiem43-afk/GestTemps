@@ -372,4 +372,13 @@ public partial class Parametre : BaseEntity
     /// </summary>
     [Column("parcetmaxjours")]
     public float? Parcetmaxjours { get; set; }
+
+    /// <summary>
+    /// Les demandes d'alimentation du CET par le salarié exigent-elles une validation
+    /// RH/admin/manager ? "1" ou null = validation requise (défaut prudent), "0" =
+    /// application immédiate. Cf. CetController alimentation.
+    /// </summary>
+    [Column("parcetvalidation")]
+    [StringLength(1)]
+    public string? Parcetvalidation { get; set; }
 }

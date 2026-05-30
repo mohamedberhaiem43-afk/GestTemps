@@ -1,9 +1,13 @@
+using ABRPOINT.Server.CalculService.Conge;
 using ABRPOINT.Server.Controllers;
 using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Models;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using Xunit;
 
 namespace ABRPOINT.Server.Tests.Controllers;
@@ -35,6 +39,64 @@ public class CetControllerTests
         return new ApplicationDbContext(options);
     }
 
+    // Le CetController calcule désormais le « solde restant » via ICongeCalculationService
+    // (alignement sur le KPI Solde de congé). En test, on stube ce service pour qu'il
+    // reproduise l'ancienne base numérique attendue : SoldeAnterieur = Conge - Empconge.
+    // Ainsi les scénarios de transfert restent pilotés par les valeurs Solde du test.
+    private sealed class StubCongeCalc : ICongeCalculationService
+    {
+        private readonly ApplicationDbContext _db;
+        public StubCongeCalc(ApplicationDbContext db) => _db = db;
+
+        public Task<NombreConge> CalculerNbJourAndHreCongePaye(string soccod, string empcod, DateTime? predat, string codpost)
+            => throw new NotImplementedException();
+
+        public async Task<EmpEtatConge> GetEmpEtatCongeAsync(string soccod, string empcod, string moisdeb, string moisfin, string annee)
+        {
+            var s = await _db.Soldes.FirstOrDefaultAsync(x => x.Soccod == soccod && x.Empcod == empcod);
+            double conge = s?.Conge ?? 0;
+            double sa = (s?.Conge ?? 0) - (s?.Empconge ?? 0);
+            return new EmpEtatConge(0, 0, conge, sa);
+        }
+    }
+
+    // Stub RTT : le CetController exige désormais IRttCalculationService (alimentation CET).
+    // IncrementUsedAsync mute réellement la ligne Solde InMemory (miroir de l'impl réelle)
+    // pour que les tests d'alimentation RTT soient significatifs.
+    private sealed class StubRttCalc : ABRPOINT.Server.CalculService.Rtt.IRttCalculationService
+    {
+        private readonly ApplicationDbContext _db;
+        public StubRttCalc(ApplicationDbContext db) => _db = db;
+        public Task<ABRPOINT.Server.CalculService.Rtt.RttSoldeDto> GetRttSoldeAsync(string soccod, string empcod)
+            => Task.FromResult(new ABRPOINT.Server.CalculService.Rtt.RttSoldeDto());
+        public Task<ABRPOINT.Server.CalculService.Rtt.RttSoldeDto> RecalculateRttForEmployeeAsync(string soccod, string empcod, int year)
+            => Task.FromResult(new ABRPOINT.Server.CalculService.Rtt.RttSoldeDto());
+        public async Task IncrementUsedAsync(string soccod, string empcod, int year, float jours)
+        {
+            var s = await _db.Soldes.FirstOrDefaultAsync(x => x.Soccod == soccod && x.Empcod == empcod);
+            if (s != null) { s.RttUtilises = (s.RttUtilises ?? 0f) + jours; await _db.SaveChangesAsync(); }
+        }
+        public Task<int> ResetEndOfYearAsync(string soccod, int targetYear) => Task.FromResult(0);
+    }
+
+    private static CetController NewCtrl(ApplicationDbContext db) => new(db, new StubCongeCalc(db), new StubRttCalc(db));
+
+    // Variante avec un appelant authentifié (claim NameIdentifier = uticod), nécessaire pour
+    // les endpoints d'alimentation qui résolvent l'appelant via ResolveCallerAsync.
+    private static CetController NewCtrlAs(ApplicationDbContext db, string uticod)
+    {
+        var c = new CetController(db, new StubCongeCalc(db), new StubRttCalc(db));
+        c.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                    new[] { new Claim(ClaimTypes.NameIdentifier, uticod) }, "test")),
+            },
+        };
+        return c;
+    }
+
     private static Solde NewSolde(string emp, float? alloue, float? pris, float? cetInitial = 0f)
         => new()
         {
@@ -54,7 +116,7 @@ public class CetControllerTests
         // Aucune ligne Parametre → on doit recevoir les défauts 31-05 / 10 jours,
         // pas une 404, pour que la page CET soit utilisable dès la création d'un tenant.
         await using var db = NewContext();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         var result = await ctrl.GetParametres(Soc);
 
@@ -71,7 +133,7 @@ public class CetControllerTests
         await using var db = NewContext();
         db.Parametres.Add(new Parametre { Soccod = Soc, Parcetdatelim = "15-06", Parcetmaxjours = 22f });
         await db.SaveChangesAsync();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         var result = await ctrl.GetParametres(Soc);
 
@@ -86,7 +148,7 @@ public class CetControllerTests
     public async Task UpdateParametres_EmptySoccod_ReturnsBadRequest()
     {
         await using var db = NewContext();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         var result = await ctrl.UpdateParametres(new CetController.CetParametersDto { Soccod = "" });
 
@@ -101,7 +163,7 @@ public class CetControllerTests
     public async Task UpdateParametres_InvalidDateFormat_ReturnsBadRequest(string invalidDate)
     {
         await using var db = NewContext();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         // Cas "32-05" : la regex valide le format mais pas la sémantique date. On accepte
         // donc ce cas (le BUG potentiel "DD invalide" est noté mais hors scope contrôleur).
@@ -120,7 +182,7 @@ public class CetControllerTests
     public async Task UpdateParametres_NegativeMaxjours_ReturnsBadRequest()
     {
         await using var db = NewContext();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         var result = await ctrl.UpdateParametres(new CetController.CetParametersDto
         {
@@ -138,7 +200,7 @@ public class CetControllerTests
         // CRÉER la ligne (cf. CetController.cs:82-92, fix de la régression "404 à la
         // première sauvegarde").
         await using var db = NewContext();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         var result = await ctrl.UpdateParametres(new CetController.CetParametersDto
         {
@@ -159,7 +221,7 @@ public class CetControllerTests
         await using var db = NewContext();
         db.Parametres.Add(new Parametre { Soccod = Soc, Parcetdatelim = "31-05", Parcetmaxjours = 10f });
         await db.SaveChangesAsync();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         await ctrl.UpdateParametres(new CetController.CetParametersDto
         {
@@ -186,7 +248,7 @@ public class CetControllerTests
         db.Soldes.Add(NewSolde("E001", alloue: 25f, pris: 10f));
         await db.SaveChangesAsync();
 
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
         var result = await ctrl.Preview(Soc, Annee);
 
         var ok = (result as OkObjectResult)!.Value as CetController.CetTransferResult;
@@ -211,7 +273,7 @@ public class CetControllerTests
         db.Parametres.Add(new Parametre { Soccod = Soc, Parcetdatelim = "31-05", Parcetmaxjours = 10f });
         db.Soldes.Add(NewSolde("E001", alloue: 25f, pris: 18f));
         await db.SaveChangesAsync();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         var res = ((await ctrl.Apply(Soc, Annee)) as OkObjectResult)!.Value as CetController.CetTransferResult;
 
@@ -234,14 +296,17 @@ public class CetControllerTests
         db.Parametres.Add(new Parametre { Soccod = Soc, Parcetdatelim = "31-05", Parcetmaxjours = 10f });
         db.Soldes.Add(NewSolde("E001", alloue: 25f, pris: 5f));
         await db.SaveChangesAsync();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         var res = ((await ctrl.Apply(Soc, Annee)) as OkObjectResult)!.Value as CetController.CetTransferResult;
 
         res!.TotalJoursTransferes.Should().Be(10f);
         var s = await db.Soldes.FirstAsync();
         s.Cetjours.Should().Be(10f);
-        s.Conge.Should().Be(5f); // Conge = Empconge → restant à 0
+        // Décrément simple : Conge -= transfert (25 - 10 = 15). Le surplus non transféré
+        // (10 j au-delà du plafond) reste dans le solde affecté et n'est pas « perdu » côté
+        // persistance — la perte est une notion d'affichage métier, pas une mutation DB.
+        s.Conge.Should().Be(15f);
     }
 
     [Fact]
@@ -252,7 +317,7 @@ public class CetControllerTests
         db.Parametres.Add(new Parametre { Soccod = Soc, Parcetdatelim = "31-05", Parcetmaxjours = 10f });
         db.Soldes.Add(NewSolde("E001", alloue: 20f, pris: 20f));
         await db.SaveChangesAsync();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         var res = ((await ctrl.Apply(Soc, Annee)) as OkObjectResult)!.Value as CetController.CetTransferResult;
 
@@ -268,7 +333,7 @@ public class CetControllerTests
         await using var db = NewContext();
         db.Soldes.Add(NewSolde("E001", alloue: 5f, pris: 8f));
         await db.SaveChangesAsync();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         var res = ((await ctrl.Apply(Soc, Annee)) as OkObjectResult)!.Value as CetController.CetTransferResult;
 
@@ -284,7 +349,7 @@ public class CetControllerTests
         db.Parametres.Add(new Parametre { Soccod = Soc, Parcetdatelim = "31-05", Parcetmaxjours = 10f });
         db.Soldes.Add(NewSolde("E001", alloue: 30f, pris: 25f, cetInitial: 17f));
         await db.SaveChangesAsync();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         await ctrl.Apply(Soc, Annee);
 
@@ -304,7 +369,7 @@ public class CetControllerTests
             NewSolde("E004", alloue: 26f, pris: 23.5f)  // 2.5
         );
         await db.SaveChangesAsync();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         var res = ((await ctrl.Apply(Soc, Annee)) as OkObjectResult)!.Value as CetController.CetTransferResult;
 
@@ -327,7 +392,7 @@ public class CetControllerTests
             new Solde { Soccod = "S2", Empcod = "E1", Annee = Annee, Conge = 25, Empconge = 10, Cetjours = 0 }
         );
         await db.SaveChangesAsync();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         await ctrl.Apply("S1", Annee);
 
@@ -349,7 +414,7 @@ public class CetControllerTests
             new Solde { Soccod = Soc, Empcod = "E_2026", Annee = "2026", Conge = 30, Empconge = 5, Cetjours = 0 }
         );
         await db.SaveChangesAsync();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         await ctrl.Apply(Soc, "2026");
 
@@ -368,7 +433,7 @@ public class CetControllerTests
         db.Parametres.Add(new Parametre { Soccod = Soc, Parcetmaxjours = 3f });
         db.Soldes.Add(NewSolde("E001", alloue: 30f, pris: 0f)); // 30 restants, cap 3
         await db.SaveChangesAsync();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         var res = ((await ctrl.Apply(Soc, Annee)) as OkObjectResult)!.Value as CetController.CetTransferResult;
 
@@ -380,12 +445,201 @@ public class CetControllerTests
     public async Task Apply_NoSoldesAtAll_ReturnsEmptyResult()
     {
         await using var db = NewContext();
-        var ctrl = new CetController(db);
+        var ctrl = NewCtrl(db);
 
         var res = ((await ctrl.Apply(Soc, Annee)) as OkObjectResult)!.Value as CetController.CetTransferResult;
 
         res!.EmployesTraites.Should().Be(0);
         res.TotalJoursTransferes.Should().Be(0f);
         res.Details.Should().BeEmpty();
+    }
+
+    // ─── Alimentation du CET par le salarié ─────────────────────────────────
+
+    private static void SeedUser(ApplicationDbContext db, string uticod, bool admin = false)
+        => db.Utilisateurs.Add(new Utilisateur { Uticod = uticod, Utiadm = admin ? "1" : null });
+
+    [Fact]
+    public async Task Alimentation_ImmediateApply_CP_DecrementsCongeAndCreditsCet()
+    {
+        // Validation désactivée ('0') → la demande s'applique tout de suite.
+        // CP : StubCongeCalc renvoie SoldeAnterieur = Conge - Empconge = 20 - 5 = 15 dispo.
+        await using var db = NewContext();
+        db.Parametres.Add(new Parametre { Soccod = Soc, Parcetvalidation = "0" });
+        db.Absences.Add(new Absence { Soccod = Soc, Abscod = "CP", Abslib = "Congé payé", Abscng = "0", Abspeutcet = "1" });
+        db.Soldes.Add(NewSolde("E001", alloue: 20f, pris: 5f, cetInitial: 2f));
+        SeedUser(db, "E001");
+        await db.SaveChangesAsync();
+        var ctrl = NewCtrlAs(db, "E001");
+
+        var result = await ctrl.CreateAlimentation(
+            new CetController.AlimentationRequestDto { Empcod = "E001", Abscod = "CP", Nbjours = 4f }, Soc);
+
+        result.Should().BeOfType<OkObjectResult>();
+        var s = await db.Soldes.FirstAsync();
+        s.Conge.Should().Be(16f, "4 j retirés du congé payé");
+        s.Cetjours.Should().Be(6f, "2 initial + 4 transférés");
+        (await db.DemAlimentationsCet.FirstAsync()).Statut.Should().Be("approved");
+    }
+
+    [Fact]
+    public async Task Alimentation_ImmediateApply_RTT_IncrementsUsedAndCreditsCet()
+    {
+        await using var db = NewContext();
+        db.Parametres.Add(new Parametre { Soccod = Soc, Parcetvalidation = "0" });
+        db.Absences.Add(new Absence { Soccod = Soc, Abscod = "RTT", Abslib = "RTT", Abscng = "R", Abspeutcet = "1" });
+        db.Soldes.Add(new Solde { Soccod = Soc, Empcod = "E001", Annee = Annee, RttJours = 10f, RttUtilises = 2f, Cetjours = 0f });
+        SeedUser(db, "E001");
+        await db.SaveChangesAsync();
+        var ctrl = NewCtrlAs(db, "E001");
+
+        // RTT dispo = 10 - 2 = 8 ; on en transfère 3.
+        await ctrl.CreateAlimentation(
+            new CetController.AlimentationRequestDto { Empcod = "E001", Abscod = "RTT", Nbjours = 3f }, Soc);
+
+        var s = await db.Soldes.FirstAsync();
+        s.RttUtilises.Should().Be(5f, "2 + 3 consommés");
+        s.Cetjours.Should().Be(3f);
+    }
+
+    [Fact]
+    public async Task Alimentation_RequiresValidation_CreatesPending_NoBalanceChange()
+    {
+        await using var db = NewContext();
+        db.Parametres.Add(new Parametre { Soccod = Soc, Parcetvalidation = "1" });
+        db.Absences.Add(new Absence { Soccod = Soc, Abscod = "CP", Abslib = "CP", Abscng = "0", Abspeutcet = "1" });
+        db.Soldes.Add(NewSolde("E001", alloue: 20f, pris: 5f, cetInitial: 0f));
+        SeedUser(db, "E001");
+        await db.SaveChangesAsync();
+        var ctrl = NewCtrlAs(db, "E001");
+
+        await ctrl.CreateAlimentation(
+            new CetController.AlimentationRequestDto { Empcod = "E001", Abscod = "CP", Nbjours = 4f }, Soc);
+
+        (await db.DemAlimentationsCet.FirstAsync()).Statut.Should().Be("pending");
+        var s = await db.Soldes.FirstAsync();
+        s.Conge.Should().Be(20f, "aucun débit tant que non validé");
+        s.Cetjours.Should().Be(0f);
+    }
+
+    [Fact]
+    public async Task Alimentation_ExceedsSourceBalance_Rejected()
+    {
+        await using var db = NewContext();
+        db.Parametres.Add(new Parametre { Soccod = Soc, Parcetvalidation = "0" });
+        db.Absences.Add(new Absence { Soccod = Soc, Abscod = "CP", Abslib = "CP", Abscng = "0", Abspeutcet = "1" });
+        db.Soldes.Add(NewSolde("E001", alloue: 10f, pris: 8f)); // dispo = 2
+        SeedUser(db, "E001");
+        await db.SaveChangesAsync();
+        var ctrl = NewCtrlAs(db, "E001");
+
+        var result = await ctrl.CreateAlimentation(
+            new CetController.AlimentationRequestDto { Empcod = "E001", Abscod = "CP", Nbjours = 5f }, Soc);
+
+        result.Should().BeOfType<BadRequestObjectResult>();
+        (await db.DemAlimentationsCet.AnyAsync()).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Alimentation_TypeNotAllowed_Rejected()
+    {
+        await using var db = NewContext();
+        db.Absences.Add(new Absence { Soccod = Soc, Abscod = "CP", Abslib = "CP", Abscng = "0", Abspeutcet = "0" });
+        db.Soldes.Add(NewSolde("E001", alloue: 20f, pris: 0f));
+        SeedUser(db, "E001");
+        await db.SaveChangesAsync();
+        var ctrl = NewCtrlAs(db, "E001");
+
+        var result = await ctrl.CreateAlimentation(
+            new CetController.AlimentationRequestDto { Empcod = "E001", Abscod = "CP", Nbjours = 3f }, Soc);
+
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public async Task Alimentation_OverAnnualCap_Rejected()
+    {
+        await using var db = NewContext();
+        db.Parametres.Add(new Parametre { Soccod = Soc, Parcetvalidation = "0" });
+        db.Absences.Add(new Absence { Soccod = Soc, Abscod = "CP", Abslib = "CP", Abscng = "0", Abspeutcet = "1", Absmaxcet = 5f });
+        db.Soldes.Add(NewSolde("E001", alloue: 30f, pris: 0f)); // dispo large
+        // déjà 4 j transférés cette année pour ce type
+        db.DemAlimentationsCet.Add(new DemAlimentationCet { Soccod = Soc, Empcod = "E001", Abscod = "CP", Nbjours = 4f, Annee = DateTime.Now.Year.ToString(), Statut = "approved" });
+        SeedUser(db, "E001");
+        await db.SaveChangesAsync();
+        var ctrl = NewCtrlAs(db, "E001");
+
+        // 4 déjà + 3 demandés = 7 > plafond 5 → refus.
+        var result = await ctrl.CreateAlimentation(
+            new CetController.AlimentationRequestDto { Empcod = "E001", Abscod = "CP", Nbjours = 3f }, Soc);
+
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public async Task Alimentation_Approve_AppliesTransfer()
+    {
+        await using var db = NewContext();
+        db.Parametres.Add(new Parametre { Soccod = Soc, Parcetvalidation = "1" });
+        db.Absences.Add(new Absence { Soccod = Soc, Abscod = "CP", Abslib = "CP", Abscng = "0", Abspeutcet = "1" });
+        db.Soldes.Add(NewSolde("E001", alloue: 20f, pris: 5f, cetInitial: 0f)); // dispo 15
+        SeedUser(db, "E001");
+        SeedUser(db, "ADM1", admin: true);
+        await db.SaveChangesAsync();
+
+        // 1. Le salarié crée → pending
+        await NewCtrlAs(db, "E001").CreateAlimentation(
+            new CetController.AlimentationRequestDto { Empcod = "E001", Abscod = "CP", Nbjours = 6f }, Soc);
+        var id = (await db.DemAlimentationsCet.FirstAsync()).Id;
+
+        // 2. L'admin approuve → transfert appliqué
+        var result = await NewCtrlAs(db, "ADM1").ApproveAlimentation(Soc, id);
+
+        result.Should().BeOfType<OkObjectResult>();
+        var s = await db.Soldes.FirstAsync();
+        s.Conge.Should().Be(14f, "20 - 6 transférés");
+        s.Cetjours.Should().Be(6f);
+        (await db.DemAlimentationsCet.FirstAsync()).Statut.Should().Be("approved");
+    }
+
+    [Fact]
+    public async Task Alimentation_Refuse_NoBalanceChange()
+    {
+        await using var db = NewContext();
+        db.Parametres.Add(new Parametre { Soccod = Soc, Parcetvalidation = "1" });
+        db.Absences.Add(new Absence { Soccod = Soc, Abscod = "CP", Abslib = "CP", Abscng = "0", Abspeutcet = "1" });
+        db.Soldes.Add(NewSolde("E001", alloue: 20f, pris: 5f));
+        SeedUser(db, "E001");
+        SeedUser(db, "ADM1", admin: true);
+        await db.SaveChangesAsync();
+
+        await NewCtrlAs(db, "E001").CreateAlimentation(
+            new CetController.AlimentationRequestDto { Empcod = "E001", Abscod = "CP", Nbjours = 6f }, Soc);
+        var id = (await db.DemAlimentationsCet.FirstAsync()).Id;
+
+        await NewCtrlAs(db, "ADM1").RefuseAlimentation(Soc, id, new CetController.RefusDto { Motif = "Pic d'activité" });
+
+        var req = await db.DemAlimentationsCet.FirstAsync();
+        req.Statut.Should().Be("refused");
+        req.Motifrefus.Should().Be("Pic d'activité");
+        var s = await db.Soldes.FirstAsync();
+        s.Conge.Should().Be(20f);
+        s.Cetjours.Should().Be(0f);
+    }
+
+    [Fact]
+    public async Task Alimentation_EmployeeCannotActForOthers()
+    {
+        await using var db = NewContext();
+        db.Absences.Add(new Absence { Soccod = Soc, Abscod = "CP", Abslib = "CP", Abscng = "0", Abspeutcet = "1" });
+        db.Soldes.Add(NewSolde("E002", alloue: 20f, pris: 0f));
+        SeedUser(db, "E001"); // simple employé
+        await db.SaveChangesAsync();
+
+        // E001 tente d'alimenter le CET de E002 → interdit.
+        var result = await NewCtrlAs(db, "E001").CreateAlimentation(
+            new CetController.AlimentationRequestDto { Empcod = "E002", Abscod = "CP", Nbjours = 3f }, Soc);
+
+        result.Should().BeOfType<ForbidResult>();
     }
 }
