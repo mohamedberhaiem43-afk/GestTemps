@@ -134,11 +134,21 @@ export default function ExcelImportButton({
       const skipped = data.skipped ?? 0;
       const created = data.created ?? 0;
       let msg = `${inserted} ligne(s) importée(s)`;
-      if (skipped) msg += `, ${skipped} ignorée(s)`;
+      if (skipped) msg += `, ${skipped} ignorée(s) (doublon ou champ vide)`;
       if (created) msg += `, ${created} entité(s) auto-créée(s)`;
-      const errs: string[] = data.errors ?? [];
-      if (errs.length) feedback.showWarning(`${msg}. ${errs.length} erreur(s).`);
-      else feedback.showSuccess(msg);
+      // Le backend renvoie déjà des messages d'erreur en clair (cf. FriendlyDbError).
+      // On en affiche le détail — au moins les premiers — au lieu d'un simple compteur,
+      // pour qu'un utilisateur non technique sache QUOI corriger dans son fichier.
+      const errs: string[] = (Array.isArray(data.errors) ? data.errors : (data.errors?.$values ?? []))
+        .filter((e: unknown): e is string => typeof e === 'string' && e.trim().length > 0);
+      if (errs.length) {
+        const MAX = 4;
+        const preview = errs.slice(0, MAX).join('\n• ');
+        const more = errs.length > MAX ? `\n…et ${errs.length - MAX} autre(s).` : '';
+        feedback.showWarning(`${msg}.\n${errs.length} ligne(s) non importée(s) :\n• ${preview}${more}`, { duration: 12000 });
+      } else {
+        feedback.showSuccess(msg);
+      }
       onImported?.();
     } catch (err) {
       feedback.showError(err, "Erreur lors de l'import du fichier.");

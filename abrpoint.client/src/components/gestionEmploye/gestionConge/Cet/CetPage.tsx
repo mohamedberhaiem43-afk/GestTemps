@@ -54,6 +54,10 @@ const CetPage: React.FC = () => {
   const [soldes, setSoldes] = useState<SoldeLine[]>([]);
   const [pendingAlims, setPendingAlims] = useState<AlimentationLine[]>([]);
   const [openConfirm, setOpenConfirm] = useState(false);
+  // Confirmation avant accepter/refuser une demande d'alimentation CET. On y porte la
+  // ligne ciblée + le sens de la décision ; le motif (facultatif) n'est saisi qu'au refus.
+  const [alimDecision, setAlimDecision] = useState<{ line: AlimentationLine; approve: boolean } | null>(null);
+  const [alimMotif, setAlimMotif] = useState('');
   const [loading, setLoading] = useState(false);
   const feedback = useFeedbackSnackbar();
 
@@ -114,10 +118,10 @@ const CetPage: React.FC = () => {
     }
   };
 
-  const refuseAlim = async (id: number) => {
+  const refuseAlim = async (id: number, motif: string) => {
     setLoading(true);
     try {
-      await apiInstance.post(`/Cet/alimentation/${soccod}/${id}/refuse`, { motif: '' });
+      await apiInstance.post(`/Cet/alimentation/${soccod}/${id}/refuse`, { motif: motif || '' });
       feedback.showInfo(t('conge.cet.alim.refuseSuccess', { defaultValue: 'Demande refusée.' }));
       loadPendingAlims();
     } catch (e) {
@@ -265,11 +269,11 @@ const CetPage: React.FC = () => {
                   <TableCell>{a.abslib || a.abscod}</TableCell>
                   <TableCell align="right">{a.nbjours.toFixed(1)} j</TableCell>
                   <TableCell align="right">
-                    <Button size="small" variant="contained" onClick={() => approveAlim(a.id)} disabled={!canValidate || loading}
+                    <Button size="small" variant="contained" onClick={() => { setAlimMotif(''); setAlimDecision({ line: a, approve: true }); }} disabled={!canValidate || loading}
                       sx={{ mr: 1, bgcolor: '#16a34a', textTransform: 'none', '&:hover': { bgcolor: '#15803d' } }}>
                       {t('conge.cet.alim.approve', { defaultValue: 'Approuver' })}
                     </Button>
-                    <Button size="small" variant="outlined" color="error" onClick={() => refuseAlim(a.id)} disabled={!canValidate || loading}
+                    <Button size="small" variant="outlined" color="error" onClick={() => { setAlimMotif(''); setAlimDecision({ line: a, approve: false }); }} disabled={!canValidate || loading}
                       sx={{ textTransform: 'none' }}>
                       {t('conge.cet.alim.refuse', { defaultValue: 'Refuser' })}
                     </Button>
@@ -413,6 +417,64 @@ const CetPage: React.FC = () => {
           <Button onClick={() => setOpenConfirm(false)} sx={{ textTransform: 'none' }}>{t('conge.cet.confirm.cancel')}</Button>
           <Button onClick={applyTransfer} variant="contained" sx={{ bgcolor: '#16a34a', textTransform: 'none', fontWeight: 700 }}>
             {t('conge.cet.confirm.confirm')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirmation avant d'accepter / refuser une demande d'alimentation CET */}
+      <Dialog open={!!alimDecision} onClose={() => setAlimDecision(null)} fullWidth maxWidth="xs">
+        <DialogTitle>
+          {alimDecision?.approve
+            ? t('conge.cet.alim.confirmApproveTitle', { defaultValue: "Confirmer l'approbation" })
+            : t('conge.cet.alim.confirmRefuseTitle', { defaultValue: 'Confirmer le refus' })}
+        </DialogTitle>
+        <DialogContent>
+          {alimDecision && (
+            <Typography sx={{ mb: alimDecision.approve ? 0 : 2 }}>
+              {alimDecision.approve
+                ? t('conge.cet.alim.confirmApproveMsg', {
+                    defaultValue: 'Approuver le transfert de {{days}} jour(s) de « {{type}} » vers le CET de {{emp}} ? Le solde CET sera mis à jour immédiatement.',
+                    days: alimDecision.line.nbjours.toFixed(1),
+                    type: alimDecision.line.abslib || alimDecision.line.abscod,
+                    emp: alimDecision.line.emplib || alimDecision.line.empcod,
+                  })
+                : t('conge.cet.alim.confirmRefuseMsg', {
+                    defaultValue: 'Refuser la demande de transfert de {{days}} jour(s) de « {{type}} » de {{emp}} ?',
+                    days: alimDecision.line.nbjours.toFixed(1),
+                    type: alimDecision.line.abslib || alimDecision.line.abscod,
+                    emp: alimDecision.line.emplib || alimDecision.line.empcod,
+                  })}
+            </Typography>
+          )}
+          {alimDecision && !alimDecision.approve && (
+            <TextField
+              fullWidth multiline rows={2} size="small" autoFocus
+              label={t('conge.cet.alim.refuseMotif', { defaultValue: 'Motif (facultatif)' })}
+              value={alimMotif}
+              onChange={(e) => setAlimMotif(e.target.value.slice(0, 200))}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAlimDecision(null)} sx={{ textTransform: 'none' }}>
+            {t('conge.cet.confirm.cancel', { defaultValue: 'Annuler' })}
+          </Button>
+          <Button
+            variant="contained"
+            disabled={loading}
+            color={alimDecision?.approve ? 'success' : 'error'}
+            onClick={async () => {
+              if (!alimDecision) return;
+              const { line, approve } = alimDecision;
+              setAlimDecision(null);
+              if (approve) await approveAlim(line.id);
+              else await refuseAlim(line.id, alimMotif);
+            }}
+            sx={{ textTransform: 'none', fontWeight: 700, ...(alimDecision?.approve ? { bgcolor: '#16a34a' } : {}) }}
+          >
+            {alimDecision?.approve
+              ? t('conge.cet.alim.approve', { defaultValue: 'Approuver' })
+              : t('conge.cet.alim.refuse', { defaultValue: 'Refuser' })}
           </Button>
         </DialogActions>
       </Dialog>

@@ -7,6 +7,7 @@ namespace ABRPOINT.Server.Interfaces
     {
         Task<Autoriser?> GetByConcodAsync(string soccod, string concod);
         Task<List<AutoriserEmployeDto>> GetAutoriserWithAbsenceAsync(string soccod, string uticod);
+        Task<List<AutoriserEmployeDto>> GetAllAutoriserWithAbsenceAsync(string soccod);
         Task AddMultipleAutorisation(List<Autoriser> autorisers);
         Task<AutDto?> GetAutLib(string? soccod, string? empcod, DateTime dmdate);
         Task<IEnumerable<Autoriser>>GetAllAsync(string? soccod, string? uticod);

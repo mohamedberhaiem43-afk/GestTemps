@@ -21,7 +21,7 @@ import { Snackbar, Alert } from '@mui/material';
 export type FeedbackSeverity = 'success' | 'error' | 'info' | 'warning';
 
 type ApiError = {
-  response?: { data?: { message?: string; title?: string; detail?: string } };
+  response?: { data?: { message?: string; error?: string; title?: string; detail?: string } };
   message?: string;
 };
 
@@ -39,6 +39,7 @@ export const extractErrorMessage = (err: unknown, fallback: string): string => {
   const e = err as ApiError;
   const candidate =
     e?.response?.data?.message ||
+    e?.response?.data?.error ||
     e?.response?.data?.title ||
     e?.response?.data?.detail ||
     e?.message;

@@ -29,6 +29,12 @@ public partial class Section : BaseEntity
     [StringLength(256)]
     public string? Secemail { get; set; }
 
+    // Localisation libre de la section (calquée sur Service.Serlieu) — saisie sur
+    // l'écran « Structure organisationnelle ».
+    [Column("seclieu")]
+    [StringLength(60)]
+    public string? Seclieu { get; set; }
+
     [Column("effectif")]
     public int? Effectif { get; set; }
 }

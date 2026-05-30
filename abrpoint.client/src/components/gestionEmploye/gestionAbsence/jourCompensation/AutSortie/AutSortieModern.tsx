@@ -25,7 +25,7 @@ import { useTranslation, Trans } from 'react-i18next';
 import useGetAbsencesLibs from '../../../../../hooks/absenceHooks/useGetAbsenceLibs';
 import useGetEmployee from '../../../../../hooks/employeHooks/useGetEmployee';
 import useAddSortie from '../../../../../hooks/sortieHooks/useAddSortie';
-import useGetSortie from '../../../../../hooks/sortieHooks/useGetSortie';
+import useGetAllSorties from '../../../../../hooks/sortieHooks/useGetAllSorties';
 import useDeleteSortie from '../../../../../hooks/sortieHooks/useDeleteSortie';
 import useUpdateSortie from '../../../../../hooks/sortieHooks/useUpdateSortie';
 import { Autoriser } from '../../../../../models/Autoriser';
@@ -343,7 +343,7 @@ function SortieFormDialog({
 // ── Main Component ────────────────────────────────────────────────────────────
 function AutSortieModernContent() {
   const { t } = useTranslation();
-  const { soccod, uticod, hasPermission } = useAuth();
+  const { soccod, hasPermission } = useAuth();
 
   const canAdd = hasPermission('Absences et Sanctions', 'add');
   const canModify = hasPermission('Absences et Sanctions', 'modify');
@@ -370,7 +370,9 @@ function AutSortieModernContent() {
     return [];
   }, [employesRaw]);
   const { mutate: deleteSortie } = useDeleteSortie();
-  const { data: sorties = [], refetch, isLoading } = useGetSortie(uticod);
+  // Liste société-wide (et non plus filtrée par le site du compte) pour que toutes les
+  // autorisations existantes s'affichent dès l'ouverture, sans devoir en créer une.
+  const { data: sorties = [], refetch, isLoading } = useGetAllSorties();
 
   // UI state
   const feedback = useFeedbackSnackbar();

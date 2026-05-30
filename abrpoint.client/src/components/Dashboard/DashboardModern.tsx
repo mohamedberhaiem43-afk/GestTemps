@@ -32,6 +32,7 @@ import dayjs from 'dayjs';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useAuth } from '../helper/AuthProvider';
+import apiInstance from '../API/apiInstance';
 import useGetDashboardData from '../../hooks/dashboardHooks/useGetDashboardData';
 import useGetEvolution from '../../hooks/dashboardHooks/useGetEvolution';
 import useGetPointagesInvalides from '../../hooks/dashboardHooks/useGetPointagesInvalides';
@@ -278,6 +279,24 @@ function DashboardModernAdmin() {
   const pendingDemandesFin   = useMemo(() => dayjs().add(2, 'year').format('YYYY-MM-DD'), []);
   const { data: demandesData, isLoading: loadingDemandes } = useGetPendingDemCongesByPeriode(pendingDemandesDebut, pendingDemandesFin, true);
   const { data: pointagesData, isLoading: loadingPointages, error: errorPointages } = useGetPointagesInvalides(dashboardRequest, openPointageDialog);
+
+  // Télétravail du jour : nombre de collaborateurs en télétravail APPROUVÉ couvrant
+  // aujourd'hui (endpoint /Teletravail/on-date réservé admin/manager). Best-effort :
+  // un 403 (rôle sans droit de validation) ou une erreur réseau laisse le compteur à 0
+  // sans casser le dashboard.
+  const [teletravailToday, setTeletravailToday] = useState(0);
+  useEffect(() => {
+    if (!soccod) return;
+    let cancelled = false;
+    apiInstance.get(`/Teletravail/on-date/${soccod}`)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const rows = Array.isArray(data) ? data : ((data as any)?.$values ?? []);
+        setTeletravailToday(rows.length);
+      })
+      .catch(() => { if (!cancelled) setTeletravailToday(0); });
+    return () => { cancelled = true; };
+  }, [soccod]);
 
   const today = dayjs().format('DD MMMM YYYY');
 
@@ -829,6 +848,13 @@ function DashboardModernAdmin() {
               items.push({
                 label: `${absences} absence(s) du jour`,
                 color: '#0040a1', bg: '#dae2ff', emoji: '👤',
+              });
+            }
+
+            if (teletravailToday > 0) {
+              items.push({
+                label: `${teletravailToday} en télétravail`,
+                color: '#9d174d', bg: '#fce7f3', emoji: '🏠',
               });
             }
 

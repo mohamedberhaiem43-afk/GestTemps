@@ -113,6 +113,7 @@ public static class BaseDataSchemaMigrator
         await AddColumnIfMissingAsync(db, "service", "serlieu", "VARCHAR(60) NULL", ct);
         await AddColumnIfMissingAsync(db, "service", "seremail", "VARCHAR(256) NULL", ct);
         await AddColumnIfMissingAsync(db, "section", "secemail", "VARCHAR(256) NULL", ct);
+        await AddColumnIfMissingAsync(db, "section", "seclieu", "VARCHAR(60) NULL", ct);
 
         // RTT (Réduction du Temps de Travail, loi française) :
         // 4 colonnes sur employe + 2 colonnes sur solde. Toutes nullables.

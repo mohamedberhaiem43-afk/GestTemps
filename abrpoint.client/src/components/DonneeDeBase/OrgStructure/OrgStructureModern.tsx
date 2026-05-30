@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { Box, Button, Typography, Menu, MenuItem } from '@mui/material';
 import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import AddIcon from '@mui/icons-material/Add';
@@ -54,6 +55,9 @@ function OrgStructureContent() {
   const [form, setForm] = useState({ code: '', libelle: '', location: '', email: '' });
   const addMenuAnchor = useRef<HTMLButtonElement | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  // Filtre avancé (recherche plein texte sur code / libellé / localisation / email).
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [search, setSearch] = useState('');
 
   const soccod = sessionStorage.getItem('soccod') || '01';
 
@@ -83,21 +87,21 @@ function OrgStructureContent() {
   useEffect(() => { fetchData(); }, []);
 
   // Préremplissage du code auto-généré à l'ouverture du dialogue d'AJOUT pour les
-  // services et sections (code séquentiel côté serveur). Sans cet appel, le champ
-  // restait vide : l'utilisateur ne voyait pas le code « auto-généré » annoncé et
-  // l'enregistrement échouait/portait à confusion (cas signalé sur « Service »).
-  // La direction conserve une saisie manuelle du code (pas de préremplissage).
+  // TROIS types (direction / service / section) : le code est séquentiel côté serveur
+  // et n'est plus saisi manuellement. Sans cet appel, le champ resterait vide ; le
+  // backend auto-génère aussi au POST (filet de sécurité si l'appel échoue).
   useEffect(() => {
     if (!dialogOpen || editUnit) return;
-    if (dialogMode !== 'service' && dialogMode !== 'section') return;
     let cancelled = false;
-    const url = dialogMode === 'service'
-      ? `/Services/next-code/${soccod}`
-      : `/Sections/get-next-seccod/${soccod}`;
+    const url = dialogMode === 'direction'
+      ? `/Directions/next-code/${soccod}`
+      : dialogMode === 'service'
+        ? `/Services/next-code/${soccod}`
+        : `/Sections/get-next-seccod/${soccod}`;
     apiInstance.get(url)
       .then(res => {
         if (cancelled) return;
-        const code = dialogMode === 'service' ? res.data?.code : res.data?.seccod;
+        const code = dialogMode === 'section' ? res.data?.seccod : res.data?.code;
         if (code) setForm(p => (p.code ? p : { ...p, code }));
       })
       .catch(() => { /* silencieux : le backend auto-génère aussi au POST */ });
@@ -115,12 +119,18 @@ function OrgStructureContent() {
     }));
     const secs: OrgUnit[] = sections.map((s: any) => ({
       code: s.seccod, libelle: s.seclib || '', type: 'section' as const,
-      location: '', email: s.secemail || s.secmail || s.email || '', responsable: '', soccod: s.soccod,
+      location: s.seclieu || s.secloc || '', email: s.secemail || s.secmail || s.email || '', responsable: '', soccod: s.soccod,
     }));
     return [...dirs, ...srvs, ...secs];
   }, [directions, services, sections]);
 
-  const filtered = useMemo(() => filter === 'all' ? allUnits : allUnits.filter(u => u.type === filter), [allUnits, filter]);
+  const filtered = useMemo(() => {
+    let list = filter === 'all' ? allUnits : allUnits.filter(u => u.type === filter);
+    const q = search.trim().toLowerCase();
+    if (q) list = list.filter(u =>
+      [u.code, u.libelle, u.location, u.email].some(v => (v || '').toLowerCase().includes(q)));
+    return list;
+  }, [allUnits, filter, search]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
@@ -137,22 +147,42 @@ function OrgStructureContent() {
 
   const handleSave = async () => {
     if (!form.libelle) { feedback.showError(t('donneeBase.orgStructure.msg.labelRequired')); return; }
-    if (editUnit && !form.code) { feedback.showError(t('donneeBase.orgStructure.msg.codeRequiredEdit')); return; }
-    if (!editUnit && dialogMode === 'direction' && !form.code) { feedback.showError(t('donneeBase.orgStructure.msg.codeRequiredDir')); return; }
+    // Le code est auto-généré (serveur) pour les trois types : aucune saisie manuelle
+    // requise. À l'édition, form.code provient de l'unité éditée.
     try {
       if (editUnit) {
         if (dialogMode === 'direction') await apiInstance.put(`/Directions`, { soccod, dircod: form.code, dirlib: form.libelle, dirloc: form.location, diremail: form.email });
         else if (dialogMode === 'service') await apiInstance.put(`/Services/${soccod}/${form.code}`, { soccod, sercod: form.code, serlib: form.libelle, serlieu: form.location, seremail: form.email });
-        else await apiInstance.put(`/Sections/${soccod}/${form.code}`, { soccod, seccod: form.code, seclib: form.libelle, secemail: form.email });
+        else await apiInstance.put(`/Sections/${soccod}/${form.code}`, { soccod, seccod: form.code, seclib: form.libelle, seclieu: form.location, secemail: form.email });
         feedback.showSuccess(t('donneeBase.orgStructure.msg.updated'));
       } else {
-        if (dialogMode === 'direction') await apiInstance.post(`/Directions`, { soccod, dircod: form.code, dirlib: form.libelle, dirloc: form.location, diremail: form.email });
+        if (dialogMode === 'direction') await apiInstance.post(`/Directions`, { soccod, dircod: form.code || undefined, dirlib: form.libelle, dirloc: form.location, diremail: form.email });
         else if (dialogMode === 'service') await apiInstance.post(`/Services`, { soccod, sercod: form.code || undefined, serlib: form.libelle, serlieu: form.location, effectif: 0, seremail: form.email });
-        else await apiInstance.post(`/Sections`, { soccod, seccod: form.code || undefined, seclib: form.libelle, effectif: 0, secemail: form.email });
+        else await apiInstance.post(`/Sections`, { soccod, seccod: form.code || undefined, seclib: form.libelle, seclieu: form.location, effectif: 0, secemail: form.email });
         feedback.showSuccess(t('donneeBase.orgStructure.msg.added'));
       }
       setDialogOpen(false); fetchData();
     } catch (err) { feedback.showError(err, t('donneeBase.orgStructure.msg.error')); }
+  };
+
+  // Export « ledger » : génère un classeur Excel des unités actuellement filtrées
+  // (respecte le filtre par type + la recherche avancée).
+  const handleExportLedger = () => {
+    if (filtered.length === 0) { feedback.showError(t('donneeBase.orgStructure.noResults')); return; }
+    const typeLabel = (ty: string) => ty === 'direction'
+      ? t('donneeBase.orgStructure.type.direction')
+      : ty === 'service' ? t('donneeBase.orgStructure.type.service') : t('donneeBase.orgStructure.type.section');
+    const rows = filtered.map(u => ({
+      [t('donneeBase.orgStructure.headers.code')]: u.code,
+      [t('donneeBase.orgStructure.headers.label')]: u.libelle,
+      [t('donneeBase.orgStructure.headers.type')]: typeLabel(u.type),
+      [t('donneeBase.orgStructure.headers.location')]: u.location || '',
+      [t('donneeBase.orgStructure.headers.email')]: u.email || '',
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Structure');
+    XLSX.writeFile(wb, 'structure_organisationnelle.xlsx');
   };
 
   const handleDelete = async (unit: OrgUnit) => {
@@ -237,10 +267,9 @@ function OrgStructureContent() {
               Serlieu: ['localisation', 'serlieu', 'lieu', 'emplacement'],
               Seremail: ['email', 'seremail', 'mail', 'e-mail'],
               Serloc: ['service externe', 'serloc', 'externe', 'externalisé'],
-              Effectif: ['effectif', 'effectif théorique', 'nombre'],
             }}
-            labelMap={{ Serlib: 'Libellé service', Serlieu: 'Localisation', Seremail: 'Email', Serloc: 'Service externe', Effectif: 'Effectif' }}
-            templateExample={{ Serlib: 'Comptabilité', Serlieu: 'Siège', Seremail: 'compta@exemple.fr', Serloc: 'Non', Effectif: 5 }}
+            labelMap={{ Serlib: 'Libellé service', Serlieu: 'Localisation', Seremail: 'Email', Serloc: 'Service externe' }}
+            templateExample={{ Serlib: 'Comptabilité', Serlieu: 'Siège', Seremail: 'compta@exemple.fr', Serloc: 'Non' }}
             onImported={fetchData}
           />
           <ExcelImportButton
@@ -252,10 +281,10 @@ function OrgStructureContent() {
               Seclib: ['libellé section', 'seclib', 'libelle', 'libellé', 'libelle section', 'section', 'nom'],
               Sectype: ['type', 'sectype'],
               Secemail: ['email', 'secemail', 'mail', 'e-mail'],
-              Effectif: ['effectif', 'nombre'],
+              Seclieu: ['localisation', 'seclieu', 'lieu', 'emplacement'],
             }}
-            labelMap={{ Seccod: 'Code section', Seclib: 'Libellé section', Sectype: 'Type', Secemail: 'Email', Effectif: 'Effectif' }}
-            templateExample={{ Seccod: '', Seclib: 'Section Nord', Sectype: '', Secemail: 'nord@exemple.fr', Effectif: 10 }}
+            labelMap={{ Seccod: 'Code section', Seclib: 'Libellé section', Sectype: 'Type', Secemail: 'Email', Seclieu: 'Localisation' }}
+            templateExample={{ Seccod: '', Seclib: 'Section Nord', Sectype: '', Secemail: 'nord@exemple.fr', Seclieu: 'Siège' }}
             onImported={fetchData}
           />
         </Box>
@@ -294,10 +323,37 @@ function OrgStructureContent() {
           ))}
         </Box>
         <Box className="org-actions-bar">
-          <button className="org-action-btn"><FilterListIcon sx={{ fontSize: 14 }} /> {t('donneeBase.orgStructure.filter.advanced')}</button>
-          <button className="org-action-btn"><FileDownloadIcon sx={{ fontSize: 14 }} /> {t('donneeBase.orgStructure.filter.exportLedger')}</button>
+          <button
+            className={`org-action-btn ${advancedOpen ? 'org-action-btn--active' : ''}`}
+            onClick={() => setAdvancedOpen(o => !o)}
+          >
+            <FilterListIcon sx={{ fontSize: 14 }} /> {t('donneeBase.orgStructure.filter.advanced')}
+          </button>
+          <button className="org-action-btn" onClick={handleExportLedger}>
+            <FileDownloadIcon sx={{ fontSize: 14 }} /> {t('donneeBase.orgStructure.filter.exportLedger')}
+          </button>
         </Box>
       </Box>
+
+      {/* Panneau de recherche avancée (basculé par « Filtres Avancés ») */}
+      {advancedOpen && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: { xs: 1.5, sm: 0 }, mb: 2 }}>
+          <input
+            className="org-search-input"
+            type="text"
+            value={search}
+            autoFocus
+            placeholder={t('donneeBase.orgStructure.filter.searchPlaceholder')}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            style={{ flex: 1, maxWidth: 420, padding: '8px 12px', border: '1px solid #d8dee9', borderRadius: 8, fontSize: 14 }}
+          />
+          {search && (
+            <button className="org-action-btn" onClick={() => { setSearch(''); setPage(1); }}>
+              {t('donneeBase.orgStructure.filter.clear')}
+            </button>
+          )}
+        </Box>
+      )}
 
       {/* Table */}
       <Box className="org-table-wrap">
@@ -368,18 +424,18 @@ function OrgStructureContent() {
               <Box className="soc-field">
                 <label>
                   {t('donneeBase.orgStructure.dialog.code')}
-                  {!editUnit && (dialogMode === 'service' || dialogMode === 'section') && (
+                  {!editUnit && (
                     <span style={{ color: '#94a3b8', fontWeight: 400, marginLeft: 6 }}>
                       {t('donneeBase.orgStructure.dialog.autoGen')}
                     </span>
                   )}
                 </label>
+                {/* Code toujours auto-généré (serveur) : champ en lecture seule, jamais saisi à la main. */}
                 <input
                   type="text"
                   value={form.code}
-                  onChange={e=>setForm({...form,code:e.target.value})}
-                  readOnly={!!editUnit}
-                  placeholder={!editUnit && (dialogMode === 'service' || dialogMode === 'section') ? t('donneeBase.orgStructure.dialog.autoPlaceholder') : ''}
+                  readOnly
+                  placeholder={!editUnit ? t('donneeBase.orgStructure.dialog.autoPlaceholder') : ''}
                 />
               </Box>
               <Box className="soc-field"><label>{t('donneeBase.orgStructure.dialog.label')}</label><input type="text" value={form.libelle} onChange={e=>setForm({...form,libelle:e.target.value})}/></Box>
@@ -394,7 +450,10 @@ function OrgStructureContent() {
                 </>
               )}
               {dialogMode==='section' && (
-                <Box className="soc-field"><label>{t('donneeBase.orgStructure.dialog.email')}</label><input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></Box>
+                <>
+                  <Box className="soc-field"><label>{t('donneeBase.orgStructure.dialog.location')}</label><input type="text" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></Box>
+                  <Box className="soc-field"><label>{t('donneeBase.orgStructure.dialog.email')}</label><input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></Box>
+                </>
               )}
             </Box>
             <Box className="org-dialog-actions">

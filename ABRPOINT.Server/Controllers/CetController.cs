@@ -2,7 +2,9 @@ using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.CalculService.Conge;
 using ABRPOINT.Server.CalculService.Rtt;
 using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
+using ABRPOINT.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -27,12 +29,22 @@ namespace ABRPOINT.Server.Controllers
         private readonly ApplicationDbContext _db;
         private readonly ICongeCalculationService _congeCalc;
         private readonly IRttCalculationService _rttService;
+        // Notifications best-effort (push/in-app + email) — un échec downstream ne doit
+        // jamais faire échouer l'action métier déjà persistée. Pattern repris de
+        // TeletravailController : champs nullable + try/catch autour de chaque envoi.
+        private readonly IUserNotificationService? _notify;
+        private readonly IEmailService? _email;
+        private readonly ILogger<CetController>? _log;
 
-        public CetController(ApplicationDbContext db, ICongeCalculationService congeCalc, IRttCalculationService rttService)
+        public CetController(ApplicationDbContext db, ICongeCalculationService congeCalc, IRttCalculationService rttService,
+            IUserNotificationService? notify = null, IEmailService? email = null, ILogger<CetController>? log = null)
         {
             _db = db;
             _congeCalc = congeCalc;
             _rttService = rttService;
+            _notify = notify;
+            _email = email;
+            _log = log;
         }
 
         public sealed class CetParametersDto
@@ -366,6 +378,29 @@ namespace ABRPOINT.Server.Controllers
 
             _db.DemAlimentationsCet.Add(req);
             await _db.SaveChangesAsync();
+
+            // ─── Notification employeur (managers/admins) — best-effort ───
+            // On prévient les valideurs qu'une demande d'alimentation CET arrive. Pas
+            // d'email côté managers (trop spammy) : push/in-app seulement. Si la demande
+            // est appliquée immédiatement (pas de validation requise), aucune notif.
+            if (requireValidation)
+            {
+                try
+                {
+                    if (_notify != null)
+                    {
+                        var who = await _db.Employes.AsNoTracking()
+                            .Where(e => e.Soccod == soccod && e.Empcod == dto.Empcod)
+                            .Select(e => e.Emplib).FirstOrDefaultAsync() ?? dto.Empcod;
+                        _ = _notify.NotifyManagersAsync(
+                            "🏦 Demande d'alimentation CET à valider",
+                            $"{who} demande à transférer {dto.Nbjours:0.#} jour(s) de « {type.Abslib} » vers le CET.",
+                            new { type = "cet_alimentation_created", id = req.Id, soccod });
+                    }
+                }
+                catch (Exception ex) { _log?.LogWarning(ex, "CET.CreateAlimentation — notification managers ignorée (demande sauvegardée)."); }
+            }
+
             return Ok(new { req.Id, req.Statut, applied = !requireValidation });
         }
 
@@ -424,6 +459,8 @@ namespace ABRPOINT.Server.Controllers
             req.Validepar = caller.Value.Uticod;
             req.Datevalidation = DateTime.UtcNow;
             await _db.SaveChangesAsync();
+
+            await NotifyAlimentationDecisionAsync(req, type?.Abslib, approved: true);
             return Ok(new { success = true });
         }
 
@@ -439,12 +476,79 @@ namespace ABRPOINT.Server.Controllers
             if (req == null) return NotFound(new { message = "Demande introuvable." });
             if (req.Statut != "pending") return BadRequest(new { message = "Cette demande a déjà été traitée." });
 
+            var type = await _db.Absences.AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Soccod == soccod && a.Abscod == req.Abscod);
+
             req.Statut = "refused";
             req.Validepar = caller.Value.Uticod;
             req.Datevalidation = DateTime.UtcNow;
             req.Motifrefus = dto?.Motif;
             await _db.SaveChangesAsync();
+
+            await NotifyAlimentationDecisionAsync(req, type?.Abslib, approved: false);
             return Ok(new { success = true });
+        }
+
+        /// <summary>
+        /// Notifie le salarié (push/in-app + email best-effort) de la décision prise sur
+        /// sa demande d'alimentation CET. Aligné sur TeletravailController.DecideAsync :
+        /// tous les envois sont fail-silent (l'action métier est déjà persistée).
+        /// </summary>
+        private async Task NotifyAlimentationDecisionAsync(DemAlimentationCet req, string? typeLib, bool approved)
+        {
+            try
+            {
+                var emp = await _db.Employes.AsNoTracking()
+                    .Where(e => e.Soccod == req.Soccod && e.Empcod == req.Empcod)
+                    .Select(e => new { e.Emplib, e.Empemail })
+                    .FirstOrDefaultAsync();
+
+                var libelle = string.IsNullOrWhiteSpace(typeLib) ? req.Abscod : typeLib;
+                var detail = $"{req.Nbjours:0.#} jour(s) de « {libelle} » vers le CET";
+
+                if (_notify != null && !string.IsNullOrEmpty(req.Empcod))
+                {
+                    var title = approved ? "✅ Alimentation CET validée" : "❌ Alimentation CET refusée";
+                    var body = approved
+                        ? $"Votre demande de transfert de {detail} a été validée."
+                        : $"Votre demande de transfert de {detail} a été refusée."
+                            + (string.IsNullOrWhiteSpace(req.Motifrefus) ? "" : $" Motif : {req.Motifrefus}");
+                    _ = _notify.NotifyUserAsync(req.Empcod, title, body,
+                        new { type = approved ? "cet_alimentation_approved" : "cet_alimentation_refused", id = req.Id, soccod = req.Soccod });
+                }
+
+                if (_email != null && !string.IsNullOrWhiteSpace(emp?.Empemail))
+                {
+                    try
+                    {
+                        var subject = approved
+                            ? "Votre demande d'alimentation CET a été validée"
+                            : "Votre demande d'alimentation CET a été refusée";
+                        var html = BuildCetDecisionEmail(emp.Emplib ?? req.Empcod ?? "", approved, detail, req.Motifrefus);
+                        await _email.SendEmailAsync(emp.Empemail!, subject, html);
+                    }
+                    catch (Exception emailEx) { _log?.LogWarning(emailEx, "Email décision CET non envoyé — id={Id} empcod={Empcod}", req.Id, req.Empcod); }
+                }
+            }
+            catch (Exception ex) { _log?.LogWarning(ex, "CET.NotifyAlimentationDecisionAsync — notification ignorée (décision sauvegardée)."); }
+        }
+
+        private static string BuildCetDecisionEmail(string employeeName, bool approved, string detail, string? motif)
+        {
+            var statusLabel = approved ? "validée" : "refusée";
+            var statusColor = approved ? "#16a34a" : "#dc2626";
+            var statusIcon = approved ? "✅" : "❌";
+            var motifBlock = (!approved && !string.IsNullOrWhiteSpace(motif))
+                ? $"<p style='margin:12px 0;padding:12px;background:#f8fafc;border-left:3px solid {statusColor};border-radius:4px;'><strong>Motif du refus :</strong><br>{System.Net.WebUtility.HtmlEncode(motif)}</p>"
+                : "";
+            return $@"<!DOCTYPE html>
+<html><body style='font-family:Arial,Helvetica,sans-serif;color:#1e293b;max-width:560px;margin:0 auto;padding:24px;'>
+  <h2 style='color:{statusColor};margin:0 0 16px;'>{statusIcon} Demande d'alimentation CET {statusLabel}</h2>
+  <p>Bonjour {System.Net.WebUtility.HtmlEncode(employeeName)},</p>
+  <p>Votre demande de transfert de <strong>{System.Net.WebUtility.HtmlEncode(detail)}</strong> a été <strong style='color:{statusColor};'>{statusLabel}</strong>.</p>
+  {motifBlock}
+  <p style='margin-top:24px;font-size:12px;color:#94a3b8;'>Concorde Workforce — Notification automatique</p>
+</body></html>";
         }
 
         // ───────────────────────── Helpers alimentation ─────────────────────────

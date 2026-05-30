@@ -47,15 +47,23 @@ public class BulkImportController : ControllerBase
 
     public sealed record ImportReport(int Inserted, int Skipped, int Created, List<string> Errors);
 
-    /// <summary>Parse tolérant d'un effectif saisi en texte (« 12 », « 12,0 », vide). Null si invalide.</summary>
-    private static int? ParseEffectif(string? raw)
+    /// <summary>
+    /// Traduit une exception d'enregistrement (souvent DbUpdateException enveloppant une
+    /// erreur PostgreSQL technique) en message court et compréhensible par un utilisateur
+    /// non technique — affiché tel quel dans le récapitulatif d'import côté front.
+    /// </summary>
+    private static string FriendlyDbError(Exception ex)
     {
-        if (string.IsNullOrWhiteSpace(raw)) return null;
-        var cleaned = raw.Trim().Replace(" ", "").Replace(",", ".");
-        if (double.TryParse(cleaned, System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out var d))
-            return (int)Math.Round(d);
-        return null;
+        var msg = (ex.InnerException?.Message ?? ex.Message ?? string.Empty).ToLowerInvariant();
+        if (msg.Contains("duplicate") || msg.Contains("unique") || msg.Contains("déjà"))
+            return "déjà existant (code ou libellé en double).";
+        if (msg.Contains("too long") || msg.Contains("value too long") || msg.Contains("longueur") || msg.Contains("character varying"))
+            return "un champ dépasse la longueur autorisée.";
+        if (msg.Contains("not-null") || (msg.Contains("null value") && msg.Contains("violates")))
+            return "un champ obligatoire est vide.";
+        if (msg.Contains("foreign key"))
+            return "référence introuvable (vérifiez les codes liés).";
+        return "données invalides — vérifiez le format des colonnes.";
     }
 
     /// <summary>Normalise un indicateur oui/non en « 1 » / « 0 » (Serloc = service externe).</summary>
@@ -69,7 +77,7 @@ public class BulkImportController : ControllerBase
         };
     }
 
-    public sealed class ServiceRow { public string? Serlib { get; set; } public string? Serloc { get; set; } public string? Serlieu { get; set; } public string? Seremail { get; set; } public string? Effectif { get; set; } }
+    public sealed class ServiceRow { public string? Serlib { get; set; } public string? Serloc { get; set; } public string? Serlieu { get; set; } public string? Seremail { get; set; } }
     public sealed class FonctionRow { public string? Fonlib { get; set; } public string? Fontype { get; set; } }
     public sealed class DirectionRow
     {
@@ -85,7 +93,7 @@ public class BulkImportController : ControllerBase
         public string? Seclib { get; set; }
         public string? Sectype { get; set; }
         public string? Secemail { get; set; }
-        public string? Effectif { get; set; }
+        public string? Seclieu { get; set; }
     }
     public sealed class VilleRow { public string? Vilcod { get; set; } public string? Villib { get; set; } }
     public sealed class PaysRow { public string? Natcod { get; set; } public string? Natlib { get; set; } }
@@ -158,18 +166,17 @@ public class BulkImportController : ControllerBase
                     Serloc = NormalizeFlag(row.Serloc),
                     Serlieu = string.IsNullOrWhiteSpace(row.Serlieu) ? null : row.Serlieu.Trim(),
                     Seremail = string.IsNullOrWhiteSpace(row.Seremail) ? null : row.Seremail.Trim(),
-                    Effectif = ParseEffectif(row.Effectif),
                     CreatedAt = DateTime.UtcNow,
                 });
                 existing.Add(lib.ToLowerInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
+            catch (Exception ex) { errors.Add($"« {lib} » : {FriendlyDbError(ex)}"); }
         }
         if (inserted > 0)
         {
             try { await _db.SaveChangesAsync(); }
-            catch (Exception ex) { errors.Add($"SaveChanges global: erreur interne"); inserted = 0; }
+            catch (Exception ex) { errors.Add($"Enregistrement interrompu : {FriendlyDbError(ex)}"); inserted = 0; }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
@@ -205,12 +212,12 @@ public class BulkImportController : ControllerBase
                 existing.Add(lib.ToLowerInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
+            catch (Exception ex) { errors.Add($"« {lib} » : {FriendlyDbError(ex)}"); }
         }
         if (inserted > 0)
         {
             try { await _db.SaveChangesAsync(); }
-            catch (Exception ex) { errors.Add($"SaveChanges global: erreur interne"); inserted = 0; }
+            catch (Exception ex) { errors.Add($"Enregistrement interrompu : {FriendlyDbError(ex)}"); inserted = 0; }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
@@ -352,7 +359,7 @@ public class BulkImportController : ControllerBase
             catch (Exception ex)
             {
                 _log.LogWarning(ex, "Import employé échoué pour {Name}", name);
-                errors.Add($"{name}: erreur interne");
+                errors.Add($"« {name} » : {FriendlyDbError(ex)}");
             }
         }
         return Ok(new ImportReport(inserted, skipped, created, errors));
@@ -397,12 +404,12 @@ public class BulkImportController : ControllerBase
                 existingLibs.Add(lib.ToLowerInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
+            catch (Exception ex) { errors.Add($"« {lib} » : {FriendlyDbError(ex)}"); }
         }
         if (inserted > 0)
         {
             try { await _db.SaveChangesAsync(); }
-            catch (Exception ex) { errors.Add($"SaveChanges global: erreur interne"); inserted = 0; }
+            catch (Exception ex) { errors.Add($"Enregistrement interrompu : {FriendlyDbError(ex)}"); inserted = 0; }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
@@ -432,13 +439,13 @@ public class BulkImportController : ControllerBase
                     : row.Seccod!.Trim();
                 if (existingCodes.Contains(code.ToUpperInvariant()) || existingLibs.Contains(lib.ToLowerInvariant())) { skipped++; continue; }
 
-                _db.Sections.Add(new Section { Seccod = code, Soccod = soccod, Seclib = lib, Sectype = row.Sectype?.Trim(), Secemail = string.IsNullOrWhiteSpace(row.Secemail) ? null : row.Secemail.Trim(), Effectif = ParseEffectif(row.Effectif), CreatedAt = DateTime.UtcNow });
+                _db.Sections.Add(new Section { Seccod = code, Soccod = soccod, Seclib = lib, Sectype = row.Sectype?.Trim(), Secemail = string.IsNullOrWhiteSpace(row.Secemail) ? null : row.Secemail.Trim(), Seclieu = string.IsNullOrWhiteSpace(row.Seclieu) ? null : row.Seclieu.Trim(), CreatedAt = DateTime.UtcNow });
                 await _db.SaveChangesAsync();
                 existingCodes.Add(code.ToUpperInvariant());
                 existingLibs.Add(lib.ToLowerInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
+            catch (Exception ex) { errors.Add($"« {lib} » : {FriendlyDbError(ex)}"); }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
@@ -467,7 +474,7 @@ public class BulkImportController : ControllerBase
                 existingCodes.Add(code.ToUpperInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
+            catch (Exception ex) { errors.Add($"« {lib} » : {FriendlyDbError(ex)}"); }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
@@ -496,7 +503,7 @@ public class BulkImportController : ControllerBase
                 existingCodes.Add(code.ToUpperInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
+            catch (Exception ex) { errors.Add($"« {lib} » : {FriendlyDbError(ex)}"); }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
@@ -554,7 +561,7 @@ public class BulkImportController : ControllerBase
                 existingLibs.Add(lib.ToLowerInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
+            catch (Exception ex) { errors.Add($"« {lib} » : {FriendlyDbError(ex)}"); }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }
@@ -586,7 +593,7 @@ public class BulkImportController : ControllerBase
                 existingLibs.Add(lib.ToLowerInvariant());
                 inserted++;
             }
-            catch (Exception ex) { errors.Add($"{lib}: erreur interne"); }
+            catch (Exception ex) { errors.Add($"« {lib} » : {FriendlyDbError(ex)}"); }
         }
         return Ok(new ImportReport(inserted, skipped, 0, errors));
     }

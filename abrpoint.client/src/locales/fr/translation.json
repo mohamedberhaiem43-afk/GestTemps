@@ -2512,7 +2512,9 @@
         "services": "Services",
         "sections": "Sections",
         "advanced": "Filtres Avancés",
-        "exportLedger": "Exporter le Ledger"
+        "exportLedger": "Exporter le Ledger",
+        "searchPlaceholder": "Rechercher par code, libellé, localisation, email…",
+        "clear": "Effacer"
       },
       "headers": {
         "code": "Code",
@@ -2539,7 +2541,7 @@
         "serviceUnit": "un Service",
         "sectionUnit": "une Section",
         "code": "Code",
-        "autoGen": "(laisser vide pour auto-générer)",
+        "autoGen": "(auto-généré)",
         "autoPlaceholder": "Auto",
         "label": "Libellé",
         "location": "Localisation",

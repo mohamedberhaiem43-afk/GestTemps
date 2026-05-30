@@ -192,6 +192,14 @@ function PointageDuMoisContent() {
   const [filiale, setFiliale] = useState<Record<string, string>>({});
   const [services, setServices] = useState<Record<string, string>>({});
   const [majorerHeures, setMajorerHeures] = useState(false);
+  // « Majorer heures fériées et congés » : les heures fériées (hreFerier) et de congés
+  // (nbHeureConge) sont déjà comprises dans `tothre` côté backend. Quand la case est
+  // cochée, on les CONSERVE dans le total payable ; sinon on les RETIRE. N'affecte que
+  // les cumuls/totaux et l'export — le détail brut par semaine reste inchangé.
+  const payableHours = (r: any): number => {
+    const base = Number(r?.tothre ?? 0);
+    return majorerHeures ? base : base - (Number(r?.hreFerier ?? 0) + Number(r?.nbHeureConge ?? 0));
+  };
   const [selectedEmp, setSelectedEmp] = useState<PointageMois | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [numSem, setNumSem] = useState(1);
@@ -390,8 +398,9 @@ function PointageDuMoisContent() {
   // Global stats
   const totalHours = useMemo(() =>
     pointageMois.reduce((sum, emp) =>
-      sum + (emp.heuresSupplementairesResultats?.reduce((s, r) => s + (r.tothre ?? 0), 0) ?? 0), 0),
-    [pointageMois]);
+      sum + (emp.heuresSupplementairesResultats?.reduce((s, r) => s + payableHours(r), 0) ?? 0), 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pointageMois, majorerHeures]);
 
   const totalHS = useMemo(() =>
     pointageMois.reduce((sum, emp) =>
@@ -419,11 +428,12 @@ function PointageDuMoisContent() {
     const map: Record<string, number> = {};
     pointageMois.forEach(emp => {
       const svc = services[emp.empSite] || emp.empSite || otherLabel;
-      const hrs = emp.heuresSupplementairesResultats?.reduce((s, r) => s + (r.tothre ?? 0), 0) ?? 0;
+      const hrs = emp.heuresSupplementairesResultats?.reduce((s, r) => s + payableHours(r), 0) ?? 0;
       map[svc] = (map[svc] ?? 0) + hrs;
     });
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 4);
-  }, [pointageMois, services, otherLabel]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pointageMois, services, otherLabel, majorerHeures]);
 
   // Alert counts
   const retardsCount = useMemo(() =>
@@ -450,7 +460,8 @@ function PointageDuMoisContent() {
         datefin: formatDate(new Date(year, month, 0).toISOString()),
         data: [{
           empmat: resolveMatricule(selectedEmp), emplib: selectedEmp.empLib, empreg: selectedEmp.empReg,
-          jourtrv: totals.nbJours ?? 0, tothre: fmtHours(totals.tothre),
+          jourtrv: totals.nbJours ?? 0,
+          tothre: fmtHours((selectedEmp.heuresSupplementairesResultats ?? []).reduce((s, r) => s + payableHours(r), 0)),
           jferier: totals.jourFerier ?? 0, jftrv: totals.nbJourFerier ?? 0,
           hftrv: fmtHours(totals.nbhFerierTrv), hnuit: fmtHours(totals.hreNuits),
           jconge: totals.nbJourCngPaye ?? 0, hs50: fmtHours(totals.heuresSupTranche2),
@@ -467,7 +478,7 @@ function PointageDuMoisContent() {
       const year = parseInt(ctxAnnee), month = parseInt(ctxMois);
       const data: EtatGlobalData[] = pointageMois.map(emp => {
         const t2 = emp.heuresSupplementairesResultats?.reduce((a, r) => ({
-          nbJours: a.nbJours + (r.nbJours ?? 0), tothre: a.tothre + (r.tothre ?? 0),
+          nbJours: a.nbJours + (r.nbJours ?? 0), tothre: a.tothre + payableHours(r),
           jourFerier: a.jourFerier + (r.jourFerier ?? 0), nbJourFerier: a.nbJourFerier + (r.nbJourFerier ?? 0),
           nbhFerierTrv: a.nbhFerierTrv + (r.nbhFerierTrv ?? 0), hreNuits: a.hreNuits + (r.hreNuits ?? 0),
           nbJourCngPaye: a.nbJourCngPaye + (r.nbJourCngPaye ?? 0),
@@ -900,7 +911,7 @@ function PointageDuMoisContent() {
               ) : (
                 displayedPointageMois.map((emp) => {
                   const weeks = emp.heuresSupplementairesResultats ?? [];
-                  const cumul = weeks.reduce((s, r) => s + (r.tothre ?? 0), 0);
+                  const cumul = weeks.reduce((s, r) => s + payableHours(r), 0);
                   const isSelected = selectedEmp?.empCode === emp.empCode;
                   return (
                     <Box key={emp.empCode}
@@ -965,7 +976,7 @@ function PointageDuMoisContent() {
                   ) : (
                     displayedPointageMois.map((emp) => {
                       const weeks = emp.heuresSupplementairesResultats ?? [];
-                      const cumul = weeks.reduce((s, r) => s + (r.tothre ?? 0), 0);
+                      const cumul = weeks.reduce((s, r) => s + payableHours(r), 0);
                       const isSelected = selectedEmp?.empCode === emp.empCode;
                       return (
                         <tr key={emp.empCode} className={isSelected ? 'pdm-row--selected' : ''}

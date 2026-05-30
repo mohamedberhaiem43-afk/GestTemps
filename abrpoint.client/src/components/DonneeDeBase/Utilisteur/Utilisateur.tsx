@@ -6,6 +6,8 @@ import SaisieUtilisateur, { SaisieUtilisateurHandle } from "./SaisieUtilisateur"
 import { useQuery } from '@tanstack/react-query';
 import UserProvider, { useUserContext } from "../../helper/UserProvider";
 import UtilisateurService from "../../../services/UtilisateurService/UtilisateurService";
+import RolesService from "../../../services/RolesService/RolesService";
+import { Role } from "../../../models/Role";
 import { ROLE_LABELS } from "../../../models/Utilisateur";
 import {
   Shield,
@@ -15,7 +17,7 @@ import {
   Security,
   Search,
   ExpandMore,
-  FileDownload,
+  FileUpload,
   Edit,
   LockReset,
   Delete,
@@ -55,6 +57,13 @@ function UtilisateurContent() {
   const { data: users = [], isLoading, refetch } = useQuery({
     queryKey: ['utilisateurs'],
     queryFn: () => UtilisateurService.getAllWithoutParams(),
+  });
+
+  // Rôles créés (page « Droit d'accès ») — alimentent la liste roulante de filtre,
+  // au lieu d'une liste figée qui ne correspondait pas aux rôles réels (utirole).
+  const { data: roles = [] } = useQuery<Role[]>({
+    queryKey: ['roles'],
+    queryFn: RolesService.getAll,
   });
 
   // Computed stats
@@ -244,11 +253,11 @@ function UtilisateurContent() {
             <div className="um-filter-select-wrap">
               <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
                 <option value="all">{t('utilisateur.filters.allRoles')}</option>
-                <option value="admin">{t('utilisateur.filters.administrator')}</option>
-                <option value="rh">{t('utilisateur.filters.rh')}</option>
-                <option value="superviseur">{t('utilisateur.filters.supervisor')}</option>
-                <option value="manager">{t('utilisateur.filters.manager')}</option>
-                <option value="standard">{t('utilisateur.filters.standard')}</option>
+                {roles.map((r) => (
+                  <option key={r.roleId ?? r.roleName} value={r.roleName}>
+                    {ROLE_LABELS[r.roleName] ?? r.roleName}
+                  </option>
+                ))}
               </select>
               <ExpandMore sx={{ fontSize: 18 }} />
             </div>
@@ -262,7 +271,7 @@ function UtilisateurContent() {
             </div>
           </div>
           <button className="um-btn-export">
-            <FileDownload sx={{ fontSize: 18 }} />
+            <FileUpload sx={{ fontSize: 18 }} />
             {t('utilisateur.page.exportCsv')}
           </button>
         </div>

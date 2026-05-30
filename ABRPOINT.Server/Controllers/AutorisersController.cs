@@ -128,6 +128,26 @@ namespace ABRPOINT.Server.Controllers
             
         }
 
+        // GET: api/Autorisers/all/{soccod} — liste de TOUTES les autorisations de la
+        // société (écran de gestion). Le segment littéral « all » prime sur la route
+        // {soccod}/{uticod} dans le routage attribut, donc pas de collision.
+        [HttpGet("all/{soccod}")]
+        [CanGetAutSortie]
+        public async Task<IActionResult> GetAll(string soccod)
+        {
+            if (string.IsNullOrWhiteSpace(soccod))
+                return BadRequest("Veuillez remplir les champs obligatoires");
+            try
+            {
+                List<AutoriserEmployeDto> result = await _autoriserRepository.GetAllAutoriserWithAbsenceAsync(soccod);
+                return Ok(result ?? new List<AutoriserEmployeDto>());
+            }
+            catch (Exception)
+            {
+                return StatusCode(500);
+            }
+        }
+
         [HttpGet("get-autorisation/{soccod}/{concod}")]
         [CanGetAutSortie]
         public async Task<IActionResult> GetAutoriser(string soccod,string concod)

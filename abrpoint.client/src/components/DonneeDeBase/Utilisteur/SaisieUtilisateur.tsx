@@ -5,10 +5,12 @@ import useGetSocLibs from "../../../hooks/societeHooks/useGetSocLibs";
 import useGetSiteLibs from "../../../hooks/siteHooks/useGetSiteLibs";
 import useAddUser from "../../../hooks/userHooks/useAddUser";
 import Utilisateur from "../../../models/Utilisateur";
-import { ROLE_OPTIONS } from "../../../models/Utilisateur";
+import { ROLE_OPTIONS, ROLE_LABELS } from "../../../models/Utilisateur";
 import { useQuery } from "@tanstack/react-query";
 import { useUserContext } from "../../helper/UserProvider";
 import UtilisateurService from "../../../services/UtilisateurService/UtilisateurService";
+import RolesService from "../../../services/RolesService/RolesService";
+import { Role } from "../../../models/Role";
 import "./Utilisateur.css";
 import useUpdateUser from "../../../hooks/userHooks/useUpdateUser";
 
@@ -39,6 +41,16 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
         const { data: socLibs = [] } = useGetSocLibs();
         const { data: sitLibs = [] } = useGetSiteLibs();
         const { selectedUser } = useUserContext();
+
+        // Rôles créés (page « Droit d'accès ») pour la liste roulante du rôle. Fallback
+        // sur les rôles système (ROLE_OPTIONS) tant que la requête n'a pas répondu.
+        const { data: rolesData = [] } = useQuery<Role[]>({
+            queryKey: ['roles'],
+            queryFn: RolesService.getAll,
+        });
+        const roleChoices = rolesData.length > 0
+            ? rolesData.map((r) => ({ value: r.roleName, label: ROLE_LABELS[r.roleName] ?? r.roleName }))
+            : ROLE_OPTIONS;
 
         const { mutateAsync: addUser, error: addError } = useAddUser();
         const { mutateAsync: updateUser, error: updateError } = useUpdateUser();
@@ -231,7 +243,7 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                             <div className="aut-form-field">
                                 <label>{t('utilisateur.form.role')}</label>
                                 <select value={utirole} onChange={(e) => handleRoleChange(e.target.value)}>
-                                    {ROLE_OPTIONS.map((opt) => (
+                                    {roleChoices.map((opt) => (
                                         <option key={opt.value} value={opt.value}>
                                             {opt.label}
                                         </option>

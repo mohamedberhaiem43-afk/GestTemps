@@ -58,6 +58,7 @@ export const PERMISSION_MODULES = [
   { key: 'Gestion Employés', icon: '👥', label: 'Gestion Employés' },
   { key: 'Contrats et Avenants', icon: '📄', label: 'Contrats et Avenants' },
   { key: 'Paie et Rémunération', icon: '💰', label: 'Paie et Rémunération' },
+  { key: 'Note de Frais', icon: '🧾', label: 'Note de Frais' },
   { key: 'Demande de Congé', icon: '📝', label: 'Demande de Congé' },
   { key: 'Gestion des Congés', icon: '🏖️', label: 'Gestion des Congés' },
   { key: 'Données de Base', icon: '🗄️', label: 'Données de Base' },

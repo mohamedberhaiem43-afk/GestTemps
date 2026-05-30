@@ -189,6 +189,44 @@ namespace ABRPOINT.Server.Repository
                 throw;
             }
         }
+        /// <summary>
+        /// Liste TOUTES les autorisations de sortie de la société (écran de gestion admin),
+        /// indépendamment du site de l'utilisateur connecté. Distinct de
+        /// <see cref="GetAutoriserWithAbsenceAsync"/> qui scope par Socusers (self-service /
+        /// visibilité par site) — d'où la liste vide à l'ouverture tant qu'aucun
+        /// enregistrement n'était rattaché au site du compte courant.
+        /// </summary>
+        public async Task<List<AutoriserEmployeDto>> GetAllAutoriserWithAbsenceAsync(string soccod)
+        {
+            var rawResult = await (
+                from c in _dbContext.Autorisers
+                join e in _dbContext.Employes
+                    on new { Soccod = c.Soccod, Empcod = c.Empcod } equals new { Soccod = (string?)e.Soccod, Empcod = (string?)e.Empcod }
+                join a in _dbContext.Absences
+                    on new { Soccod = c.Soccod, Abscod = c.Abscod } equals new { Soccod = (string?)a.Soccod, Abscod = (string?)a.Abscod }
+                    into absJoin
+                from a in absJoin.DefaultIfEmpty()
+                where e.Soccod == soccod
+                select new AutoriserEmployeDto
+                {
+                    Concod = c.Concod,
+                    Soccod = e.Soccod,
+                    Empcod = c.Empcod,
+                    Emplib = e.Emplib,
+                    Condat = c.Condat,
+                    Condep = c.Condep,
+                    Conret = c.Conret,
+                    Connbjour = c.Connbjour,
+                    Abscod = c.Abscod,
+                    Abslib = a != null ? a.Abslib : null,
+                }).ToListAsync();
+
+            return rawResult
+                .OrderByDescending(a => a.Condat)
+                .DistinctBy(s => s.Concod)
+                .ToList();
+        }
+
         public async Task<IEnumerable<Autoriser>> GetAllAsync(string soccod,string uticod)
         {
             try
