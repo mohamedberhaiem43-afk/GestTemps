@@ -86,23 +86,34 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
             }
         }, [socLibs, sitLibs, selectedUser]);
 
-        useQuery<Utilisateur[]>({
+        // Chargement de l'utilisateur à éditer. On NE peuple PAS le formulaire depuis
+        // le queryFn (anti-pattern : les setState ne se rejouent pas quand React Query
+        // sert la donnée depuis le cache → champs vides ou rôle/statut périmés, d'où
+        // l'obligation de rafraîchir la page). On retourne la donnée et on peuple via
+        // un useEffect. staleTime/gcTime=0 garantit une lecture fraîche à chaque
+        // ouverture (sinon la modale rouvrait avec l'ancien rôle après changement).
+        const { data: loadedUser } = useQuery({
             queryKey: ['utilisateur', selectedUser],
-            queryFn: async () => {
-                if (!selectedUser) return [];
-                const result = await UtilisateurService.getWithParams(`get-user/${selectedUser}`);
-                setUtimail(result.utimail || "");
-                setCode(result.uticod || "");
-                setNom(result.utinom || "");
-                setPrenom(result.utiprn || "");
-                setIsAdmin(result.utiadm === "1");
-                setRole(result.utirole || (result.utiadm === "1" ? "Administrator" : "Employee"));
-                setSociete(result.soccod || "");
-                setSite(result.sitcod || "");
-                return Array.isArray(result) ? result : [result];
-            },
+            queryFn: () => UtilisateurService.getWithParams(`get-user/${selectedUser}`),
             enabled: !!selectedUser,
+            staleTime: 0,
+            gcTime: 0,
         });
+
+        useEffect(() => {
+            if (!selectedUser || !loadedUser) return;
+            setUtimail(loadedUser.utimail || "");
+            setCode(loadedUser.uticod || "");
+            setNom(loadedUser.utinom || "");
+            setPrenom(loadedUser.utiprn || "");
+            setIsAdmin(loadedUser.utiadm === "1");
+            setRole(loadedUser.utirole || (loadedUser.utiadm === "1" ? "Administrator" : "Employee"));
+            setSociete(loadedUser.soccod || "");
+            setSite(loadedUser.sitcod || "");
+            // Jamais de pré-remplissage du mot de passe (le DTO renvoie le hash) : on
+            // le laisse vide pour que la sauvegarde ne ré-encode pas un hash existant.
+            setMotPasse("");
+        }, [loadedUser, selectedUser]);
 
         const feedback = useFeedbackSnackbar();
 
@@ -215,6 +226,8 @@ const SaisieUtilisateur = forwardRef<SaisieUtilisateurHandle, SaisieUtilisateurP
                                 placeholder={t('utilisateur.form.passwordPlaceholder')}
                                 value={utimps}
                                 onChange={(e) => setMotPasse(e.target.value)}
+                                autoComplete="new-password"
+                                name="new-user-password"
                             />
                         </div>
                         <div className="aut-form-field">

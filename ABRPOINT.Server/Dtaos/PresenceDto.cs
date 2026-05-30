@@ -54,6 +54,9 @@
         public bool HasAutorisation { get; set; }
         public bool HasConge { get; set; }
         public bool HasFerie { get; set; }
+        // Jour couvert par une demande de télétravail APPROUVÉE — affiché comme statut
+        // distinct dans l'état périodique (au même titre que congé / férié).
+        public bool HasTeletravail { get; set; }
         // Autorisation time range for display
         public string? AutDebut { get; set; }
         public string? AutFin { get; set; }

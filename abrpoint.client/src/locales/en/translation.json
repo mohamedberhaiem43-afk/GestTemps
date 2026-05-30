@@ -2877,6 +2877,7 @@
         "autorisation": "Authorization",
         "ferie": "Holiday",
         "repos": "Rest",
+        "teletravail": "Remote",
         "unknown": "—"
       },
       "summary": {
@@ -2894,6 +2895,8 @@
         "ferie_other": "{{count}} Holidays",
         "repos_one": "{{count}} Rest",
         "repos_other": "{{count}} Rests",
+        "teletravail_one": "{{count}} Remote",
+        "teletravail_other": "{{count}} Remote",
         "daysWorked": "📅 {{value}} days worked"
       },
       "sidebar": {

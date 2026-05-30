@@ -198,21 +198,28 @@ namespace ABRPOINT.Server.Repository
         /// </summary>
         public async Task<List<AutoriserEmployeDto>> GetAllAutoriserWithAbsenceAsync(string soccod)
         {
+            // On filtre par le Soccod de l'AUTORISATION (et non de l'employé) et on passe
+            // les jointures Employes + Absences en LEFT JOIN : ainsi une autorisation reste
+            // visible même si l'employé a été supprimé/soft-deleted ou si le code d'absence
+            // n'existe plus (sinon un INNER JOIN faisait disparaître toute la liste → écran vide
+            // alors que des enregistrements existaient bien en base).
             var rawResult = await (
                 from c in _dbContext.Autorisers
+                where c.Soccod == soccod
                 join e in _dbContext.Employes
                     on new { Soccod = c.Soccod, Empcod = c.Empcod } equals new { Soccod = (string?)e.Soccod, Empcod = (string?)e.Empcod }
+                    into empJoin
+                from e in empJoin.DefaultIfEmpty()
                 join a in _dbContext.Absences
                     on new { Soccod = c.Soccod, Abscod = c.Abscod } equals new { Soccod = (string?)a.Soccod, Abscod = (string?)a.Abscod }
                     into absJoin
                 from a in absJoin.DefaultIfEmpty()
-                where e.Soccod == soccod
                 select new AutoriserEmployeDto
                 {
                     Concod = c.Concod,
-                    Soccod = e.Soccod,
+                    Soccod = c.Soccod,
                     Empcod = c.Empcod,
-                    Emplib = e.Emplib,
+                    Emplib = e != null ? e.Emplib : null,
                     Condat = c.Condat,
                     Condep = c.Condep,
                     Conret = c.Conret,

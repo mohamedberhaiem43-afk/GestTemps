@@ -22,6 +22,10 @@ const { width } = Dimensions.get('window');
 interface TodayStatus {
   hasEntry: boolean;
   hasExit: boolean;
+  // Entrée RÉELLE (pointée), distincte de `hasEntry` qui est forcé à true les jours
+  // de repos pour l'affichage. Sert à savoir si le salarié est réellement pointé —
+  // y compris un jour de repos travaillé — pour le suivi de position en temps réel.
+  hasRealEntry?: boolean;
   entryTime?: string;
   exitTime?: string;
   isRepos?: boolean;
@@ -100,7 +104,11 @@ export default function HomeScreen({ navigation }: any) {
       stopLiveLocationHeartbeat();
       return;
     }
-    const isClockedIn = todayStatus.hasEntry && !todayStatus.hasExit && !todayStatus.isRepos;
+    // Suivi de position : on se base sur l'entrée RÉELLE (pointée) et non sur `hasEntry`
+    // (forcé les jours de repos). Ainsi un salarié qui pointe un JOUR DE REPOS est bien
+    // suivi — pas de contrainte « pas de tracking le jour de repos » : dès qu'il a pointé
+    // et marqué sa position, le suivi temps réel s'active comme un jour normal.
+    const isClockedIn = !!todayStatus.hasRealEntry && !todayStatus.hasExit;
     if (isClockedIn) {
       startLiveLocationHeartbeat({ soccod: user.soccod, empcod: user.uticod });
     } else {
@@ -109,7 +117,7 @@ export default function HomeScreen({ navigation }: any) {
     // Cleanup au démontage du composant (logout, navigation profonde) : on stoppe
     // le service pour éviter qu'un timer continue à tourner en arrière-plan.
     return () => { stopLiveLocationHeartbeat(); };
-  }, [user?.soccod, user?.uticod, todayStatus.hasEntry, todayStatus.hasExit, todayStatus.isRepos]);
+  }, [user?.soccod, user?.uticod, todayStatus.hasRealEntry, todayStatus.hasExit]);
 
   const loadUnreadCount = async () => {
     try {
@@ -137,6 +145,7 @@ export default function HomeScreen({ navigation }: any) {
         const isRepos = p.prerepos === true || p.prerepos === 'True' || p.prerepos === 'true' || p.prerepos === '1';
         setTodayStatus({
           hasEntry: isRepos || !!(p.preentmatup || p.preentamidiup),
+          hasRealEntry: !!(p.preentmatup || p.preentamidiup),
           hasExit: !!(p.presortmatup || p.presortamidiup),
           entryTime: p.preentmatup || p.preentamidiup || undefined,
           exitTime: p.presortmatup || p.presortamidiup || undefined,

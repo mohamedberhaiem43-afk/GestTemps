@@ -42,7 +42,7 @@ type EmpRow = { empcod: string; emplib: string; nbJours: number; totalMinutes: n
 
 // ── Day Status classification ─────────────────────────────────────────────────
 // Mirrors exactly the backend logic from GetEmpEtatPeriodiqueAsync
-export type DayStatus = 'present' | 'absent' | 'retard' | 'conge' | 'autorisation' | 'ferie' | 'repos' | 'unknown';
+export type DayStatus = 'present' | 'absent' | 'retard' | 'conge' | 'autorisation' | 'ferie' | 'repos' | 'teletravail' | 'unknown';
 
 export function classifyDayStatus(etat: EmpEtat | undefined): DayStatus {
   if (!etat) return 'unknown';
@@ -67,6 +67,11 @@ export function classifyDayStatus(etat: EmpEtat | undefined): DayStatus {
     etatStr.startsWith('ca ') || etatStr === 'ca' ||
     etatStr.startsWith('cp ') || etatStr === 'cp'
   ) return 'conge';
+
+  // Télétravail — flag posé par le backend (demande de télétravail Approved couvrant
+  // ce jour). Affiché comme statut distinct, qu'il y ait pointage ou non (auto-présence).
+  if (etat.hasTeletravail) return 'teletravail';
+  if (etatStr.includes('télétravail') || etatStr.includes('teletravail')) return 'teletravail';
 
   // Autorisation — flag set by backend when an autorisation record exists for this date
   if (etat.hasAutorisation) return 'autorisation';
@@ -158,6 +163,12 @@ const STATUS_CFG: Record<DayStatus, {
     badgeBg: '#f1f5f9', badgeText: '#475569',
     icon: '💤', label: 'Repos',
   },
+  teletravail: {
+    calBg: '#fdf2f8', calBorder: '#f9a8d4', calText: '#9d174d',
+    rowBg: '#fdf2f8', rowBorder: '#fbcfe8',
+    badgeBg: '#fce7f3', badgeText: '#9d174d',
+    icon: '🏠', label: 'Télétravail',
+  },
   unknown: {
     calBg: '#ffffff', calBorder: '#e5e7eb', calText: '#6b7280',
     rowBg: '#ffffff', rowBorder: '#f3f4f6',
@@ -190,7 +201,7 @@ function EmpDayTable({ etatByDate, dateDebut, dateFin }: {
     <Box sx={{ overflowX: 'auto', borderRadius: '10px', border: '1px solid #e5e7eb', mt: 1 }}>
       {/* Legend */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, p: '10px 14px', borderBottom: '1px solid #f3f4f6', background: '#fafafa' }}>
-        {(['present', 'retard', 'absent', 'conge', 'autorisation', 'ferie', 'repos'] as DayStatus[]).map(s => {
+        {(['present', 'retard', 'absent', 'conge', 'autorisation', 'ferie', 'teletravail', 'repos'] as DayStatus[]).map(s => {
           const c = STATUS_CFG[s];
           return (
             <span key={s} style={{
@@ -240,8 +251,8 @@ function EmpDayTable({ etatByDate, dateDebut, dateFin }: {
               : t(`pointeuse.etatPeriodique.status.${status}`);
 
             // Entry/exit highlighting
-            const missingEntry = e && !e.preentmatup && status !== 'repos' && status !== 'ferie' && status !== 'conge' && status !== 'autorisation';
-            const missingExit = e && !e.presortmatup && status !== 'repos' && status !== 'ferie' && status !== 'conge' && status !== 'autorisation';
+            const missingEntry = e && !e.preentmatup && status !== 'repos' && status !== 'ferie' && status !== 'conge' && status !== 'autorisation' && status !== 'teletravail';
+            const missingExit = e && !e.presortmatup && status !== 'repos' && status !== 'ferie' && status !== 'conge' && status !== 'autorisation' && status !== 'teletravail';
 
             // Retard highlighting
             const [rh, rm] = (e?.totret ?? '00:00').split(':').map(Number);
@@ -322,13 +333,13 @@ function EmpDayTable({ etatByDate, dateDebut, dateFin }: {
 function SummaryBar({ etatByDate }: { etatByDate: Record<string, EmpEtat> }) {
   const { t } = useTranslation();
   const counts = useMemo(() => {
-    const c: Record<DayStatus, number> = { present: 0, absent: 0, retard: 0, conge: 0, autorisation: 0, ferie: 0, repos: 0, unknown: 0 };
+    const c: Record<DayStatus, number> = { present: 0, absent: 0, retard: 0, conge: 0, autorisation: 0, ferie: 0, repos: 0, teletravail: 0, unknown: 0 };
     Object.values(etatByDate).forEach(e => { c[classifyDayStatus(e)]++; });
     return c;
   }, [etatByDate]);
 
   const totalJours = useMemo(() => {
-    const workedStatuses: DayStatus[] = ['present', 'retard', 'conge', 'autorisation', 'ferie'];
+    const workedStatuses: DayStatus[] = ['present', 'retard', 'conge', 'autorisation', 'ferie', 'teletravail'];
     return Object.values(etatByDate).reduce((s, e) => {
       const status = classifyDayStatus(e);
       if (!workedStatuses.includes(status)) return s;
@@ -338,7 +349,7 @@ function SummaryBar({ etatByDate }: { etatByDate: Record<string, EmpEtat> }) {
     }, 0);
   }, [etatByDate]);
 
-  const shown: DayStatus[] = ['present', 'retard', 'absent', 'conge', 'autorisation', 'ferie', 'repos'];
+  const shown: DayStatus[] = ['present', 'retard', 'absent', 'conge', 'autorisation', 'ferie', 'teletravail', 'repos'];
 
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2, p: '10px 14px', background: 'white', borderRadius: '10px', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>

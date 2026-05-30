@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import UserProvider, { useUserContext } from "../../helper/UserProvider";
 import UtilisateurService from "../../../services/UtilisateurService/UtilisateurService";
 import RolesService from "../../../services/RolesService/RolesService";
+import { resolveAssetUrl } from "../../../helpers/assetUrl";
 import { Role } from "../../../models/Role";
 import { ROLE_LABELS } from "../../../models/Utilisateur";
 import {
@@ -314,13 +315,23 @@ function UtilisateurContent() {
                   const initials = getInitials(user);
                   const fullName = `${user.utiprn || ''} ${user.utinom || ''}`.trim() || user.uticod;
                   const isActive = user.utiactif === 'Oui' || user.utiactif === '1';
+                  const avatarUrl = user.utiimg ? resolveAssetUrl(user.utiimg) : '';
 
                   return (
                     <tr key={user.uticod} className="um-row" onClick={() => setSelectedUser(user.uticod)}>
                       <td>
                         <div className="um-user-cell">
                           <div className={`um-avatar ${isActive ? 'um-avatar-active' : 'um-avatar-inactive'}`}>
-                            {initials}
+                            {avatarUrl ? (
+                              <img
+                                src={avatarUrl}
+                                alt={fullName}
+                                className="um-avatar-img"
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                              />
+                            ) : (
+                              initials
+                            )}
                           </div>
                           <div>
                             <p className="um-user-name">{fullName}</p>

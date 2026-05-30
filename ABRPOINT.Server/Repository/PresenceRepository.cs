@@ -778,6 +778,14 @@ namespace ABRPOINT.Server.Repository
                 var feriers = await _jourFerierRepository.GetByFerdateBatch(soccod, dateDeb, dateFin);
                 var poicods = await _dmpointRepository.GetPoicodBatchAsync(soccod, empcod, dateDeb, dateFin);
 
+                // Télétravail approuvé chevauchant la période — sert à marquer les jours
+                // de télétravail dans l'état périodique (comme congé/férié).
+                var teletravails = await _dbContext.Teletravails.AsNoTracking()
+                    .Where(t => t.Soccod == soccod && t.Empcod == empcod && t.Status == "Approved"
+                                && t.StartDate.Date <= dateFin.Date && t.EndDate.Date >= dateDeb.Date)
+                    .Select(t => new { t.StartDate, t.EndDate })
+                    .ToListAsync();
+
                 // 4️⃣ Construire un dictionnaire pour lookup rapide
                 var presenceDict = presenceList.ToDictionary(p => p.Predat.Value.Date);
 
@@ -916,6 +924,8 @@ namespace ABRPOINT.Server.Repository
                     // férié hors du planning de l'employé (Codposte vide), Etat valait juste le
                     // motif (ex. "8 mai") → l'UI le classait en Absence. Le flag corrige ça.
                     presence.HasFerie = ferier != null;
+                    presence.HasTeletravail = IsWithinEmploymentPeriod(date)
+                        && teletravails.Any(t => t.StartDate.Date <= date.Date && t.EndDate.Date >= date.Date);
                     if (autorisation != null)
                     {
                         presence.AutDebut = autorisation.Condep?.ToString("HH:mm");

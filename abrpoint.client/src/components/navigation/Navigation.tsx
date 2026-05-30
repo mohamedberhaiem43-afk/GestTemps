@@ -182,7 +182,7 @@ interface OpenedTab {
 /* ══════════════════════════════════════════════════════ */
 const useNavigationItems = (): NavGroup[] => {
   const { t } = useTranslation();
-  const { authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, isTrialing, countryCode } = useAuth();
+  const { authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, roleName, isTrialing, countryCode } = useAuth();
 
   // PERF — Toute la construction d'allGroups (~250 lignes de spreads conditionnels et
   // de filtres) est mémoïsée. Avant, chaque render du layout reconstruisait l'array
@@ -261,8 +261,15 @@ const useNavigationItems = (): NavGroup[] => {
       return hasPermission(mod, 'consult');
     };
 
-    /* ── Employee (minimal) navigation ── */
-    if (isEmp && !isManager && !isAdminEffective) {
+    /* ── Employee (minimal) navigation ──
+       Réservé au VRAI employé de base (rôle "Employee" ou rôle non renseigné).
+       Un rôle élevé non-admin (ResponsableRH, ou rôle custom créé via Droit d'accès)
+       n'est ni manager ni admin → sans ce garde il tombait sur le menu minimal et
+       n'accédait pas à ses modules RH. On lui sert le menu complet, filtré ensuite
+       par hasPermission (canSee). */
+    const isPlainEmployee = !roleName
+      || roleName === 'Employee' || roleName === 'standard' || roleName === 'Utilisateur Standard';
+    if (isEmp && !isManager && !isAdminEffective && isPlainEmployee) {
       return [
         {
           label: t('navigation.dashboard'),
@@ -544,7 +551,7 @@ const useNavigationItems = (): NavGroup[] => {
     return allGroups.filter(
       (g) => g.items === undefined || g.items.length > 0 || g.href === '/dashboard'
     );
-  }, [authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, isTrialing, countryCode, t]);
+  }, [authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, roleName, isTrialing, countryCode, t]);
 };
 
 /* ══════════════════════════════════════════════════════ */

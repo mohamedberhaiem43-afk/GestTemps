@@ -29,6 +29,7 @@ export default interface EmpEtat {
   hasAutorisation: boolean;
   hasConge: boolean;
   hasFerie: boolean;
+  hasTeletravail: boolean;
   autDebut: string;
   autFin: string;
   // État de la demande d'heures supplémentaires pour ce jour (table autoriser /

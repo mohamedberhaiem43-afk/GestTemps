@@ -56,13 +56,22 @@ interface AutoRow {
   conret?: string;
   etat?: string;
 }
+interface TeletravailRow {
+  id: number | string;
+  empcod: string;
+  employeeName?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+}
 
-type FilterKey = 'conges' | 'missions' | 'autorisations';
+type FilterKey = 'conges' | 'missions' | 'autorisations' | 'teletravail';
 
 const COLORS: Record<FilterKey, { bg: string; text: string; border: string; label: string }> = {
   conges:        { bg: '#dbeafe', text: '#1e40af', border: '#60a5fa', label: 'Congés' },
   missions:      { bg: '#fce7f3', text: '#9d174d', border: '#f472b6', label: 'Missions' },
   autorisations: { bg: '#fef3c7', text: '#92400e', border: '#fbbf24', label: 'Autorisations' },
+  teletravail:   { bg: '#e0e7ff', text: '#3730a3', border: '#a5b4fc', label: 'Télétravail' },
 };
 
 // Convertit YYYY-MM-DD ou Date ISO vers Date plain (00:00 local). Sans ça,
@@ -95,9 +104,10 @@ export default function TeamCalendarPage() {
   const [conges, setConges] = React.useState<CongeRow[]>([]);
   const [missions, setMissions] = React.useState<MissionRow[]>([]);
   const [autos, setAutos] = React.useState<AutoRow[]>([]);
+  const [teletravails, setTeletravails] = React.useState<TeletravailRow[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [filters, setFilters] = React.useState<Record<FilterKey, boolean>>({
-    conges: true, missions: true, autorisations: true,
+    conges: true, missions: true, autorisations: true, teletravail: true,
   });
   const [empFilter, setEmpFilter] = React.useState<string>('all');
 
@@ -108,10 +118,13 @@ export default function TeamCalendarPage() {
       apiInstance.get(`/DemConges/by-soc/${soccod}`).catch(() => ({ data: [] })),
       apiInstance.get(`/Missions/by-soc/${soccod}`).catch(() => ({ data: [] })),
       apiInstance.get(`/DemandeAutorisations/by-soc/${soccod}`).catch(() => ({ data: [] })),
-    ]).then(([cR, mR, aR]) => {
+      // Télétravail approuvé (endpoint admin/manager général filtré par statut).
+      apiInstance.get(`/Teletravail?status=Approved`).catch(() => ({ data: [] })),
+    ]).then(([cR, mR, aR, tR]) => {
       setConges(Array.isArray(cR.data) ? cR.data : []);
       setMissions(Array.isArray(mR.data) ? mR.data : []);
       setAutos(Array.isArray(aR.data) ? aR.data : []);
+      setTeletravails(Array.isArray(tR.data) ? tR.data : ((tR.data as any)?.$values ?? []));
     }).finally(() => setLoading(false));
   }, [soccod, canViewTeamCalendar]);
 
@@ -125,8 +138,11 @@ export default function TeamCalendarPage() {
     [...conges, ...missions, ...autos].forEach(r => {
       if (r.empcod && !map.has(r.empcod)) map.set(r.empcod, r.emplib || r.empcod);
     });
+    teletravails.forEach(r => {
+      if (r.empcod && !map.has(r.empcod)) map.set(r.empcod, r.employeeName || r.empcod);
+    });
     return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
-  }, [conges, missions, autos]);
+  }, [conges, missions, autos, teletravails]);
 
   // Convertit toutes les sources en évènements FullCalendar.
   // Note : end est exclusif côté FullCalendar (allDay range), donc on ajoute
@@ -200,8 +216,28 @@ export default function TeamCalendarPage() {
       });
     }
 
+    if (filters.teletravail) {
+      teletravails.filter(tt => (tt.status || '').toLowerCase() === 'approved').forEach(tt => {
+        if (empFilter !== 'all' && tt.empcod !== empFilter) return;
+        const start = toLocalDate(tt.startDate);
+        const end = toLocalDate(tt.endDate);
+        if (!start) return;
+        acc.push({
+          id: `teletravail-${tt.id}`,
+          title: `🏠 ${tt.employeeName || tt.empcod}`,
+          start: start.toISOString().split('T')[0],
+          end: addDay(end || start),
+          allDay: true,
+          backgroundColor: COLORS.teletravail.bg,
+          borderColor: COLORS.teletravail.border,
+          textColor: COLORS.teletravail.text,
+          extendedProps: { kind: 'teletravail', empcod: tt.empcod, ref: tt.id },
+        });
+      });
+    }
+
     return acc;
-  }, [conges, missions, autos, filters, empFilter]);
+  }, [conges, missions, autos, teletravails, filters, empFilter]);
 
   const handleEventClick = (info: any) => {
     const kind = info.event.extendedProps.kind as FilterKey;
@@ -210,6 +246,7 @@ export default function TeamCalendarPage() {
     if (kind === 'conges') navigate('/dashboard/gestion-de-conge');
     else if (kind === 'missions') navigate('/dashboard/missions');
     else if (kind === 'autorisations') navigate('/dashboard/demande-autorisation');
+    else if (kind === 'teletravail') navigate('/dashboard/validation-teletravail');
   };
 
   return (

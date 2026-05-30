@@ -15,7 +15,7 @@ import {
   QrCode2,
   VerifiedUser,
 } from '@mui/icons-material';
-import { User, UtilisateurUpdate, PasswordUpdate } from '../../../models/Utilisateur';
+import { User, UtilisateurUpdate, PasswordUpdate, ROLE_LABELS } from '../../../models/Utilisateur';
 import useGetProfile from '../../../hooks/profileHooks/useGetProfile';
 import useUpdateProfile from '../../../hooks/profileHooks/useUpdateProfile';
 import useChangePasswordHook from '../../../hooks/profileHooks/useChangePassword';
@@ -201,6 +201,16 @@ function ProfilePage() {
   const fullName = `${userData?.utiprn || ''} ${userData?.utinom || ''}`.trim();
   const initials = getInitials(userData?.utinom ?? null, userData?.utiprn ?? null);
 
+  // Le backend stocke utiactif/utiadm en '1'/'0' (les anciennes fiches pouvaient
+  // avoir 'Oui'/'Non'). On accepte les deux conventions pour ne pas afficher à tort
+  // "Inactif"/"Utilisateur" sur un compte actif/administrateur.
+  const isActive = userData?.utiactif === '1' || userData?.utiactif === 'Oui';
+  const roleLabel = userData?.utirole
+    ? (ROLE_LABELS[userData.utirole] ?? userData.utirole)
+    : (userData?.utiadm === '1' || userData?.utiadm === 'Oui'
+        ? t('paramSoc.profile.admin')
+        : t('paramSoc.profile.user'));
+
   return (
     <div className="profile-page">
       <BreadcrumbNavigation />
@@ -229,7 +239,7 @@ function ProfilePage() {
         <div className="profile-header-info">
           <div className="profile-header-row">
             <h1 className="profile-header-name">{fullName || t('paramSoc.profile.user')}</h1>
-            {userData?.utiactif === 'Oui' && (
+            {isActive && (
               <span className="profile-status-badge">
                 <span className="profile-status-dot" />
                 {t('paramSoc.profile.active')}
@@ -237,7 +247,7 @@ function ProfilePage() {
             )}
           </div>
           <p className="profile-header-subtitle">
-            {userData?.utiadm === 'Oui' ? t('paramSoc.profile.admin') : t('paramSoc.profile.user')} • {userData?.utimail || ''}
+            {roleLabel} • {userData?.utimail || ''}
           </p>
           <div className="profile-header-actions">
             <button className="profile-btn-primary" onClick={handleUpdate}>
@@ -316,7 +326,7 @@ function ProfilePage() {
                   <input
                     className="profile-field-input"
                     type="text"
-                    value={userData?.utiadm === 'Oui' ? t('paramSoc.profile.admin') : t('paramSoc.profile.user')}
+                    value={roleLabel}
                     readOnly
                     style={{ color: '#737785', cursor: 'default' }}
                   />
@@ -328,7 +338,7 @@ function ProfilePage() {
                   <input
                     className="profile-field-input"
                     type="text"
-                    value={userData?.utiactif === 'Oui' ? t('paramSoc.profile.active') : t('paramSoc.profile.inactive')}
+                    value={isActive ? t('paramSoc.profile.active') : t('paramSoc.profile.inactive')}
                     readOnly
                     style={{ color: '#737785', cursor: 'default' }}
                   />
@@ -433,13 +443,13 @@ function ProfilePage() {
             <div className="profile-activity-row">
               <span className="profile-activity-row-label">{t('paramSoc.profile.role')}</span>
               <span className="profile-activity-row-value">
-                {userData?.utiadm === 'Oui' ? t('paramSoc.profile.admin') : t('paramSoc.profile.user')}
+                {roleLabel}
               </span>
             </div>
             <div className="profile-activity-row">
               <span className="profile-activity-row-label">{t('paramSoc.profile.status')}</span>
               <span className="profile-activity-row-value">
-                {userData?.utiactif === 'Oui' ? t('paramSoc.profile.active') : t('paramSoc.profile.inactive')}
+                {isActive ? t('paramSoc.profile.active') : t('paramSoc.profile.inactive')}
               </span>
             </div>
             <div className="profile-activity-row">

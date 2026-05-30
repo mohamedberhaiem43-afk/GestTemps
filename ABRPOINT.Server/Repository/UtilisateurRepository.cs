@@ -311,9 +311,28 @@ namespace ABRPOINT.Server.Repository
                 if (!string.IsNullOrWhiteSpace(utilisateur.Utilisateur.Utiactif))
                     existing.Utiactif = utilisateur.Utilisateur.Utiactif;
                 if (!string.IsNullOrWhiteSpace(utilisateur.Utilisateur.Utirole))
+                {
                     existing.Utirole = utilisateur.Utilisateur.Utirole;
-                if (!string.IsNullOrWhiteSpace(utilisateur.Utilisateur.Utiadm))
+                    // Utiadm est DÉRIVÉ du rôle (source de vérité), pas du flag envoyé par
+                    // le front. Sans ça, un changement de rôle vers "Administrator" pouvait
+                    // laisser Utiadm='0' (le front ne cochait l'admin que pour le libellé
+                    // exact "Administrator") → /me renvoyait isAdmin=false et l'utilisateur
+                    // restait bloqué sur la vue "simple employé" malgré son nouveau rôle.
+                    existing.Utiadm = ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(existing.Utirole)
+                        ? "1" : "0";
+                }
+                else if (!string.IsNullOrWhiteSpace(utilisateur.Utilisateur.Utiadm))
+                {
                     existing.Utiadm = utilisateur.Utilisateur.Utiadm;
+                }
+
+                // Recovery : éditer/enregistrer un utilisateur depuis la page admin
+                // (ex. changement de rôle Employé → Administrateur) lève le verrou
+                // anti-bruteforce. Sinon, un compte déjà verrouillé (HTTP 423 sur
+                // /connect) restait bloqué et l'admin ne disposait d'aucun moyen de
+                // le débloquer hormis attendre l'expiration du lock.
+                existing.UtiFailedLogins = 0;
+                existing.UtiLockoutUntil = null;
                 await _dbContext.SaveChangesAsync();
 
                 // 2. Update password separately only if provided
@@ -462,6 +481,12 @@ namespace ABRPOINT.Server.Repository
             if (user == null) return false;
 
             user.Utimps = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            // Recovery : une réinitialisation admin du mot de passe lève aussi le
+            // verrou anti-bruteforce. Sans ça, un compte verrouillé (HTTP 423 sur
+            // /connect après échecs répétés) restait inaccessible même après reset —
+            // l'admin n'avait aucun moyen de débloquer l'utilisateur.
+            user.UtiFailedLogins = 0;
+            user.UtiLockoutUntil = null;
             await _dbContext.SaveChangesAsync();
             return true;
         }
@@ -475,6 +500,14 @@ namespace ABRPOINT.Server.Repository
             // Looking at the codebase, utiactif is often '1' or 'Oui'
             bool currentlyActive = user.Utiactif == "1" || user.Utiactif == "Oui";
             user.Utiactif = currentlyActive ? "0" : "1";
+
+            // Réactivation = action admin délibérée → on lève aussi le verrou
+            // anti-bruteforce pour que l'utilisateur puisse se reconnecter.
+            if (!currentlyActive)
+            {
+                user.UtiFailedLogins = 0;
+                user.UtiLockoutUntil = null;
+            }
 
             await _dbContext.SaveChangesAsync();
             return true;
