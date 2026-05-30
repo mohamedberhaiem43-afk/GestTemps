@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import useGetSocLibs from "../../../hooks/societeHooks/useGetSocLibs";
 import useGetSiteLibs from "../../../hooks/siteHooks/useGetSiteLibs";
 import useAddUser from "../../../hooks/userHooks/useAddUser";
-import Utilisateur from "../../../models/Utilisateur";
 import { ROLE_OPTIONS, ROLE_LABELS } from "../../../models/Utilisateur";
 import { useQuery } from "@tanstack/react-query";
 import { useUserContext } from "../../helper/UserProvider";
