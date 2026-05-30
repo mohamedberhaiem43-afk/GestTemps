@@ -238,8 +238,12 @@ public sealed class LetterGenerationService : ILetterGenerationService
 
     private byte[] RenderPdf(string html)
     {
+        // white-space:pre-wrap : les modèles sont désormais rédigés en TEXTE SIMPLE
+        // (l'utilisateur final ne manipule plus de HTML). On préserve donc les retours
+        // à la ligne et les espaces saisis. Reste rétro-compatible avec d'anciens
+        // modèles contenant du HTML (les balises sont toujours interprétées).
         var fullHtml = $@"<!DOCTYPE html><html><head><meta charset=""utf-8""/>
-<style>body{{font-family:Helvetica,Arial,sans-serif;font-size:12pt;line-height:1.5;color:#222;}}</style>
+<style>body{{font-family:Helvetica,Arial,sans-serif;font-size:12pt;line-height:1.5;color:#222;white-space:pre-wrap;}}</style>
 </head><body>{html}</body></html>";
 
         var doc = new HtmlToPdfDocument

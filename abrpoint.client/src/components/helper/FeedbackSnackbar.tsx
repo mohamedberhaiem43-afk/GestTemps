@@ -91,14 +91,17 @@ export function useFeedbackSnackbar() {
       autoHideDuration={duration}
       onClose={close}
       anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      sx={{ zIndex: 1500 }}
+      // top: 84/96 px → le snackbar descend SOUS le header applicatif fixe.
+      // Avant, `top: 24` (défaut MUI) le collait tout en haut, masqué par le header
+      // → l'utilisateur ne voyait ni les confirmations ni les erreurs.
+      sx={{ zIndex: 1500, top: { xs: 84, sm: 96 } }}
     >
       <Alert
         onClose={close}
         severity={severity}
         variant="filled"
         action={action ?? undefined}
-        sx={{ borderRadius: '10px', minWidth: 300, maxWidth: 560, boxShadow: '0 4px 20px rgba(0,0,0,0.12)', '& .MuiAlert-message': { whiteSpace: 'pre-line' } }}
+        sx={{ borderRadius: '10px', minWidth: 300, maxWidth: 560, boxShadow: '0 8px 28px rgba(0,0,0,0.18)', '& .MuiAlert-message': { whiteSpace: 'pre-line' } }}
       >
         {message}
       </Alert>
@@ -127,13 +130,13 @@ export function FeedbackSnackbar(props: {
       autoHideDuration={autoHideDuration}
       onClose={onClose}
       anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      sx={{ zIndex: 1500 }}
+      sx={{ zIndex: 1500, top: { xs: 84, sm: 96 } }}
     >
       <Alert
         onClose={onClose}
         severity={severity}
         variant="filled"
-        sx={{ borderRadius: '10px', minWidth: 300, boxShadow: '0 4px 20px rgba(0,0,0,0.12)' }}
+        sx={{ borderRadius: '10px', minWidth: 300, boxShadow: '0 8px 28px rgba(0,0,0,0.18)' }}
       >
         {message}
       </Alert>

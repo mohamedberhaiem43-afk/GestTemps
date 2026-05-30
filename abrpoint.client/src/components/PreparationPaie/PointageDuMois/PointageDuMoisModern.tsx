@@ -1500,7 +1500,11 @@ function PointageDuMoisContent() {
               variant="contained"
               disabled={pendingCount > 0}
               onClick={() => {
-                setSnack({ open: true, msg: t('pointageMois.alerts.successProcessed', { count: alertsData.length }), sev: 'success' });
+                // Le tri des alertes (traité/ignoré) n'est PAS persisté côté serveur :
+                // c'est un triage de session pour le confort de relecture. On le signale
+                // honnêtement (info, pas "enregistré avec succès") pour ne pas laisser
+                // croire à une sauvegarde permanente.
+                setSnack({ open: true, msg: t('pointageMois.alerts.successProcessed', { count: alertsData.length }), sev: 'info' });
                 setOpenAlertsDialog(false);
               }}
               sx={{

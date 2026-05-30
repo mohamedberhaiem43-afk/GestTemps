@@ -145,11 +145,7 @@ namespace ABRPOINT.Server.Controllers
         /// (cf. abrpoint.mobile/src/services/liveLocation.ts). UPSERT sur la PK
         /// (soccod, empcod) — une seule ligne live par salarié à tout instant.
         ///
-        /// RGPD : la capture est refusée hors fenêtre <see cref="GeolocationPolicy.IsWithinWindow"/>
-        /// (heure + jour de semaine définis dans /dashboard/geolocation-rgpd). Pas
-        /// d'erreur 4xx dans ce cas pour ne pas spammer le mobile en boucle de retry
-        /// — on retourne 200 OK avec <c>accepted: false</c> + un motif, le mobile
-        /// arrête juste le heartbeat jusqu'au prochain pointage.
+        /// Capture soumise au seul gating commercial (cf. ci-dessous).
         ///
         /// Gating commercial : <see cref="Tenancy.PlanFeatures.Geolocation"/> — Standard +
         /// Business uniquement. Starter ne peut pas tracer ses salariés.
@@ -187,17 +183,6 @@ namespace ABRPOINT.Server.Controllers
             // Tolérance casse pour éviter les faux négatifs sur empcod stocké en majuscules.
             if (!string.Equals(caller, req.Empcod, StringComparison.OrdinalIgnoreCase))
                 return Forbid();
-
-            // Vérif fenêtre RGPD : la politique tenant peut interdire la capture en dehors
-            // de certaines plages horaires (ex. 06:00→22:00 lundi-vendredi). Hors fenêtre
-            // on retourne 200 + accepted=false plutôt qu'un 4xx pour que le mobile sache
-            // arrêter ses heartbeats sans considérer ça comme une erreur réseau.
-            var policy = await _db.Set<GeolocationPolicy>().FirstOrDefaultAsync(ct);
-            if (policy != null && !policy.IsWithinWindow(DateTime.UtcNow))
-            {
-                _logger?.LogDebug("LivePosition refusée hors fenêtre RGPD (soccod={Soccod} emp={Emp})", req.Soccod, req.Empcod);
-                return Ok(new { accepted = false, reason = "outside_window" });
-            }
 
             // Upsert : on cherche la ligne existante pour (Soccod, Empcod), sinon on l'insère.
             // PostgreSQL aurait permis ON CONFLICT DO UPDATE, mais EF Core ne le supporte pas
@@ -555,24 +540,6 @@ namespace ABRPOINT.Server.Controllers
                     }
                 }
 
-                // RGPD clause 13.3 — politique géoloc paramétrée par le tenant via UI :
-                //   • Sous-finalité « clock-in » désactivée → on ignore complètement les
-                //     coordonnées (le pointage continue sans validation GPS, l'admin a
-                //     explicitement choisi de ne pas géolocaliser le pointage).
-                //   • Hors plage horaire autorisée → idem : pointage accepté, géoloc
-                //     ignorée (décision produit 2026-05 : pas de prise d'otage opé).
-                // Sans table geolocation_policy (legacy), comportement inchangé.
-                var geoPolicy = await _db.GeolocationPolicies.AsNoTracking().FirstOrDefaultAsync();
-                var geolocActive = geoPolicy is null
-                    || (geoPolicy.EnabledForClockIn && geoPolicy.IsWithinWindow(DateTime.Now));
-                if (!geolocActive)
-                {
-                    // On efface les coordonnées reçues pour qu'elles ne soient ni
-                    // utilisées par la suite ni journalisées (clé : limitation à la
-                    // finalité déclarée — point 4 de la clause 13.3).
-                    lat = null; lon = null; acc = null;
-                }
-
                 // Validation de zone GPS — règle STRICTE par site (2026-05-22) :
                 // l'employé ne peut pointer QUE depuis le geofence de SON site rattaché
                 // (Empsite / Sitcod), pas depuis n'importe quel site de la société.
@@ -590,7 +557,7 @@ namespace ABRPOINT.Server.Controllers
                 // Si l'admin a configuré le geofence du site mais que le client n'a pas
                 // envoyé de GPS, on refuse (sinon contournement trivial en désactivant
                 // la localisation).
-                if (_geoValidator != null && geolocActive)
+                if (_geoValidator != null)
                 {
                     // On a besoin du sitcod rattaché de l'employé pour cibler le bon
                     // geofence. La PK composite (soccod, empcod, sitcod) autorise plusieurs
@@ -776,6 +743,50 @@ namespace ABRPOINT.Server.Controllers
                     acc: acc.HasValue ? (int?)Math.Round(acc.Value) : null);
                 if (result == null)
                     return NotFound(new { message = "Employé introuvable" });
+
+                // Suivi temps réel : on alimente AUSSI live_position dès le pointage quand
+                // une position GPS est fournie. Sans ça, la carte "Suivi positions" restait
+                // à « 0 actif » tant que le heartbeat mobile (premier plan, 60 s) ne tournait
+                // pas — alors que le salarié venait justement de pointer avec sa position.
+                // Best-effort : un échec ici ne doit JAMAIS faire échouer le pointage.
+                if (lat.HasValue && lon.HasValue && !(lat.Value == 0 && lon.Value == 0))
+                {
+                    try
+                    {
+                        var nowUtc = DateTime.UtcNow;
+                        var liveLat = Math.Round((decimal)lat.Value, 7);
+                        var liveLon = Math.Round((decimal)lon.Value, 7);
+                        var liveAcc = acc.HasValue ? (int?)Math.Round(acc.Value) : null;
+                        var live = await _db.LivePositions
+                            .FirstOrDefaultAsync(p => p.Soccod == soccod && p.Empcod == empcod);
+                        if (live == null)
+                        {
+                            _db.LivePositions.Add(new LivePosition
+                            {
+                                Soccod = soccod,
+                                Empcod = empcod,
+                                Lat = liveLat,
+                                Lon = liveLon,
+                                Acc = liveAcc,
+                                UpdatedAt = nowUtc,
+                            });
+                        }
+                        else
+                        {
+                            live.Lat = liveLat;
+                            live.Lon = liveLon;
+                            live.Acc = liveAcc;
+                            live.UpdatedAt = nowUtc;
+                        }
+                        await _db.SaveChangesAsync();
+                    }
+                    catch (Exception exLive)
+                    {
+                        _logger?.LogWarning(exLive,
+                            "Upsert live_position au pointage échoué (non bloquant) soccod={Soccod} empcod={Empcod}",
+                            soccod, empcod);
+                    }
+                }
 
                 return Ok(result);
             }

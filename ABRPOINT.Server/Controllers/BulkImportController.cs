@@ -69,7 +69,7 @@ public class BulkImportController : ControllerBase
         };
     }
 
-    public sealed class ServiceRow { public string? Serlib { get; set; } public string? Serloc { get; set; } public string? Effectif { get; set; } }
+    public sealed class ServiceRow { public string? Serlib { get; set; } public string? Serloc { get; set; } public string? Serlieu { get; set; } public string? Seremail { get; set; } public string? Effectif { get; set; } }
     public sealed class FonctionRow { public string? Fonlib { get; set; } public string? Fontype { get; set; } }
     public sealed class DirectionRow
     {
@@ -84,6 +84,7 @@ public class BulkImportController : ControllerBase
         public string? Seccod { get; set; }
         public string? Seclib { get; set; }
         public string? Sectype { get; set; }
+        public string? Secemail { get; set; }
         public string? Effectif { get; set; }
     }
     public sealed class VilleRow { public string? Vilcod { get; set; } public string? Villib { get; set; } }
@@ -155,6 +156,8 @@ public class BulkImportController : ControllerBase
                 {
                     Sercod = code, Soccod = soccod, Serlib = lib,
                     Serloc = NormalizeFlag(row.Serloc),
+                    Serlieu = string.IsNullOrWhiteSpace(row.Serlieu) ? null : row.Serlieu.Trim(),
+                    Seremail = string.IsNullOrWhiteSpace(row.Seremail) ? null : row.Seremail.Trim(),
                     Effectif = ParseEffectif(row.Effectif),
                     CreatedAt = DateTime.UtcNow,
                 });
@@ -429,7 +432,7 @@ public class BulkImportController : ControllerBase
                     : row.Seccod!.Trim();
                 if (existingCodes.Contains(code.ToUpperInvariant()) || existingLibs.Contains(lib.ToLowerInvariant())) { skipped++; continue; }
 
-                _db.Sections.Add(new Section { Seccod = code, Soccod = soccod, Seclib = lib, Sectype = row.Sectype?.Trim(), Effectif = ParseEffectif(row.Effectif), CreatedAt = DateTime.UtcNow });
+                _db.Sections.Add(new Section { Seccod = code, Soccod = soccod, Seclib = lib, Sectype = row.Sectype?.Trim(), Secemail = string.IsNullOrWhiteSpace(row.Secemail) ? null : row.Secemail.Trim(), Effectif = ParseEffectif(row.Effectif), CreatedAt = DateTime.UtcNow });
                 await _db.SaveChangesAsync();
                 existingCodes.Add(code.ToUpperInvariant());
                 existingLibs.Add(lib.ToLowerInvariant());

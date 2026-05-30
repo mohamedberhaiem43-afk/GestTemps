@@ -315,9 +315,6 @@ public partial class ApplicationDbContext : DbContext
     public virtual DbSet<DemandeAutorisation> DemandeAutorisations { get; set; }
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
     public virtual DbSet<RetentionPolicy> RetentionPolicies { get; set; }
-    public virtual DbSet<DataProcessingNotice> DataProcessingNotices { get; set; }
-    public virtual DbSet<UserConsent> UserConsents { get; set; }
-    public virtual DbSet<GeolocationPolicy> GeolocationPolicies { get; set; }
     public virtual DbSet<PushToken> PushTokens { get; set; }
     public virtual DbSet<PushReminderLog> PushReminderLogs { get; set; }
     public virtual DbSet<Notification> Notifications { get; set; }

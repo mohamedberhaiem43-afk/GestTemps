@@ -82,6 +82,28 @@ function OrgStructureContent() {
 
   useEffect(() => { fetchData(); }, []);
 
+  // Préremplissage du code auto-généré à l'ouverture du dialogue d'AJOUT pour les
+  // services et sections (code séquentiel côté serveur). Sans cet appel, le champ
+  // restait vide : l'utilisateur ne voyait pas le code « auto-généré » annoncé et
+  // l'enregistrement échouait/portait à confusion (cas signalé sur « Service »).
+  // La direction conserve une saisie manuelle du code (pas de préremplissage).
+  useEffect(() => {
+    if (!dialogOpen || editUnit) return;
+    if (dialogMode !== 'service' && dialogMode !== 'section') return;
+    let cancelled = false;
+    const url = dialogMode === 'service'
+      ? `/Services/next-code/${soccod}`
+      : `/Sections/get-next-seccod/${soccod}`;
+    apiInstance.get(url)
+      .then(res => {
+        if (cancelled) return;
+        const code = dialogMode === 'service' ? res.data?.code : res.data?.seccod;
+        if (code) setForm(p => (p.code ? p : { ...p, code }));
+      })
+      .catch(() => { /* silencieux : le backend auto-génère aussi au POST */ });
+    return () => { cancelled = true; };
+  }, [dialogOpen, editUnit, dialogMode, soccod]);
+
   const allUnits: OrgUnit[] = useMemo(() => {
     const dirs: OrgUnit[] = directions.map(d => ({
       code: d.dircod, libelle: d.dirlib, type: 'direction' as const,
@@ -212,11 +234,13 @@ function OrgStructureContent() {
             extraBody={{ Soccod: soccod }}
             columnMap={{
               Serlib: ['libellé service', 'serlib', 'libelle', 'libellé', 'libelle service', 'service', 'nom'],
+              Serlieu: ['localisation', 'serlieu', 'lieu', 'emplacement'],
+              Seremail: ['email', 'seremail', 'mail', 'e-mail'],
               Serloc: ['service externe', 'serloc', 'externe', 'externalisé'],
               Effectif: ['effectif', 'effectif théorique', 'nombre'],
             }}
-            labelMap={{ Serlib: 'Libellé service', Serloc: 'Service externe', Effectif: 'Effectif' }}
-            templateExample={{ Serlib: 'Comptabilité', Serloc: 'Non', Effectif: 5 }}
+            labelMap={{ Serlib: 'Libellé service', Serlieu: 'Localisation', Seremail: 'Email', Serloc: 'Service externe', Effectif: 'Effectif' }}
+            templateExample={{ Serlib: 'Comptabilité', Serlieu: 'Siège', Seremail: 'compta@exemple.fr', Serloc: 'Non', Effectif: 5 }}
             onImported={fetchData}
           />
           <ExcelImportButton
@@ -227,10 +251,11 @@ function OrgStructureContent() {
               Seccod: ['code section', 'seccod', 'code'],
               Seclib: ['libellé section', 'seclib', 'libelle', 'libellé', 'libelle section', 'section', 'nom'],
               Sectype: ['type', 'sectype'],
+              Secemail: ['email', 'secemail', 'mail', 'e-mail'],
               Effectif: ['effectif', 'nombre'],
             }}
-            labelMap={{ Seccod: 'Code section', Seclib: 'Libellé section', Sectype: 'Type', Effectif: 'Effectif' }}
-            templateExample={{ Seccod: '', Seclib: 'Section Nord', Sectype: '', Effectif: 10 }}
+            labelMap={{ Seccod: 'Code section', Seclib: 'Libellé section', Sectype: 'Type', Secemail: 'Email', Effectif: 'Effectif' }}
+            templateExample={{ Seccod: '', Seclib: 'Section Nord', Sectype: '', Secemail: 'nord@exemple.fr', Effectif: 10 }}
             onImported={fetchData}
           />
         </Box>

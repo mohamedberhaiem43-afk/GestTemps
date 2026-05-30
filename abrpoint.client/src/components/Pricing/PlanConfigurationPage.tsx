@@ -124,6 +124,10 @@ const ADDON_CATALOG: Record<AddonKey, AddonDef> = {
     hasQuantity: false,
     iconName: 'code',
     accent: 'primary',
+    // API avancée n'est plus un add-on self-service : périmètre/tarif négociés
+    // dans le cadre du pack sur mesure (affichée « Sur devis », non souscriptible
+    // directement). Cf. iaDocumentaireAvancee qui suit la même logique.
+    quoteOnly: true,
   },
   supportPrioritaire: {
     displayName: 'Support prioritaire étendu',

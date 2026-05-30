@@ -15,8 +15,6 @@ namespace ABRPOINT.Server.Models;
 /// Politique RGPD :
 /// - La capture LivePosition est gated par <c>PlanFeatures.Geolocation</c> côté
 ///   backend (cf. [RequirePlanFeature(Geolocation)] sur les endpoints concernés).
-/// - La fenêtre horaire et les jours autorisés définis dans <see cref="GeolocationPolicy"/>
-///   s'appliquent — hors fenêtre, le POST est rejeté côté serveur (pas de stockage).
 /// - La table est purgée par <c>LivePositionRetentionHostedService</c> : toute ligne
 ///   dont <see cref="UpdatedAt"/> dépasse <c>RetentionMinutes</c> (défaut 30 min)
 ///   est supprimée. C'est une donnée VOLATILE : on ne conserve pas un historique

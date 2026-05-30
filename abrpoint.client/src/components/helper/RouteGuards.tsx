@@ -109,8 +109,6 @@ export const ADMIN_PATHS = new Set<string>([
   '/dashboard/rag-audit',
   '/dashboard/audit-logs',
   '/dashboard/retention-rgpd',
-  '/dashboard/notice-rgpd',
-  '/dashboard/geolocation-rgpd',
   '/dashboard/suivi-positions',
   '/dashboard/affectation-solde',
   '/dashboard/parametres',

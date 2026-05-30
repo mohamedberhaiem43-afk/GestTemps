@@ -31,6 +31,19 @@ const emptySchedule = [
   { jour: 'Dimanche', prefix: 'dim', DebEntree: "", Entrée: "", FinEntree: "", Sortie: "", DebEntree2: "", Entree2: "", Sortie2: "", FinEntree2: "", repasBonus: "0", repos: "1", repasDeb: "", repasFin: "" },
 ];
 
+// Durée du repas (en minutes) calculée à partir des heures de début et de fin de la
+// plage repas. Le champ "repas" n'est jamais saisi manuellement : il est toujours
+// déduit de ces deux heures (readonly). diff < 0 → plage à cheval sur minuit.
+function computeRepasMinutes(deb?: string, fin?: string): string {
+  if (!deb || !fin) return '0';
+  const [dh, dm] = deb.split(':').map(Number);
+  const [fh, fm] = fin.split(':').map(Number);
+  if ([dh, dm, fh, fm].some(Number.isNaN)) return '0';
+  let diff = (fh * 60 + fm) - (dh * 60 + dm);
+  if (diff < 0) diff += 24 * 60;
+  return String(diff);
+}
+
 export default function PosteTravailModern() {
   const { t } = useTranslation();
   const [saisieData, setSaisieData] = useState<Poste>({} as Poste);
@@ -76,7 +89,7 @@ export default function PosteTravailModern() {
         libposte: poste.libposte || selectedPoste?.libposte || prev.libposte
       }));
       
-      setScheduleData([
+      const loadedSchedule = [
         { jour: 'Lundi', prefix: 'lun', DebEntree: poste.lunhdematin, Entrée: poste.lunhdmat, FinEntree: poste.lunhfematin, Sortie: poste.lunhfmat, DebEntree2: poste.lunhdeamidi, Entree2: poste.lunhdam, Sortie2: poste.lunhfam, FinEntree2: poste.lunhfeamidi, repasBonus: poste.lunrepas, repos: poste.lunrepos, repasDeb: (poste as any).lunhdrep ?? '', repasFin: (poste as any).lunhfrep ?? '' },
         { jour: 'Mardi', prefix: 'mar', DebEntree: poste.marhdematin, Entrée: poste.marhdmat, FinEntree: poste.marhfematin, Sortie: poste.marhfmat, DebEntree2: poste.marhdeamidi, Entree2: poste.marhdam, Sortie2: poste.marhfam, FinEntree2: poste.marhfeamidi, repasBonus: poste.marrepas, repos: poste.marrepos, repasDeb: (poste as any).marhdrep ?? '', repasFin: (poste as any).marhfrep ?? '' },
         { jour: 'Mercredi', prefix: 'mer', DebEntree: poste.merhdematin, Entrée: poste.merhdmat, FinEntree: poste.merhfematin, Sortie: poste.merhfmat, DebEntree2: poste.merhdeamidi, Entree2: poste.merhdam, Sortie2: poste.merhfam, FinEntree2: poste.merhfeamidi, repasBonus: poste.merrepas, repos: poste.merrepos, repasDeb: (poste as any).merhdrep ?? '', repasFin: (poste as any).merhfrep ?? '' },
@@ -84,7 +97,13 @@ export default function PosteTravailModern() {
         { jour: 'Vendredi', prefix: 'ven', DebEntree: poste.venhdematin, Entrée: poste.venhdmat, FinEntree: poste.venhfematin, Sortie: poste.venhfmat, DebEntree2: poste.venhdeamidi, Entree2: poste.venhdam, Sortie2: poste.venhfam, FinEntree2: poste.venhfeamidi, repasBonus: poste.venrepas, repos: poste.venrepos, repasDeb: (poste as any).venhdrep ?? '', repasFin: (poste as any).venhfrep ?? '' },
         { jour: 'Samedi', prefix: 'sam', DebEntree: poste.samhdematin, Entrée: poste.samhdmat, FinEntree: poste.samhfematin, Sortie: poste.samhfmat, DebEntree2: poste.samhdeamidi, Entree2: poste.samhdam, Sortie2: poste.samhfam, FinEntree2: poste.samhfeamidi, repasBonus: poste.samrepas, repos: poste.samrepos, repasDeb: (poste as any).samhdrep ?? '', repasFin: (poste as any).samhfrep ?? '' },
         { jour: 'Dimanche', prefix: 'dim', DebEntree: poste.dimhdematin, Entrée: poste.dimhdmat, FinEntree: poste.dimhfematin, Sortie: poste.dimhfmat, DebEntree2: poste.dimhdeamidi, Entree2: poste.dimhdam, Sortie2: poste.dimhfam, FinEntree2: poste.dimhfeamidi, repasBonus: poste.dimrepas, repos: poste.dimrepos, repasDeb: (poste as any).dimhdrep ?? '', repasFin: (poste as any).dimhfrep ?? '' },
-      ]);
+      ];
+      // Le repas est recalculé depuis la plage début/fin quand elle est renseignée ;
+      // sinon on conserve la valeur historique (postes saisis avant ce calcul auto).
+      setScheduleData(loadedSchedule.map((r) => ({
+        ...r,
+        repasBonus: (r.repasDeb && r.repasFin) ? computeRepasMinutes(r.repasDeb, r.repasFin) : r.repasBonus,
+      })));
       setMode("update");
     }
   }, [poste, selectedPoste]);
@@ -125,6 +144,11 @@ export default function PosteTravailModern() {
   const handleScheduleChange = (index: number, field: string, value: any) => {
     const updated = [...scheduleData];
     updated[index][field] = value;
+    // Le champ "repas" (minutes) est systématiquement recalculé à partir des heures
+    // de début/fin repas — jamais saisi à la main.
+    if (field === 'repasDeb' || field === 'repasFin') {
+      updated[index].repasBonus = computeRepasMinutes(updated[index].repasDeb, updated[index].repasFin);
+    }
     setScheduleData(updated);
   };
 
@@ -525,7 +549,8 @@ export default function PosteTravailModern() {
                           <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.repasDeb || ''} onChange={e => handleScheduleChange(idx, 'repasDeb', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
                           <td><input type="time" className="modern-input" style={{ width: 90 }} value={row.repasFin || ''} onChange={e => handleScheduleChange(idx, 'repasFin', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
 
-                          <td><input className="modern-input" style={{ width: 55 }} type="number" min="0" value={row.repasBonus || '0'} onChange={e => handleScheduleChange(idx, 'repasBonus', e.target.value)} disabled={(mode === 'add' && !canAdd) || (mode === 'update' && !canModify)} /></td>
+                          {/* Repas (minutes) : toujours calculé depuis début/fin repas → lecture seule. */}
+                          <td><input className="modern-input" style={{ width: 55, background: '#f1f5f9', cursor: 'not-allowed' }} type="number" min="0" value={row.repasBonus || '0'} readOnly tabIndex={-1} title={t('posteTravail.schedule.mealAutoComputed', { defaultValue: 'Calculé automatiquement à partir du début et de la fin du repas' })} /></td>
                         </>
                       )}
                       <td>

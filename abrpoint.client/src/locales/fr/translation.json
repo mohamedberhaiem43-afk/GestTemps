@@ -345,8 +345,6 @@
     "ragAudit": "Historique IA",
     "auditLogs": "Journaux d'audit",
     "retentionPolicy": "Rétention RGPD",
-    "processingNotice": "Notice RGPD",
-    "geolocationPolicy": "Géolocalisation RGPD",
     "recent": "Récent",
     "account": "Compte",
     "myProfile": "Mon Profil",
@@ -1079,8 +1077,8 @@
       "pendingFooter_other": "{{count}} alertes en attente",
       "allTreated": "Toutes les alertes ont été traitées",
       "confirmTreatment": "Confirmer le traitement",
-      "successProcessed_one": "{{count}} alerte traitée avec succès",
-      "successProcessed_other": "{{count}} alertes traitées avec succès"
+      "successProcessed_one": "{{count}} alerte triée pour cette session",
+      "successProcessed_other": "{{count}} alertes triées pour cette session"
     },
     "errors": {
       "selectEmployee": "Sélectionnez un employé",
@@ -5189,13 +5187,13 @@
       "generateAndDownload": "Générer et télécharger",
       "polishWithAi": "Améliorer la rédaction avec l'IA",
       "polishHint": "Claude reformulera le ton dans un registre formel français. Le contenu informatif et les noms restent inchangés.",
-      "placeholdersHelp": "Variables disponibles : {{empnom}}, {{empprenom}}, {{empcod}}, {{empcin}}, {{empadr}}, {{emptel}}, {{empfonc}}, {{empemb}}, {{soclib}}, {{socadr}}, {{socville}}, {{socemail}}, {{soctel}}, {{contype}}, {{condat}}, {{today}}.",
-      "bodyPlaceholder": "<p>Madame, Monsieur {{empnom}},</p><p>Nous vous confirmons votre embauche en tant que {{empfonc}} à compter du {{empemb}}…</p>",
+      "placeholdersHelp": "Rédigez votre courrier en texte simple. Insérez les variables suivantes là où vous le souhaitez, elles seront remplacées automatiquement : {{empnom}}, {{empprenom}}, {{empcod}}, {{empcin}}, {{empadr}}, {{emptel}}, {{empfonc}}, {{empemb}}, {{soclib}}, {{socadr}}, {{socville}}, {{socemail}}, {{soctel}}, {{contype}}, {{condat}}, {{today}}.",
+      "bodyPlaceholder": "Madame, Monsieur {{empnom}},\n\nNous vous confirmons votre embauche en tant que {{empfonc}} à compter du {{empemb}}…",
       "field": {
         "name": "Nom du modèle",
         "category": "Catégorie",
         "description": "Description",
-        "body": "Corps HTML du courrier",
+        "body": "Corps du courrier",
         "employee": "Employé"
       },
       "col": {

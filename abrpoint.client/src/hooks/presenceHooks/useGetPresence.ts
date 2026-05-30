@@ -10,7 +10,13 @@ const useGetPresence = (
 ) => {
   const { soccod } = useAuth();
 
-  const formatDate = (date: Date) => date.toISOString().split('T')[0];
+  // date.toISOString() lève RangeError sur une Invalid Date (champ date vidé,
+  // chaîne malformée…). Comme formatDate est appelé À CHAQUE rendu — avant le
+  // garde `enabled` — un tel jet faisait planter le composant appelant (ex :
+  // crash de l'État Retard au clic sur « Filtrer » après vidage d'une date).
+  // On renvoie '' pour une date invalide ; la requête est alors désactivée.
+  const isValid = (d: Date) => d instanceof Date && !Number.isNaN(d.getTime());
+  const formatDate = (date: Date) => (isValid(date) ? date.toISOString().split('T')[0] : '');
   const formattedDebut = formatDate(datedebut) + "T00:00:00";
   const formattedFin = formatDate(datefin) + "T00:00:00";
 
@@ -26,7 +32,7 @@ const useGetPresence = (
         `${soccod}/${formattedDebut}/${formattedFin}/${regime}`,
         params
       ),
-    enabled: !!soccod && !!datedebut && !!datefin && !!regime,
+    enabled: !!soccod && isValid(datedebut) && isValid(datefin) && !!regime,
     staleTime: 1000 * 60 * 5,
     retry: 2,
   });

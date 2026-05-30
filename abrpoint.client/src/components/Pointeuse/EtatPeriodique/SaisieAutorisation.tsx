@@ -2,6 +2,8 @@ import {
   Alert,
     Box,
     Button,
+    Checkbox,
+    FormControlLabel,
     Grid,
     IconButton,
     Snackbar,
@@ -11,10 +13,11 @@ import {
   import duration from "dayjs/plugin/duration";
   import dayjs, { Dayjs } from "dayjs";
   import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-  import { useState } from "react";
+  import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from 'react-i18next';
   import SaveIcon from "@mui/icons-material/Save";
 import useGetAutorisationLibs from "../../../hooks/absenceHooks/useGetAutorisationLibs";
+import useGetAllAbsences from "../../../hooks/absenceHooks/useGetAllAbsence";
 import useAddSortie from "../../../hooks/sortieHooks/useAddSortie";
 import { Autoriser } from "../../../models/Autoriser";
 import InputComponent from "../../Inputs/Input";
@@ -34,10 +37,31 @@ export default function SaisieAutorisation({date, empcod}: { date: string|undefi
     const [message, setMessage] = useState<string | null>(null);
     const [severity, setSeverity] = useState<'success' | 'error'>('success');
     const [writable,setWritable] = useState(true);
+    // Autorisation de sortie : pré-cochée par défaut selon la nature d'absence
+    // sélectionnée (champ "Autoriser"/absaut de l'intitulé), mais l'utilisateur peut
+    // la décocher avant d'enregistrer. Persistée dans consanc ('N' = autorisé / pas
+    // de sanction, 'O' = non autorisé).
+    const [autorise, setAutorise] = useState(true);
     const { t } = useTranslation();
 
       const {data:absences = []} = useGetAutorisationLibs();
+      // Natures complètes (avec absaut) pour connaître le défaut d'autorisation par nature.
+      const { data: allAbsences = [] } = useGetAllAbsences();
+      const absautMap = useMemo(() => {
+        const src = Array.isArray(allAbsences) ? allAbsences : ((allAbsences as any)?.$values ?? []);
+        const m: Record<string, number> = {};
+        for (const a of src) if (a?.abscod != null) m[a.abscod] = a.absaut ?? 0;
+        return m;
+      }, [allAbsences]);
       const { mutate:addSortie } = useAddSortie();
+
+      // À chaque changement de nature, repositionner le défaut d'autorisation.
+      // ?? 1 : si la nature n'expose pas absaut, on autorise par défaut (ce sont des
+      // natures de type "Autorisation de sortie").
+      useEffect(() => {
+        if (!abscod) return;
+        setAutorise((absautMap[abscod] ?? 1) === 1);
+      }, [abscod, absautMap]);
 
       // Function to handle saving the compensation data
       const handleSave = async () => {
@@ -52,6 +76,7 @@ export default function SaisieAutorisation({date, empcod}: { date: string|undefi
             condep: `${condat[0]?.format('YYYY-MM-DD')}T${condat[0]?.format('HH:mm:ss')}`,
             conret: `${condat[1]?.format('YYYY-MM-DD')}T${condat[1]?.format('HH:mm:ss')}`,
             connbjour: parseFloat(hoursDifference.toFixed(2)),
+            consanc: autorise ? 'N' : 'O',
             soccod: soccod || '01',
         };
         
@@ -108,6 +133,7 @@ export default function SaisieAutorisation({date, empcod}: { date: string|undefi
     setCondat([dayjs(), dayjs()]);
     setRef('');
     setWritable(true);
+    setAutorise(true);
   }
 
   const handleSnackbarOpening = (message: string, severity: 'success' | 'error') => {
@@ -138,6 +164,12 @@ export default function SaisieAutorisation({date, empcod}: { date: string|undefi
                 </Grid>
                 <Grid item xs={3}>
                 <InputComponent type='text' label={t('common.reason')} value={conmotif} setValue={setConmotif} />
+                </Grid>
+                <Grid item xs={3}>
+                  <FormControlLabel
+                    control={<Checkbox size="small" checked={autorise} onChange={(e) => setAutorise(e.target.checked)} />}
+                    label={<Typography fontSize="small">{t('autSortie.exitAuthorized', { defaultValue: 'Autorisation de sortie' })}</Typography>}
+                  />
                 </Grid>
               </Grid>
             </Grid>

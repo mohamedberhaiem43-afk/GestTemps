@@ -189,7 +189,9 @@
 }
 .abs-field-with-icon input {
   width: 100%;
-  padding: 10px 14px 10px 38px;
+  /* Marge gauche portée à 44px : l'icône loupe (left:12px, ~18px de large) finissait
+     trop près du texte et, mal centrée, paraissait recouvrir le nom sélectionné. */
+  padding: 10px 14px 10px 44px;
   border-radius: 10px;
   border: none;
   background: #f1f5f9;
@@ -206,7 +208,13 @@
 .abs-field-with-icon > .MuiSvgIcon-root {
   position: absolute;
   left: 12px;
-  z-index: 1;
+  /* Centrage vertical explicite : sans `top`, l'icône restait calée en haut et
+     chevauchait le texte. pointer-events:none pour qu'elle n'intercepte jamais le
+     clic destiné à l'input. z-index:0 → elle ne peut plus passer au-dessus du nom. */
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 0;
 }
 .abs-emp-dropdown {
   position: absolute;

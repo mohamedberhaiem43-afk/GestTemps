@@ -18,7 +18,11 @@ const useGetDemConges = () => {
         enabled: !!soccod && !!uticod,
         refetchInterval: 30000, // Refetch every 30 seconds for real-time notifications
         refetchOnWindowFocus: true,
-        staleTime: 1000 * 60 * 2, // 2 minutes stale time
+        // Toujours refetch au montage : la liste des demandes alimente les KPI du solde
+        // (jours pris / acceptés). Sans ça, après acceptation d'un congé sur un autre
+        // écran, revenir sur le solde resservait une liste en cache (jusqu'à 2 min).
+        refetchOnMount: 'always',
+        staleTime: 0,
     })
 };
 

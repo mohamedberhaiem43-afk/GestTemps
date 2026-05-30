@@ -12,6 +12,13 @@ const useGetSoldeByEmp = (empcod: string) => {
       return res.data;
     },
     enabled: !!soccod && !!empcod,
+    // Le solde doit refléter immédiatement une affectation de solde, un congé accepté
+    // ou un transfert CET — opérations effectuées sur d'autres écrans. On considère donc
+    // la donnée toujours périmée et on refetch à chaque montage de la page + au focus,
+    // au lieu de servir une valeur en cache (staleTime global 5 min) jusqu'à rechargement.
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 };
 

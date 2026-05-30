@@ -260,12 +260,12 @@ export default function PositionTrackingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, soccod]);
 
-  // Centre par défaut : 1ère ligne, sinon Tunis (proxy raisonnable vu la cible
-  // commerciale Maghreb/France). Le composant FitBoundsToMarkers recadre
-  // automatiquement dès que les données sont chargées.
+  // Centre par défaut : 1ère ligne, sinon l'Europe (Paris) — cible commerciale
+  // FR/BE. Le composant FitBoundsToMarkers recadre automatiquement dès que les
+  // données sont chargées ; ce centre ne sert qu'à l'état initial / sans position.
   const defaultCenter: [number, number] = useMemo(() => {
     if (rows.length > 0) return [rows[0].prelat, rows[0].prelon];
-    return [36.8065, 10.1815];
+    return [48.8566, 2.3522];
   }, [rows]);
 
   const outOfZoneCount = useMemo(() => rows.filter(isOutOfZone).length, [rows]);
@@ -283,11 +283,11 @@ export default function PositionTrackingPage() {
     return Array.from(seen.values());
   }, [rows]);
 
-  // Centre carte en mode live : moyenne des positions actives, sinon Tunis.
+  // Centre carte en mode live : 1ère position active, sinon l'Europe (Paris).
   // Permet d'afficher tous les salariés d'un coup au switch initial.
   const liveDefaultCenter: [number, number] = useMemo(() => {
     if (livePositions.length > 0) return [livePositions[0].lat, livePositions[0].lon];
-    return [36.8065, 10.1815];
+    return [48.8566, 2.3522];
   }, [livePositions]);
 
   // Décompte fraîcheur des positions live pour l'affichage des chips de statut
@@ -443,7 +443,9 @@ export default function PositionTrackingPage() {
         )}
         <MapContainer
           center={mode === 'live' ? liveDefaultCenter : defaultCenter}
-          zoom={12}
+          /* Zoom initial 5 = vue Europe (le recadrage fitBounds resserre dès que des
+             positions sont chargées). Avant : 12 (niveau ville, centré Tunis). */
+          zoom={5}
           style={{ width: '100%', height: '100%' }}
         >
           <TileLayer

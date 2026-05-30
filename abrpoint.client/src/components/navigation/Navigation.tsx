@@ -54,8 +54,6 @@ const DemandeAbsenceModern = React.lazy(() => import('../gestionEmploye/DemandeA
 const DemandeAbsenceValidation = React.lazy(() => import('../gestionEmploye/DemandeAbsence/DemandeAbsenceValidation'));
 const AuditLogsPage = React.lazy(() => import('../Admin/AuditLogs/AuditLogsPage'));
 const RetentionPolicyPage = React.lazy(() => import('../Admin/Retention/RetentionPolicyPage'));
-const ProcessingNoticePage = React.lazy(() => import('../Admin/ProcessingNotice/ProcessingNoticePage'));
-const GeolocationPolicyPage = React.lazy(() => import('../Admin/Geolocation/GeolocationPolicyPage'));
 const PositionTrackingPage = React.lazy(() => import('../Admin/PositionTracking/PositionTrackingPage'));
 const SoldeCongeModern = React.lazy(() => import('../gestionEmploye/gestionConge/SoldeConge/SoldeCongeModern'));
 const SoldeCongeAdmin = React.lazy(() => import('../gestionEmploye/gestionConge/SoldeConge/SoldeCongeAdmin'));
@@ -183,7 +181,7 @@ interface OpenedTab {
 /* ══════════════════════════════════════════════════════ */
 const useNavigationItems = (): NavGroup[] => {
   const { t } = useTranslation();
-  const { authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, isTrialing } = useAuth();
+  const { authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, isTrialing, countryCode } = useAuth();
 
   // PERF — Toute la construction d'allGroups (~250 lignes de spreads conditionnels et
   // de filtres) est mémoïsée. Avant, chaque render du layout reconstruisait l'array
@@ -352,7 +350,8 @@ const useNavigationItems = (): NavGroup[] => {
           ...(planAllows('missions') ? [{ label: t('navigation.missions'), href: '/dashboard/missions', icon: Briefcase }] : []),
           // Renouvellement de contrat : intégré directement dans la liste des contrats (bouton
           // "Renouveler" par ligne) et dans le dashboard (KPI échéance contrat → dialog).
-          ...(canSee('allaitement') && planAllows('breastfeedingManagement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
+          // NB : "Allaitement" a été déplacé vers le groupe "Congés & Validations" (c'est un
+          // congé/aménagement et non une donnée du personnel) — cf. plus bas.
           ...(canSee('coffre-fort') && planAllows('digitalVault') ? [{ label: t('navigation.vault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
           ...(canSee('admin-vault') && planAllows('digitalVault') ? [{ label: t('navigation.vaultGlobalView'), href: '/dashboard/admin-vault', icon: Eye }] : []),
         ],
@@ -387,8 +386,13 @@ const useNavigationItems = (): NavGroup[] => {
           ...((isAdminEffective || isManager) && canSee('validation-absence') ? [{ label: t('navigation.absenceValidation'), href: '/dashboard/validation-absence', icon: CheckSquare }] : []),
           ...((isAdminEffective || isManager) && canSee('validation-teletravail') ? [{ label: t('navigation.remoteWorkValidation'), href: '/dashboard/validation-teletravail', icon: CheckSquare }] : []),
           ...(canSee('gestion-de-solde') ? [{ label: t('navigation.leaveBalance'), href: '/dashboard/gestion-de-solde', icon: CalendarCheck }] : []),
+          // Allaitement : rattaché à la gestion des congés/aménagements (déplacé depuis
+          // "Gestion du Personnel" à la demande métier).
+          ...(canSee('allaitement') && planAllows('breastfeedingManagement') ? [{ label: t('navigation.breastfeeding'), href: '/dashboard/allaitement', icon: Baby }] : []),
           ...(canSee('titre-de-conge') ? [{ label: t('navigation.leaveTitle'), href: '/dashboard/titre-de-conge', icon: Notebook }] : []),
-          ...(canSee('titre-de-conge-general') && planAllows('generalLeave') ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
+          // Congé Général : notion propre aux régimes hors Europe. Masqué pour les
+          // sociétés européennes (FR/BE) où elle n'a pas de sens réglementaire.
+          ...(canSee('titre-de-conge-general') && planAllows('generalLeave') && !['FR', 'BE'].includes((countryCode || '').toUpperCase()) ? [{ label: t('navigation.generalLeave'), href: '/dashboard/titre-de-conge-general', icon: CalendarMinus }] : []),
           // Notes de frais : module facturable (PlanFeatures.expenseReports) —
           // exclu du Starter. Sans ce gate, /dashboard/remboursement s'ouvrait
           // côté UI mais NoteDeFraisController renvoyait 402 à toute requête.
@@ -504,8 +508,6 @@ const useNavigationItems = (): NavGroup[] => {
           // sidebar — les composants existaient mais étaient orphelins.
           ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.auditLogs', "Journaux d'audit"), href: '/dashboard/audit-logs', icon: History }] : []),
           ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.retentionPolicy', 'Rétention RGPD'), href: '/dashboard/retention-rgpd', icon: Shield }] : []),
-          ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.processingNotice', 'Notice RGPD'), href: '/dashboard/notice-rgpd', icon: Shield }] : []),
-          ...(planAllows('advancedAuditLogs') ? [{ label: t('navigation.geolocationPolicy', 'Géolocalisation RGPD'), href: '/dashboard/geolocation-rgpd', icon: Shield }] : []),
           { label: t('navigation.companyParameter'), href: '/dashboard/societe', icon: Building2 },
           { label: t('navigation.companyCalendar'), href: '/dashboard/calendrier-societe', icon: CalendarDays },
           // 2026-05-26 — Entrée "API & Intégrations" visible UNIQUEMENT quand l'addon
@@ -540,7 +542,7 @@ const useNavigationItems = (): NavGroup[] => {
     return allGroups.filter(
       (g) => g.items === undefined || g.items.length > 0 || g.href === '/dashboard'
     );
-  }, [authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, isTrialing, t]);
+  }, [authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, isTrialing, countryCode, t]);
 };
 
 /* ══════════════════════════════════════════════════════ */
@@ -621,8 +623,6 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/validation-absence': content = <DemandeAbsenceValidation />; break;
     case '/dashboard/audit-logs': content = <AuditLogsPage />; break;
     case '/dashboard/retention-rgpd': content = <RetentionPolicyPage />; break;
-    case '/dashboard/notice-rgpd': content = <ProcessingNoticePage />; break;
-    case '/dashboard/geolocation-rgpd': content = <GeolocationPolicyPage />; break;
     case '/dashboard/suivi-positions': content = <PositionTrackingPage />; break;
     case '/dashboard/validation-heures-sup': content = <HeuresSupValidation />; break;
     case '/dashboard/demande-heures-sup': content = <DemandeHeuresSuppModern />; break;

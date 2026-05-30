@@ -173,9 +173,12 @@ namespace ABRPOINT.Server.Controllers
                 if (applyChanges)
                 {
                     s.Cetjours = (s.Cetjours ?? 0f) + transfer;
-                    // Le reste éventuel au-delà du plafond est perdu (règle métier classique
-                    // française : "ce qui n'a pas été pris ni transféré au CET tombe").
-                    s.Conge = pris; // Solde restant remis à zéro pour l'année.
+                    // On retire UNIQUEMENT les jours transférés vers le CET ; le reste du
+                    // solde (droit + affectation manuelle non transférée) est CONSERVÉ.
+                    // Avant, `s.Conge = pris` remettait le droit à la seule part consommée,
+                    // ce qui détruisait l'affectation de solde (ex : solde 22, transfert 10 →
+                    // le congé payé tombait à ~2 au lieu de 12). Décrément simple = 22-10=12.
+                    s.Conge = alloue - transfer;
                 }
 
                 result.Details.Add(new CetTransferLine

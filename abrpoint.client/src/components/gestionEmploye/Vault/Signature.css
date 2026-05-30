@@ -467,16 +467,25 @@
   gap: 0.75rem;
   cursor: pointer;
   font-size: 0.75rem;
-  color: #64748b;
+  /* #64748b (slate-500) manquait de contraste sur fond clair → texte de consentement
+     peu lisible. Passage en slate-700 pour respecter le contraste minimal. */
+  color: #334155;
   line-height: 1.5;
 }
 
 .sig-checkbox {
-  width: 16px;
-  height: 16px;
-  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
   accent-color: #0040a1;
   flex-shrink: 0;
+  cursor: pointer;
+  /* La case à cocher native (gris très clair) était quasi invisible sur le fond
+     clair de la carte → l'utilisateur ne voyait pas qu'il fallait cocher. On la
+     cerne d'un liseré : box-shadow s'applique sur l'input natif là où `border`
+     est ignoré par la plupart des navigateurs. */
+  box-shadow: 0 0 0 1.5px #64748b;
+  border-radius: 4px;
 }
 
 /* Security chip */

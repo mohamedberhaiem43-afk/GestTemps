@@ -91,9 +91,13 @@ function EtatRetard() {
   const { t } = useTranslation();
   const { soccod, hasPermission } = useAuth();
 
-  if (!hasPermission('Rapports et Statistiques', 'consult')) {
-    return <AccessDenied message={t('etats.retard.noConsultRight')} />;
-  }
+  // ⚠️ Ne PAS faire de return anticipé ici : hasPermission renvoie false au 1ᵉʳ
+  // rendu (permissions vides tant que /me n'a pas répondu) puis true ensuite. Un
+  // return placé avant les hooks ci-dessous changeait le NOMBRE de hooks exécutés
+  // entre deux rendus → « Rendered more hooks than during the previous render »
+  // → crash/écran blanc dès l'ouverture de la page. On évalue le droit ici et on
+  // ne fait le return qu'APRÈS tous les hooks (juste avant le JSX principal).
+  const canConsult = hasPermission('Rapports et Statistiques', 'consult');
 
   const {
     filiale,
@@ -324,6 +328,12 @@ function EtatRetard() {
 
   const openDrawer = (row: RetardRow) => { setSelectedRow(row); setDrawerOpen(true); };
   const closeDrawer = () => { setDrawerOpen(false); setTimeout(() => setSelectedRow(null), 300); };
+
+  // Garde de permission : placée APRÈS tous les hooks pour ne jamais varier leur
+  // nombre d'un rendu à l'autre (cf. note sur canConsult plus haut).
+  if (!canConsult) {
+    return <AccessDenied message={t('etats.retard.noConsultRight')} />;
+  }
 
   return (
     <div className="ea-page">

@@ -345,8 +345,6 @@
     "ragAudit": "AI History",
     "auditLogs": "Audit logs",
     "retentionPolicy": "GDPR retention",
-    "processingNotice": "GDPR notice",
-    "geolocationPolicy": "GDPR geolocation",
     "recent": "Recent",
     "account": "Account",
     "myProfile": "My Profile",
@@ -946,8 +944,8 @@
       "pendingFooter_other": "{{count}} pending alerts",
       "allTreated": "All alerts have been processed",
       "confirmTreatment": "Confirm processing",
-      "successProcessed_one": "{{count}} alert processed successfully",
-      "successProcessed_other": "{{count}} alerts processed successfully"
+      "successProcessed_one": "{{count}} alert triaged for this session",
+      "successProcessed_other": "{{count}} alerts triaged for this session"
     },
     "errors": {
       "selectEmployee": "Select an employee",
@@ -5190,13 +5188,13 @@
       "generateAndDownload": "Generate and download",
       "polishWithAi": "Polish writing with AI",
       "polishHint": "Claude will rewrite the tone in formal French. Informative content and names remain unchanged.",
-      "placeholdersHelp": "Available variables: {{empnom}}, {{empprenom}}, {{empcod}}, {{empcin}}, {{empadr}}, {{emptel}}, {{empfonc}}, {{empemb}}, {{soclib}}, {{socadr}}, {{socville}}, {{socemail}}, {{soctel}}, {{contype}}, {{condat}}, {{today}}.",
-      "bodyPlaceholder": "<p>Dear {{empnom}},</p><p>We confirm your appointment as {{empfonc}} starting on {{empemb}}…</p>",
+      "placeholdersHelp": "Write your letter in plain text. Insert the following variables wherever you like, they will be replaced automatically: {{empnom}}, {{empprenom}}, {{empcod}}, {{empcin}}, {{empadr}}, {{emptel}}, {{empfonc}}, {{empemb}}, {{soclib}}, {{socadr}}, {{socville}}, {{socemail}}, {{soctel}}, {{contype}}, {{condat}}, {{today}}.",
+      "bodyPlaceholder": "Dear {{empnom}},\n\nWe confirm your appointment as {{empfonc}} starting on {{empemb}}…",
       "field": {
         "name": "Template name",
         "category": "Category",
         "description": "Description",
-        "body": "HTML body",
+        "body": "Letter body",
         "employee": "Employee"
       },
       "col": {

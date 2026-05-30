@@ -260,7 +260,6 @@ function LetterTemplatesModernContent() {
               multiline
               minRows={10}
               placeholder={t('rag.letters.bodyPlaceholder') as string}
-              sx={{ fontFamily: 'monospace' }}
             />
             <Alert severity="info" variant="outlined">
               {t('rag.letters.placeholdersHelp')}

@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Box, Typography, Button, Snackbar, Alert, CircularProgress,
-  Checkbox, List, ListItem, ListItemButton, ListItemText, ListItemIcon,
+  Checkbox, FormControlLabel, List, ListItem, ListItemButton, ListItemText, ListItemIcon,
 } from '@mui/material';
 import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -16,6 +16,7 @@ import GavelIcon from '@mui/icons-material/Gavel';
 import PeopleIcon from '@mui/icons-material/People';
 // Filtre Abscng='B' (Autorisation) — cohérent avec SaisieAutSortie + DemandeAutorisation.
 import useGetAutorisationLibs from '../../../../../hooks/absenceHooks/useGetAutorisationLibs';
+import useGetAllAbsences from '../../../../../hooks/absenceHooks/useGetAllAbsence';
 import useGetEmployee from '../../../../../hooks/employeHooks/useGetEmployee';
 import useAddBulkSortie from '../../../../../hooks/sortieHooks/useAddBulkSortie';
 import useGetSortie from '../../../../../hooks/sortieHooks/useGetSortie';
@@ -46,6 +47,9 @@ function AutSortieGeneraleContent() {
   const [condat, setCondat] = useState<[Dayjs | null, Dayjs | null]>([dayjs(), dayjs()]);
   const [checkedEmployees, setCheckedEmployees] = useState<Set<string>>(new Set());
   const [showExceptionList, setShowExceptionList] = useState(false);
+  // Autorisation de sortie : pré-cochée selon le défaut de la nature sélectionnée
+  // (champ "Autoriser"/absaut de l'intitulé), décochable. Persistée dans consanc.
+  const [autorise, setAutorise] = useState(true);
 
   // UI state
   const [snack, setSnack] = useState({ open: false, msg: '', sev: 'success' as any });
@@ -60,6 +64,15 @@ function AutSortieGeneraleContent() {
     }
     return [];
   }, [absencesRaw]);
+
+  // Natures complètes (avec absaut) pour le défaut d'autorisation par nature.
+  const { data: allAbsences = [] } = useGetAllAbsences();
+  const absautMap = useMemo(() => {
+    const src = Array.isArray(allAbsences) ? allAbsences : ((allAbsences as any)?.$values ?? []);
+    const m: Record<string, number> = {};
+    for (const a of src) if (a?.abscod != null) m[a.abscod] = a.absaut ?? 0;
+    return m;
+  }, [allAbsences]);
 
   const { data: employesRaw } = useGetEmployee();
   const employes = useMemo(() => {
@@ -83,6 +96,13 @@ function AutSortieGeneraleContent() {
     }
     return 0;
   }, [condat]);
+
+  // Repositionne le défaut d'autorisation au changement de nature (?? 1 : autorisé
+  // par défaut si la nature n'expose pas absaut).
+  useEffect(() => {
+    if (!abscod) return;
+    setAutorise((absautMap[abscod] ?? 1) === 1);
+  }, [abscod, absautMap]);
 
   const toggleEmployee = (empcod: string) => {
     const next = new Set(checkedEmployees);
@@ -115,7 +135,8 @@ function AutSortieGeneraleContent() {
       abscod,
       soccod: soccod || '01',
       conmotif,
-      conref
+      conref,
+      consanc: autorise ? 'N' : 'O',
     }));
 
     addBulkSortie(payload, {
@@ -138,6 +159,7 @@ function AutSortieGeneraleContent() {
     setCondat([dayjs(), dayjs()]);
     setCheckedEmployees(new Set());
     setShowExceptionList(false);
+    setAutorise(true);
     refetch();
   };
 
@@ -300,6 +322,11 @@ function AutSortieGeneraleContent() {
                        rows={5}
                        value={conmotif}
                        onChange={(e) => setConmotif(e.target.value)}
+                    />
+                    <FormControlLabel
+                       sx={{ mt: 1 }}
+                       control={<Checkbox size="small" checked={autorise} onChange={(e) => setAutorise(e.target.checked)} />}
+                       label={<Typography sx={{ fontSize: '13px', color: '#334155' }}>{t('autSortie.exitAuthorized', { defaultValue: 'Autorisation de sortie' })}</Typography>}
                     />
                  </Box>
               </Box>
