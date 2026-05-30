@@ -38,6 +38,10 @@
         public float? HreSamediTrv { get; set; }
         public float? ResHreSamediTrv { get; set; }
         public float? NbHeuresDebutCalcul { get; set; }
+        // Télétravail (axe A/D/E) : nb de jours télétravaillés sur la période (auto-présence
+        // + jours TT pointés) et montant d'indemnité forfaitaire associé.
+        public float? NbJoursTeletravail { get; set; }
+        public float? MontantIndemniteTeletravail { get; set; }
         public IDictionary<string, string> WeekDetails { get; set; }
         // Dates within the employee's employment period for which no poste could be resolved
         // (neither via Lcategories nor via the employee's default Poscod). Surfaced to the UI as a warning.

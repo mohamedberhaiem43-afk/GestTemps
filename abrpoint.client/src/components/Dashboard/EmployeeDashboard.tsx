@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import useGetDemConges from '../../hooks/congeHooks/useGetDemConges';
 import useGetProfile from '../../hooks/profileHooks/useGetProfile';
 import useGetMyKPIs from '../../hooks/useGetMyKPIs';
+import useGetSoldeByEmp from '../../hooks/soldeCongeHooks/useGetSoldeByEmp';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../helper/AuthProvider';
 import { useCountUp } from '../helper/animations/useCountUp';
@@ -50,6 +51,9 @@ export default function EmployeeDashboard() {
   const { data: profile, isLoading: loadingProfile } = useGetProfile();
   const { data: kpiData, isLoading: loadingKPIs } = useGetMyKPIs(soccod ?? undefined, uticod ?? undefined);
   const { data: leaveRequests } = useGetDemConges();
+  // Solde CET (Compte Épargne Temps) — lu sur la ligne Solde de l'employé (cf. page Solde).
+  const { data: soldeData } = useGetSoldeByEmp(uticod ?? '');
+  const cetSolde = (soldeData as any)?.cetjours ?? 0;
 
   // Dernier document publié dans le coffre numérique de l'employé connecté.
   // Remplace le placeholder hard-codé « Guide de la Politique de Télétravail 2024 »
@@ -185,6 +189,7 @@ export default function EmployeeDashboard() {
   const animatedPending = useCountUp(kpis.pending, { decimals: 0 });
   const animatedPercent = useCountUp(kpis.workedPercent ?? 0, { decimals: 0 });
   const animatedRttSolde = useCountUp(kpis.rtt?.solde ?? 0, { decimals: 1 });
+  const animatedCet = useCountUp(cetSolde, { decimals: 1 });
 
   // Heures cibles par jour ouvré pour la ligne pointillée. Calculé à partir de l'objectif
   // hebdo réel et du nombre de jours planifiés (jours sans repos/férié/congé). Fallback 7h.
@@ -306,8 +311,9 @@ export default function EmployeeDashboard() {
         )}
       </section>
 
-      {/* KPI Bento Row — passe à 4 colonnes si l'employé a un solde RTT à afficher. */}
-      <section className={`grid grid-cols-1 ${kpis.rtt ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-6 mb-10`}>
+      {/* KPI Bento Row — colonnes adaptatives : congés + temps + en attente, plus
+          RTT (si éligible) et CET. On garde 2 colonnes en tablette puis on densifie. */}
+      <section className={`grid grid-cols-1 sm:grid-cols-2 ${kpis.rtt ? 'xl:grid-cols-5' : 'xl:grid-cols-4'} gap-6 mb-10`}>
         <div className="bg-white p-6 rounded-xl border border-transparent shadow-sm hover:border-slate-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-blue-50 text-[#0040a1] rounded-xl flex items-center justify-center">
@@ -378,6 +384,25 @@ export default function EmployeeDashboard() {
             </div>
           </div>
         )}
+
+        {/* Carte CET — Compte Épargne Temps cumulé du salarié. */}
+        <div className="bg-white p-6 rounded-xl border border-transparent shadow-sm hover:border-slate-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center">
+              <span className="material-symbols-outlined">savings</span>
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('employeeDashboard.cet', { defaultValue: 'Compte Épargne Temps' })}</span>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-['Manrope'] font-black text-[#191c1e]">{animatedCet}</span>
+            <span className="text-slate-400 font-medium">{t('employeeDashboard.cetDays', { defaultValue: 'jours épargnés' })}</span>
+          </div>
+          <p className="mt-4 text-xs text-violet-600 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
+             onClick={() => navigate('/dashboard/alimenter-cet')}>
+            <span className="material-symbols-outlined text-[14px]">add_circle</span>
+            {t('employeeDashboard.cetFeed', { defaultValue: 'Alimenter le CET' })}
+          </p>
+        </div>
       </section>
 
       {/* Main Content Area */}

@@ -45,7 +45,7 @@ interface AlimentationLine {
 
 const CetPage: React.FC = () => {
   const { t } = useTranslation();
-  const { soccod, hasPermission } = useAuth();
+  const { soccod, hasPermission, isAdmin, isManager } = useAuth();
   const [datelim, setDatelim] = useState('31-05');
   const [maxJours, setMaxJours] = useState<number>(10);
   const [requireValidation, setRequireValidation] = useState<boolean>(true);
@@ -58,6 +58,10 @@ const CetPage: React.FC = () => {
   const feedback = useFeedbackSnackbar();
 
   const canModify = hasPermission('Données de Base', 'modify');
+  // La validation des demandes d'alimentation est ouverte aux décideurs (admin/manager/RH),
+  // alignée sur l'autorisation backend (CetController.ResolveCaller). Distinct de canModify
+  // qui régit les paramètres + le transfert collectif (réservés à « Données de Base »).
+  const canValidate = isAdmin || isManager;
 
   // Charge l'état réel des soldes CET cumulés par salarié (vue de consultation permanente,
   // indépendante de l'aperçu/transfert). La réponse .NET peut être enveloppée ($values).
@@ -123,7 +127,9 @@ const CetPage: React.FC = () => {
     }
   };
 
-  if (!hasPermission('Données de Base', 'consult')) {
+  // Admin/manager/RH accèdent à la page (au moins pour valider les alimentations) ;
+  // les autres rôles requièrent la permission « Données de Base » en consultation.
+  if (!canValidate && !hasPermission('Données de Base', 'consult')) {
     return <AccessDenied message={t('conge.cet.noConsult')} />;
   }
 
@@ -259,11 +265,11 @@ const CetPage: React.FC = () => {
                   <TableCell>{a.abslib || a.abscod}</TableCell>
                   <TableCell align="right">{a.nbjours.toFixed(1)} j</TableCell>
                   <TableCell align="right">
-                    <Button size="small" variant="contained" onClick={() => approveAlim(a.id)} disabled={!canModify || loading}
+                    <Button size="small" variant="contained" onClick={() => approveAlim(a.id)} disabled={!canValidate || loading}
                       sx={{ mr: 1, bgcolor: '#16a34a', textTransform: 'none', '&:hover': { bgcolor: '#15803d' } }}>
                       {t('conge.cet.alim.approve', { defaultValue: 'Approuver' })}
                     </Button>
-                    <Button size="small" variant="outlined" color="error" onClick={() => refuseAlim(a.id)} disabled={!canModify || loading}
+                    <Button size="small" variant="outlined" color="error" onClick={() => refuseAlim(a.id)} disabled={!canValidate || loading}
                       sx={{ textTransform: 'none' }}>
                       {t('conge.cet.alim.refuse', { defaultValue: 'Refuser' })}
                     </Button>

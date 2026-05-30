@@ -857,6 +857,8 @@ const EmployeModernInner = () => {
             empRttJoursAnnuel: numOrNull(formData.empRttJoursAnnuel),
             empRttHeuresContrat: numOrNull(formData.empRttHeuresContrat),
             empRttForfaitJours: numOrNull(formData.empRttForfaitJours),
+            // Télétravail — éligibilité ('0' = non éligible ; '1'/défaut = éligible).
+            empTeletravailEligible: formData.empTeletravailEligible === '0' ? '0' : '1',
         };
         const onSuccess = async (res: any) => {
             queryClient.invalidateQueries({ queryKey: ['employe'] });
@@ -1699,6 +1701,21 @@ const EmployeModernInner = () => {
                                                 />
                                             </Box>
                                         )}
+                                    </Box>
+                                    {/* Éligibilité au télétravail — par défaut éligible ; '0' bloque
+                                        la soumission de demandes côté salarié (cf. TeletravailController). */}
+                                    <Box sx={{ mt: 2, maxWidth: 280 }}>
+                                        <Typography sx={labelStyle}>{t('teletravail.eligibility.label', { defaultValue: 'Éligibilité au télétravail' })}</Typography>
+                                        <FormControl fullWidth size="small">
+                                            <Select
+                                                value={formData.empTeletravailEligible === '0' ? '0' : '1'}
+                                                onChange={handleSelect('empTeletravailEligible')}
+                                                sx={selectStyle}
+                                            >
+                                                <MenuItem value="1">{t('teletravail.eligibility.yes', { defaultValue: 'Éligible' })}</MenuItem>
+                                                <MenuItem value="0">{t('teletravail.eligibility.no', { defaultValue: 'Non éligible' })}</MenuItem>
+                                            </Select>
+                                        </FormControl>
                                     </Box>
                                 </Paper>
 

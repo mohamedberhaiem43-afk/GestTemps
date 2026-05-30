@@ -266,4 +266,32 @@ public class CongeCetSoldeIntegrationTests
         ok.Should().BeTrue();
         (await db.Soldes.FirstAsync()).Cetjours.Should().Be(5f, "8 - 3 jours pris sur le CET");
     }
+
+    [Fact]
+    public async Task Scenario_AcceptCetLeave_ByAbscngE_DecrementsCetjours()
+    {
+        // Variante : le type CET est reconnu aussi par son imputation Abscng='E'
+        // (catégorie dédiée seedée par défaut), pas seulement par Absprendcet.
+        await using var db = NewContext("scenario-cet-leave-abscng");
+        db.Absences.Add(new Absence { Soccod = Soc, Abscod = "CET", Abslib = "Congé CET", Abscng = "E" });
+        db.Soldes.Add(new Solde { Soccod = Soc, Empcod = Emp, Annee = "2026", Cetjours = 6f });
+        db.Demconges.Add(new Demconge
+        {
+            Soccod = Soc, Concod = "D2606002", Empcod = Emp, Abscod = "CET",
+            Connbjour = 2f, Condep = new DateTime(2026, 6, 1), Conret = new DateTime(2026, 6, 3),
+        });
+        await db.SaveChangesAsync();
+
+        var repo = new ABRPOINT.Server.Repository.DemCongeRepository(
+            db,
+            Mock.Of<IUtilisateurRepository>(),
+            Mock.Of<IEmailService>(),
+            Mock.Of<ABRPOINT.Server.CalculService.Rtt.IRttCalculationService>(),
+            Mock.Of<ILogger<ABRPOINT.Server.Repository.DemCongeRepository>>());
+
+        var (ok, _) = await repo.AcceptDemCongeAsync(Soc, "D2606002", Emp);
+
+        ok.Should().BeTrue();
+        (await db.Soldes.FirstAsync()).Cetjours.Should().Be(4f, "6 - 2 jours pris sur le CET");
+    }
 }

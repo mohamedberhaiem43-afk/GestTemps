@@ -11,7 +11,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import {
     UploadCloud, Info,
-    Receipt, Trash2, ChevronLeft, ChevronRight, Download,
+    Receipt, Trash2, ChevronLeft, ChevronRight, Upload,
     Filter, Send, FileText, ShieldCheck, Ban, Banknote,
 } from 'lucide-react';
 import './RemboursementModern.css';
@@ -540,7 +540,7 @@ function RemboursementModernContent() {
                                     <Filter size={13} /> {t('remboursement.table.filter')}
                                 </button>
                                 <button className="rmb-toolbar-btn" onClick={handleExportCSV}>
-                                    <Download size={13} /> {t('remboursement.table.exportCsv')}
+                                    <Upload size={13} /> {t('remboursement.table.exportCsv')}
                                 </button>
                             </div>
                         </div>

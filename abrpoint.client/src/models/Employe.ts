@@ -65,6 +65,8 @@ export default interface Employe {
     empRttHeuresContrat?: number | null;
     /** Méthode 'F' : nombre de jours du forfait annuel (218 par défaut). */
     empRttForfaitJours?: number | null;
+    /** Éligibilité télétravail : '0' = non éligible ; null/'1' = éligible (défaut). */
+    empTeletravailEligible?: string | null;
     utirole?: string;
     /** Photo de profil de l'utilisateur lié (Utilisateurs.Utiimg). Renseigné
      *  par la jointure server-side dans GET /Employes/{soccod}/{uticod}. */

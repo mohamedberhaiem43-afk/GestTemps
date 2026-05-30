@@ -64,6 +64,9 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         public int? Panier { get; set; }
         public float? JourSamediTrv { get; set; }
         public float? HreSamediTrv { get; set; }
+        // Télétravail (axe A/D/E) : jours télétravaillés de la semaine + indemnité forfaitaire.
+        public float? NbJoursTeletravail { get; set; }
+        public float? MontantIndemniteTeletravail { get; set; }
         public IDictionary<string, string> WeekDetails { get; set; } = new Dictionary<string, string>();
         public DateTime? WeekStartDate { get; set; }
         public float? NbHeuresDebutCalcul { get; set; }
@@ -297,6 +300,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 result.JourRepos = res.JourRepos;
                 result.Deplacement = res.Deplacement;
                 result.NbJours = res.NbJours;
+                result.NbJoursTeletravail = res.NbJoursTeletravail;
+                result.MontantIndemniteTeletravail = res.MontantIndemniteTeletravail;
                 result.CSF = res.CSF;
                 result.MAP = res.MAP;
                 result.Absj = res.Absj;
@@ -473,6 +478,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     result.HeureRepos = res.HeureRepos;
                     result.JourRepos = res.JourRepos;
                     result.Deplacement = res.Deplacement;
+                    result.NbJoursTeletravail = res.NbJoursTeletravail;
+                    result.MontantIndemniteTeletravail = res.MontantIndemniteTeletravail;
                     result.CSF = res.CSF;
                     result.MAP = res.MAP;
                     result.Absj = res.Absj;

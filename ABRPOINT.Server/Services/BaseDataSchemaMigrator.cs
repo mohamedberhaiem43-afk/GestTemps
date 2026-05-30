@@ -49,6 +49,19 @@ public static class BaseDataSchemaMigrator
         // (besoin 2). Drapeau dédié plutôt qu'une valeur Abscng (la valeur 'C' est déjà
         // utilisée pour « Complément Jour/Forfait »).
         await AddColumnIfMissingAsync(db, "absence", "absprendcet", "VARCHAR(1) NULL", ct);
+
+        // Télétravail — politique société (2026-05-30) :
+        //   - parttmaxsem : quota de jours de télétravail par semaine (0/null = pas de quota).
+        //   - parttprevenance : délai de prévenance minimum en jours avant le début (0/null = aucun).
+        // + éligibilité par salarié (emp_teletravail_eligible : "0" = non éligible ; null/"1" = éligible).
+        await AddColumnIfMissingAsync(db, "parametre", "parttmaxsem", "REAL NULL", ct);
+        await AddColumnIfMissingAsync(db, "parametre", "parttprevenance", "INTEGER NULL", ct);
+        await AddColumnIfMissingAsync(db, "employe", "emp_teletravail_eligible", "VARCHAR(1) NULL", ct);
+        // Télétravail — paie / indemnités (2026-05-30, axe E) :
+        //   - parttindemnite : indemnité forfaitaire par jour télétravaillé (montant). 0/null = aucune.
+        //   - parttneutralisetr : "1" = ne pas compter le ticket-restaurant / panier les jours TT.
+        await AddColumnIfMissingAsync(db, "parametre", "parttindemnite", "REAL NULL", ct);
+        await AddColumnIfMissingAsync(db, "parametre", "parttneutralisetr", "VARCHAR(1) NULL", ct);
         // Société : ville séparée du numéro de rue (champ socadr existant).
         // ⚠ La table société est mappée "Societe" (PascalCase) par EF Core
         // (ApplicationDbContext.ToTable("Societe")) — PG la stocke donc sensible
@@ -206,6 +219,10 @@ public static class BaseDataSchemaMigrator
         // parametre.parcetvalidation). Table dédiée, distincte de demconge : pas de
         // dates de congé, juste un nombre de jours + un type source. Cf. CetController.
         await EnsureDemAlimentationCetTableAsync(db, ct);
+
+        // Seed CET (2026-05-30) — tenants existants : aligne la config CET sur le seed
+        // de provisioning (cf. ProvisioningService.SeedInitialAsync).
+        await SeedCetAbsencesAsync(db, ct);
 
         // Tables mobiles + notifications + known_devices : on délègue à MobileTablesInstaller
         // qui sait déjà créer push_tokens, notifications, notification_preferences,
@@ -505,6 +522,44 @@ CREATE INDEX IF NOT EXISTS ix_demande_absence_soccod_status
 CREATE INDEX IF NOT EXISTS ix_demande_absence_empcod_start
     ON demande_absence (empcod, start_date DESC);", ct);
         return created;
+    }
+
+    /// <summary>
+    /// Seed CET pour les tenants déjà provisionnés (le seed de provisioning ne couvre que
+    /// les nouveaux). Idempotent :
+    ///   1. marque les types Congé payé ("0") et RTT ("R") comme « peut alimenter le CET »
+    ///      là où le drapeau n'a jamais été défini (NULL) — pour qu'ils apparaissent dans
+    ///      l'écran d'alimentation salarié sans config manuelle ;
+    ///   2. crée un type d'absence « CET » (Abscng='E', Absprendcet='1') par société qui n'en
+    ///      a pas — pour poser un congé financé par le CET.
+    /// ⚠ La table société est mappée "Societe" (PascalCase) par EF Core — on garde les
+    /// guillemets dans le FROM pour matcher l'identifiant réel en base.
+    /// </summary>
+    private static async Task SeedCetAbsencesAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        try
+        {
+            if (!await TableExistsAsync(db, "absence", ct)) return;
+
+            await db.Database.ExecuteSqlRawAsync(
+                "UPDATE absence SET abspeutcet = '1' WHERE abspeutcet IS NULL AND abscng IN ('0','R');", ct);
+
+            if (await TableExistsAsync(db, "Societe", ct))
+            {
+                await db.Database.ExecuteSqlRawAsync(@"
+INSERT INTO absence (abscod, soccod, abslib, abscng, abspayer, absunite, absprendcet)
+SELECT 'CET', s.soccod, 'Congé CET', 'E', 'O', 'J', '1'
+FROM ""Societe"" s
+WHERE NOT EXISTS (
+    SELECT 1 FROM absence a WHERE a.soccod = s.soccod AND (a.abscng = 'E' OR a.abscod = 'CET')
+);", ct);
+            }
+        }
+        catch
+        {
+            // Best-effort : un échec de seed (table société absente, course au démarrage…)
+            // ne doit jamais empêcher l'application de démarrer. Retenté au prochain boot.
+        }
     }
 
     private static async Task<bool> EnsureDemAlimentationCetTableAsync(ApplicationDbContext db, CancellationToken ct)

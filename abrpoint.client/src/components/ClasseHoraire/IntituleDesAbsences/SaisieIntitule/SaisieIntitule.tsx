@@ -347,6 +347,9 @@ export default function SaisieIntitule() {
                   <Grid item xs={2}>
                     <FormControlLabelComponent radioValue="V" label="Avertissement (V)" />
                   </Grid>
+                  <Grid item xs={3}>
+                    <FormControlLabelComponent radioValue="E" label="Compte Épargne Temps (CET)" />
+                  </Grid>
               </RadioGroupComponent>
 
             </Grid>

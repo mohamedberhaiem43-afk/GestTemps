@@ -4,7 +4,7 @@ import { Box, Typography, Button } from '@mui/material';
 import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import { useTranslation } from 'react-i18next';
 import SaveIcon from '@mui/icons-material/Save';
-import DownloadIcon from '@mui/icons-material/Download';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import FingerprintIcon from '@mui/icons-material/Fingerprint';
@@ -283,7 +283,7 @@ function SocieteModernContent() {
           <Typography className="soc-subtitle">{t('societe.subtitle')}</Typography>
         </Box>
         <Box className="soc-header-actions">
-          <Button className="soc-export-btn" startIcon={<DownloadIcon />} onClick={handleExport}>
+          <Button className="soc-export-btn" startIcon={<FileUploadIcon />} onClick={handleExport}>
             {t('societe.export')}
           </Button>
           {canAdd && !isEditMode && (

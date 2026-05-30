@@ -7,7 +7,6 @@ import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import WorkHistoryIcon from '@mui/icons-material/WorkHistory';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import DownloadIcon from '@mui/icons-material/FileUpload';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import EventIcon from '@mui/icons-material/Event';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -554,16 +553,11 @@ function SoldeCongeModernInner() {
             </Paper>
           </Box>
 
-          {/* Info card */}
-          <Paper className="scm-info-card">
-            <Box className="scm-info-header">
-              <AutoAwesomeIcon sx={{ color: '#93c5fd', fontSize: 20 }} />
-              <Typography className="scm-info-title">{t('conge.soldeConge.info.rolloverTitle')}</Typography>
-            </Box>
-            <Typography className="scm-info-text">
-              {t('conge.soldeConge.info.rolloverText')}
-            </Typography>
-          </Paper>
+          {/* Carte « Règle de report » retirée (2026-05-30) : elle annonçait un
+              transfert AUTOMATIQUE des congés non pris vers le CET au 31 mai, ce qui
+              est faux — le transfert est une action MANUELLE (transfert collectif admin
+              + alimentation à l'initiative du salarié). Message trompeur supprimé pour
+              ne pas laisser croire à une automatisation inexistante. */}
         </Box>
       </Box>
       </>

@@ -257,6 +257,26 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             Dictionary<DateTime, float> ferierHours = await _posteRepository.GetJourHeuresByPeriod(soccod, cache.FerierDates.ToList(), cache.PostesByDate);
             cache.FerierHoursByDate = ferierHours;
 
+            // 🆕 Télétravail (axe A) : jours couverts par une demande APPROUVÉE chevauchant la
+            // période. On déplie chaque plage [StartDate, EndDate] sur les dates de la période
+            // pour pouvoir, dans ProcessDay, traiter un jour TT non pointé comme présent.
+            var ttRanges = await _dbContext.Teletravails.AsNoTracking()
+                .Where(t => t.Soccod == soccod && t.Empcod == empcod && t.Status == "Approved"
+                            && t.StartDate.Date <= endDate.Date && t.EndDate.Date >= startDate.Date)
+                .Select(t => new { t.StartDate, t.EndDate })
+                .ToListAsync();
+            foreach (var d in allDates)
+                if (ttRanges.Any(r => r.StartDate.Date <= d.Date && r.EndDate.Date >= d.Date))
+                    cache.TeletravailDates.Add(d.Date);
+
+            // 🆕 Politique paie télétravail (axe E) : indemnité forfaitaire + neutralisation TR.
+            var ttParam = await _dbContext.Parametres.AsNoTracking()
+                .Where(p => p.Soccod == soccod)
+                .Select(p => new { p.Parttindemnite, p.Parttneutralisetr })
+                .FirstOrDefaultAsync();
+            cache.TtIndemnite = ttParam?.Parttindemnite ?? 0f;
+            cache.TtNeutraliseTr = ttParam?.Parttneutralisetr == "1";
+
             return cache;
         }
         private EmpparamPointageMois EnrichEmpparamWithPoste(EmpparamPointageMois baseParam,DateTime date,string codPoste,Dictionary<string, Poste> postesCache)
@@ -415,6 +435,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
             bool isFerier = cache.FerierDates.Contains(date.Date);
             bool isRepos = cache.ReposByDate.TryGetValue(date.Date, out var r) && r;
+            bool isTeletravail = cache.TeletravailDates.Contains(date.Date);
             string? poste = cache.PostesByDate.TryGetValue(date.Date, out var p) ? p : null;
             bool isAfterDebutReel = date.Date >= debutReelDate.Date;
             // Skip IsReposAsync when poste couldn't be resolved (employee outside employment period
@@ -428,7 +449,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
             weekDetails.Add(
                 date.ToString("yyyy-MM-dd"),
-                GetWeekDetails(presence, date, sanction, conge, isFerier, isRepos)
+                GetWeekDetails(presence, date, sanction, conge, isFerier, isRepos, isTeletravail)
             );
 
             // 1️⃣ SANCTION (indépendant)
@@ -457,6 +478,26 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             // 4️⃣ ABSENCE (jour ouvrable sans présence)
             if ((presence == null || GenericMethodes.NotPresent(presence)) && !isRepos)
             {
+                // 🆕 TÉLÉTRAVAIL — auto-présence (axe A) : un jour de télétravail APPROUVÉ sans
+                // pointage GPS est compté comme travaillé, crédité des heures THÉORIQUES du poste
+                // (au lieu de tomber en absence). Décision produit 2026-05-30 :
+                // « Auto-présence (heures théoriques) ».
+                if (isTeletravail && !repos)
+                {
+                    float theo = (await _posteRepository.GetJourHeures(soccod, date, poste)) ?? 0f;
+                    if (isAfterDebutReel && theo > 0)
+                    {
+                        float jour = (float)GenericMethodes.journeeTime(theo, empparam);
+                        acc.NbJourPointer += jour;
+                        if (jour > 0) acc.NbJours = (acc.NbJours ?? 0) + 1;
+                        acc.TotalHours += theo;
+                        acc.NbHeuresDebutCalcul += theo;
+                        acc.NbJoursTeletravail = (acc.NbJoursTeletravail ?? 0) + jour;
+                        acc.MontantIndemniteTeletravail = (acc.MontantIndemniteTeletravail ?? 0) + jour * cache.TtIndemnite;
+                    }
+                    return; // jour TT : on ne compte jamais d'absence
+                }
+
                 float? hreAbs = await _heureabsenceService
                     .CalculateHeureAbsences(presence, soccod, poste, date, autorisation,
                         GenericMethodes.ConvertHHmmToDouble(presence?.Tothre));
@@ -489,7 +530,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                     poste, empparam,
                     paramMois, paramNuit,
                     cache, acc, countedConges, autorisation, // ✅ Pass filtered autorisation
-                    soccod, empcod, true, isAfterDebutReel, empferepos
+                    soccod, empcod, true, isAfterDebutReel, empferepos, isTeletravail
                 );
             }
         }
@@ -562,10 +603,12 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         // UPDATED: Process presence details (now only for calculations that require presence)
         private async Task ProcessPresenceDetails(Presence presence,DateTime date,bool isFerier,CongeDto conge,bool isRepos,bool repos,string poste,EmpparamPointageMois empparam,
     ParametreMoisPointageDto paramMois,ParametreNuitDto paramNuit,DataCache cache,Accumulators acc,HashSet<string> countedConges,AutDto autorisation,string soccod,string empcod,
-    bool isWorkingDay,bool isAfterDebutReel,string? empferepos = "0")
+    bool isWorkingDay,bool isAfterDebutReel,string? empferepos = "0",bool isTeletravail = false)
         {
-            // Only calculate panier for non-conge, non-ferier days with presence
-            if (!isFerier && conge == null)
+            // Only calculate panier for non-conge, non-ferier days with presence.
+            // 🆕 Axe E : si la politique société neutralise le ticket-restaurant les jours TT,
+            // on ne compte pas le panier ce jour-là.
+            if (!isFerier && conge == null && !(isTeletravail && cache.TtNeutraliseTr))
             {
                 CalculatePanier(presence, date, empparam.Emppanier, paramMois, acc);
             }
@@ -598,8 +641,10 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             CalculateNightHours(presence, date, paramNuit, acc);
             if (string.IsNullOrEmpty(presence.Codposte))
                 presence.Codposte = await _posteRepository.GetEmpPoste(soccod, empcod, date,presence.Catcod);
-            // Calculate delays
-            if (isWorkingDay && isAfterDebutReel && !string.IsNullOrWhiteSpace(presence.Codposte))
+            // Calculate delays.
+            // 🆕 Axe A : on NEUTRALISE le retard les jours de télétravail (décision produit
+            // 2026-05-30) — un salarié en TT n'a pas d'horaire d'arrivée sur site à respecter.
+            if (isWorkingDay && isAfterDebutReel && !isTeletravail && !string.IsNullOrWhiteSpace(presence.Codposte))
             {
                 var posteObj = await _posteRepository.GetPoste(soccod, presence.Codposte);
                 var presenceDto = _mapper.Map<Presence, PresenceDto>(presence);
@@ -611,6 +656,15 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             if (isAfterDebutReel)
             {
                 acc.NbJourPointer += (float)GenericMethodes.journeeTime(dayworkhours,empparam);
+
+                // 🆕 Axe A/D/E : jour de télétravail POINTÉ → on l'inscrit au compteur TT et on
+                // alimente l'indemnité forfaitaire (mêmes règles que le jour TT auto-présent).
+                if (isTeletravail)
+                {
+                    float jourTt = (float)GenericMethodes.journeeTime(dayworkhours, empparam);
+                    acc.NbJoursTeletravail = (acc.NbJoursTeletravail ?? 0) + jourTt;
+                    acc.MontantIndemniteTeletravail = (acc.MontantIndemniteTeletravail ?? 0) + jourTt * cache.TtIndemnite;
+                }
 
                 // Count regular working days (not repos, not ferier)
                 if (!repos && !isRepos && conge == null && !isFerier && isWorkingDay)
@@ -1056,6 +1110,11 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             public Dictionary<DateTime, bool> ReposByDate { get; set; }
             public Dictionary<DateTime, float> FerierHoursByDate { get; set; }
             public List<DateTime> MissingPosteDates { get; set; } = new();
+            // Télétravail approuvé couvrant chaque date de la période (axe A).
+            public HashSet<DateTime> TeletravailDates { get; set; } = new();
+            // Politique paie télétravail (axe E) chargée depuis Parametre.
+            public float TtIndemnite { get; set; } = 0f;       // forfait € par jour télétravaillé
+            public bool TtNeutraliseTr { get; set; } = false;  // neutraliser le panier/ticket-resto les jours TT
         }
 
         private class Accumulators
@@ -1093,6 +1152,9 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             public float? ResHreSamediTrv { get; set; } = 0;
             public float? HreDimTrv { get; set; } = 0;
             public float? NbHeuresDebutCalcul { get; set; } = 0;
+            // Télétravail (axe A/D/E)
+            public float? NbJoursTeletravail { get; set; } = 0;
+            public float? MontantIndemniteTeletravail { get; set; } = 0;
         }
 
         private Accumulators InitializeAccumulators() => new Accumulators();
@@ -1132,6 +1194,8 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             result.ResHreSamediTrv = acc.ResHreSamediTrv;
             result.HreDimTrv = acc.HreDimTrv;
             result.NbHeuresDebutCalcul = acc.NbHeuresDebutCalcul;
+            result.NbJoursTeletravail = acc.NbJoursTeletravail;
+            result.MontantIndemniteTeletravail = acc.MontantIndemniteTeletravail;
         }
 
         private (DateTime startDate, DateTime endDate) CalculateDateRange(
@@ -1253,7 +1317,7 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
         }
 
         private string GetWeekDetails(Presence presence, DateTime date, SanctionDto sanction,
-                                     CongeDto conge, bool isFerier, bool isRepos)
+                                     CongeDto conge, bool isFerier, bool isRepos, bool isTeletravail = false)
         {
             // UN seul statut par jour, choisi par priorité — l'utilisateur ne doit pas
             // décoder une concaténation type "Absent | Repos | Férié". Règle métier :
@@ -1261,8 +1325,10 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
             // (Férié / Repos), qui prime sur la valeur par défaut "Absent".
             //
             // Ordre : Présent > Congé > Sanction > Férié > Repos > Absent.
+            // Un jour pointé en télétravail est marqué comme tel (au lieu d'un simple "Présent")
+            // pour que la grille mensuelle distingue présence sur site / à domicile.
             if (presence != null)
-                return $"Présent: {presence.Tothre}";
+                return isTeletravail ? $"Télétravail: {presence.Tothre}" : $"Présent: {presence.Tothre}";
 
             if (conge != null)
                 return $"Congé[{conge.Abscod}]: {conge.Concod}";
@@ -1272,6 +1338,10 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
 
             if (isFerier)
                 return "Férié";
+
+            // Jour de télétravail approuvé sans pointage : auto-présence (axe A).
+            if (isTeletravail)
+                return "Télétravail";
 
             if (isRepos)
                 return "Repos";

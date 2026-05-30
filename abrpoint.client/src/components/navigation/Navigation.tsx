@@ -400,7 +400,7 @@ const useNavigationItems = (): NavGroup[] => {
           // côté UI mais NoteDeFraisController renvoyait 402 à toute requête.
           ...(canSee('remboursement') && planAllows('expenseReports') ? [{ label: t('navigation.expenseNotes'), href: '/dashboard/remboursement', icon: Receipt }] : []),
           ...(isAdminEffective ? [{ label: t('navigation.balanceAllocation'), href: '/dashboard/affectation-solde', icon: CalendarCheck }] : []),
-          ...(isAdminEffective ? [{ label: t('navigation.timeSavingAccount'), href: '/dashboard/cet', icon: CalendarCheck }] : []),
+          ...((isAdminEffective || isManager) ? [{ label: t('navigation.timeSavingAccount'), href: '/dashboard/cet', icon: CalendarCheck }] : []),
         ],
       }] : []),
       ...(planAllows('authorizationManagement') || planAllows('compensationDays') ? [{

@@ -261,6 +261,12 @@ public partial class Employe : BaseEntity
     [Column("emp_rtt_forfait_jours")]
     public int? EmpRttForfaitJours { get; set; }
 
+    /// <summary>Éligibilité au télétravail : "0" = non éligible (ne peut pas soumettre
+    /// de demande) ; null/"1" = éligible (défaut). Cf. TeletravailController.</summary>
+    [Column("emp_teletravail_eligible")]
+    [StringLength(1)]
+    public string? EmpTeletravailEligible { get; set; }
+
     [NotMapped]
     public string? Utirole { get; set; }
 

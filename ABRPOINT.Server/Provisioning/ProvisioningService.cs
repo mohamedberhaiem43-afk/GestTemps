@@ -194,14 +194,19 @@ public sealed class ProvisioningService : IProvisioningService
         // 6b. Natures d'absence par défaut (les plus courantes) — créées une seule fois
         //     à la création du tenant pour que l'utilisateur dispose immédiatement des
         //     imputations essentielles. Les codes abscng pilotent la catégorisation :
-        //     "0"=congé payé, "6"=formation et mission, "B"=autorisation de sortie, "R"=RTT.
+        //     "0"=congé payé, "6"=formation et mission, "B"=autorisation de sortie, "R"=RTT,
+        //     "E"=Compte Épargne Temps (CET — congé puisant dans la réserve épargnée).
+        //   CET : CP et RTT sont marqués "peut alimenter le CET" (Abspeutcet) pour apparaître
+        //   par défaut dans l'écran d'alimentation salarié ; le type CET (Absprendcet) sert à
+        //   poser un congé financé par le CET (décrément Solde.Cetjours à l'acceptation).
         if (!await db.Absences.AnyAsync(a => a.Soccod == Soccod, ct))
         {
             db.Absences.AddRange(
-                new Absence { Soccod = Soccod, Abscod = "CP",  Abslib = "Congé payé",            Abscng = "0", Abspayer = "O", Absunite = "J" },
+                new Absence { Soccod = Soccod, Abscod = "CP",  Abslib = "Congé payé",            Abscng = "0", Abspayer = "O", Absunite = "J", Abspeutcet = "1" },
                 new Absence { Soccod = Soccod, Abscod = "FM",  Abslib = "Formation et mission",   Abscng = "6", Abspayer = "O", Absunite = "J" },
                 new Absence { Soccod = Soccod, Abscod = "AUT", Abslib = "Autorisation de sortie", Abscng = "B", Abspayer = "O", Absunite = "H" },
-                new Absence { Soccod = Soccod, Abscod = "RTT", Abslib = "RTT",                    Abscng = "R", Abspayer = "O", Absunite = "J" }
+                new Absence { Soccod = Soccod, Abscod = "RTT", Abslib = "RTT",                    Abscng = "R", Abspayer = "O", Absunite = "J", Abspeutcet = "1" },
+                new Absence { Soccod = Soccod, Abscod = "CET", Abslib = "Congé CET",              Abscng = "E", Abspayer = "O", Absunite = "J", Absprendcet = "1" }
             );
         }
 

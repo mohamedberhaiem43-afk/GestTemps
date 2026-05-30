@@ -7,6 +7,7 @@ using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using System.Security.Claims;
 
 namespace ABRPOINT.Server.Controllers;
@@ -117,10 +118,15 @@ public class TeletravailController : ControllerBase
         // pas de sens (on rejette plutôt que de créer une demande orpheline).
         var employe = await _db.Employes.AsNoTracking()
             .Where(e => e.Empcod == caller)
-            .Select(e => new { e.Empcod, e.Soccod })
+            .Select(e => new { e.Empcod, e.Soccod, e.EmpTeletravailEligible })
             .FirstOrDefaultAsync(ct);
         if (employe == null)
             return BadRequest(new { error = "Compte non rattaché à un collaborateur." });
+
+        // Éligibilité : un salarié marqué non éligible ("0") ne peut pas soumettre de
+        // demande. null/"1" = éligible (défaut), pour ne pas bloquer les fiches existantes.
+        if (employe.EmpTeletravailEligible == "0")
+            return BadRequest(new { error = "Vous n'êtes pas éligible au télétravail. Rapprochez-vous de votre RH." });
 
         // Anti-collision : on bloque les demandes Pending OU Approved qui se
         // chevauchent avec la nouvelle plage. Évite qu'un employé fasse 3
@@ -132,6 +138,11 @@ public class TeletravailController : ControllerBase
                         && t.EndDate.Date   >= req.StartDate.Date, ct);
         if (overlap)
             return Conflict(new { error = "Une demande de télétravail couvre déjà ces dates." });
+
+        // Politique société : délai de prévenance + quota hebdomadaire (cf. Parametre).
+        var policyError = await ValidatePolicyAsync(employe.Soccod!, employe.Empcod!, req.StartDate.Date, req.EndDate.Date, ct);
+        if (policyError != null)
+            return BadRequest(new { error = policyError });
 
         var entity = new Teletravail
         {
@@ -275,6 +286,35 @@ public class TeletravailController : ControllerBase
     // POST /api/Teletravail/{id}/approve
     // POST /api/Teletravail/{id}/reject
     // ───────────────────────────────────────────────────────────────────────
+    // ───────────────────────────────────────────────────────────────────────
+    // GET /api/Teletravail/on-date/{soccod}?date=yyyy-MM-dd — collaborateurs en
+    // télétravail APPROUVÉ couvrant la date donnée (défaut : aujourd'hui). Sert
+    // à l'affichage « qui est en télétravail » (pointage du jour, calendrier
+    // d'équipe, suivi positions). Réservé aux décideurs (admin/manager).
+    // ───────────────────────────────────────────────────────────────────────
+    [HttpGet("on-date/{soccod}")]
+    public async Task<IActionResult> OnDate(string soccod, [FromQuery] string? date, CancellationToken ct)
+    {
+        if (!await CallerCanDecideAsync(ct)) return Forbid();
+        var d = DateTime.TryParse(date, out var parsed) ? parsed.Date : DateTime.UtcNow.Date;
+
+        var rows = await (
+            from t in _db.Teletravails.AsNoTracking()
+            join e in _db.Employes.AsNoTracking() on t.Empcod equals e.Empcod into ej
+            from e in ej.DefaultIfEmpty()
+            where t.Soccod == soccod && t.Status == "Approved"
+                  && t.StartDate.Date <= d && t.EndDate.Date >= d
+            select new
+            {
+                empcod = t.Empcod,
+                employeeName = e != null ? e.Emplib : null,
+                startDate = t.StartDate,
+                endDate = t.EndDate,
+            }).ToListAsync(ct);
+
+        return Ok(rows);
+    }
+
     [HttpPost("{id:int}/approve")]
     public async Task<IActionResult> Approve(int id, [FromBody] DecisionRequest req, CancellationToken ct)
         => await DecideAsync(id, accept: true, req?.Comment, ct);
@@ -457,6 +497,189 @@ public class TeletravailController : ControllerBase
                    DecisionComment = t.DecisionComment,
                };
     }
+
+    // ───────────────────────────────────────────────────────────────────────
+    // Politique télétravail (quota hebdo + délai de prévenance) — config société
+    // ───────────────────────────────────────────────────────────────────────
+    public sealed class TtParamsDto
+    {
+        public string Soccod { get; set; } = string.Empty;
+        /// <summary>Quota de jours de télétravail par semaine (0 = pas de quota).</summary>
+        public float? MaxParSemaine { get; set; }
+        /// <summary>Délai de prévenance minimum en jours (0 = aucun).</summary>
+        public int? PrevenanceJours { get; set; }
+        /// <summary>Indemnité forfaitaire par jour télétravaillé (montant, axe E). 0 = aucune.</summary>
+        public float? IndemniteParJour { get; set; }
+        /// <summary>Neutraliser le ticket-restaurant / panier les jours TT (axe E).</summary>
+        public bool NeutraliserTicketResto { get; set; }
+    }
+
+    [HttpGet("parametres/{soccod}")]
+    public async Task<IActionResult> GetParametres(string soccod, CancellationToken ct)
+    {
+        var p = await _db.Parametres.AsNoTracking().FirstOrDefaultAsync(x => x.Soccod == soccod, ct);
+        return Ok(new TtParamsDto
+        {
+            Soccod = soccod,
+            MaxParSemaine = p?.Parttmaxsem ?? 0f,
+            PrevenanceJours = p?.Parttprevenance ?? 0,
+            IndemniteParJour = p?.Parttindemnite ?? 0f,
+            NeutraliserTicketResto = p?.Parttneutralisetr == "1",
+        });
+    }
+
+    [HttpPut("parametres")]
+    public async Task<IActionResult> UpdateParametres([FromBody] TtParamsDto dto, CancellationToken ct)
+    {
+        if (!await CallerCanDecideAsync(ct)) return Forbid();
+        if (string.IsNullOrWhiteSpace(dto.Soccod)) return BadRequest(new { error = "Soccod requis." });
+        if (dto.MaxParSemaine is < 0) return BadRequest(new { error = "Le quota hebdomadaire ne peut pas être négatif." });
+        if (dto.PrevenanceJours is < 0) return BadRequest(new { error = "Le délai de prévenance ne peut pas être négatif." });
+        if (dto.IndemniteParJour is < 0) return BadRequest(new { error = "L'indemnité de télétravail ne peut pas être négative." });
+
+        var p = await _db.Parametres.FirstOrDefaultAsync(x => x.Soccod == dto.Soccod, ct);
+        if (p == null)
+        {
+            p = new Parametre { Soccod = dto.Soccod };
+            _db.Parametres.Add(p);
+        }
+        p.Parttmaxsem = dto.MaxParSemaine;
+        p.Parttprevenance = dto.PrevenanceJours;
+        p.Parttindemnite = dto.IndemniteParJour;
+        p.Parttneutralisetr = dto.NeutraliserTicketResto ? "1" : "0";
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { success = true });
+    }
+
+    // ───────────────────────────────────────────────────────────────────────
+    // GET /api/Teletravail/recap/{soccod}?from=yyyy-MM-dd&to=yyyy-MM-dd
+    // Récapitulatif paie (axes D + E) : par collaborateur, nb de jours ouvrés
+    // télétravaillés (TT approuvé) sur la période + montant d'indemnité forfaitaire.
+    // Sert d'alimentation paie / export CSE. Réservé admin/manager.
+    // ───────────────────────────────────────────────────────────────────────
+    public sealed class TtRecapRow
+    {
+        public string? Empcod { get; set; }
+        public string? EmployeeName { get; set; }
+        public float JoursTeletravail { get; set; }
+        public float MontantIndemnite { get; set; }
+    }
+
+    [HttpGet("recap/{soccod}")]
+    public async Task<IActionResult> Recap(string soccod, [FromQuery] string? from, [FromQuery] string? to, CancellationToken ct)
+    {
+        if (!await CallerCanDecideAsync(ct)) return Forbid();
+
+        var today = DateTime.UtcNow.Date;
+        var start = DateTime.TryParse(from, out var f) ? f.Date : new DateTime(today.Year, today.Month, 1);
+        var end = DateTime.TryParse(to, out var t) ? t.Date : start.AddMonths(1).AddDays(-1);
+        if (end < start) return BadRequest(new { error = "La date de fin doit être ≥ à la date de début." });
+
+        var indemnite = await _db.Parametres.AsNoTracking()
+            .Where(p => p.Soccod == soccod).Select(p => p.Parttindemnite).FirstOrDefaultAsync(ct) ?? 0f;
+
+        var rows = await (
+            from t2 in _db.Teletravails.AsNoTracking()
+            join e in _db.Employes.AsNoTracking() on t2.Empcod equals e.Empcod into ej
+            from e in ej.DefaultIfEmpty()
+            where t2.Soccod == soccod && t2.Status == "Approved"
+                  && t2.StartDate.Date <= end && t2.EndDate.Date >= start
+            select new { t2.Empcod, EmployeeName = e != null ? e.Emplib : null, t2.StartDate, t2.EndDate }
+        ).ToListAsync(ct);
+
+        // Comptage des jours ouvrés effectivement DANS la fenêtre [start, end], dédupliqués
+        // par collaborateur (les plages d'un même salarié ne se chevauchent pas — anti-collision
+        // appliquée à la création — mais on dédupe les dates par sécurité).
+        var byEmp = new Dictionary<string, (string? name, HashSet<DateTime> days)>();
+        foreach (var r in rows)
+        {
+            if (string.IsNullOrEmpty(r.Empcod)) continue;
+            if (!byEmp.TryGetValue(r.Empcod, out var agg))
+            {
+                agg = (r.EmployeeName, new HashSet<DateTime>());
+                byEmp[r.Empcod] = agg;
+            }
+            var s = r.StartDate.Date < start ? start : r.StartDate.Date;
+            var e2 = r.EndDate.Date > end ? end : r.EndDate.Date;
+            for (var d = s; d <= e2; d = d.AddDays(1))
+                if (d.DayOfWeek != DayOfWeek.Saturday && d.DayOfWeek != DayOfWeek.Sunday)
+                    agg.days.Add(d);
+        }
+
+        var result = byEmp
+            .Select(kv => new TtRecapRow
+            {
+                Empcod = kv.Key,
+                EmployeeName = kv.Value.name,
+                JoursTeletravail = kv.Value.days.Count,
+                MontantIndemnite = kv.Value.days.Count * indemnite,
+            })
+            .OrderBy(x => x.EmployeeName ?? x.Empcod)
+            .ToList();
+
+        return Ok(new { from = start, to = end, indemniteParJour = indemnite, rows = result });
+    }
+
+    /// <summary>
+    /// Contrôle la politique société : délai de prévenance puis quota hebdomadaire.
+    /// Retourne un message d'erreur explicite si la demande viole une règle, sinon null.
+    /// Le quota est évalué par semaine ISO : pour chaque semaine touchée par la demande,
+    /// jours déjà posés (Pending+Approved) + nouveaux jours ouvrés ≤ quota.
+    /// </summary>
+    private async Task<string?> ValidatePolicyAsync(string soccod, string empcod, DateTime start, DateTime end, CancellationToken ct)
+    {
+        var param = await _db.Parametres.AsNoTracking().FirstOrDefaultAsync(p => p.Soccod == soccod, ct);
+        if (param == null) return null;
+
+        var prevenance = param.Parttprevenance ?? 0;
+        if (prevenance > 0 && start.Date < DateTime.UtcNow.Date.AddDays(prevenance))
+            return $"Délai de prévenance non respecté : la demande doit être soumise au moins {prevenance} jour(s) avant le début.";
+
+        var maxSem = param.Parttmaxsem ?? 0f;
+        if (maxSem <= 0) return null;
+
+        // Jours ouvrés du nouvel intervalle, regroupés par semaine ISO.
+        var newByWeek = new Dictionary<string, int>();
+        for (var d = start.Date; d <= end.Date; d = d.AddDays(1))
+            if (d.DayOfWeek != DayOfWeek.Saturday && d.DayOfWeek != DayOfWeek.Sunday)
+            {
+                var k = WeekKey(d);
+                newByWeek[k] = newByWeek.TryGetValue(k, out var c) ? c + 1 : 1;
+            }
+        if (newByWeek.Count == 0) return null;
+
+        var rangeStart = MondayOf(start.Date);
+        var rangeEnd = MondayOf(end.Date).AddDays(6);
+        var existing = await _db.Teletravails.AsNoTracking()
+            .Where(t => t.Empcod == empcod
+                     && (t.Status == "Pending" || t.Status == "Approved")
+                     && t.StartDate.Date <= rangeEnd && t.EndDate.Date >= rangeStart)
+            .Select(t => new { t.StartDate, t.EndDate })
+            .ToListAsync(ct);
+
+        var existingByWeek = new Dictionary<string, int>();
+        foreach (var t in existing)
+            for (var d = t.StartDate.Date; d <= t.EndDate.Date; d = d.AddDays(1))
+                if (d.DayOfWeek != DayOfWeek.Saturday && d.DayOfWeek != DayOfWeek.Sunday)
+                {
+                    var k = WeekKey(d);
+                    if (newByWeek.ContainsKey(k))
+                        existingByWeek[k] = existingByWeek.TryGetValue(k, out var c) ? c + 1 : 1;
+                }
+
+        foreach (var kv in newByWeek)
+        {
+            var total = kv.Value + (existingByWeek.TryGetValue(kv.Key, out var e) ? e : 0);
+            if (total > maxSem)
+                return $"Quota de télétravail dépassé : maximum {maxSem:0.#} jour(s) par semaine (semaine {kv.Key}).";
+        }
+        return null;
+    }
+
+    private static string WeekKey(DateTime d) => $"{ISOWeek.GetYear(d):D4}-S{ISOWeek.GetWeekOfYear(d):D2}";
+
+    /// <summary>Lundi de la semaine contenant <paramref name="d"/> (semaine ISO, lun→dim).</summary>
+    private static DateTime MondayOf(DateTime d) => d.Date.AddDays(-(((int)d.DayOfWeek + 6) % 7));
 
     /// <summary>Compte les jours ouvrés (lun→ven) inclusifs entre deux dates.</summary>
     private static float CountBusinessDays(DateTime start, DateTime end)

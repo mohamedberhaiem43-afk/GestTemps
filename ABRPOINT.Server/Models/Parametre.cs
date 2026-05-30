@@ -381,4 +381,33 @@ public partial class Parametre : BaseEntity
     [Column("parcetvalidation")]
     [StringLength(1)]
     public string? Parcetvalidation { get; set; }
+
+    /// <summary>
+    /// Quota de jours de télétravail autorisés par semaine. 0/null = pas de quota.
+    /// Contrôlé à la création d'une demande de télétravail.
+    /// </summary>
+    [Column("parttmaxsem")]
+    public float? Parttmaxsem { get; set; }
+
+    /// <summary>
+    /// Délai de prévenance minimum (en jours) entre la soumission et le début d'une
+    /// demande de télétravail. 0/null = aucune contrainte.
+    /// </summary>
+    [Column("parttprevenance")]
+    public int? Parttprevenance { get; set; }
+
+    /// <summary>
+    /// Indemnité forfaitaire de télétravail par jour télétravaillé (montant). 0/null = aucune.
+    /// Sert à alimenter une rubrique de paie : montant = jours TT × ce forfait.
+    /// </summary>
+    [Column("parttindemnite")]
+    public float? Parttindemnite { get; set; }
+
+    /// <summary>
+    /// "1" = neutraliser le ticket-restaurant / panier les jours de télétravail
+    /// (le panier n'est pas compté ces jours-là). null/"0" = comportement normal.
+    /// </summary>
+    [Column("parttneutralisetr")]
+    [StringLength(1)]
+    public string? Parttneutralisetr { get; set; }
 }

@@ -316,11 +316,11 @@ namespace ABRPOINT.Server.Controllers
                         });
                     }
                 }
-                // Garde CET — un congé puisant dans le CET (Absprendcet='1') ne peut excéder
-                // le solde CET disponible du salarié. Le décrément effectif a lieu à
-                // l'acceptation (cf. DemCongeRepository.AcceptDemCongeAsync), mais on bloque
-                // dès la création pour ne pas laisser passer une demande inhonorable.
-                else if (absInfo?.Absprendcet == "1")
+                // Garde CET — un congé puisant dans le CET (Absprendcet='1' ou imputation
+                // Abscng='E') ne peut excéder le solde CET disponible du salarié. Le décrément
+                // effectif a lieu à l'acceptation (cf. DemCongeRepository.AcceptDemCongeAsync),
+                // mais on bloque dès la création pour ne pas laisser passer une demande inhonorable.
+                else if (absInfo?.Absprendcet == "1" || string.Equals(abscng, "E", StringComparison.OrdinalIgnoreCase))
                 {
                     var cetDispo = await _context.Soldes.AsNoTracking()
                         .Where(s => s.Soccod == conge.Soccod && s.Empcod == conge.Empcod)

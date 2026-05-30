@@ -64,6 +64,7 @@ export default function HomeScreen({ navigation }: any) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [silentUntil, setSilentUntil] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [teletravailToday, setTeletravailToday] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -76,6 +77,7 @@ export default function HomeScreen({ navigation }: any) {
       loadKPISummary();
       loadRecentDocs();
       loadUnreadCount();
+      loadTeletravailToday();
     }
   }, [user]);
 
@@ -176,6 +178,25 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
+  // Indique si le collaborateur a un télétravail APPROUVÉ couvrant aujourd'hui,
+  // pour afficher un badge sur la home (affichage TT — cf. besoin B).
+  const loadTeletravailToday = async () => {
+    if (!user?.soccod || !user?.uticod) return;
+    try {
+      const list = await apiService.listMyRemoteWorkRequests();
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const active = (Array.isArray(list) ? list : []).some((t) => {
+        if (t.status !== 'Approved') return false;
+        const s = new Date(t.startDate); s.setHours(0, 0, 0, 0);
+        const e = new Date(t.endDate); e.setHours(0, 0, 0, 0);
+        return s <= today && e >= today;
+      });
+      setTeletravailToday(active);
+    } catch (error) {
+      console.log('Failed to load télétravail today:', error);
+    }
+  };
+
   const loadRecentDocs = async () => {
     if (!user?.soccod || !user?.uticod) return;
     try {
@@ -214,7 +235,7 @@ export default function HomeScreen({ navigation }: any) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadTodayStatus(), loadKPISummary(), loadRecentDocs()]);
+    await Promise.all([loadTodayStatus(), loadKPISummary(), loadRecentDocs(), loadTeletravailToday()]);
     setRefreshing(false);
   };
 
@@ -424,6 +445,12 @@ export default function HomeScreen({ navigation }: any) {
           <Text style={styles.lastExitLabel}>
             {todayStatus.hasEntry ? `Entrée à ${todayStatus.entryTime}` : 'Dernière sortie : Ven. 18:05'}
           </Text>
+          {teletravailToday && (
+            <View style={styles.ttBadge}>
+              <MaterialCommunityIcons name="home-account" size={16} color="#9d174d" />
+              <Text style={styles.ttBadgeText}>Aujourd'hui : télétravail</Text>
+            </View>
+          )}
         </View>
 
         {/* Quick Actions — chaque entrée est conditionnée à la feature du
@@ -779,6 +806,12 @@ const styles = StyleSheet.create({
   pointerGradient: { paddingVertical: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
   pointerButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   lastExitLabel: { fontSize: 11, color: '#94a3b8', marginTop: 16 },
+  ttBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10,
+    alignSelf: 'center', backgroundColor: '#fce7f3', borderRadius: 999,
+    paddingHorizontal: 12, paddingVertical: 5,
+  },
+  ttBadgeText: { fontSize: 12, fontWeight: '700', color: '#9d174d' },
   statsGrid: { flexDirection: 'row', gap: 16, marginBottom: 24 },
   vacationCard: {
     flex: 3, backgroundColor: '#fff', borderRadius: 16, padding: 20,

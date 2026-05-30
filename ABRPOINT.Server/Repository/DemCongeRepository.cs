@@ -384,11 +384,12 @@ namespace ABRPOINT.Server.Repository
                             var year = (demConge.Condep ?? DateTime.Now).Year;
                             await _rttService.IncrementUsedAsync(soccod, demConge.Empcod, year, demConge.Connbjour.Value);
                         }
-                        // Congé puisant dans le CET (Absprendcet='1') : on décrémente la réserve
-                        // Cetjours de l'employé du nombre de jours pris (clamp ≥ 0 par sécurité).
-                        // Même logique défensive que le RTT : l'acceptation reste valide même
-                        // si la mise à jour du solde CET échoue.
-                        else if (absInfo?.Absprendcet == "1" && demConge.Connbjour.HasValue && demConge.Connbjour.Value > 0)
+                        // Congé puisant dans le CET (Absprendcet='1' ou imputation Abscng='E') :
+                        // on décrémente la réserve Cetjours de l'employé du nombre de jours pris
+                        // (clamp ≥ 0 par sécurité). Même logique défensive que le RTT :
+                        // l'acceptation reste valide même si la mise à jour du solde CET échoue.
+                        else if ((absInfo?.Absprendcet == "1" || absInfo?.Abscng == "E")
+                                 && demConge.Connbjour.HasValue && demConge.Connbjour.Value > 0)
                         {
                             var solde = await _dbContext.Soldes
                                 .FirstOrDefaultAsync(s => s.Soccod == soccod && s.Empcod == demConge.Empcod);
