@@ -477,6 +477,17 @@ export default function SignupPage() {
     }
   }, [slug, slugStatus]);
 
+  // Force du mot de passe (0-3) — pilote les 3 barres visuelles sous le champ.
+  // 1 = longueur ≥ 8 ; +1 = majuscule & chiffre ; +1 = caractère spécial.
+  const pwScore = useMemo(() => {
+    if (!password) return 0;
+    let s = 0;
+    if (password.length >= 8) s++;
+    if (/[A-Z]/.test(password) && /[0-9]/.test(password)) s++;
+    if (/[^A-Za-z0-9]/.test(password)) s++;
+    return s;
+  }, [password]);
+
   // Le bouton est actif dès que le format du slug est correct et qu'il n'est pas
   // explicitement connu comme pris/réservé. L'attente d'un "available" formel
   // n'est pas exigée (la vérif backend reste l'autorité finale).
@@ -658,6 +669,15 @@ export default function SignupPage() {
               </Typography>
             </>
           )}
+          {/* Bandeau de confiance — repris de la maquette signup (sans CB + données FR). */}
+          <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap" useFlexGap sx={{ mt: 2 }}>
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, bgcolor: '#e8f0fe', color: '#0040a1', fontSize: 12, fontWeight: 700, px: 1.5, py: 0.6, borderRadius: 99 }}>
+              ✓ Sans carte bancaire
+            </Box>
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, bgcolor: '#e8f0fe', color: '#0040a1', fontSize: 12, fontWeight: 700, px: 1.5, py: 0.6, borderRadius: 99 }}>
+              🛡️ Données hébergées en France
+            </Box>
+          </Stack>
           {/* Chip « Plan sélectionné » supprimée — l'information vit désormais dans
               le PlanPicker ci-dessous, qui affiche le pack actif visuellement + permet
               de le changer. Éviter le doublon réduit la charge cognitive. */}
@@ -698,6 +718,10 @@ export default function SignupPage() {
               détails des packs et activer des modules plus tard depuis « Mon abonnement ».
             </Typography>
           </Box>
+
+          <Typography sx={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.secondary', mt: 1 }}>
+            Votre entreprise
+          </Typography>
 
           {/* Ordre des champs (2026-05) : Pays + ID entreprise EN PREMIER, puis email
               pro, puis nom de société (souvent auto-rempli depuis l'API Sirene/BCE),
@@ -861,6 +885,10 @@ export default function SignupPage() {
             )}
           </Box>
 
+          <Typography sx={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.secondary', mt: 1 }}>
+            Votre compte administrateur
+          </Typography>
+
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
               fullWidth
@@ -879,14 +907,33 @@ export default function SignupPage() {
           </Stack>
 
 
-          <TextField
-            fullWidth
-            type="password"
-            label="Mot de passe (8 caractères min.)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            InputProps={{ startAdornment: <InputAdornment position="start"><LockIcon /></InputAdornment> }}
-          />
+          <Box>
+            <TextField
+              fullWidth
+              type="password"
+              label="Mot de passe (8 caractères min.)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              InputProps={{ startAdornment: <InputAdornment position="start"><LockIcon /></InputAdornment> }}
+            />
+            {/* Indicateur visuel de force du mot de passe (3 barres). */}
+            {password && (
+              <Stack direction="row" spacing={0.5} sx={{ mt: 0.8 }} aria-hidden>
+                {[1, 2, 3].map((i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      flex: 1, height: 3, borderRadius: 99,
+                      bgcolor: pwScore >= i
+                        ? (pwScore === 1 ? '#dc2626' : pwScore === 2 ? '#f59e0b' : '#16a34a')
+                        : '#e2e8f0',
+                      transition: 'background-color .3s',
+                    }}
+                  />
+                ))}
+              </Stack>
+            )}
+          </Box>
 
           {/* Captcha anti-bot — question arithmétique simple, single-use, 5 min TTL.
               Aucune dépendance tierce (RGPD-friendly, pas de bandeau cookie supplémentaire). */}
@@ -937,12 +984,19 @@ export default function SignupPage() {
             )}
           </Button>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexDirection: 'column' }}>
+          <Box sx={{ mb: 2 }}>
             <FormControlLabel
               control={<Checkbox checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />}
               label={
                 <Typography variant="body2" component="span">
-                  Conditions Générales d’Utilisation et de Services Politique de Confidentialité
+                  J'accepte les{' '}
+                  <Link href="/cgu" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                    Conditions Générales d’Utilisation
+                  </Link>{' '}
+                  et la{' '}
+                  <Link href="/confidentialite" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                    Politique de Confidentialité
+                  </Link>.
                 </Typography>
               }
             />

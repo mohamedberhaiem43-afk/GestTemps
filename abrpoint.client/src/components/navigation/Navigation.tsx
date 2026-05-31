@@ -107,6 +107,7 @@ const ContactPage = React.lazy(() => import('../Support/ContactPage'));
 const PrivacyPolicyPage = React.lazy(() => import('../Legal/PrivacyPolicyPage'));
 const LegalNoticesPage = React.lazy(() => import('../Legal/LegalNoticesPage'));
 const TermsOfServicePage = React.lazy(() => import('../Legal/TermsOfServicePage'));
+const ServicesPage = React.lazy(() => import('../Services/ServicesPage'));
 
 /* ── Lucide icons ── */
 import {
@@ -148,6 +149,7 @@ import {
   Users,
   Settings,
   LifeBuoy,
+  Sparkles,
   AlarmClock,
   User,
   BarChart2,
@@ -542,6 +544,7 @@ const useNavigationItems = (): NavGroup[] => {
         icon: Wallet,
         items: [
           { label: t('navigation.subscription', 'Abonnement'), href: '/dashboard/mon-abonnement', icon: Wallet },
+          { label: t('navigation.services', 'Services & accompagnement'), href: '/dashboard/services', icon: Sparkles },
           { label: t('navigation.concordeInvoices', 'Factures Concorde'), href: '/dashboard/factures-concorde', icon: Receipt },
         ],
       }] : []),
@@ -647,6 +650,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/rag-audit': content = <RagAuditTable />; break;
     case '/dashboard/sign-document': content = <SignaturePage />; break;
     case '/dashboard/plan-configuration': content = <PlanConfigurationPage />; break;
+    case '/dashboard/services': content = <ServicesPage />; break;
     case '/dashboard/mon-abonnement': content = <MonAbonnementPage />; break;
     case '/dashboard/factures-concorde': content = <FacturesConcordePage />; break;
     case '/dashboard/devis-pack': content = <DevisPackPage />; break;

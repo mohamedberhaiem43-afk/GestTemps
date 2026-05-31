@@ -367,6 +367,10 @@ export default function LoginScreen() {
                   <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/cgu')}>
                     <Text style={styles.legalLink}>CGU</Text>
                   </TouchableOpacity>
+                  <Text style={styles.legalSep}>·</Text>
+                  <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/mentions-legales')}>
+                    <Text style={styles.legalLink}>Mentions légales</Text>
+                  </TouchableOpacity>
                 </View>
               </>
             ) : (
@@ -525,11 +529,11 @@ const styles = StyleSheet.create({
   heroSafe: { flex: 1, paddingHorizontal: 24, paddingTop: 12, justifyContent: 'space-between' },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   logoBadge: {
-    width: 48, height: 48, borderRadius: 14, backgroundColor: '#ffffff',
+    width: 48, height: 48, borderRadius: 14, backgroundColor: '#43466b',
     justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 8, elevation: 4,
   },
-  logoImg: { width: 44, height: 44 },
+  logoImg: { width: 48, height: 48 },
   brandName: { color: '#ffffff', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
   brandTag: { color: 'rgba(255,255,255,0.78)', fontSize: 11, marginTop: 2, fontWeight: '600' },
   heroBottom: { paddingBottom: 36 },
@@ -620,7 +624,7 @@ const styles = StyleSheet.create({
   },
   bioBtnText: { color: COLORS.primary, fontWeight: '800', fontSize: 14 },
 
-  legalLinks: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 },
+  legalLinks: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 },
   legalLink: { fontSize: 11, color: '#64748b', textDecorationLine: 'underline' },
   legalSep: { fontSize: 11, color: '#94a3b8' },
 

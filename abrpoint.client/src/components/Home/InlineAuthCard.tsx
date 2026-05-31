@@ -149,6 +149,13 @@ export default function InlineAuthCard({ presetPlan, presetNonce, defaultTab, hi
   const [siretCompanyName, setSiretCompanyName] = useState<string | null>(null);
   const [siretCompanyAddress, setSiretCompanyAddress] = useState<string | null>(null);
   const [companyNameAutofilled, setCompanyNameAutofilled] = useState(false);
+  // Secteur d'activité — pré-rempli depuis Sirene FR (libellé NAF) / BCE BE quand
+  // l'API renvoie l'info ; sinon saisie libre. Aligné sur SignupPage.tsx.
+  const [activitySector, setActivitySector] = useState('');
+  const [activitySectorAutofilled, setActivitySectorAutofilled] = useState(false);
+  // Acceptation explicite CGU + Confidentialité (case à cocher du formulaire).
+  // Requise pour activer le bouton de soumission.
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -204,6 +211,8 @@ export default function InlineAuthCard({ presetPlan, presetNonce, defaultTab, hi
     setSiretCompanyName(null);
     setSiretCompanyAddress(null);
     setCompanyNameAutofilled(false);
+    setActivitySector('');
+    setActivitySectorAutofilled(false);
   }, [country]);
 
   // Auto-slug depuis companyName tant que non-touché
@@ -286,6 +295,10 @@ export default function InlineAuthCard({ presetPlan, presetNonce, defaultTab, hi
             setCompanyName(data.companyName);
             setCompanyNameAutofilled(true);
           }
+          if (data.activitySector && (!activitySector.trim() || !activitySectorAutofilled)) {
+            setActivitySector(String(data.activitySector));
+            setActivitySectorAutofilled(true);
+          }
         } else {
           const reason = data.reason as string | undefined;
           if (reason === 'siret_format') setSiretStatus('format');
@@ -343,6 +356,18 @@ export default function InlineAuthCard({ presetPlan, presetNonce, defaultTab, hi
     }
   }, [siretStatus, siretCompanyName, country, countryConfig]);
 
+  // Force du mot de passe (0-3) — pilote les 3 barres visuelles du formulaire.
+  // 1 = longueur OK, +1 = majuscule & chiffre, +1 = caractère spécial.
+  const pwScore = useMemo(() => {
+    const v = signupPassword;
+    if (!v) return 0;
+    let s = 0;
+    if (v.length >= 8) s++;
+    if (/[A-Z]/.test(v) && /[0-9]/.test(v)) s++;
+    if (/[^A-Za-z0-9]/.test(v)) s++;
+    return s;
+  }, [signupPassword]);
+
   // ── VALIDATION GLOBALE SIGNUP ──────────────────────────────────
   const siretDigitsRegex = new RegExp(`^[0-9]{${countryConfig.idDigits}}$`);
   const slugAccepted = SLUG_REGEX.test(slug) && slugStatus !== 'taken' && slugStatus !== 'reserved' && slugStatus !== 'invalid';
@@ -362,7 +387,8 @@ export default function InlineAuthCard({ presetPlan, presetNonce, defaultTab, hi
     && emailStatus !== 'taken' && emailStatus !== 'invalid' && emailStatus !== 'personal'
     && signupPassword.length >= 8
     && captchaChallengeId.length > 0
-    && captchaAnswer.trim() !== '';
+    && captchaAnswer.trim() !== ''
+    && termsAccepted;
 
   // ── HANDLERS ────────────────────────────────────────────────────
   const handleLogin = async (e: React.FormEvent) => {
@@ -440,6 +466,7 @@ export default function InlineAuthCard({ presetPlan, presetNonce, defaultTab, hi
         companyName: companyName.trim(),
         siret: siret.replace(/\D/g, ''),
         country,
+        activitySector: activitySector.trim() || null,
         adminFirstName: firstName.trim(),
         adminLastName: lastName.trim(),
         adminEmail: signupEmail.trim(),
@@ -611,6 +638,15 @@ export default function InlineAuthCard({ presetPlan, presetNonce, defaultTab, hi
           </div>
           )}
 
+          {/* Bandeau de confiance — repris de la maquette signup (sans CB + données FR). */}
+          <div className="signup-trust-pills">
+            <span className="signup-trust-pill">✓ Sans carte bancaire</span>
+            <span className="signup-trust-pill">🛡️ Données hébergées en France</span>
+          </div>
+
+          {/* ── Section : entreprise ───────────────────────────────── */}
+          <div className="signup-section-label">Votre entreprise</div>
+
           {/* Ordre des champs (2026-05) : Pays + ID entreprise + email pro EN
               PREMIER (avant prénom/nom). Le pays détermine le format de l'ID ;
               un ID valide auto-remplit le nom + l'adresse de l'entreprise. */}
@@ -656,6 +692,31 @@ export default function InlineAuthCard({ presetPlan, presetNonce, defaultTab, hi
             {emailHelper && <div className={`form-hint form-hint--${emailHelper.kind}`}>{emailHelper.text}</div>}
           </div>
 
+          <div className="form-group">
+            <label className="form-label">Nom de l'entreprise</label>
+            <input className="form-input" type="text" placeholder="Nom de votre entreprise"
+              value={companyName} onChange={(e) => { setCompanyName(e.target.value); setCompanyNameAutofilled(false); }} required minLength={2} />
+          </div>
+
+          {/* Secteur d'activité — pré-rempli depuis l'API officielle (NAF/NACE) quand
+              l'identifiant est reconnu ; sinon saisie libre. */}
+          <div className="form-group">
+            <label className="form-label">Secteur d'activité</label>
+            <input className="form-input" type="text" placeholder="Ex : Conseil en gestion, BTP, Restauration…"
+              value={activitySector} onChange={(e) => { setActivitySector(e.target.value); setActivitySectorAutofilled(true); }} />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Adresse de votre espace</label>
+            <input className="form-input" type="text" placeholder="votre-entreprise"
+              value={slug} onChange={(e) => { setSlugTouched(true); setSlug(slugify(e.target.value)); }} required />
+            <div className="signup-slug-preview">https://<strong>{slug || 'votre-slug'}</strong>.concorde-work-force.com</div>
+            {slugHelper && <div className={`form-hint form-hint--${slugHelper.kind}`}>{slugHelper.text}</div>}
+          </div>
+
+          {/* ── Section : compte administrateur ────────────────────── */}
+          <div className="signup-section-label">Votre compte administrateur</div>
+
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Prénom</label>
@@ -678,28 +739,19 @@ export default function InlineAuthCard({ presetPlan, presetNonce, defaultTab, hi
                 {showSignupPwd ? <VisibilityOffIcon sx={{ fontSize: 18 }} /> : <VisibilityIcon sx={{ fontSize: 18 }} />}
               </button>
             </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Nom de l'entreprise</label>
-            <input className="form-input" type="text" placeholder="Nom de votre entreprise"
-              value={companyName} onChange={(e) => { setCompanyName(e.target.value); setCompanyNameAutofilled(false); }} required minLength={2} />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Adresse de votre espace</label>
-            <div className="form-input-wrap">
-              <input className="form-input" type="text" placeholder="votre-entreprise"
-                value={slug} onChange={(e) => { setSlugTouched(true); setSlug(slugify(e.target.value)); }} required />
-              <span className="form-input-suffix">.concorde-work-force.com</span>
-            </div>
-            {slugHelper && <div className={`form-hint form-hint--${slugHelper.kind}`}>{slugHelper.text}</div>}
+            {signupPassword && (
+              <div className={`signup-pw-strength s${pwScore}`} aria-hidden="true">
+                <span className="signup-pw-bar" />
+                <span className="signup-pw-bar" />
+                <span className="signup-pw-bar" />
+              </div>
+            )}
           </div>
 
           {/* Captcha anti-bot — challenge fetché depuis /signup/captcha, single-use. */}
           <div className="form-group">
             <label className="form-label">Vérification (anti-bot)</label>
-            <div className="form-row" style={{ gap: 8, alignItems: 'center' }}>
+            <div className="form-row" style={{ gap: 8, alignItems: 'center', gridTemplateColumns: 'auto 1fr auto' }}>
               <div className="captcha-question" style={{ flex: '0 0 auto' }}>
                 {captchaQuestion ? <strong>{captchaQuestion} =</strong> : <em style={{ color: '#94a3b8' }}>chargement…</em>}
               </div>
@@ -712,12 +764,28 @@ export default function InlineAuthCard({ presetPlan, presetNonce, defaultTab, hi
             </div>
           </div>
 
+          {/* Acceptation CGU + Confidentialité (obligatoire). Les liens ouvrent les
+              pages légales dans un nouvel onglet sans cocher/décocher la case. */}
+          <label className={`signup-cgu${termsAccepted ? ' checked' : ''}`}>
+            <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
+            <span className="signup-cgu-box">{termsAccepted ? '✓' : ''}</span>
+            <span className="signup-cgu-text">
+              J'accepte les <a href="/cgu" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Conditions Générales d'Utilisation</a> et la <a href="/confidentialite" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Politique de Confidentialité</a>.
+            </span>
+          </label>
+
           <button type="submit" className="auth-submit" disabled={!canSignup}>
             {submitting ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : 'Créer mon compte →'}
           </button>
           <div className="auth-footer">
-            En créant un compte, vous acceptez nos <a>CGU</a> et notre <a>politique de confidentialité</a>.<br />
             Déjà un compte ? <a onClick={() => setTab('login')}>Se connecter</a>
+          </div>
+          <div className="signup-legal-links">
+            <a href="/cgu" target="_blank" rel="noopener noreferrer">Conditions Générales d'Utilisation</a>
+            <span className="signup-legal-sep">·</span>
+            <a href="/confidentialite" target="_blank" rel="noopener noreferrer">Politique de Confidentialité</a>
+            <span className="signup-legal-sep">·</span>
+            <a href="/mentions-legales" target="_blank" rel="noopener noreferrer">Mentions Légales</a>
           </div>
         </form>
       )}

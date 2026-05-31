@@ -5,18 +5,18 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "icon": "./assets/icon-store.png",
+    "icon": "./assets/concorde-workly-logo.png",
     "splash": {
       "image": "./assets/concorde-workly-logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0040a1"
+      "backgroundColor": "#43466b"
     },
     "android": {
       "package": "com.concorde.workly",
       "usesCleartextTraffic": false,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-foreground.png",
-        "backgroundColor": "#0040a1"
+        "foregroundImage": "./assets/concorde-workly-logo.png",
+        "backgroundColor": "#43466b"
       },
       "permissions": [
         "android.permission.CAMERA",
@@ -91,8 +91,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/concorde-workly-logo.jpg",
-          "color": "#0040a1",
+          "icon": "./assets/concorde-workly-logo.png",
+          "color": "#43466b",
           "sounds": []
         }
       ],
