@@ -2775,7 +2775,28 @@
     "logo": {
       "selectFirst": "Select or save the company before uploading a logo.",
       "uploadSuccess": "Logo updated successfully.",
-      "uploadError": "Error while uploading the logo."
+      "uploadError": "Error while uploading the logo.",
+      "brandingLocked": "Logo available with the Custom Branding option (Premium or add-on)."
+    },
+    "branding": {
+      "title": "Custom branding — colors",
+      "subtitle": "Customize the platform's base colors. They apply to every user in your organization.",
+      "primary": "Primary color",
+      "background": "Background color",
+      "titleColor": "Headings color",
+      "save": "Save colors",
+      "reset": "Reset",
+      "saveSuccess": "Colors updated.",
+      "resetSuccess": "Colors reset to the default theme.",
+      "saveError": "Error while saving the colors.",
+      "noSociete": "No company linked to your account."
+    },
+    "geofence": {
+      "acceptLabel": "Accept out-of-zone clock-ins",
+      "acceptHint": "If enabled, an employee can clock in even outside their site's perimeter; the employer gets a notification. Disabled (default), such clock-ins are refused.",
+      "selectFirst": "Save the company before configuring this option.",
+      "saveSuccess": "Clock-in policy updated.",
+      "saveError": "Error while updating the policy."
     }
   },
   "profile": {

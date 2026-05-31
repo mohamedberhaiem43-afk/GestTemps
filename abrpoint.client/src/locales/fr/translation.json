@@ -2774,7 +2774,28 @@
     "logo": {
       "selectFirst": "Sélectionnez ou enregistrez la société avant d'uploader le logo.",
       "uploadSuccess": "Logo mis à jour avec succès.",
-      "uploadError": "Erreur lors de l'upload du logo."
+      "uploadError": "Erreur lors de l'upload du logo.",
+      "brandingLocked": "Logo réservé à l'option Branding personnalisé (Premium ou option)."
+    },
+    "branding": {
+      "title": "Branding personnalisé — couleurs",
+      "subtitle": "Personnalisez les couleurs de base de la plateforme. Elles s'appliquent à tous les utilisateurs de votre organisation.",
+      "primary": "Couleur principale",
+      "background": "Couleur de fond",
+      "titleColor": "Couleur des titres",
+      "save": "Enregistrer les couleurs",
+      "reset": "Réinitialiser",
+      "saveSuccess": "Couleurs mises à jour.",
+      "resetSuccess": "Couleurs réinitialisées au thème par défaut.",
+      "saveError": "Erreur lors de l'enregistrement des couleurs.",
+      "noSociete": "Aucune société associée à votre compte."
+    },
+    "geofence": {
+      "acceptLabel": "Accepter les pointages hors zone",
+      "acceptHint": "Si activé, un salarié peut pointer même hors du périmètre de son site ; l'employeur reçoit une notification. Désactivé (défaut), ces pointages sont refusés.",
+      "selectFirst": "Enregistrez la société avant de configurer cette option.",
+      "saveSuccess": "Politique de pointage mise à jour.",
+      "saveError": "Erreur lors de la mise à jour de la politique."
     }
   },
   "profile": {

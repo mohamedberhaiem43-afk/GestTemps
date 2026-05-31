@@ -1049,13 +1049,13 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   const [societeImage, setSocieteImage] = React.useState<string>(() => {
     const stored = localStorage.getItem('societeImage');
-    return stored ? resolveAssetUrl(stored) : '/concorde-wrokly-logo.jpg';
+    return stored ? resolveAssetUrl(stored) : '/concorde-workly-light.png';
   });
 
   React.useEffect(() => {
     const handleStorageChange = () => {
       const societe = localStorage.getItem('societeImage');
-      setSocieteImage(societe ? resolveAssetUrl(societe) : '/concorde-wrokly-logo.jpg');
+      setSocieteImage(societe ? resolveAssetUrl(societe) : '/concorde-workly-light.png');
     };
     globalThis.window.addEventListener('storage', handleStorageChange);
     globalThis.window.addEventListener('imageUpdated', handleStorageChange);

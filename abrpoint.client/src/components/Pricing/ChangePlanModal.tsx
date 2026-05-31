@@ -145,7 +145,6 @@ const PLAN_META: Record<PlanKey, {
       '200 Go stockage sécurisé · Hébergement France OVH',
       'Administrateurs illimités · Onboarding accompagné',
       'SLA prioritaire',
-      'API & futures intégrations',
       'Idéal : PME structurées · groupes multi-sites · conformité & sécurité avancées · organisations en croissance',
     ],
   },

@@ -55,7 +55,15 @@ namespace ABRPOINT.Server.Repository
         {
             if (entity != null)
             {
-                _dbContext.Societes.Update(entity);
+                var entry = _dbContext.Societes.Update(entity);
+                // Colonnes de paramétrage gérées EXCLUSIVEMENT par leurs endpoints dédiés
+                // (logo, branding, politique geofence). Update(entity) marque toutes les
+                // propriétés comme modifiées : sans cette protection, un simple PUT société
+                // (qui n'envoie pas ces champs) les remettrait à NULL — effaçant le logo, les
+                // couleurs et le réglage hors-zone. On les exclut donc de l'update.
+                entry.Property(e => e.Socimg).IsModified = false;
+                entry.Property(e => e.Socbranding).IsModified = false;
+                entry.Property(e => e.Socgeohorszone).IsModified = false;
                 await _dbContext.SaveChangesAsync();
             }
         }
@@ -145,6 +153,36 @@ namespace ABRPOINT.Server.Repository
                     .Where(u => u.Soccod == soccod)
                     .ExecuteUpdateAsync(setters =>
                         setters.SetProperty(u => u.Socimg, filePath));
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task UpdateSocieteBrandingAsync(string? soccod, string? brandingJson)
+        {
+            try
+            {
+                await _dbContext.Societes
+                    .Where(u => u.Soccod == soccod)
+                    .ExecuteUpdateAsync(setters =>
+                        setters.SetProperty(u => u.Socbranding, brandingJson));
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task UpdateSocieteGeofencePolicyAsync(string? soccod, string? value)
+        {
+            try
+            {
+                await _dbContext.Societes
+                    .Where(u => u.Soccod == soccod)
+                    .ExecuteUpdateAsync(setters =>
+                        setters.SetProperty(u => u.Socgeohorszone, value));
             }
             catch (Exception)
             {

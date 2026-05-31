@@ -322,7 +322,7 @@ export default function HomePage() {
       {/* NAV — fixée en tête de page. */}
       <nav className={`hp-nav${scrolled ? ' scrolled' : ''}`}>
         <div className="nav-logo">
-          <img className="logo-mark" src="/concorde-wrokly-logo.jpg" alt="Concorde Workforce" />
+          <img className="logo-mark" src="/concorde-workly-light.png" alt="Concorde Workforce" />
         </div>
         <ul className="nav-links">
           <li><a href="#how">{t('homePage.nav.demo')}</a></li>
@@ -887,7 +887,7 @@ export default function HomePage() {
         <div className="footer-grid">
           <div>
             <div className="footer-logo nav-logo">
-              <img className="logo-mark" src="/concorde-wrokly-logo.jpg" alt="Concorde Workforce" />
+              <img className="logo-mark" src="/concorde-workly-light.png" alt="Concorde Workforce" />
               <span>Concorde Workforce</span>
             </div>
             <div className="footer-desc">

@@ -75,6 +75,14 @@ public static class BaseDataSchemaMigrator
         // ReportsGenerationService.GenerateFromHtml. Migration silencieuse pour
         // rétrocompat des bases provisionnées avant l'introduction du champ.
         var socimg = await AddColumnIfMissingAsync(db, "Societe", "socimg", "VARCHAR(500) NULL", ct);
+        // Société : branding personnalisé (option CustomBranding) — JSON des couleurs de base
+        // de la plateforme. Lu par /Utilisateurs/me (champ "branding"). Sans cette colonne, le
+        // SELECT s.Socbranding dans /me explose en 42703 sur les bases déjà provisionnées.
+        // ⚠ Table "Societe" (PascalCase) — cf. note socville/socimg ci-dessus.
+        await AddColumnIfMissingAsync(db, "Societe", "socbranding", "VARCHAR(1000) NULL", ct);
+        // Société : politique de pointage hors zone geofence ('1' = accepter + notifier l'employeur ;
+        // '0'/null = refuser, défaut). Lue par PresencesController.MarkPresence.
+        await AddColumnIfMissingAsync(db, "Societe", "socgeohorszone", "VARCHAR(1) NULL", ct);
         // Tables enfants qui référencent ville.vilcod : la PK a été élargie à 6 chars,
         // les FKs étaient encore à 4 → toute sauvegarde d'employé avec un vilcod
         // auto-généré (6 chiffres) ou un code INSEE (5 chiffres) échouait.

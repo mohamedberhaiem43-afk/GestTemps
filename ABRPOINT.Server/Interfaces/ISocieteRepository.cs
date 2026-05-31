@@ -11,5 +11,7 @@ namespace ABRPOINT.Server.Interfaces
         Task<bool> UpdateSocieteAsync(Societe societe);
         Task<bool> UpdateSocHeuresAsync(string soccod,string socpresence,string sochsup);
         Task UpdateSocieteImageAsync(string? soccod, string filePath);
+        Task UpdateSocieteBrandingAsync(string? soccod, string? brandingJson);
+        Task UpdateSocieteGeofencePolicyAsync(string? soccod, string? value);
     }
 }

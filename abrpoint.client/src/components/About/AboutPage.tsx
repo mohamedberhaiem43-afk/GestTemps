@@ -34,7 +34,7 @@ function AboutPage() {
       <nav className="w-full top-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky z-50 border-b border-surface-container">
         <div className="flex justify-between items-center max-w-7xl mx-auto px-8 py-4">
           <div className="flex items-center gap-3 cursor-pointer select-none" onClick={() => navigate('/')}>
-            <img src="/concorde-wrokly-logo.jpg" alt="Logo" style={{ height: 64, width: 'auto', objectFit: 'contain' }} />
+            <img src="/concorde-workly-light.png" alt="Logo" style={{ height: 64, width: 'auto', objectFit: 'contain' }} />
           </div>
           <div className="hidden md:flex items-center gap-8">
             <button
@@ -162,7 +162,7 @@ function AboutPage() {
       <footer className="w-full border-t border-surface-container bg-white py-12">
         <div className="max-w-7xl mx-auto px-8 flex items-center justify-between text-on-surface-variant">
           <div className="flex items-center gap-3">
-            <img src="/concorde-wrokly-logo.jpg" alt="Logo Concorde" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
+            <img src="/concorde-workly-light.png" alt="Logo Concorde" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
             <span className="text-sm font-bold uppercase tracking-tight">{t('about.footer.brand')}</span>
           </div>
           <span className="text-xs font-medium">{t('about.footer.rights', { year: new Date().getFullYear() })}</span>

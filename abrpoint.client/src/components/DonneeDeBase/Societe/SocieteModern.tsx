@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { Box, Typography, Button } from '@mui/material';
 import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
@@ -9,6 +9,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import ColorLensIcon from '@mui/icons-material/ColorLens';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -71,6 +73,8 @@ const emptyForm: SocieteModel = {
   soctva000: '000', socreg: 0, socmois: 0.0, soctype: '', socpresence: '',
   sochsup: '', socmere: '', socsmig: null, soclibar: '', socadrar: '', socrespar: ''
 };
+// Couleurs par défaut du thème (cf. App.tsx lightTokens) — fallback quand le tenant n'a rien choisi.
+const DEFAULT_BRAND = { primary: '#0040a1', background: '#f7f9fb', title: '#1e293b' };
 const FIELD_LIMITS: Partial<Record<keyof SocieteModel, number>> = {
   soccod: 2,
   soclib: 30,
@@ -104,7 +108,78 @@ const getTypeBadge = (type: string) => {
 
 function SocieteModernContent() {
   const { t } = useTranslation();
-  const { hasPermission, countryCode } = useAuth();
+  const { hasPermission, countryCode, planAllows, soccod: authSoccod, branding } = useAuth();
+  // Le logo société fait partie de l'option « Branding personnalisé » (Premium ou addon).
+  const canCustomBranding = planAllows('customBranding');
+  // La politique « pointage hors zone » dépend de la géolocalisation (geofence des sites).
+  const canGeofence = planAllows('geolocation');
+
+  const handleToggleGeofencePolicy = async (accept: boolean) => {
+    if (!form.soccod || !isEditMode) { feedback.showWarning(t('societe.geofence.selectFirst')); return; }
+    try {
+      await apiInstance.put(`/Parametres/geofence-policy/${form.soccod}`, { acceptOutsideZone: accept });
+      setForm(prev => ({ ...prev, socgeohorszone: accept ? '1' : '0' }));
+      feedback.showSuccess(t('societe.geofence.saveSuccess'));
+    } catch (err) {
+      feedback.showError(err, t('societe.geofence.saveError'));
+    }
+  };
+  // Couleurs de base personnalisées (option Branding). On édite la société du tenant connecté
+  // (authSoccod = celle relue par /me) afin que le changement soit visible immédiatement.
+  const [brandPrimary, setBrandPrimary] = useState(branding?.primary || DEFAULT_BRAND.primary);
+  const [brandBackground, setBrandBackground] = useState(branding?.background || DEFAULT_BRAND.background);
+  const [brandTitle, setBrandTitle] = useState(branding?.title || DEFAULT_BRAND.title);
+  const [savingBrand, setSavingBrand] = useState(false);
+
+  // Resynchronise les sélecteurs quand /me résout (ou met à jour) le branding du tenant —
+  // sinon un admin ayant déjà des couleurs verrait les valeurs par défaut tant que /me n'a
+  // pas répondu. branding ne change qu'au login/refresh, donc pas de clobbering en cours d'édition.
+  useEffect(() => {
+    setBrandPrimary(branding?.primary || DEFAULT_BRAND.primary);
+    setBrandBackground(branding?.background || DEFAULT_BRAND.background);
+    setBrandTitle(branding?.title || DEFAULT_BRAND.title);
+  }, [branding]);
+
+  const applyBrandingLocally = (json: string | null) => {
+    try {
+      if (json) localStorage.setItem('tenantBranding', json);
+      else localStorage.removeItem('tenantBranding');
+      window.dispatchEvent(new Event('brandingUpdated'));
+    } catch { /* localStorage indispo : ignoré */ }
+  };
+
+  const handleSaveBranding = async () => {
+    if (!authSoccod) { feedback.showWarning(t('societe.branding.noSociete')); return; }
+    setSavingBrand(true);
+    try {
+      const r = await apiInstance.put(`/Parametres/branding/${authSoccod}`, {
+        primary: brandPrimary, background: brandBackground, title: brandTitle,
+      });
+      applyBrandingLocally(r.data?.branding ?? null); // thème live sans rechargement
+      feedback.showSuccess(t('societe.branding.saveSuccess'));
+    } catch (err) {
+      feedback.showError(err, t('societe.branding.saveError'));
+    } finally {
+      setSavingBrand(false);
+    }
+  };
+
+  const handleResetBranding = async () => {
+    if (!authSoccod) { feedback.showWarning(t('societe.branding.noSociete')); return; }
+    setSavingBrand(true);
+    try {
+      await apiInstance.put(`/Parametres/branding/${authSoccod}`, { primary: '', background: '', title: '' });
+      applyBrandingLocally(null);
+      setBrandPrimary(DEFAULT_BRAND.primary);
+      setBrandBackground(DEFAULT_BRAND.background);
+      setBrandTitle(DEFAULT_BRAND.title);
+      feedback.showSuccess(t('societe.branding.resetSuccess'));
+    } catch (err) {
+      feedback.showError(err, t('societe.branding.saveError'));
+    } finally {
+      setSavingBrand(false);
+    }
+  };
   // Indicatif « + » par défaut selon le pays souscrit du tenant (FR→+33, TN→+216, MA→+212…).
   const defaultDial = dialForCountry(countryCode);
   const [form, setForm] = useState<SocieteModel>(emptyForm);
@@ -537,39 +612,109 @@ function SocieteModernContent() {
                     style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: '8px', border: '1px solid #eee' }}
                   />
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const target = form.soccod || form.soccod === '' ? form.soccod : '';
-                    if (!target) {
-                      feedback.showWarning(t('societe.logo.selectFirst'));
-                      return;
-                    }
-                    try {
-                      const fd = new FormData();
-                      fd.append('file', file);
-                      const r = await apiInstance.post(`/Parametres/upload-logo/${target}`, fd, {
-                        headers: { 'Content-Type': 'multipart/form-data' },
-                      });
-                      const filePath: string | undefined = r.data?.filePath;
-                      if (filePath) {
-                        localStorage.setItem('societeImage', filePath);
-                        window.dispatchEvent(new Event('imageUpdated'));
-                        feedback.showSuccess(t('societe.logo.uploadSuccess'));
+                {canCustomBranding ? (
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const target = form.soccod || form.soccod === '' ? form.soccod : '';
+                      if (!target) {
+                        feedback.showWarning(t('societe.logo.selectFirst'));
+                        return;
                       }
-                    } catch (err) {
-                      feedback.showError(err, t('societe.logo.uploadError'));
-                    }
-                  }}
-                  style={{ fontSize: '12px' }}
-                />
+                      try {
+                        const fd = new FormData();
+                        fd.append('file', file);
+                        const r = await apiInstance.post(`/Parametres/upload-logo/${target}`, fd, {
+                          headers: { 'Content-Type': 'multipart/form-data' },
+                        });
+                        const filePath: string | undefined = r.data?.filePath;
+                        if (filePath) {
+                          localStorage.setItem('societeImage', filePath);
+                          window.dispatchEvent(new Event('imageUpdated'));
+                          feedback.showSuccess(t('societe.logo.uploadSuccess'));
+                        }
+                      } catch (err) {
+                        feedback.showError(err, t('societe.logo.uploadError'));
+                      }
+                    }}
+                    style={{ fontSize: '12px' }}
+                  />
+                ) : (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'text.secondary', fontSize: '12px' }}>
+                    <LockOutlinedIcon sx={{ fontSize: 16 }} />
+                    <span>{t('societe.logo.brandingLocked')}</span>
+                  </Box>
+                )}
               </Box>
             </Box>
+            {canGeofence && isEditMode && (
+              <Box className="soc-field soc-field--full" sx={{ mt: 1 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 600 }}>
+                  <input
+                    type="checkbox"
+                    checked={form.socgeohorszone === '1'}
+                    onChange={(e) => handleToggleGeofencePolicy(e.target.checked)}
+                  />
+                  {t('societe.geofence.acceptLabel')}
+                </label>
+                <Typography sx={{ fontSize: '12px', color: 'text.secondary', mt: 0.5 }}>
+                  {t('societe.geofence.acceptHint')}
+                </Typography>
+              </Box>
+            )}
           </Box>
         </Box>
+
+        {/* Card: Branding personnalisé (option CustomBranding) — couleurs de base de la plateforme.
+            S'applique à TOUT le tenant (tous ses utilisateurs) au prochain /me, et en live ici. */}
+        {canCustomBranding && (
+          <Box className="soc-card">
+            <Box className="soc-card-header">
+              <Box className="soc-card-icon"><ColorLensIcon fontSize="small" /></Box>
+              <Typography className="soc-card-title">{t('societe.branding.title')}</Typography>
+            </Box>
+            <Typography sx={{ fontSize: '12px', color: 'text.secondary', mb: 1.5 }}>
+              {t('societe.branding.subtitle')}
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              {([
+                { key: 'primary', label: t('societe.branding.primary'), value: brandPrimary, set: setBrandPrimary },
+                { key: 'background', label: t('societe.branding.background'), value: brandBackground, set: setBrandBackground },
+                { key: 'title', label: t('societe.branding.titleColor'), value: brandTitle, set: setBrandTitle },
+              ]).map((c) => (
+                <Box key={c.key} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 150 }}>
+                  <label style={{ fontSize: '12px', fontWeight: 600 }}>{c.label}</label>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <input
+                      type="color"
+                      value={c.value}
+                      onChange={(e) => c.set(e.target.value)}
+                      style={{ width: 40, height: 32, padding: 0, border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', background: 'none' }}
+                    />
+                    <input
+                      type="text"
+                      value={c.value}
+                      onChange={(e) => c.set(e.target.value)}
+                      maxLength={7}
+                      style={{ width: 90, fontSize: '13px' }}
+                    />
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+              <Button variant="contained" size="small" onClick={handleSaveBranding} disabled={savingBrand}>
+                {t('societe.branding.save')}
+              </Button>
+              <Button variant="outlined" size="small" onClick={handleResetBranding} disabled={savingBrand}>
+                {t('societe.branding.reset')}
+              </Button>
+            </Box>
+          </Box>
+        )}
 
         {/* Card: Coordonnées */}
         <Box className="soc-card soc-card--coord">

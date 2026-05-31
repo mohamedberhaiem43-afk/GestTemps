@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Box, Container, Typography, Paper, Button, Stack } from '@mui/material';
-import { Code2, Headphones, Server } from 'lucide-react';
+import { Server } from 'lucide-react';
 
 /**
  * ServicesPage — catalogue « Services & accompagnement » (add-ons d'abonnement +
@@ -32,20 +32,20 @@ interface AddonDef {
 }
 
 const ADDONS: AddonDef[] = [
-  {
-    icon: <Code2 size={22} />,
-    title: 'API publique',
-    desc: 'Accès programmatique à vos données et automatisation de vos flux.',
-    price: { amount: '+199 €', unit: '/ mois' },
-    cta: 'activer',
-  },
-  {
-    icon: <Headphones size={22} />,
-    title: 'Support prioritaire 24/7',
-    desc: 'Ligne dédiée et réponse garantie sous une heure, jour et nuit.',
-    price: { amount: '+149 €', unit: '/ mois' },
-    cta: 'activer',
-  },
+  // {
+  //   icon: <Code2 size={22} />,
+  //   title: 'API publique',
+  //   desc: 'Accès programmatique à vos données et automatisation de vos flux.',
+  //   price: { amount: '+199 €', unit: '/ mois' },
+  //   cta: 'activer',
+  // },
+  // {
+  //   icon: <Headphones size={22} />,
+  //   title: 'Support prioritaire 24/7',
+  //   desc: 'Ligne dédiée et réponse garantie sous une heure, jour et nuit.',
+  //   price: { amount: '+149 €', unit: '/ mois' },
+  //   cta: 'activer',
+  // },
   {
     icon: <Server size={22} />,
     title: 'Hébergement dédié',

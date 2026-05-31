@@ -202,6 +202,16 @@ public class StripeWebhookController : ControllerBase
                     var oldSubId = tenant.StripeSubscriptionId;
                     tenant.StripeSubscriptionId = session.SubscriptionId;
                     if (!string.IsNullOrEmpty(session.CustomerId)) tenant.StripeCustomerId = session.CustomerId;
+                    // Activation du plan SEULEMENT maintenant (paiement confirmé). On lit le plan
+                    // depuis le Metadata["plan"] posé à la création de la session de checkout. Avant,
+                    // le plan était écrit dès la création du checkout → un paiement annulé laissait
+                    // le pack marqué comme souscrit. On ne l'active donc qu'ici.
+                    if (session.Metadata != null
+                        && session.Metadata.TryGetValue("plan", out var planFromMeta)
+                        && !string.IsNullOrWhiteSpace(planFromMeta))
+                    {
+                        tenant.PlanCode = planFromMeta;
+                    }
                     tenant.Status = "Active";
                     await master.SaveChangesAsync(ct);
                     _tenantStore.Invalidate(tenant.Slug);

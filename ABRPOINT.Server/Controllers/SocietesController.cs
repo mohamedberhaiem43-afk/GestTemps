@@ -164,8 +164,11 @@ namespace ABRPOINT.Server.Controllers
             // l'adresse, le nom, etc.) : on compare l'image soumise à celle en base et
             // on refuse uniquement si elle CHANGE sur un pack non éligible. NULL → NULL
             // (suppression de logo) reste autorisé pour permettre un rollback propre.
-            var planAllowsBranding = PlanCatalog.GetPlan(_currentTenant.Current?.PlanCode)
-                ?.Features.CustomBranding ?? false;
+            // GetEffectiveFeatures (et non GetPlan().Features) pour honorer un éventuel addon
+            // « branding » souscrit sur un pack non-Premium — cohérent avec /me et l'upload-logo.
+            var planAllowsBranding = PlanCatalog
+                .GetEffectiveFeatures(_currentTenant.Current?.PlanCode, _currentTenant.Current?.Addons)
+                .CustomBranding;
             // En essai gratuit, le frontend déverrouille toutes les features pour test —
             // on aligne le comportement back en utilisant TrialPolicy.IsTrialing.
             var inTrial = TrialPolicy.IsTrialing(_currentTenant.Current);

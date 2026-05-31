@@ -27,7 +27,8 @@ namespace ABRPOINT.Server.Controllers
         private readonly Services.IGeoZoneValidator? _geoValidator;
         private readonly IWebHostEnvironment _env;
         private readonly ICurrentTenant? _currentTenant;
-        public PresencesController(IPresenceRepository presenceRepository, IReportsGenerationService reportGenerationService,IUtilisateurRepository utilisateurRepository,IPointageOptimizerService pointageOptimizerService, ApplicationDbContext db, IWebHostEnvironment env, ILogger<PresencesController>? logger = null, Services.IGeoZoneValidator? geoValidator = null, ICurrentTenant? currentTenant = null)
+        private readonly Services.IUserNotificationService? _notify;
+        public PresencesController(IPresenceRepository presenceRepository, IReportsGenerationService reportGenerationService,IUtilisateurRepository utilisateurRepository,IPointageOptimizerService pointageOptimizerService, ApplicationDbContext db, IWebHostEnvironment env, ILogger<PresencesController>? logger = null, Services.IGeoZoneValidator? geoValidator = null, ICurrentTenant? currentTenant = null, Services.IUserNotificationService? notify = null)
         {
             _presenceRepository = presenceRepository;
             _reportGenerationService = reportGenerationService;
@@ -37,6 +38,7 @@ namespace ABRPOINT.Server.Controllers
             _logger = logger;
             _geoValidator = geoValidator;
             _currentTenant = currentTenant;
+            _notify = notify;
         }
 
         // S7 : en production on masque les détails techniques (stack/inner exception) car ils
@@ -562,6 +564,13 @@ namespace ABRPOINT.Server.Controllers
                 // Si l'admin a configuré le geofence du site mais que le client n'a pas
                 // envoyé de GPS, on refuse (sinon contournement trivial en désactivant
                 // la localisation).
+                // Politique « pointages hors zone » (cf. Societe.Socgeohorszone) : par défaut on
+                // REFUSE (sécurité). Si l'admin a coché « accepter les pointages hors zone » pour la
+                // société, on ACCEPTE le pointage et on notifie l'employeur après enregistrement.
+                // Déclarés au scope méthode car consommés plus bas, après AddPresence.
+                bool outsideZoneAccepted = false;
+                double? outsideZoneDistanceM = null;
+                string? outsideZoneSitcod = null;
                 if (_geoValidator != null)
                 {
                     // On a besoin du sitcod rattaché de l'employé pour cibler le bon
@@ -613,6 +622,13 @@ namespace ABRPOINT.Server.Controllers
                         ? configMode
                         : (tenantHasAnyGeofence ? "reject" : "off");
 
+                    // Paramètre société : « accepter les pointages hors zone » ('1') au lieu de les
+                    // refuser. Quand activé, on n'oppose plus de 422 — on laisse passer et on notifie.
+                    var acceptOutsideZone = await _db.Societes.AsNoTracking()
+                        .Where(s => s.Soccod == soccod)
+                        .Select(s => s.Socgeohorszone)
+                        .FirstOrDefaultAsync() == "1";
+
                     if (effectiveMode != "off" && siteHasGeofence)
                     {
                         if (!lat.HasValue || !lon.HasValue)
@@ -620,7 +636,7 @@ namespace ABRPOINT.Server.Controllers
                             _logger?.LogWarning(
                                 "Pointage refusé (GPS manquant alors que le site {Sitcod} a un geofence). soccod={Soccod} empcod={Empcod}",
                                 empSitcod, soccod, empcod);
-                            if (effectiveMode == "reject")
+                            if (effectiveMode == "reject" && !acceptOutsideZone)
                             {
                                 return UnprocessableEntity(new
                                 {
@@ -646,13 +662,21 @@ namespace ABRPOINT.Server.Controllers
                                     soccod, empcod, empSitcod, distance);
                                 if (effectiveMode == "reject")
                                 {
-                                    return UnprocessableEntity(new
+                                    if (!acceptOutsideZone)
                                     {
-                                        message = $"Pointage refusé : vous êtes à {distance} de votre site ({empSitcod}). Le pointage n'est autorisé que depuis le périmètre défini pour votre filiale.",
-                                        code = "outside_site_geofence",
-                                        distance = validation.NearestDistanceMeters,
-                                        sitcod = empSitcod,
-                                    });
+                                        return UnprocessableEntity(new
+                                        {
+                                            message = $"Pointage refusé : vous êtes à {distance} de votre site ({empSitcod}). Le pointage n'est autorisé que depuis le périmètre défini pour votre filiale.",
+                                            code = "outside_site_geofence",
+                                            distance = validation.NearestDistanceMeters,
+                                            sitcod = empSitcod,
+                                        });
+                                    }
+                                    // Mode « accepter hors zone » : on laisse passer et on mémorise
+                                    // l'écart pour notifier l'employeur une fois le pointage enregistré.
+                                    outsideZoneAccepted = true;
+                                    outsideZoneDistanceM = validation.NearestDistanceMeters;
+                                    outsideZoneSitcod = empSitcod;
                                 }
                             }
                         }
@@ -748,6 +772,20 @@ namespace ABRPOINT.Server.Controllers
                     acc: acc.HasValue ? (int?)Math.Round(acc.Value) : null);
                 if (result == null)
                     return NotFound(new { message = "Employé introuvable" });
+
+                // Notification employeur : pointage hors zone accepté (société en mode « accepter
+                // hors zone »). Best-effort / fire-and-forget — ne bloque jamais le pointage.
+                // Ciblage site-scoped (managers/admins du site de l'employé), fallback tenant-wide.
+                if (outsideZoneAccepted && _notify != null)
+                {
+                    var distLabel = outsideZoneDistanceM.HasValue ? $"{outsideZoneDistanceM.Value:F0} m" : "?";
+                    var who = string.IsNullOrWhiteSpace(empInfo?.Emplib) ? empcod : empInfo!.Emplib;
+                    _ = _notify.NotifyManagersForEmployeeAsync(
+                        soccod, empcod,
+                        "Pointage hors zone",
+                        $"{who} a pointé à {distLabel} de son site ({outsideZoneSitcod}).",
+                        new { type = "geofence_out_of_zone", empcod, soccod, sitcod = outsideZoneSitcod, distanceMeters = outsideZoneDistanceM });
+                }
 
                 // Suivi temps réel : on alimente AUSSI live_position dès le pointage quand
                 // une position GPS est fournie. Sans ça, la carte "Suivi positions" restait

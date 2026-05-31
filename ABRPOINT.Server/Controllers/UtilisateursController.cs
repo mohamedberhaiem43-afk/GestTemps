@@ -852,6 +852,7 @@ namespace GestionDesTickets.Server.Controllers
             string? soccod = null;
             string? sitcod = null;
             string? soclib = null;
+            string? socbranding = null;
             var socLink = await _dbContext.Socusers
                 .Where(s => s.Uticod == uticod)
                 .OrderBy(s => s.Soccod)
@@ -861,10 +862,12 @@ namespace GestionDesTickets.Server.Controllers
             {
                 soccod = socLink.Soccod;
                 sitcod = socLink.Sitcod;
-                soclib = await _dbContext.Societes
+                var soc = await _dbContext.Societes
                     .Where(x => x.Soccod == soccod)
-                    .Select(x => x.Soclib)
+                    .Select(x => new { x.Soclib, x.Socbranding })
                     .FirstOrDefaultAsync();
+                soclib = soc?.Soclib;
+                socbranding = soc?.Socbranding;
             }
 
             // Source de vérité côté front pour les checks d'autorisation : roleName + permissions.
@@ -903,6 +906,17 @@ namespace GestionDesTickets.Server.Controllers
             // planFeatures fusionnées pour permettre à MonAbonnementPage de
             // distinguer "module inclus dans le pack" vs "module additionnel souscrit".
             var subscribedAddons = ABRPOINT.Server.Tenancy.PlanCatalog.ParseAddons(tenant?.Addons).ToArray();
+
+            // Branding personnalisé : on ne renvoie les couleurs que si le tenant y a droit
+            // (CustomBranding actif, ou en essai). Sinon NULL → le front retombe automatiquement
+            // sur le thème par défaut même si d'anciennes couleurs restent stockées en base
+            // (cas d'un downgrade Premium → Starter sans purge).
+            object? branding = null;
+            if ((effectiveFeatures.CustomBranding || isTrialing) && !string.IsNullOrWhiteSpace(socbranding))
+            {
+                try { branding = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(socbranding!); }
+                catch { branding = null; }
+            }
 
             return Ok(new
             {
@@ -943,6 +957,7 @@ namespace GestionDesTickets.Server.Controllers
                 },
                 planFeatures = effectiveFeatures,
                 addons = subscribedAddons,
+                branding,
                 permissions = user.Role?.Permissions ?? new List<RolePermission>()
             });
         }

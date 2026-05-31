@@ -27,8 +27,6 @@ export interface ModuleDef {
 export const MODULE_CATALOG: ModuleDef[] = [
   { label: 'Assistant RH IA',                description: 'Aide à la rédaction, recherche multi-sources, automatisations RH.',           priceMonthlyEur: 49,  feature: 'ragAi',               addonKey: 'aiAssistantRh' },
   { label: 'Signature électronique',         description: 'Parapheur multi-signataires, archivage légal eIDAS.',                        priceMonthlyEur: 19,  feature: 'electronicSignature', addonKey: 'signatureElectronique' },
-  { label: 'API avancée',                    description: 'Accès programmatique étendu pour intégrer votre SIRH, paie ou ERP.',         priceMonthlyEur: 79,  feature: 'apiAccess',           addonKey: 'apiAvancee', quoteOnly: true },
-  { label: 'Support prioritaire étendu',     description: 'Réponse <2h ouvrées, hotline dédiée, account manager.',                      priceMonthlyEur: 49,  feature: 'prioritySupport',     addonKey: 'supportPrioritaire' },
   { label: 'Stockage supplémentaire 100 Go', description: '100 Go d\'espace sécurisé en plus.',                                          priceMonthlyEur: 29,  feature: null,                  addonKey: null, note: 'Se gère depuis la carte « Stockage » plus bas.' },
   { label: 'Domaine personnalisé',           description: 'Votre espace sur votre propre domaine + personnalisation de marque.',        priceMonthlyEur: 19,  feature: 'customBranding',      addonKey: null, note: 'Inclus dans le pack Premium.' },
 ];

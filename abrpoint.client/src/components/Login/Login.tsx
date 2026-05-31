@@ -351,7 +351,7 @@ export default function CredentialsSignInPage() {
         {/* Logo */}
         <Box className="login-left-logo">
           <Box className="login-logo-icon" sx={{ p: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src="/concorde-wrokly-logo.jpg" alt="Concorde Logo" style={{ width: 64, height: 64, objectFit: 'contain' }} />
+            <img src="/concorde-workly-light.png" alt="Concorde Logo" style={{ width: 64, height: 64, objectFit: 'contain' }} />
           </Box>
         </Box>
       </Box>
@@ -361,7 +361,7 @@ export default function CredentialsSignInPage() {
         <Box className="login-form-container">
           {/* Mobile Logo */}
           <Box className="login-mobile-logo">
-            <img src="/concorde-wrokly-logo.jpg" alt="Concorde Logo" style={{ width: 140, height: 140, marginBottom: 8, objectFit: 'contain' }} />
+            <img src="/concorde-workly-light.png" alt="Concorde Logo" style={{ width: 140, height: 140, marginBottom: 8, objectFit: 'contain' }} />
           </Box>
 
           {/* Header — adapté au contexte : en mode setup (lien d'invitation salarié)

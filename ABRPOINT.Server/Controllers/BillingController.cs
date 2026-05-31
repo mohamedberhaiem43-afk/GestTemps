@@ -182,13 +182,12 @@ public class BillingController : ControllerBase
         if (tenant is null)
             return NotFound(new { error = "Tenant introuvable." });
 
-        // Persiste le plan sélectionné dès la création du checkout : sans attendre le webhook,
-        // les quotas TrialPolicy.GetLimits(tenant) reflètent le plan choisi pour ce tenant.
-        if (!string.Equals(tenant.PlanCode, req.PlanCode, StringComparison.OrdinalIgnoreCase))
-        {
-            tenant.PlanCode = req.PlanCode;
-            await master.SaveChangesAsync(ct);
-        }
+        // NB : on ne persiste PLUS le plan choisi ICI. Le faire dès la création du checkout
+        // marquait le pack comme « souscrit » même quand l'utilisateur annulait le paiement
+        // (bug : au retour sur la page d'abonnement, le pack annulé apparaissait comme actuel).
+        // Le plan est désormais activé UNIQUEMENT au webhook checkout.session.completed (paiement
+        // confirmé), à partir du Metadata["plan"] posé sur la session ci-dessous.
+        // Cf. StripeWebhookController : « checkout.session.completed ».
 
         StripeConfiguration.ApiKey = secretKey;
 

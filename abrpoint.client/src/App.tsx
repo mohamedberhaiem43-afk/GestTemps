@@ -38,15 +38,23 @@ const darkTokens = {
   drawer: '#0f172a',
 };
 
-function buildTheme(mode: 'light' | 'dark') {
+// Couleurs de branding personnalisées du tenant (option « Branding personnalisé »).
+type BrandingColors = { primary?: string | null; background?: string | null; title?: string | null } | null;
+
+function buildTheme(mode: 'light' | 'dark', branding?: BrandingColors) {
   const t = mode === 'dark' ? darkTokens : lightTokens;
+  // Override par le branding tenant uniquement si une valeur est fournie ; sinon thème par défaut.
+  // En dark mode on garde la primaire claire par défaut (lisibilité) si le tenant n'a rien choisi.
+  const brandPrimary = branding?.primary || (mode === 'dark' ? '#93c5fd' : '#0040a1');
+  const brandBg = branding?.background || t.bg;
+  const titleColor = branding?.title || undefined;
   return createTheme({
     palette: {
       mode,
-      primary: { main: mode === 'dark' ? '#93c5fd' : '#0040a1' },
+      primary: { main: brandPrimary },
       secondary: { main: '#ff9500' },
       background: {
-        default: t.bg,
+        default: brandBg,
         paper: t.paper,
       },
       text: {
@@ -62,6 +70,17 @@ function buildTheme(mode: 'light' | 'dark') {
       button: { textTransform: "none", fontWeight: 500 },
     },
     components: {
+      // Branding « couleur des titres » : exposée en variable CSS (--brand-title-color) et
+      // appliquée aux titres natifs h1–h6. Sans !important pour qu'un titre volontairement
+      // coloré en ligne (sx/style, ex. titres blancs sur fond coloré) garde sa couleur.
+      MuiCssBaseline: {
+        styleOverrides: titleColor
+          ? {
+              ':root': { '--brand-title-color': titleColor },
+              'h1,h2,h3,h4,h5,h6': { color: titleColor },
+            }
+          : {},
+      },
       MuiButton: {
         styleOverrides: {
           root: {
@@ -115,7 +134,7 @@ function buildTheme(mode: 'light' | 'dark') {
             },
             '&.Mui-selected': {
               backgroundColor: mode === 'dark' ? 'rgba(147,197,253,0.12)' : '#ffffff',
-              color: mode === 'dark' ? '#93c5fd' : '#0040a1',
+              color: brandPrimary,
               fontWeight: 800,
               boxShadow: mode === 'dark' ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.05)',
               '&::before': {
@@ -125,7 +144,7 @@ function buildTheme(mode: 'light' | 'dark') {
                 top: '20%',
                 bottom: '20%',
                 width: '4px',
-                backgroundColor: mode === 'dark' ? '#93c5fd' : '#0040a1',
+                backgroundColor: brandPrimary,
                 borderRadius: '0 4px 4px 0',
               },
               '&:hover': { backgroundColor: mode === 'dark' ? 'rgba(147,197,253,0.15)' : '#ffffff' },
@@ -271,7 +290,7 @@ function buildTheme(mode: 'light' | 'dark') {
       MuiCircularProgress: {
         styleOverrides: {
           root: {
-            color: mode === 'dark' ? '#93c5fd' : '#0040a1',
+            color: brandPrimary,
           },
         },
       },
@@ -299,11 +318,35 @@ const ThemeModeContext = createContext<ThemeModeContextType>({
 export const useThemeMode = () => useContext(ThemeModeContext);
 
 
+function readBranding(): BrandingColors {
+  try {
+    const s = localStorage.getItem('tenantBranding');
+    return s ? (JSON.parse(s) as BrandingColors) : null;
+  } catch {
+    return null;
+  }
+}
+
 function AppContent() {
   const [mode, setMode] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('theme-mode');
     return (saved === 'dark' || saved === 'light') ? saved : 'light';
   });
+
+  // Branding tenant : hydraté depuis localStorage (posé par AuthProvider au retour de /me) et
+  // re-synchronisé sur l'événement 'brandingUpdated' (login/logout/changement de couleurs) ainsi
+  // que sur 'storage' (cohérence multi-onglets). AuthProvider étant un enfant du ThemeProvider,
+  // on passe par localStorage + event plutôt que par useAuth() pour piloter le thème ici.
+  const [branding, setBranding] = useState<BrandingColors>(() => readBranding());
+  useEffect(() => {
+    const sync = () => setBranding(readBranding());
+    window.addEventListener('brandingUpdated', sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener('brandingUpdated', sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
 
   const toggleTheme = () => {
     setMode(prev => {
@@ -313,7 +356,7 @@ function AppContent() {
     });
   };
 
-  const theme = useMemo(() => buildTheme(mode), [mode]);
+  const theme = useMemo(() => buildTheme(mode, branding), [mode, branding]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', mode);

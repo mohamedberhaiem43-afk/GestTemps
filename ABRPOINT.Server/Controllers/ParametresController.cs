@@ -113,6 +113,23 @@ namespace ABRPOINT.Server.Controllers
         [HttpPost("upload-logo/{soccod}")]
         public async Task<IActionResult> UploadSocieteLogo(IFormFile file, string soccod, CancellationToken ct)
         {
+            // Gating « Custom Branding » : le logo société est réservé aux tenants éligibles
+            // (Premium, OU un autre pack ayant souscrit l'option branding → GetEffectiveFeatures
+            // mergé avec les addons, cohérent avec /me planAllows('customBranding') côté front et
+            // avec SocietesController.Put). Pendant l'essai gratuit, tout est déverrouillé pour test.
+            var planAllowsBranding = PlanCatalog
+                .GetEffectiveFeatures(_currentTenant.Current?.PlanCode, _currentTenant.Current?.Addons)
+                .CustomBranding;
+            if (!planAllowsBranding && !TrialPolicy.IsTrialing(_currentTenant.Current))
+            {
+                return StatusCode(402, new
+                {
+                    code = "plan_feature_locked",
+                    feature = "CustomBranding",
+                    message = "La personnalisation du logo est réservée aux abonnements avec l'option Branding personnalisé (incluse dans Premium). Passez au pack supérieur ou ajoutez l'option pour l'activer."
+                });
+            }
+
             // Garde quota — logo en théorie petit (< 1 Mo) mais on garde la check pour
             // un tenant qui aurait déjà saturé son stockage avec des bulletins de paie.
             if (file is not null && file.Length > 0 && _currentTenant.Current is { } tenant)
@@ -138,5 +155,77 @@ namespace ABRPOINT.Server.Controllers
             await _societeRepository.UpdateSocieteImageAsync(soccod, filePath);
             return Ok(new { filePath });
         }
+
+        // PUT api/Parametres/branding/{soccod} — enregistre les couleurs de base personnalisées
+        // (option « Branding personnalisé »). Gated identiquement à l'upload-logo : Premium OU
+        // addon branding (GetEffectiveFeatures), bypass en essai. Le front applique ces couleurs
+        // à tout le tenant via /me → AuthProvider → thème MUI.
+        [Admin]
+        [HttpPut("branding/{soccod}")]
+        public async Task<IActionResult> UpdateBranding(string soccod, [FromBody] BrandingDto branding, CancellationToken ct)
+        {
+            var planAllowsBranding = PlanCatalog
+                .GetEffectiveFeatures(_currentTenant.Current?.PlanCode, _currentTenant.Current?.Addons)
+                .CustomBranding;
+            if (!planAllowsBranding && !TrialPolicy.IsTrialing(_currentTenant.Current))
+            {
+                return StatusCode(402, new
+                {
+                    code = "plan_feature_locked",
+                    feature = "CustomBranding",
+                    message = "La personnalisation des couleurs est réservée aux abonnements avec l'option Branding personnalisé (incluse dans Premium)."
+                });
+            }
+
+            // Validation hex (#RGB ou #RRGGBB). Une couleur invalide → 400 explicite plutôt que
+            // de stocker une valeur qui casserait le thème de tous les utilisateurs du tenant.
+            static bool IsHex(string? c) => c is null || System.Text.RegularExpressions.Regex.IsMatch(c, "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$");
+            if (!IsHex(branding?.Primary) || !IsHex(branding?.Background) || !IsHex(branding?.Title))
+                return BadRequest(new { code = "invalid_color", message = "Couleur invalide : utilisez un format hexadécimal (#RRGGBB)." });
+
+            // Toutes les couleurs nulles/vides → reset au thème par défaut (NULL en base).
+            var hasAny = !string.IsNullOrWhiteSpace(branding?.Primary)
+                      || !string.IsNullOrWhiteSpace(branding?.Background)
+                      || !string.IsNullOrWhiteSpace(branding?.Title);
+            string? json = null;
+            if (hasAny)
+            {
+                json = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    primary = string.IsNullOrWhiteSpace(branding?.Primary) ? null : branding!.Primary,
+                    background = string.IsNullOrWhiteSpace(branding?.Background) ? null : branding!.Background,
+                    title = string.IsNullOrWhiteSpace(branding?.Title) ? null : branding!.Title,
+                });
+            }
+
+            await _societeRepository.UpdateSocieteBrandingAsync(soccod, json);
+            return Ok(new { branding = json });
+        }
+
+        // PUT api/Parametres/geofence-policy/{soccod} — politique de pointage hors zone :
+        // acceptOutsideZone=true → accepter (avec notification employeur) ; false → refuser (défaut).
+        // Réservé admin. Gated Geolocation (la zone géo est une feature de géolocalisation).
+        [Admin]
+        [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.Geolocation))]
+        [HttpPut("geofence-policy/{soccod}")]
+        public async Task<IActionResult> UpdateGeofencePolicy(string soccod, [FromBody] GeofencePolicyDto dto, CancellationToken ct)
+        {
+            await _societeRepository.UpdateSocieteGeofencePolicyAsync(soccod, dto?.AcceptOutsideZone == true ? "1" : "0");
+            return Ok(new { acceptOutsideZone = dto?.AcceptOutsideZone == true });
+        }
+    }
+
+    /// <summary>Politique de pointage hors zone geofence.</summary>
+    public sealed class GeofencePolicyDto
+    {
+        public bool AcceptOutsideZone { get; set; }
+    }
+
+    /// <summary>Couleurs de base personnalisées (option Branding personnalisé).</summary>
+    public sealed class BrandingDto
+    {
+        public string? Primary { get; set; }
+        public string? Background { get; set; }
+        public string? Title { get; set; }
     }
 }

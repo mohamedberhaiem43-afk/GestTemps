@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "icon": "./assets/concorde-workly-logo.png",
+    "icon": "./assets/concorde-workly-light.png",
     "splash": {
       "image": "./assets/concorde-workly-logo.png",
       "resizeMode": "contain",
@@ -15,7 +15,7 @@
       "package": "com.concorde.workly",
       "usesCleartextTraffic": false,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/concorde-workly-logo.png",
+        "foregroundImage": "./assets/concorde-workly-light.png",
         "backgroundColor": "#43466b"
       },
       "permissions": [

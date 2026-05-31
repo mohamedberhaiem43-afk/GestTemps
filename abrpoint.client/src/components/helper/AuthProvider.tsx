@@ -65,6 +65,13 @@ interface AuthContextType {
    * dans `planFeatures` côté backend — cette liste est juste un détail de souscription.
    */
   addons: string[];
+  /**
+   * Couleurs de base personnalisées du tenant (option « Branding personnalisé », Premium ou
+   * addon CustomBranding). null = thème par défaut. Le backend ne renvoie ces couleurs que si
+   * le tenant y a droit, donc un downgrade rebascule automatiquement sur le thème standard.
+   * Appliquées au thème MUI via App.tsx (lu aussi depuis localStorage 'tenantBranding').
+   */
+  branding: TenantBranding | null;
   authReady: boolean;
   permissions: RolePermission[];
   hasPermission: (module: string, action: 'consult' | 'add' | 'modify' | 'delete') => boolean;
@@ -111,6 +118,13 @@ export interface PlanFeatures {
   prioritySupport: boolean;
 }
 
+/** Couleurs de base personnalisables via l'option « Branding personnalisé ». */
+export interface TenantBranding {
+  primary?: string | null;
+  background?: string | null;
+  title?: string | null;
+}
+
 const AuthContext = createContext<AuthContextType>({
   soccod: null,
   soclib: null,
@@ -137,6 +151,7 @@ const AuthContext = createContext<AuthContextType>({
   planLimits: null,
   planFeatures: null,
   addons: [],
+  branding: null,
   authReady: false,
   permissions: [],
   hasPermission: () => false,
@@ -210,6 +225,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } | null,
     planFeatures: null as PlanFeatures | null,
     addons: [] as string[],
+    // Hydraté depuis localStorage pour que le thème personnalisé soit dispo dès le 1er rendu
+    // (avant le retour de /me), évitant un flash de couleurs par défaut au rechargement.
+    branding: ((): TenantBranding | null => {
+      try { const s = localStorage.getItem('tenantBranding'); return s ? JSON.parse(s) : null; } catch { return null; }
+    })(),
     permissions: [] as RolePermission[],
   });
 
@@ -287,6 +307,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         planLimits: response.data.planLimits ?? null,
         planFeatures: response.data.planFeatures ?? null,
         addons: Array.isArray(response.data.addons) ? response.data.addons : [],
+        branding: (response.data.branding ?? null) as TenantBranding | null,
       }));
 
       // Persist société/site/userName dans sessionStorage : le dashboard et les autres pages
@@ -317,6 +338,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.removeItem('profileImage');
         window.dispatchEvent(new Event('imageUpdated'));
       }
+
+      // Branding personnalisé : on cache les couleurs en localStorage et on notifie App.tsx
+      // (`brandingUpdated`) pour reconstruire le thème MUI immédiatement. Le backend ne renvoie
+      // `branding` que si le tenant y a droit → un downgrade renvoie null et réinitialise le thème.
+      try {
+        if (response.data.branding) {
+          localStorage.setItem('tenantBranding', JSON.stringify(response.data.branding));
+        } else {
+          localStorage.removeItem('tenantBranding');
+        }
+        window.dispatchEvent(new Event('brandingUpdated'));
+      } catch { /* localStorage indispo (mode privé) : le thème par défaut s'applique. */ }
     } catch {
       if (requestId !== requestIdRef.current) return;
 
@@ -338,6 +371,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         planLimits: null,
         planFeatures: null,
         addons: [],
+        branding: null,
         permissions: [],
         countryCode: null,
       }));
@@ -406,6 +440,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setViewModeState('management');
     localStorage.removeItem('profileImage');
     localStorage.removeItem('societeImage');
+    // Réinitialise le thème personnalisé au logout (le prochain compte n'hérite pas des couleurs).
+    localStorage.removeItem('tenantBranding');
+    window.dispatchEvent(new Event('brandingUpdated'));
 
     setAuthReady(true);
     setAuthData({
@@ -430,6 +467,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       planLimits: null,
       planFeatures: null,
       addons: [],
+      branding: null,
       permissions: [],
     });
   }, [queryClient]);

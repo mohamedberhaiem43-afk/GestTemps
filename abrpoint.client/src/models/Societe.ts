@@ -28,4 +28,7 @@ export type Societe = {
     soclibar: string;
     socadrar: string;
     socrespar: string;
+    // Politique pointage hors zone geofence : '1' = accepter (avec notif employeur), sinon refuser.
+    // Géré via l'endpoint dédié /Parametres/geofence-policy ; renvoyé par GET /Societes.
+    socgeohorszone?: string | null;
   };

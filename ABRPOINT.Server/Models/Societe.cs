@@ -103,4 +103,23 @@ public partial class Societe : BaseEntity
     [Column("socimg")]
     [StringLength(500)]
     public string? Socimg { get; set; }
+
+    /// <summary>
+    /// Branding personnalisé (option Premium / addon CustomBranding) : JSON des couleurs
+    /// de base de la plateforme choisies par le tenant, ex.
+    /// <c>{"primary":"#0040a1","background":"#f7f9fb","title":"#1e293b"}</c>.
+    /// NULL = thème par défaut. Exposé au front via /Utilisateurs/me (champ "branding").
+    /// </summary>
+    [Column("socbranding")]
+    [StringLength(1000)]
+    public string? Socbranding { get; set; }
+
+    /// <summary>
+    /// Politique de pointage hors zone (geofence) : '1' = ACCEPTER les pointages effectués hors
+    /// du périmètre du site, avec notification de l'employeur. '0'/null = REFUSER (défaut, sécurité).
+    /// Lu par PresencesController.MarkPresence.
+    /// </summary>
+    [Column("socgeohorszone")]
+    [StringLength(1)]
+    public string? Socgeohorszone { get; set; }
 }
