@@ -112,6 +112,8 @@ namespace ABRPOINT.Server.Services
                 Soccod = emp.Soccod,
                 Sitcod = emp.Sitcod,
                 Uticod = emp.Empcod,
+                // Sync service à l'import : le compte hérite du service de la fiche employé.
+                Sercod = string.IsNullOrWhiteSpace(emp.Sercod) ? null : emp.Sercod,
             };
 
             try

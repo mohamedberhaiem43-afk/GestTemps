@@ -25,10 +25,12 @@ public class PermissionCatalogTests
     // ─── Modules ────────────────────────────────────────────────────────────
 
     [Fact]
-    public void Modules_All_ContainsExactlyTheTenExpectedLabels()
+    public void Modules_All_ContainsExactlyTheExpectedLabels()
     {
         // On vérifie le set complet plutôt que la longueur seule : un futur refactor
         // qui renommerait un module sans toucher au compte total resterait silencieux.
+        // 2026-05-31 : ajout de « Note de Frais » et « Demande de Congé » (alignement avec
+        // l'écran Droit d'accès côté front + contrôle backend).
         PermissionCatalog.Modules.All.Should().BeEquivalentTo(new[]
         {
             "Absences et Sanctions",
@@ -36,6 +38,8 @@ public class PermissionCatalogTests
             "Gestion Employés",
             "Contrats et Avenants",
             "Paie et Rémunération",
+            "Note de Frais",
+            "Demande de Congé",
             "Gestion des Congés",
             "Données de Base",
             "Paramètres de Temps",

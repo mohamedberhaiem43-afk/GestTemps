@@ -47,6 +47,21 @@ export const PHONE_COUNTRIES: Country[] = [
 
 export const DEFAULT_DIAL = "+33";
 
+// Map pays souscrit (countryCode ISO-3166 alpha-2 renvoyé par /Utilisateurs/me) → indicatif.
+// Permet de pré-remplir le « + indicatif » selon le pays du tenant (gestion société, fiche
+// employé…) sans saisie manuelle. Pays non listé → DEFAULT_DIAL.
+export const COUNTRY_TO_DIAL: Record<string, string> = {
+  FR: "+33", BE: "+32", CH: "+41", LU: "+352", DE: "+49", ES: "+34",
+  IT: "+39", PT: "+351", GB: "+44", NL: "+31", MA: "+212", DZ: "+213",
+  TN: "+216", SN: "+221", CI: "+225", CA: "+1", US: "+1",
+};
+
+/** Indicatif (« +33 ») correspondant à un countryCode, ou DEFAULT_DIAL si inconnu/absent. */
+export function dialForCountry(countryCode?: string | null): string {
+  if (!countryCode) return DEFAULT_DIAL;
+  return COUNTRY_TO_DIAL[countryCode.trim().toUpperCase()] ?? DEFAULT_DIAL;
+}
+
 // Indicatifs triés du plus long au plus court pour éviter qu'un préfixe court
 // (« +1 ») ne masque un indicatif long (« +1… » vs « +33 »).
 const DIALS_BY_LENGTH = [...PHONE_COUNTRIES]
@@ -59,8 +74,11 @@ export function formatPhone(dial: string, rawNumber: string): string {
   return cleanNumber ? `${dial} ${cleanNumber}` : "";
 }
 
-/** Sépare une valeur stockée en { dial, number }. */
-export function parsePhone(raw: string): { dial: string; number: string } {
+/**
+ * Sépare une valeur stockée en { dial, number }. `defaultDial` est l'indicatif retenu quand
+ * la valeur n'en contient pas (ex. dialForCountry(countryCode) pour suivre le pays du tenant).
+ */
+export function parsePhone(raw: string, defaultDial: string = DEFAULT_DIAL): { dial: string; number: string } {
   const value = (raw ?? "").trim();
   if (value.startsWith("+")) {
     const compact = value.replace(/\s+/g, "");
@@ -69,10 +87,10 @@ export function parsePhone(raw: string): { dial: string; number: string } {
       return { dial: match, number: compact.slice(match.length) };
     }
     // « + » présent mais indicatif non listé : on garde le défaut et tout le reste.
-    return { dial: DEFAULT_DIAL, number: value };
+    return { dial: defaultDial, number: value };
   }
-  // Numéro local existant sans indicatif → numéro national, pays par défaut.
-  return { dial: DEFAULT_DIAL, number: value };
+  // Numéro local existant sans indicatif → numéro national, indicatif par défaut (pays tenant).
+  return { dial: defaultDial, number: value };
 }
 
 interface PhoneInputProps {
@@ -81,6 +99,8 @@ interface PhoneInputProps {
   onChange: (value: string) => void;
   readOnly?: boolean;
   required?: boolean;
+  /** Indicatif présélectionné quand la valeur n'en a pas. Typiquement dialForCountry(countryCode). */
+  defaultDial?: string;
 }
 
 export default function PhoneInput({
@@ -89,8 +109,9 @@ export default function PhoneInput({
   onChange,
   readOnly = false,
   required = false,
+  defaultDial = DEFAULT_DIAL,
 }: PhoneInputProps): JSX.Element {
-  const { dial, number } = useMemo(() => parsePhone(value || ""), [value]);
+  const { dial, number } = useMemo(() => parsePhone(value || "", defaultDial), [value, defaultDial]);
 
   const emit = (nextDial: string, nextNumber: string) => {
     // Numéro vide → on n'enregistre pas un indicatif orphelin.

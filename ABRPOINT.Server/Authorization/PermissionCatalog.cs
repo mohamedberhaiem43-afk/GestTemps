@@ -15,6 +15,13 @@ public static class PermissionCatalog
         public const string GestionEmployes = "Gestion Employés";
         public const string ContratsAvenants = "Contrats et Avenants";
         public const string PaieRemuneration = "Paie et Rémunération";
+        // 2026-05-31 — Modules ajoutés au catalogue : ils existaient déjà dans la liste
+        // affichée par l'écran « Droit d'accès » (cf. PERMISSION_MODULES côté front) mais
+        // n'étaient PAS dans ce catalogue → jamais semés (cases décochées même pour
+        // l'admin) ni applicables. Désormais réels : semés par rôle + contrôlés côté
+        // backend (NoteDeFraisController / DemCongesController) et front (nav).
+        public const string NoteDeFrais = "Note de Frais";
+        public const string DemandeConge = "Demande de Congé";
         public const string GestionConges = "Gestion des Congés";
         public const string DonneesDeBase = "Données de Base";
         public const string ParametresTemps = "Paramètres de Temps";
@@ -24,8 +31,8 @@ public static class PermissionCatalog
         public static readonly string[] All =
         {
             AbsencesSanctions, PointageTemps, GestionEmployes, ContratsAvenants,
-            PaieRemuneration, GestionConges, DonneesDeBase, ParametresTemps,
-            RapportsStatistiques, Administration,
+            PaieRemuneration, NoteDeFrais, DemandeConge, GestionConges, DonneesDeBase,
+            ParametresTemps, RapportsStatistiques, Administration,
         };
     }
 
@@ -83,6 +90,8 @@ public static class PermissionCatalog
                 [Modules.GestionEmployes] = "1111",
                 [Modules.ContratsAvenants] = "1111",
                 [Modules.PaieRemuneration] = "1110", // pas de suppression définitive
+                [Modules.NoteDeFrais] = "1111",      // RH gère les notes de frais
+                [Modules.DemandeConge] = "1111",     // RH gère les demandes de congé
                 [Modules.GestionConges] = "1111",
                 [Modules.DonneesDeBase] = "1100",
                 [Modules.ParametresTemps] = "1100",
@@ -101,6 +110,8 @@ public static class PermissionCatalog
                 [Modules.GestionEmployes] = "1110", // pas suppression
                 [Modules.ContratsAvenants] = "1100", // consult + add
                 [Modules.PaieRemuneration] = "1000", // consult seul
+                [Modules.NoteDeFrais] = "1110",      // valide les notes de frais, pas de suppression
+                [Modules.DemandeConge] = "1111",     // valide les demandes de congé de son équipe
                 [Modules.GestionConges] = "1111",
                 [Modules.DonneesDeBase] = "1000",
                 [Modules.ParametresTemps] = "1100",
@@ -119,6 +130,8 @@ public static class PermissionCatalog
                 [Modules.GestionEmployes] = "0000",
                 [Modules.ContratsAvenants] = "1000",
                 [Modules.PaieRemuneration] = "0000",
+                [Modules.NoteDeFrais] = "1100",   // soumet ses propres notes de frais
+                [Modules.DemandeConge] = "1100",  // soumet ses propres demandes de congé
                 [Modules.GestionConges] = "1100", // consult + demande
                 [Modules.DonneesDeBase] = "0000",
                 [Modules.ParametresTemps] = "0000",

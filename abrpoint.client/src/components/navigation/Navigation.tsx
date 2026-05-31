@@ -184,7 +184,7 @@ interface OpenedTab {
 /* ══════════════════════════════════════════════════════ */
 const useNavigationItems = (): NavGroup[] => {
   const { t } = useTranslation();
-  const { authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, roleName, isTrialing, countryCode } = useAuth();
+  const { authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, roleName, isTrialing, countryCode, viewAsEmployee } = useAuth();
 
   // PERF — Toute la construction d'allGroups (~250 lignes de spreads conditionnels et
   // de filtres) est mémoïsée. Avant, chaque render du layout reconstruisait l'array
@@ -236,7 +236,10 @@ const useNavigationItems = (): NavGroup[] => {
       // 'accompte-salaire': 'Paie et Rémunération',
       'pointage-du-mois': 'Paie et Rémunération',
       'droit-de-conge': 'Paie et Rémunération',
-      'remboursement': 'Paie et Rémunération',
+      // 2026-05-31 : la page Remboursement (note de frais) est désormais gouvernée par son
+      // propre module « Note de Frais » (et non plus « Paie et Rémunération »), pour que la
+      // case correspondante de l'écran Droit d'accès contrôle réellement sa visibilité.
+      'remboursement': 'Note de Frais',
       'etat-de-presence': 'Rapports et Statistiques',
       'etat-de-retard': 'Rapports et Statistiques',
       'etat-des-absences': 'Rapports et Statistiques',
@@ -271,7 +274,11 @@ const useNavigationItems = (): NavGroup[] => {
        par hasPermission (canSee). */
     const isPlainEmployee = !roleName
       || roleName === 'Employee' || roleName === 'standard' || roleName === 'Utilisateur Standard';
-    if (isEmp && !isManager && !isAdminEffective && isPlainEmployee) {
+    // `viewAsEmployee` : un utilisateur dual-role (manager/RH/admin également salarié) qui a
+    // basculé sur la vue « salarié » via le sélecteur d'interface obtient le MÊME menu minimal
+    // qu'un employé de base, même si son rôle reste élevé côté serveur. La bascule ne fait que
+    // restreindre l'UI ; il peut revenir à la vue gestion à tout moment.
+    if (viewAsEmployee || (isEmp && !isManager && !isAdminEffective && isPlainEmployee)) {
       return [
         {
           label: t('navigation.dashboard'),
@@ -554,7 +561,7 @@ const useNavigationItems = (): NavGroup[] => {
     return allGroups.filter(
       (g) => g.items === undefined || g.items.length > 0 || g.href === '/dashboard'
     );
-  }, [authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, roleName, isTrialing, countryCode, t]);
+  }, [authReady, isAdmin, isEmp, isManager, hasPermission, planAllows, utiadm, roleName, isTrialing, countryCode, viewAsEmployee, t]);
 };
 
 /* ══════════════════════════════════════════════════════ */
@@ -875,6 +882,24 @@ function makeToolbarActions(
 
   return function ToolbarActions() {
     const { t } = useTranslation();
+    // Sélecteur d'interface : visible UNIQUEMENT pour un utilisateur dual-role (rôle de gestion
+    // + fiche employé). Bascule entre l'interface de gestion et l'espace salarié. Front-only
+    // (cf. AuthProvider.viewMode) : ne masque/affiche que l'UI, le backend reste l'autorité.
+    const { isDualRole, viewMode, setViewMode } = useAuth();
+    const switchView = (mode: 'management' | 'employee') => {
+      if (viewMode === mode) return;
+      setViewMode(mode);
+      // On revient au dashboard : la page courante peut ne pas exister dans l'autre vue
+      // (ex. un module de gestion masqué côté salarié).
+      onNavigate('/dashboard');
+    };
+    const segSx = (active: boolean) => ({
+      display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.4,
+      borderRadius: '8px', cursor: 'pointer', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+      bgcolor: active ? (isDark ? '#1d4ed8' : '#0040a1') : 'transparent',
+      color: active ? '#fff' : (isDark ? '#94a3b8' : '#64748b'),
+      transition: 'background-color 140ms ease',
+    } as const);
     const [recentPages, _setRecentPages] = React.useState<RecentItem[]>(() => {
       const saved = localStorage.getItem('recentPages');
       return saved ? JSON.parse(saved) : [];
@@ -925,6 +950,28 @@ function makeToolbarActions(
             </Box>
           </Box>
         </Tooltip>
+
+        {/* Sélecteur d'interface (dual-role uniquement) : Gestion ↔ Espace salarié */}
+        {isDualRole && (
+          <Box sx={{
+            flexShrink: 0, display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 0.5,
+            p: '3px', borderRadius: '10px',
+            bgcolor: isDark ? 'rgba(255,255,255,0.06)' : '#f2f4f6',
+          }}>
+            <Tooltip title={t('navigation.viewManagement', 'Interface de gestion')}>
+              <Box onClick={() => switchView('management')} sx={segSx(viewMode === 'management')}>
+                <Briefcase size={14} />
+                {t('navigation.viewManagementShort', 'Gestion')}
+              </Box>
+            </Tooltip>
+            <Tooltip title={t('navigation.viewEmployee', 'Mon espace salarié')}>
+              <Box onClick={() => switchView('employee')} sx={segSx(viewMode === 'employee')}>
+                <User size={14} />
+                {t('navigation.viewEmployeeShort', 'Salarié')}
+              </Box>
+            </Tooltip>
+          </Box>
+        )}
 
         {/* Language Switcher */}
         <Box sx={{ flexShrink: 0, '& .MuiFormControl-root': { minWidth: 'auto' }, '& .MuiSelect-select': { py: 0.5, px: 1, fontSize: '12px', fontWeight: 700 } }}>

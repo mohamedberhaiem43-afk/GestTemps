@@ -31,7 +31,7 @@ const APK_INFO_URL = '/api/download/android/info';
 // que l'app n'est pas sur les stores. La page Expo expose le bouton « Install » qui
 // sert le .apk signé. Sert de source garantie quand aucun APK auto-hébergé n'est
 // disponible via /api/download/android (sinon ce dernier reste prioritaire).
-const EXPO_BUILD_URL = 'https://expo.dev/accounts/concorde-tech-innovation/projects/concorde-workly/builds/72ec5992-7f5e-41ba-9ea6-bac3415b7022';
+const EXPO_BUILD_URL = 'https://expo.dev/accounts/concorde-tech-innovation/projects/concorde-workly/builds/eaa49a17-4adf-4cb6-bc59-47c473547136';
 
 interface ApkInfo {
   available: boolean;

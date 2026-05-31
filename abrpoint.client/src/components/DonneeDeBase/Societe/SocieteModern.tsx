@@ -22,7 +22,48 @@ import { useAuth } from '../../helper/AuthProvider';
 import AccessDenied from '../../helper/AccessDenied';
 import { resolveAssetUrl } from '../../../helpers/assetUrl';
 import apiInstance from '../../API/apiInstance';
+import { PHONE_COUNTRIES, parsePhone, formatPhone, dialForCountry } from '../../Inputs/PhoneInput';
 import './SocieteModern.css';
+
+/**
+ * Champ téléphone avec indicatif « + » sélectionnable. L'indicatif par défaut suit le pays
+ * souscrit du tenant (defaultDial = dialForCountry(countryCode)) quand le numéro stocké n'en
+ * porte pas encore. La valeur émise reste une chaîne unique « +216 12345678 » compatible avec
+ * societe.soctel/socfax (varchar 20) — on borne donc la longueur du numéro en conséquence.
+ */
+function SocietePhoneField({
+  value,
+  onChange,
+  defaultDial,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  defaultDial: string;
+}) {
+  const { dial, number } = parsePhone(value || '', defaultDial);
+  const maxNumberLen = Math.max(0, 20 - dial.length - 1); // « dial » + espace + numéro ≤ 20
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'stretch', width: '100%' }}>
+      <select
+        aria-label="Indicatif pays"
+        value={dial}
+        onChange={(e) => onChange(formatPhone(e.target.value, number))}
+        style={{ flex: '0 0 auto', maxWidth: 120 }}
+      >
+        {PHONE_COUNTRIES.map((c) => (
+          <option key={`${c.dial}-${c.name}`} value={c.dial}>{c.flag} {c.dial}</option>
+        ))}
+      </select>
+      <input
+        type="tel"
+        value={number}
+        maxLength={maxNumberLen}
+        onChange={(e) => onChange(formatPhone(dial, e.target.value))}
+        style={{ flex: 1, minWidth: 0 }}
+      />
+    </div>
+  );
+}
 
 const emptyForm: SocieteModel = {
   soccod: '', soclib: '', socresp: '', socadr: '', socville: '', soctel: '', socfax: '',
@@ -63,7 +104,9 @@ const getTypeBadge = (type: string) => {
 
 function SocieteModernContent() {
   const { t } = useTranslation();
-  const { hasPermission } = useAuth();
+  const { hasPermission, countryCode } = useAuth();
+  // Indicatif « + » par défaut selon le pays souscrit du tenant (FR→+33, TN→+216, MA→+212…).
+  const defaultDial = dialForCountry(countryCode);
   const [form, setForm] = useState<SocieteModel>(emptyForm);
   // Pour le quota plan_limit_societes (HTTP 402), on injecte un CTA "Mettre à
   // niveau" directement dans l'Alert via l'option `action` du hook.
@@ -549,11 +592,19 @@ function SocieteModernContent() {
             </Box>
             <Box className="soc-field">
               <label>{t('societe.form.phone')}</label>
-              <input type="tel" value={form.soctel} onChange={set('soctel')} />
+              <SocietePhoneField
+                value={form.soctel || ''}
+                onChange={(v) => setForm(prev => ({ ...prev, soctel: v }))}
+                defaultDial={defaultDial}
+              />
             </Box>
             <Box className="soc-field">
               <label>{t('societe.form.fax')}</label>
-              <input type="tel" value={form.socfax} onChange={set('socfax')} />
+              <SocietePhoneField
+                value={form.socfax || ''}
+                onChange={(v) => setForm(prev => ({ ...prev, socfax: v }))}
+                defaultDial={defaultDial}
+              />
             </Box>
             <Box className="soc-field soc-field--full">
               <label>{t('societe.form.hrManager')}</label>

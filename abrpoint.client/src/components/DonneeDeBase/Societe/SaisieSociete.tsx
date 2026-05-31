@@ -6,7 +6,8 @@ import {
 } from '@mui/material';
 import "./Societe.css";
 import InputComponent from '../../Inputs/Input';
-import PhoneInput from '../../Inputs/PhoneInput';
+import PhoneInput, { dialForCountry } from '../../Inputs/PhoneInput';
+import { useAuth } from '../../helper/AuthProvider';
 import { Save, Cancel, TravelExplore } from '@mui/icons-material';
 import useAddSociete from '../../../hooks/societeHooks/useAddSociete';
 import useUpdateSociete from '../../../hooks/societeHooks/useUpdateSociete';
@@ -139,6 +140,9 @@ export function SaisieSociete({ societeToEdit, onEditComplete }: SaisieSocietePr
     const { mutate: updateSociete, isPending: isUpdating } = useUpdateSociete();
     const { refetch } = useGetSocietes();
     const { t } = useTranslation();
+    // Indicatif « + » par défaut selon le pays souscrit du tenant (FR→+33, TN→+216, MA→+212…).
+    const { countryCode } = useAuth();
+    const defaultDial = dialForCountry(countryCode);
 
     const isEditMode = !!societeToEdit;
     const isLoading = isAdding || isUpdating;
@@ -251,10 +255,12 @@ export function SaisieSociete({ societeToEdit, onEditComplete }: SaisieSocietePr
                         </Grid>
                         <Grid item xs={1.5} md={6}>
                             <PhoneInput label={t('donneeSociete.phone')} value={societeData.soctel || ''}
+                                defaultDial={defaultDial}
                                 onChange={(value) => setSocieteData({ ...societeData, soctel: value })} />
                         </Grid>
                         <Grid item xs={1.5} md={6}>
                             <PhoneInput label={t('donneeSociete.fax')} value={societeData.socfax || ''}
+                                defaultDial={defaultDial}
                                 onChange={(value) => setSocieteData({ ...societeData, socfax: value })} />
                         </Grid>
                         <Grid item xs={1.5} md={6}>

@@ -65,10 +65,15 @@ export default function DashboardPage() {
   const [customEndDate, setCustomEndDate] = useState<string>('');
 
   // Source de vérité RBAC : isAdmin = roleName=Administrator (ou Utiadm=1 en compat).
-  const { isAdmin } = useAuth();
+  const { isAdmin, isManager, roleName, viewAsEmployee } = useAuth();
 
-  // If not admin, show employee dashboard
-  if (!isAdmin) {
+  // Le tableau de bord de GESTION (KPI workforce, présence, retards…) est réservé aux profils
+  // de gestion : admin, manager, ou responsable RH. Ses données sont scopées CÔTÉ SERVEUR selon
+  // le rôle (admin/RH → leurs sites ; manager → ses sites + son service). Les autres profils —
+  // ou un utilisateur dual-role qui a basculé sur la vue « salarié » via le sélecteur
+  // d'interface — obtiennent leur espace salarié.
+  const isManagementRole = isAdmin || isManager || roleName === 'ResponsableRH';
+  if (viewAsEmployee || !isManagementRole) {
     return <EmployeeDashboard />;
   }
 

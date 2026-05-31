@@ -15,6 +15,12 @@ namespace ABRPOINT.Server.Controllers
     [ApiController]
     [Authorize]
     [RequirePlanFeature(nameof(PlanFeatures.ExpenseReports))]
+    // RBAC : l'accès au module « Note de Frais » est gouverné par la matrice de rôle (écran
+    // Droit d'accès). Consult au niveau classe = porte d'entrée ; les écritures restent
+    // affinées par les checks d'ownership/rôle ci-dessous (un salarié ne gère que SES notes).
+    // Admin = bypass (god mode). NB : les tenants existants doivent rejouer
+    // POST /api/Roles/seed-system pour recevoir cette permission (sinon 403 pour les non-admins).
+    [RequirePermission(PermissionCatalog.Modules.NoteDeFrais, PermissionCatalog.Actions.Consult)]
     public class NoteDeFraisController : ControllerBase
     {
         private readonly INoteDeFraisRepository _repository;

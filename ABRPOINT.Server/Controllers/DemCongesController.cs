@@ -15,6 +15,11 @@ namespace ABRPOINT.Server.Controllers
     [ApiController]
     [Authorize]
     [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.LeaveManagement))]
+    // RBAC : accès au module « Demande de Congé » gouverné par la matrice de rôle (écran Droit
+    // d'accès). Consult au niveau classe = porte d'entrée (les salariés ont consult+add pour
+    // soumettre leurs demandes ; managers/RH la validation). Admin = bypass. NB : tenants
+    // existants → rejouer POST /api/Roles/seed-system pour recevoir cette permission.
+    [Authorization.RequirePermission(Authorization.PermissionCatalog.Modules.DemandeConge, Authorization.PermissionCatalog.Actions.Consult)]
     public class DemCongesController : ControllerBase
     {
         private readonly IDemCongeRepository _demandecongeRepository;

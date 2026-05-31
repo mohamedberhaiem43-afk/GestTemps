@@ -903,6 +903,9 @@ namespace ABRPOINT.Server.Controllers
                             Soccod = employe.Soccod,
                             Sitcod = employe.Sitcod,
                             Uticod = employe.Empcod,
+                            // Sync service dès la création : le compte hérite du service de la
+                            // fiche employé (cohérent avec la sync bidirectionnelle en update).
+                            Sercod = string.IsNullOrWhiteSpace(employe.Sercod) ? null : employe.Sercod,
                         };
                         await _utilisateurRepository.AddAsync(utilisateur, socuser);
 

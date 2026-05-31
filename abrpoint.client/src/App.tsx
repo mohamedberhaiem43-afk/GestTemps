@@ -206,8 +206,23 @@ function buildTheme(mode: 'light' | 'dark') {
         },
       },
       MuiSnackbar: {
+        // Uniformise les ~46 snackbars ad-hoc de l'app (cf. useFeedbackSnackbar).
+        // Sans anchorOrigin explicite, MUI les ancre en BAS-GAUCHE par défaut, donc
+        // par-dessus la sidebar (fixed, à gauche) où, selon le contexte d'empilement,
+        // une partie pouvait passer DERRIÈRE elle. On les ramène en haut-centre (comme
+        // le hook central) et on force un z-index > sidebar (≤1200) et > Dialog (1300).
+        // Les snackbars qui définissent déjà leur propre anchorOrigin/zIndex (ex.
+        // FeedbackSnackbar) ne sont pas affectés : leurs props/sx restent prioritaires.
+        defaultProps: {
+          anchorOrigin: { vertical: 'top', horizontal: 'center' },
+        },
         styleOverrides: {
-          root: mode === 'dark' ? {} : {},
+          root: { zIndex: 1500 },
+          // Décale les snackbars ancrés en haut SOUS le header applicatif fixe
+          // (sinon collés à top:0, masqués par la barre). Les variantes bas intactes.
+          anchorOriginTopCenter: { top: 80 },
+          anchorOriginTopLeft: { top: 80 },
+          anchorOriginTopRight: { top: 80 },
         },
       },
       MuiAlert: {

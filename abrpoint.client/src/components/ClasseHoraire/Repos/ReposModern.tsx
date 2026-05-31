@@ -23,6 +23,7 @@ import useDeleteRepos from '../../../hooks/Repos/useDeleteRepos';
 import { fetchPublicHolidays, toFerier } from '../../../hooks/Repos/useImportJoursFeriesFr';
 import AlertModal from '../../AlertModal/AlertModal';
 import { useAuth } from '../../helper/AuthProvider';
+import { countryNameFor } from '../../../helpers/countries';
 import OnboardingNextStepHint from '../../Dashboard/OnboardingNextStepHint';
 import AccessDenied from '../../helper/AccessDenied';
 import { Ferier } from '../../../models/Ferier';
@@ -57,8 +58,12 @@ const today = () => new Date().toISOString().split('T')[0];
 // ── Main inner ────────────────────────────────────────────────────────────────
 function ReposModernInner() {
   const { t } = useTranslation();
-  const { soccod: authSoccod } = useAuth();
+  const { soccod: authSoccod, countryCode } = useAuth();
   const soccod = authSoccod || sessionStorage.getItem('soccod') || '';
+  // Nom du pays souscrit par le tenant — pour libeller l'import des jours fériés selon le pays
+  // de l'entreprise connectée (au lieu de figer « France »/gouv.fr). L'import lui-même est déjà
+  // adapté au pays côté backend (GET /Feriers/public-holidays/{year}).
+  const importCountryName = countryNameFor(countryCode);
   const { selectedFerier, setSelectedFerier } = useFerierContext();
 
   // Form state
@@ -265,10 +270,10 @@ function ReposModernInner() {
               className="rp-btn-secondary"
               onClick={handleImportFromGouvFr}
               disabled={importing}
-              title={t('repos.page.importTitle')}
+              title={t('repos.page.importTitle', { country: importCountryName })}
             >
               {importing ? <CircularProgress size={16} color="inherit" /> : <CloudDownloadIcon sx={{ fontSize: 18 }} />}
-              {t('repos.page.importButton')}
+              {t('repos.page.importButton', { country: importCountryName })}
             </button>
           )}
           {canAdd && (

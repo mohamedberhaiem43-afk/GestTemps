@@ -4,6 +4,7 @@ using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace ABRPOINT.Server.Controllers
@@ -33,6 +34,62 @@ namespace ABRPOINT.Server.Controllers
         // (sauf admin tenant — bypass intégré dans SoccodAccess).
         private async Task<bool> CanAccessSoccodAsync(string soccod) =>
             await SoccodAccess.IsAllowedAsync(HttpContext, _db, _cache, soccod);
+
+        // Calcule les empcods réellement visibles par l'appelant selon son rôle, pour que le
+        // dashboard n'agrège QUE les données autorisées :
+        //   • Admin           → requête honorée telle quelle (vide = tous les sites/services).
+        //   • Responsable RH  → restreint à SES sites (Socuser), AUCUN filtre service.
+        //   • Manager         → restreint à SES sites ET à SON service (Socuser.Sercod, sinon
+        //                       Employe.Sercod en fallback).
+        // Le scope site est délégué à SiteAccess.ScopedEmpcodsAsync (jamais de liste vide pour
+        // un non-admin → sentinelle = résultat vide). On ajoute ensuite le filtre service pour
+        // les seuls profils manager. Empêche un manager/RH de voir le workforce d'autres
+        // sites/services via le dashboard, même en forgeant request.Empcods.
+        private async Task<List<string>?> ScopeByRoleAsync(string soccod, List<string>? requested)
+        {
+            var ct = HttpContext.RequestAborted;
+            var uticod = SiteAccess.CallerUticod(HttpContext);
+            if (string.IsNullOrEmpty(uticod)) return requested; // pas d'auth (tests) → pas de scope
+
+            var scoped = await SiteAccess.ScopedEmpcodsAsync(_db, soccod, uticod, requested, ct);
+
+            var sercod = await ManagerServiceCodeAsync(soccod, uticod, ct);
+            if (string.IsNullOrEmpty(sercod)) return scoped; // admin / RH / employé → site-only
+
+            // Filtre service additionnel (manager) : intersection du scope site avec le service.
+            var inService = await _db.Employes.AsNoTracking()
+                .Where(e => e.Soccod == soccod && e.Sercod == sercod && scoped.Contains(e.Empcod))
+                .Select(e => e.Empcod)
+                .ToListAsync(ct);
+            return inService.Count == 0 ? new List<string> { SiteAccess.NoAccessSentinel } : inService;
+        }
+
+        // Service (Sercod) d'un manager, ou null si l'appelant n'est pas un profil manager
+        // (admin / RH / employé → pas de restriction service). Aligné sur la même règle que
+        // EmployeRepository.GetManagerServiceCodeAsync : Socuser.Sercod prioritaire, fallback
+        // sur la fiche employé liée.
+        private async Task<string?> ManagerServiceCodeAsync(string soccod, string uticod, CancellationToken ct)
+        {
+            var user = await _db.Utilisateurs.AsNoTracking()
+                .Where(u => u.Uticod == uticod)
+                .Select(u => new { u.Utiadm, u.Utirole })
+                .FirstOrDefaultAsync(ct);
+            if (user == null || user.Utiadm == "1") return null;
+            var isManager = user.Utirole == "Manager" || user.Utirole == "Chef de service" || user.Utirole == "Responsable";
+            if (!isManager) return null;
+
+            var socSercod = await _db.Socusers.AsNoTracking()
+                .Where(s => s.Soccod == soccod && s.Uticod == uticod && s.Sercod != null)
+                .Select(s => s.Sercod)
+                .FirstOrDefaultAsync(ct);
+            if (!string.IsNullOrEmpty(socSercod)) return socSercod;
+
+            return await _db.Employes.AsNoTracking()
+                .Where(e => e.Soccod == soccod && e.Empcod == uticod)
+                .Select(e => e.Sercod)
+                .FirstOrDefaultAsync(ct);
+        }
+
         [HttpPost("data")]
         public async Task<ActionResult<DashboardData>> GetDashboardData([FromBody] DashboardRequest request)
         {
@@ -46,12 +103,14 @@ namespace ABRPOINT.Server.Controllers
             if (dateDebut > dateFin)
                 return BadRequest("Date début > date fin");
 
+            var scopedEmpcods = await ScopeByRoleAsync(request.Soccod, request.Empcods);
+
             var data = await _dashboardService.GetDashboardData(
                 request.Soccod,
                 dateDebut,
                 dateFin,
                 request.Departement,
-                request.Empcods
+                scopedEmpcods
             );
 
             return Ok(data);
@@ -65,6 +124,9 @@ namespace ABRPOINT.Server.Controllers
 
             try
             {
+                // Même scope par rôle que les autres widgets : on ne montre les anomalies de
+                // pointage que des employés visibles par l'appelant (sites + service manager).
+                request.Empcods = await ScopeByRoleAsync(request.Soccod, request.Empcods);
                 var result = await _dashboardService.GetPointagesInvalides(request);
                 return Ok(result);
             }
@@ -103,12 +165,14 @@ namespace ABRPOINT.Server.Controllers
                     return BadRequest("La période ne peut pas dépasser 90 jours");
                 }
 
+                var scopedEmpcods = await ScopeByRoleAsync(request.Soccod, request.Empcods);
+
                 var evolution = await _dashboardService.GetEvolutionHebdomadaire(
                     request.Soccod,
                     request.DateDebut,
                     request.DateFin,
                     request.Departement,
-                    request.Empcods
+                    scopedEmpcods ?? new List<string>()
                 );
 
                 return Ok(evolution);
@@ -133,11 +197,13 @@ namespace ABRPOINT.Server.Controllers
                 }
                 if (!await CanAccessSoccodAsync(request.Soccod)) return Forbid();
 
+                var scopedEmpcods = await ScopeByRoleAsync(request.Soccod, request.Empcods);
+
                 var employes = await _dashboardService.GetEmployesStatutJour(
                     request.Soccod,
                     request.Date ?? DateTime.Today,
                     request.Departement,
-                    request.Empcods
+                    scopedEmpcods ?? new List<string>()
                 );
 
                 return Ok(employes);
@@ -161,11 +227,13 @@ namespace ABRPOINT.Server.Controllers
                     return BadRequest("Le code société est requis");
                 }
 
+                var scopedEmpcods = await ScopeByRoleAsync(soccod, null);
+
                 var data = await _dashboardService.GetDashboardData(
                     soccod,
                     DateTime.Today,
                     departement,
-                    null
+                    scopedEmpcods ?? new List<string>()
                 );
 
                 var resume = new ResumeDuJour
@@ -203,11 +271,13 @@ namespace ABRPOINT.Server.Controllers
                 }
                 if (!await CanAccessSoccodAsync(request.Soccod)) return Forbid();
 
+                var scopedEmpcods = await ScopeByRoleAsync(request.Soccod, request.Empcods);
+
                 var data = await _dashboardService.GetDashboardData(
                     request.Soccod,
                     request.Date ?? DateTime.Today,
                     null, // Tous les départements
-                    request.Empcods
+                    scopedEmpcods ?? new List<string>()
                 );
 
                 var kpis = new List<KpiDepartement>();

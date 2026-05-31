@@ -1602,6 +1602,22 @@ namespace ABRPOINT.Server.Repository
                         }
                     }
 
+                    // Sync service (Sercod) Employe → Socuser : la fiche employé fait foi.
+                    // On aligne le service de TOUTES les affectations site de la même personne
+                    // (Empcod == Uticod) dans la même société, pour que l'écran Utilisateur ET
+                    // le scoping manager (GetManagerServiceCodeAsync, qui lit socuser.sercod en
+                    // priorité) voient le même service que la fiche employé. Bidirectionnel avec
+                    // UtilisateurRepository.UpdateUserAsync (côté Socuser → Employe).
+                    var socLinks = await _dbContext.Socusers
+                        .Where(s => s.Soccod == employe.Soccod && s.Uticod == employe.Empcod)
+                        .ToListAsync();
+                    var socChanged = false;
+                    foreach (var link in socLinks)
+                    {
+                        if (link.Sercod != employe.Sercod) { link.Sercod = employe.Sercod; socChanged = true; }
+                    }
+                    if (socChanged) await _dbContext.SaveChangesAsync();
+
                     return existing;
                 }
 

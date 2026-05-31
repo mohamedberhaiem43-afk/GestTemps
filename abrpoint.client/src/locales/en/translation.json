@@ -3295,8 +3295,8 @@
     "page": {
       "title": "Calendar Configuration",
       "subtitle": "Define and manage exceptional rest periods for all employees.",
-      "importTitle": "Import the official list of metropolitan France holidays for the selected year",
-      "importButton": "Import (gouv.fr)",
+      "importTitle": "Import the official list of {{country}} public holidays for the selected year",
+      "importButton": "Import {{country}} holidays",
       "newButton": "New",
       "save": "Save",
       "update": "Update"

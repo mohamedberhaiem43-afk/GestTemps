@@ -22,6 +22,17 @@ interface AuthContextType {
   isEmp: boolean;
   isManager: boolean;
   sercod: string | null;
+  // Vrai si l'utilisateur cumule un rôle de GESTION (admin / manager / responsable RH) ET une
+  // fiche employé : il peut alors basculer entre l'interface de gestion et son espace salarié.
+  isDualRole: boolean;
+  // Vue active choisie par un utilisateur dual-role : 'management' = interface manager/RH/admin,
+  // 'employee' = espace salarié. Front-only — le backend continue d'appliquer les VRAIES
+  // permissions ; la bascule ne fait que MASQUER des modules, jamais en débloquer (donc sûre).
+  viewMode: 'management' | 'employee';
+  // Raccourci dérivé (isDualRole && viewMode === 'employee'). Consommé par la navigation et le
+  // dashboard pour forcer l'expérience salarié quand l'utilisateur a choisi sa vue « salarié ».
+  viewAsEmployee: boolean;
+  setViewMode: (mode: 'management' | 'employee') => void;
   // État de l'abonnement / essai gratuit. isTrialing === true ⇒ limites Trial actives
   // (10 collaborateurs, 1 société/filiale, états & paie masqués). Source : /Utilisateurs/me.
   isTrialing: boolean;
@@ -113,6 +124,10 @@ const AuthContext = createContext<AuthContextType>({
   isEmp: false,
   isManager: false,
   sercod: null,
+  isDualRole: false,
+  viewMode: 'management',
+  viewAsEmployee: false,
+  setViewMode: () => { },
   isTrialing: false,
   trialEndsAt: null,
   trialDaysRemaining: null,
@@ -155,6 +170,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // null/false jusqu'à la réponse `/me`.
   const persistedUticod = sessionStorage.getItem('uticod');
   const [authReady, setAuthReady] = useState(false);
+
+  // Vue active d'un utilisateur dual-role (manager/RH/admin également salarié). Persistée en
+  // sessionStorage car purement cosmétique (elle ne fait que masquer des modules — le
+  // backend reste l'autorité sur les permissions, donc aucun risque à la persister, contrairement
+  // à `utiadm`). Réinitialisée à 'management' au logout.
+  const [viewMode, setViewModeState] = useState<'management' | 'employee'>(
+    (sessionStorage.getItem('viewMode') as 'management' | 'employee') || 'management'
+  );
+  const setViewMode = useCallback((mode: 'management' | 'employee') => {
+    sessionStorage.setItem('viewMode', mode);
+    setViewModeState(mode);
+  }, []);
   const [authData, setAuthData] = useState({
     soccod: sessionStorage.getItem('soccod'),
     sitcod: sessionStorage.getItem('sitcod'),
@@ -375,6 +402,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     sessionStorage.removeItem('userName');
     sessionStorage.removeItem('uticod');
     sessionStorage.removeItem('utiadm'); // nettoyage rétrocompat
+    sessionStorage.removeItem('viewMode');
+    setViewModeState('management');
     localStorage.removeItem('profileImage');
     localStorage.removeItem('societeImage');
 
@@ -440,9 +469,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // chaque render du Provider (les callbacks/data étant identiques), forçant tous
   // les consumers de `useAuth()` (Navigation, dashboards, ~70 pages) à re-render.
   // Avec useMemo, on ne reconstruit qu'aux vrais changements de state authentif.
+  // Dual-role = fiche employé + rôle de gestion (admin, manager, ou Responsable RH). Seuls ces
+  // utilisateurs voient le sélecteur d'interface. `viewAsEmployee` force l'espace salarié quand
+  // ils ont choisi la vue « salarié » ; sinon (non dual-role, ou vue gestion) il reste false.
+  const isDualRole = Boolean(
+    authData.isEmp && (authData.isAdmin || authData.isManager || authData.roleName === 'ResponsableRH')
+  );
+  const viewAsEmployee = isDualRole && viewMode === 'employee';
+
   const value = useMemo(
-    () => ({ ...authData, authReady, hasPermission, planAllows, setAuthData: setAuth, refreshAuth, clearAuth }),
-    [authData, authReady, hasPermission, planAllows, setAuth, refreshAuth, clearAuth]
+    () => ({
+      ...authData, authReady, hasPermission, planAllows, setAuthData: setAuth, refreshAuth, clearAuth,
+      isDualRole, viewMode, viewAsEmployee, setViewMode,
+    }),
+    [authData, authReady, hasPermission, planAllows, setAuth, refreshAuth, clearAuth,
+     isDualRole, viewMode, viewAsEmployee, setViewMode]
   );
 
   return (

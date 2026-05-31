@@ -115,6 +115,19 @@ namespace ABRPOINT.Server.Controllers
             try
             {
                 var report = await SystemRoleSeeder.SeedAsync(_dbContext, ct);
+
+                // Rattrapage natures d'absence par défaut (CP/FM/AUT/RTT/CET) pour les sociétés
+                // du tenant qui n'en ont aucune — pour les tenants créés avant l'introduction
+                // de ce seed au provisioning. Idempotent (ne touche pas une grille existante).
+                var soccods = await _dbContext.Societes
+                    .Where(s => s.Soccod != null)
+                    .Select(s => s.Soccod!)
+                    .ToListAsync(ct);
+                var absencesCreated = 0;
+                foreach (var soccod in soccods)
+                    absencesCreated += await Provisioning.DefaultAbsenceSeeder.SeedAsync(_dbContext, soccod, ct);
+                if (absencesCreated > 0) await _dbContext.SaveChangesAsync(ct);
+
                 return Ok(new
                 {
                     message = "Seed terminé.",
@@ -122,6 +135,7 @@ namespace ABRPOINT.Server.Controllers
                     rolesUpdated = report.RolesUpdated,
                     permissionsCreated = report.PermissionsCreated,
                     legacyUsersMigrated = report.LegacyUsersMigrated,
+                    absenceNaturesCreated = absencesCreated,
                 });
             }
             catch (Exception ex)

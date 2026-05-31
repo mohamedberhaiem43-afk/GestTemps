@@ -3294,8 +3294,8 @@
     "page": {
       "title": "Configuration du Calendrier",
       "subtitle": "Définissez et gérez les périodes de repos exceptionnelles pour l'ensemble des collaborateurs.",
-      "importTitle": "Importer la liste officielle des jours fériés métropole France pour l'année saisie",
-      "importButton": "Importer (gouv.fr)",
+      "importTitle": "Importer la liste officielle des jours fériés de {{country}} pour l'année saisie",
+      "importButton": "Importer les jours fériés ({{country}})",
       "newButton": "Nouveau",
       "save": "Enregistrer",
       "update": "Mettre à jour"

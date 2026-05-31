@@ -371,6 +371,20 @@ namespace ABRPOINT.Server.Repository
                         });
                     }
                     await _dbContext.SaveChangesAsync();
+
+                    // Sync service (Sercod) Socuser → Employe : si la personne possède aussi
+                    // une fiche employé dans cette société, on aligne son service. Garantit la
+                    // cohérence quand le service est modifié depuis l'écran Utilisateur.
+                    // Bidirectionnel avec EmployeRepository.UpdateEmployeAsync (Employe → Socuser).
+                    var empRows = await _dbContext.Employes
+                        .Where(e => e.Soccod == soccod && e.Empcod == uticod)
+                        .ToListAsync();
+                    var empChanged = false;
+                    foreach (var emp in empRows)
+                    {
+                        if (emp.Sercod != sercod) { emp.Sercod = sercod; empChanged = true; }
+                    }
+                    if (empChanged) await _dbContext.SaveChangesAsync();
                 }
 
                 // 2. Update password separately only if provided
