@@ -179,7 +179,8 @@ namespace ABRPOINT.Server.Controllers
 
             // Validation hex (#RGB ou #RRGGBB). Une couleur invalide → 400 explicite plutôt que
             // de stocker une valeur qui casserait le thème de tous les utilisateurs du tenant.
-            static bool IsHex(string? c) => c is null || System.Text.RegularExpressions.Regex.IsMatch(c, "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$");
+            // Vide/blanc = « pas de valeur » (cas du reset, qui envoie ""), traité comme null.
+            static bool IsHex(string? c) => string.IsNullOrWhiteSpace(c) || System.Text.RegularExpressions.Regex.IsMatch(c, "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$");
             if (!IsHex(branding?.Primary) || !IsHex(branding?.Background) || !IsHex(branding?.Title))
                 return BadRequest(new { code = "invalid_color", message = "Couleur invalide : utilisez un format hexadécimal (#RRGGBB)." });
 

@@ -28,7 +28,7 @@ export const MODULE_CATALOG: ModuleDef[] = [
   { label: 'Assistant RH IA',                description: 'Aide à la rédaction, recherche multi-sources, automatisations RH.',           priceMonthlyEur: 49,  feature: 'ragAi',               addonKey: 'aiAssistantRh' },
   { label: 'Signature électronique',         description: 'Parapheur multi-signataires, archivage légal eIDAS.',                        priceMonthlyEur: 19,  feature: 'electronicSignature', addonKey: 'signatureElectronique' },
   { label: 'Stockage supplémentaire 100 Go', description: '100 Go d\'espace sécurisé en plus.',                                          priceMonthlyEur: 29,  feature: null,                  addonKey: null, note: 'Se gère depuis la carte « Stockage » plus bas.' },
-  { label: 'Domaine personnalisé',           description: 'Votre espace sur votre propre domaine + personnalisation de marque.',        priceMonthlyEur: 19,  feature: 'customBranding',      addonKey: null, note: 'Inclus dans le pack Premium.' },
+  { label: 'Branding personnalisé',           description: 'Personnalisation de marque.',        priceMonthlyEur: 19,  feature: 'customBranding',      addonKey: null, note: 'Inclus dans le pack Premium.' },
 ];
 
 // Map dérivée (clé addon backend → meta) pour les écrans qui raisonnent en clés
