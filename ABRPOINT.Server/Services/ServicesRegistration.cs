@@ -42,6 +42,7 @@ namespace ABRPOINT.Server.Services
             builder.Services.AddScoped<IDemCongeRepository, DemCongeRepository>();
             builder.Services.AddScoped<ICongeRepository, CongeRepository>();
             builder.Services.AddScoped<IUtilisateurRepository, UtilisateurRepository>();
+            builder.Services.AddScoped<EmployeeAccountProvisioner>();
             builder.Services.AddScoped<IAbscenceRepository, AbsenceRepository>();
             builder.Services.AddScoped<IJourFerieRepository, JourFerieRepository>();
             builder.Services.AddScoped<ISoldeCongeRepository, SoldeCongeRepository>();

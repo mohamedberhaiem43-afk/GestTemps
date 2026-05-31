@@ -36,13 +36,15 @@ public class BulkImportController : ControllerBase
     private readonly ICurrentTenant _currentTenant;
     private readonly ILogger<BulkImportController> _log;
     private readonly EncryptionService _encryptionService;
+    private readonly EmployeeAccountProvisioner _accountProvisioner;
 
-    public BulkImportController(ApplicationDbContext db, ICurrentTenant currentTenant, ILogger<BulkImportController> log, EncryptionService encryptionService)
+    public BulkImportController(ApplicationDbContext db, ICurrentTenant currentTenant, ILogger<BulkImportController> log, EncryptionService encryptionService, EmployeeAccountProvisioner accountProvisioner)
     {
         _db = db;
         _currentTenant = currentTenant;
         _log = log;
         _encryptionService = encryptionService;
+        _accountProvisioner = accountProvisioner;
     }
 
     public sealed record ImportReport(int Inserted, int Skipped, int Created, List<string> Errors);
@@ -326,7 +328,12 @@ public class BulkImportController : ControllerBase
                 DateTime? embDate = null;
                 if (!string.IsNullOrWhiteSpace(row.Empemb) && DateTime.TryParse(row.Empemb, out var d)) embDate = d;
 
-                _db.Employes.Add(new Employe
+                // CIN en clair conservé AVANT chiffrement : sert de mot de passe provisoire
+                // au compte de connexion (cf. EmployeeAccountProvisioner) — exactement comme
+                // le flux unitaire/multiple d'EmployesController.
+                var plainCin = string.IsNullOrWhiteSpace(row.Empcin) ? null : row.Empcin.Trim();
+
+                var newEmp = new Employe
                 {
                     Empcod = empcod,
                     Soccod = soccod,
@@ -337,7 +344,7 @@ public class BulkImportController : ControllerBase
                     // SEC-10 — Chiffrer CIN/téléphone à l'identique du flux unitaire
                     // (cf. EmployesController.Add). Sans ça, l'import contournait la
                     // protection AES et stockait les données personnelles en clair.
-                    Empcin = string.IsNullOrWhiteSpace(row.Empcin) ? null : _encryptionService.Encrypt(row.Empcin.Trim()),
+                    Empcin = plainCin == null ? null : _encryptionService.Encrypt(plainCin),
                     Emptel = string.IsNullOrWhiteSpace(row.Emptel) ? null : _encryptionService.Encrypt(row.Emptel.Trim()),
                     Empemail = row.Empemail?.Trim(),
                     Empadr = row.Empadr?.Trim(),
@@ -351,10 +358,25 @@ public class BulkImportController : ControllerBase
                     // ni dans les rapports tant qu'on ne ré-éditait pas la fiche.
                     Actif = "A",
                     CreatedAt = DateTime.UtcNow,
-                });
+                };
+                _db.Employes.Add(newEmp);
                 await _db.SaveChangesAsync();
                 existingEmpcods.Add(empcod);
                 inserted++;
+
+                // Onboarding identique aux autres points d'entrée : on crée le compte de
+                // connexion et on envoie l'email de vérification (lien « définir mon mot de
+                // passe », ou identifiants provisoires si un CIN est fourni). Sans ça, les
+                // collaborateurs importés via Excel n'avaient ni compte ni email. Best-effort :
+                // un échec n'invalide pas l'insertion de la fiche déjà committée.
+                try
+                {
+                    await _accountProvisioner.ProvisionAndNotifyAsync(newEmp, plainCin);
+                }
+                catch (Exception provEx)
+                {
+                    _log.LogWarning(provEx, "Provisioning du compte échoué pour l'employé importé {Empcod}", empcod);
+                }
             }
             catch (Exception ex)
             {

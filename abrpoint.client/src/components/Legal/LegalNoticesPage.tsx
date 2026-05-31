@@ -1,5 +1,4 @@
 import { Box, Typography, Container, Divider, Paper } from '@mui/material';
-import DashboardLayoutBasic from '../navigation/Navigation';
 import LegalPdfBanner from './LegalPdfBanner';
 
 interface LegalSectionProps {
@@ -25,9 +24,8 @@ function LegalSection({ title, children }: LegalSectionProps) {
 
 function LegalNoticesPage() {
   return (
-    <>
-      <DashboardLayoutBasic />
-      <Container maxWidth="md" sx={{ py: 6 }}>
+    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: { xs: 4, md: 8 } }}>
+      <Container maxWidth="md">
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700, mb: 4 }}>
           Mentions légales
         </Typography>
@@ -93,7 +91,7 @@ function LegalNoticesPage() {
 
         </Paper>
       </Container>
-    </>
+    </Box>
   );
 }
 
