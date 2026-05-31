@@ -2460,9 +2460,9 @@
       "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette ville ?",
       "msgUpdated": "Ville mise à jour avec succès.",
       "msgAdded": "Ville ajoutée avec succès.",
-      "importFranceTitle": "Importer villes France",
+      "importFranceTitle": "Importer villes {{country}}",
       "importing": "Import en cours…",
-      "importFranceConfirm": "Importer les ~35 000 communes françaises ? Les villes déjà présentes seront sautées.",
+      "importFranceConfirm": "Importer les villes de {{country}} ? Les villes déjà présentes seront sautées.",
       "importSuccess": "{{inserted}} villes importées ({{skipped}} déjà présentes)",
       "importError": "Erreur lors de l'import des villes"
     },
@@ -3360,7 +3360,7 @@
       "deleteError": "Erreur lors de la suppression",
       "noAddRight": "Vous n'avez pas le droit d'ajouter des jours fériés.",
       "invalidYear": "Saisissez une année valide avant l'import.",
-      "importConfirm": "Importer les jours fériés métropole France pour {{year}} ?\n\nLes jours déjà saisis seront conservés (pas de doublon).",
+      "importConfirm": "Importer les jours fériés de {{country}} pour {{year}} ?\n\nLes jours déjà saisis seront conservés (pas de doublon).",
       "importDone": "Import terminé : {{inserted}} ajouté(s), {{skipped}} ignoré(s) (déjà présents).",
       "importError": "Échec de l'import des jours fériés."
     },

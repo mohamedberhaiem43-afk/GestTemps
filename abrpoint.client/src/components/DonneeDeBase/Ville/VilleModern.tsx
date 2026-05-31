@@ -11,19 +11,23 @@ import { useTranslation } from 'react-i18next';
 import apiInstance from '../../API/apiInstance';
 import { VilleModel } from '../../../models/Ville';
 import { useAuth } from '../../helper/AuthProvider';
+import { countryNameFor } from '../../../helpers/countries';
 import useGetVilles from '../../../hooks/villeHooks/useGetVilles';
 import AccessDenied from '../../helper/AccessDenied';
+import AlertModal from '../../AlertModal/AlertModal';
 import '../shared/RefModern.css';
 
 const emptyForm: VilleModel = { vilcod: '', villib: '' };
 
 function VilleModernContent() {
   const { t } = useTranslation();
-  const { hasPermission } = useAuth();
+  const { hasPermission, countryCode } = useAuth();
+  const importCountryName = countryNameFor(countryCode);
   const [form, setForm] = useState<VilleModel>(emptyForm);
   const feedback = useFeedbackSnackbar();
   const [search, setSearch] = useState('');
   const [importing, setImporting] = useState(false);
+  const [importConfirmOpen, setImportConfirmOpen] = useState(false);
 
   const { data: villes = [], refetch, isLoading } = useGetVilles();
   const isEditMode = form.vilcod !== '' && villes.some(v => v.vilcod === form.vilcod);
@@ -62,7 +66,7 @@ function VilleModernContent() {
   };
 
   const handleImportFrance = async () => {
-    if (!window.confirm(t('donneeBase.ville.importFranceConfirm'))) return;
+    setImportConfirmOpen(false);
     setImporting(true);
     try {
       const { data } = await apiInstance.post('/Villes/import-france');
@@ -95,11 +99,11 @@ function VilleModernContent() {
             <Button
               variant="outlined"
               startIcon={importing ? <CircularProgress size={16} /> : <CloudDownloadIcon />}
-              onClick={handleImportFrance}
+              onClick={() => setImportConfirmOpen(true)}
               disabled={importing}
               sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
             >
-              {importing ? t('donneeBase.ville.importing') : t('donneeBase.ville.importFranceTitle')}
+              {importing ? t('donneeBase.ville.importing') : t('donneeBase.ville.importFranceTitle', { country: importCountryName })}
             </Button>
           )}
           {isEditMode && <Button className="ref-cancel-btn" variant="outlined" onClick={() => setForm(emptyForm)}>{t('donneeBase.common.cancel')}</Button>}
@@ -168,6 +172,12 @@ function VilleModernContent() {
           <Box className="ref-table-footer"><span>{t('donneeBase.ville.footerCount', { count: filtered.length })}</span></Box>
         </Box>
       </Box>
+      <AlertModal
+        open={importConfirmOpen}
+        onClose={() => setImportConfirmOpen(false)}
+        onConfirm={handleImportFrance}
+        message={t('donneeBase.ville.importFranceConfirm', { country: importCountryName })}
+      />
       {feedback.element}
     </Box>
   );

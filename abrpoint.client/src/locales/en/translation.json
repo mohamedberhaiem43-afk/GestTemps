@@ -2461,9 +2461,9 @@
       "deleteConfirm": "Are you sure you want to delete this city?",
       "msgUpdated": "City updated successfully.",
       "msgAdded": "City added successfully.",
-      "importFranceTitle": "Import French cities",
+      "importFranceTitle": "Import {{country}} cities",
       "importing": "Importing…",
-      "importFranceConfirm": "Import the ~35,000 French municipalities? Existing cities will be skipped.",
+      "importFranceConfirm": "Import {{country}} cities? Existing cities will be skipped.",
       "importSuccess": "{{inserted}} cities imported ({{skipped}} already present)",
       "importError": "Error during cities import"
     },
@@ -3361,7 +3361,7 @@
       "deleteError": "Error during deletion",
       "noAddRight": "You do not have the right to add holidays.",
       "invalidYear": "Enter a valid year before importing.",
-      "importConfirm": "Import metropolitan France holidays for {{year}}?\n\nExisting entries will be kept (no duplicates).",
+      "importConfirm": "Import {{country}} public holidays for {{year}}?\n\nExisting entries will be kept (no duplicates).",
       "importDone": "Import complete: {{inserted}} added, {{skipped}} skipped (already present).",
       "importError": "Failed to import holidays."
     },

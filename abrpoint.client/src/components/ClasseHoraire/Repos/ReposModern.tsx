@@ -87,6 +87,7 @@ function ReposModernInner() {
   const [page, setPage] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [importing, setImporting] = useState(false);
+  const [importConfirmOpen, setImportConfirmOpen] = useState(false);
 
   const { hasPermission } = useAuth();
   const canAdd = hasPermission('Paramètres de Temps', 'add');
@@ -186,7 +187,9 @@ function ReposModernInner() {
    *   - fernpaye = '0' (payé)
    *   - ferfixe  = '1' pour les dates fixes (1er janvier, 1er mai, …), '0' sinon (Pâques etc.)
    */
-  const handleImportFromGouvFr = async () => {
+  // Valide les pré-conditions puis ouvre le dialogue de confirmation (MUI) au lieu du
+  // window.confirm() natif. L'import effectif se fait dans handleImportConfirmed.
+  const handleImportFromGouvFr = () => {
     if (!soccod) { showSnack(t('repos.msg.sessionExpired'), 'error'); return; }
     if (!canAdd) { showSnack(t('repos.msg.noAddRight'), 'error'); return; }
 
@@ -195,8 +198,12 @@ function ReposModernInner() {
       showSnack(t('repos.msg.invalidYear'), 'error');
       return;
     }
-    if (!window.confirm(t('repos.msg.importConfirm', { year: yearNum }))) return;
+    setImportConfirmOpen(true);
+  };
 
+  const handleImportConfirmed = async () => {
+    setImportConfirmOpen(false);
+    const yearNum = parseInt(annee, 10);
     setImporting(true);
     try {
       const items = await fetchPublicHolidays(yearNum);
@@ -485,6 +492,9 @@ function ReposModernInner() {
 
       <AlertModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete}
         message={t('repos.confirmDelete', { motif: deleteTarget?.fermotif ?? '', date: fmtDate(deleteTarget?.ferdate) })} />
+
+      <AlertModal open={importConfirmOpen} onClose={() => setImportConfirmOpen(false)} onConfirm={handleImportConfirmed}
+        message={t('repos.msg.importConfirm', { year: parseInt(annee, 10), country: importCountryName })} />
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
         <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))} sx={{ borderRadius: '10px' }}>
