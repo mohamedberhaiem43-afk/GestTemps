@@ -1356,8 +1356,21 @@ internal sealed class StripeOptions
     public static StripeOptions Read(IConfiguration cfg)
     {
         var section = cfg.GetSection("Stripe");
-        var prices = section.GetSection("Prices").GetChildren()
-            .ToDictionary(c => c.Key, c => c.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+        // Les clés de prix contiennent des ':' (ex. "UserSupp:Starter:monthly"). Le
+        // provider de configuration .NET interprète ':' comme un séparateur de section :
+        // ces clés JSON sont donc stockées en HIÉRARCHIE (UserSupp → Starter → monthly)
+        // et non comme une clé plate. GetChildren() ne renvoyait alors que le 1er segment
+        // ("UserSupp", "Starter") avec une valeur nulle → TryGetValue("UserSupp:Starter:
+        // monthly") échouait et AUCUN price_id n'était résolu (facturation collab supp ET
+        // création de subscription silencieusement cassées — latent tant que les tenants
+        // restent en essai sans CB).
+        // AsEnumerable(makePathsRelative:true) ré-aplatit l'arbre en clés relatives jointes
+        // par ':' ; on ne garde que les feuilles (Value non vide) pour reconstruire
+        // exactement les clés plates attendues par ResolvePriceId / ResolveUserSuppPriceId.
+        var prices = section.GetSection("Prices")
+            .AsEnumerable(makePathsRelative: true)
+            .Where(kv => !string.IsNullOrEmpty(kv.Value))
+            .ToDictionary(kv => kv.Key, kv => kv.Value!, StringComparer.OrdinalIgnoreCase);
         return new StripeOptions
         {
             SecretKey = section["SecretKey"],
