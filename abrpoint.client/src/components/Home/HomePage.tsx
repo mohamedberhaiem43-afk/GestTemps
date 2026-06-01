@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
@@ -7,71 +7,339 @@ import { useAuth } from '../helper/AuthProvider';
 import { openCookieConsent } from '../helper/CookieConsent';
 import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 import InlineAuthCard from './InlineAuthCard';
-import './HomePage.css';
+import './HomePage.css';   // styles de la carte d'auth réutilisés par la popup d'inscription
+import './HomePage2.css';  // nouveau design landing « Aperçu v2 » (scopé sous .hp2)
 
-// Landing publique dérivée de Maquette_Concorde_Workforce.html.
-// Politique actuelle (2026) : on annonce l'essai gratuit 1 mois sans CB sur
-// le hero, les packs et la promo CTA. 2026-05-23 — décision UX : tous les
-// CTAs « Essayer 30 jours gratuit » naviguent désormais directement vers la
-// page /signup dédiée (au lieu d'utiliser le formulaire inline InlineAuthCard
-// qui restait dans la home). L'essai 30j ne demande PAS de carte bancaire ;
-// après signup l'utilisateur arrive directement sur /dashboard.
+// ─────────────────────────────────────────────────────────────────────────────
+// Landing publique « Concorde Workforce — Aperçu v2 ».
+// Portée fidèle de components/Home/Homepage finale.html (hero split + vidéo,
+// promo Fondateur navy, stats, download, « Comment ça marche » interactif avec
+// curseur, grille tarifaire 4 packs, comparatif, infos commerciales, services
+// complémentaires, CTA promo, section contact, footer navy + réseaux sociaux).
+//
+// Différence avec la maquette HTML : on conserve les intégrations React de l'app
+// (navigation, session via useAuth, popup d'inscription InlineAuthCard, sélecteur
+// de langue MUI). Le contenu bilingue FR/EN est piloté par i18n.language (le même
+// que le LanguageSwitcher), via le dictionnaire LANG ci-dessous — au lieu du
+// data-i18n vanilla de la maquette.
+// ─────────────────────────────────────────────────────────────────────────────
 
-type StepIndex = 0 | 1 | 2 | 3;
+type Lang = 'fr' | 'en';
 type BillingCycle = 'monthly' | 'annual';
-
-// URL du site corporate Concorde Tech Innovation — utilisée par le CTA
-// « Demander un devis » du pack Enterprise Plus. L'ancien CTA renvoyait vers
-// /signup, ce qui n'avait pas de sens pour une offre sur mesure (il n'y a pas
-// de checkout automatique). On ouvre la page corporate dans un nouvel onglet
-// (target=_blank + noopener) pour que le visiteur garde la landing ouverte.
-const CONCORDE_TECH_CONTACT_URL = 'https://www.concorde-tech.fr/#contact';
-
-// ─── COMPARATIF DÉTAILLÉ ─────────────────────────────────────────────────────
-// Cellule de la table de comparaison : `true` = inclus (✓), `false` = exclu (✗),
-// `string` = valeur libre (ex: "Jusqu'à 5", "200 Go"). Restera figé en parallèle
-// avec ABRPOINT.Server.Tenancy.PlanCatalog côté backend — toute évolution de
-// PlanFeatures doit être répercutée ici et inversement, sinon la promesse
-// commerciale (cette table) divergerait du gating runtime.
+type StepIndex = 0 | 1 | 2 | 3;
 type CompCell = boolean | string;
 type CompRow =
   | { type: 'section'; label: string }
-  | {
-      type: 'feature';
-      label: string;
-      hint?: string;
-      starter: CompCell;
-      standard: CompCell;
-      premium: CompCell;
-    };
+  | { type: 'feature'; label: string; s: CompCell; st: CompCell; b: CompCell };
 
-// 2026-05-30 — les lignes du comparatif sont désormais fournies par i18n
-// (homePage.comparison.rows, returnObjects) et lues dans le composant pour suivre
-// la langue choisie. La source de vérité fonctionnelle reste PlanCatalog côté backend.
+interface Avantage { icon: string; t: string; d: string }
+interface HowStep { title: string; desc: string; long: string }
+interface ServiceRow { service: string; price: string }
 
-/**
- * Rend une cellule de la table comparative. `true` → ✓ vert, `false` → ✗ gris,
- * string → texte affiché tel quel (pour limites chiffrées ou variantes "Jusqu'à 5").
- */
-function renderComparisonCell(value: CompCell): React.ReactNode {
-  if (value === true) {
-    return <span className="comp-check" aria-label="Inclus">✓</span>;
-  }
-  if (value === false) {
-    return <span className="comp-cross" aria-label="Non inclus">✗</span>;
-  }
-  return <span className="comp-value">{value}</span>;
+interface Dict {
+  // NAV
+  navPricing: string; navComp: string; navDownload: string; navContact: string;
+  login: string; signup: string; openMenu: string; closeMenu: string;
+  // HERO
+  heroTitle: string; heroTitle2: string; heroAccent: string; heroSub: string;
+  btnHero1: string; btnHero2: string; t1: string; t2: string; t3: string; t4: string;
+  // PROMO FONDATEUR
+  promoPill: string; promoTitleA: string; promoAccent: string;
+  promoSubPre: string; promoDate1: string; promoMid: string; promoDate2: string; promoSuf: string;
+  cdLabel: string; cdDays: string; cdHours: string; cdMin: string; cdSec: string;
+  avantages: Avantage[]; promoCta: string; pt1: string; pt2: string; pt3: string; pt4: string;
+  // STATS
+  sl1: string; sl2: string; sl3: string; sl4: string;
+  // DOWNLOAD
+  dlTag: string; dlTitle: string; dlSubA: string; dlSubB: string;
+  // HOW
+  howTag: string; howTitle: string; howAccent: string; howSub: string;
+  steps: HowStep[]; stepLabel: string; slideStart: string; slideEnd: string;
+  // PRICING
+  pTag: string; pTitleA: string; pTitleAccent: string;
+  pBannerTitle: string; pBannerSub: string; pDemoCta: string;
+  btnMonthly: string; btnAnnual: string; from: string; perMonth: string;
+  commitAnnual: string; noCard: string; crossSuffix: string; savePrefix: string; saveSuffix: string;
+  annualBill: string; popularBadge: string; premiumBadge: string; entBadge: string;
+  pi1: string; pi2: string; pi3: string;
+  starterFeatures: string[]; standardFeatures: string[]; businessFeatures: string[]; entFeatures: string[];
+  entPriceLabel: string; entAmount: string; entAmountSuffix: string; entCommit: string; entSub: string; entCta: string;
+  trialBtn: string; demoCard: string; pricingFoot: string;
+  // COMPARISON
+  compTag: string; compTitleA: string; compAccent: string; compSub: string;
+  compCorner: string; fromShort: string; compTrial: string;
+  csPointage: string; cfWeb: string; cfMobile: string; cfGeo: string;
+  csEmp: string; cfFiches: string; cfCoffre: string; cfSign: string;
+  csConges: string; cfConges: string; csPaie: string; cfPaie: string;
+  csSecu: string; cfOvh: string; cfCrypto: string; cfBrand: string;
+  csLimites: string; cfCollab: string; cfStockage: string; cfSupport: string;
+  cvSup1: string; cvSup2: string; cvSup3: string;
+  // INFOS COMMERCIALES
+  infoTitle: string; infoLead: string; infoItems: string[]; infoP1: string; infoP2: string; infoP3: string;
+  // SERVICES
+  servicesTitle: string; serviceCol: string; priceCol: string; serviceRows: ServiceRow[];
+  // PROMO CTA
+  pctaBadge: string; pctaH2: string; pctaP: string;
+  pf1: string; pf2: string; pf3: string; pf4: string; pctaBtn: string;
+  // CONTACT
+  ctTitle: string; ctSub: string; ctEl: string; ctAl: string; ctAv: string;
+  ctHl: string; ctHv: string; ctDl: string; ctDv: string;
+  trialTitle: string; trialSub: string; trialNowBtn: string; formTitle: string;
+  flPrenom: string; flNom: string; flEmail: string; flEnt: string; flEmp: string; flEmpSel: string;
+  flObj: string; flObjSel: string; flObjDemo: string; flObjEnt: string; flObjRec: string; flObjAut: string;
+  flMsg: string; flMsgPh: string; formSubmit: string;
+  // FOOTER
+  fDesc: string; fFlags: string; fcol1: string; fcol2: string;
+  flPricing: string; flMobile: string; flContact: string; flAbout: string; flLogin: string; flSignup: string;
+  copyright: string; privacy: string; cgu: string; legal: string; cookies: string;
 }
 
-// Les étapes « Comment ça marche » sont fournies par i18n (homePage.how.steps).
+const FR: Dict = {
+  navPricing: 'Tarifs', navComp: 'Comparatif', navDownload: 'Téléchargement', navContact: 'Contact',
+  login: 'Connexion', signup: 'Créer un compte', openMenu: 'Ouvrir le menu', closeMenu: 'Fermer le menu',
 
-type Step = { num: string; title: string; desc: string };
+  heroTitle: 'Le pointage et la gestion', heroTitle2: 'du temps', heroAccent: 'simplifiés',
+  heroSub: "Pointeuses biométriques, application mobile, gestion des congés, autorisations de sortie et préparation paie — tout centralisé dans une seule plateforme sécurisée.",
+  btnHero1: 'Essai gratuit 30j →', btnHero2: 'Demander une démo gratuitement',
+  t1: 'Conformité RGPD · TLS 1.3 · AES-256', t2: 'Hébergement France (OVH)', t3: 'Support francophone', t4: 'Multi-pays',
 
-// ─── OFFRE FONDATEUR ÉTÉ 2026 ────────────────────────────────────────────────
-// Période : 1er juin → 31 août 2026. Compte à rebours live recalculé chaque
-// seconde. Affiché dès l'ouverture de page, juste après le hero.
+  promoPill: '🌟 OFFRE FONDATEUR — ÉTÉ 2026',
+  promoTitleA: 'Conditions tarifaires', promoAccent: 'préférentielles Fondateur',
+  promoSubPre: 'Du', promoDate1: '1er juin', promoMid: 'au', promoDate2: '31 août 2026', promoSuf: '— une fenêtre exclusive.',
+  cdLabel: "L'offre se termine dans", cdDays: 'jours', cdHours: 'heures', cdMin: 'min', cdSec: 'sec',
+  avantages: [
+    { icon: '🎁', t: '1 mois offert', d: 'Sans carte bancaire' },
+    { icon: '🚀', t: 'Activation rapide', d: 'Opérationnel en 48h' },
+    { icon: '🎓', t: 'Onboarding inclus', d: 'Accompagnement expert' },
+    { icon: '🎧', t: 'Support prioritaire', d: 'Accès file prioritaire' },
+    { icon: '⚡', t: 'Accès anticipé', d: 'Nouvelles fonctionnalités' },
+    { icon: '📅', t: 'Sans engagement', d: "Vous décidez après l'essai" },
+  ],
+  promoCta: "🌟 Rejoindre l'offre Fondateur →",
+  pt1: '🛡 Sécurisé & conforme RGPD', pt2: '🏦 Hébergement France OVH', pt3: '⚡ Mise en place en 48h', pt4: '🎧 Support francophone humain',
 
-const FOUNDER_OFFER_END = new Date('2026-09-01T00:00:00+02:00'); // 31 août 23:59 CEST
+  sl1: 'Entreprises clientes', sl2: 'Multi-pays', sl3: 'Absentéisme moyen', sl4: 'Pour déployer',
+
+  dlTag: '📱 Application mobile', dlTitle: "Téléchargez l'app Concorde Workly",
+  dlSubA: 'iOS · Android · Mode offline · Géolocalisation optionnelle. Rendez-vous sur',
+  dlSubB: 'pour récupérer la dernière version.',
+
+  howTag: 'Découvrir la plateforme', howTitle: 'Opérationnel en', howAccent: '2 semaines',
+  howSub: 'Un déploiement guidé, sans technicien, sans résistance interne.',
+  steps: [
+    { title: 'Inscrivez-vous & validez votre SIRET', desc: "Création du compte en 5 minutes. Vérification automatique du numéro d'entreprise (SIRET FR, BCE BE, ICE MA, NINEA SN).", long: "Création du compte en 5 minutes. Vérification automatique du numéro d'entreprise (SIRET FR, BCE BE, ICE MA, NINEA SN). Aucune installation, aucun technicien requis : vous démarrez immédiatement depuis votre navigateur." },
+    { title: 'Importez vos équipes', desc: "Upload CSV ou saisie manuelle de vos collaborateurs, sites et départements. Paramétrage en moins d'une heure.", long: "Upload CSV ou saisie manuelle de vos collaborateurs, sites et départements. Paramétrage en moins d'une heure. Vos données sont chiffrées et hébergées en France dès l'import." },
+    { title: 'Déployez sur le terrain', desc: 'Application mobile iOS/Android pour les collaborateurs. Pointeuses biométriques compatibles. Mode offline disponible.', long: 'Application mobile iOS/Android pour les collaborateurs. Pointeuses biométriques compatibles. Mode offline disponible pour les sites sans connexion. Déploiement progressif site par site.' },
+    { title: 'Pilotez en temps réel', desc: 'Tableau de bord temps réel dès J+1. Notifications push aux managers. Préparation paie automatisée.', long: "Tableau de bord temps réel dès J+1. Notifications push aux managers. Préparation paie automatisée et exports prêts pour votre logiciel de paie. Vous pilotez l'absentéisme et la productivité au quotidien." },
+  ],
+  stepLabel: 'Étape {n} sur 4', slideStart: 'Inscription', slideEnd: 'Pilotage',
+
+  pTag: 'Tarifs', pTitleA: 'Un tarif', pTitleAccent: 'transparent',
+  pBannerTitle: '🎁 1 mois offert — sans carte bancaire',
+  pBannerSub: 'Testez gratuitement pendant 30 jours. Aucune carte requise. Annulez à tout moment.',
+  pDemoCta: '🎬 Demander une démo gratuitement',
+  btnMonthly: 'Mensuel', btnAnnual: 'Engagement annuel', from: 'À partir de', perMonth: ' / mois HT',
+  commitAnnual: '★ Engagement annuel · conditions préférentielles', noCard: 'Sans carte bancaire',
+  crossSuffix: ' € HT / mois', savePrefix: 'Économie : ', saveSuffix: ' € HT / an',
+  annualBill: 'tarif annuel · facturation unique', popularBadge: '⭐ Le plus populaire',
+  premiumBadge: '★ Haut de gamme', entBadge: '★ Sur mesure',
+  pi1: '10 collaborateurs inclus · 10 Go stockage sécurisé',
+  pi2: '25 collaborateurs inclus · 50 Go stockage sécurisé',
+  pi3: '50 collaborateurs inclus · 200 Go stockage sécurisé',
+  starterFeatures: ['Pointage web & mobile (iOS / Android)', 'Gestion RH essentielle (fiches, contrats)', 'Gestion congés & absences', 'Tableau de bord simplifié · exports PDF / Excel', 'Notifications essentielles', '10 Go stockage sécurisé · Hébergement France OVH', 'Multi utilisateurs'],
+  standardFeatures: ['Tout le pack Starter', 'Application mobile + géolocalisation', 'Coffre numérique & signature électronique', 'Import Excel en masse (employés, services, fonctions…)', 'Préparation paie · export paie · Multi-sites simple', 'Congés, RTT, CET, sanctions · Notifications push / email', 'Reporting avancé · 50 Go stockage sécurisé', 'Hébergement France OVH · Multi utilisateurs'],
+  businessFeatures: ['Tout le pack Standard', 'Multi-filiales sur devis · tableaux de bord avancés', 'Sécurité renforcée · Audit logs avancés', 'Supervision avancée · 200 Go stockage sécurisé', 'Hébergement France OVH · Administrateurs illimités', 'Onboarding accompagné · SLA prioritaire'],
+  entFeatures: ['IA RH avancée', 'Recherche documentaire', 'Workflows intelligents', 'API avancées & SSO', 'Hébergement dédié', 'Architecture sur mesure'],
+  entPriceLabel: 'Sur devis', entAmount: 'Tarification', entAmountSuffix: ' personnalisée',
+  entCommit: 'selon votre structure & volume', entSub: 'Administrateurs illimités · Onboarding accompagné', entCta: 'Demander un devis →',
+  trialBtn: 'Essai gratuit 30j', demoCard: '🎬 Demander une démo gratuitement',
+  pricingFoot: 'Sans engagement de durée · TVA en sus · Facturation Stripe sécurisée',
+
+  compTag: 'Comparatif détaillé', compTitleA: 'Tout ce qui est inclus dans', compAccent: 'chaque pack',
+  compSub: 'La matrice complète des modules et fonctionnalités, pack par pack. Choisissez en toute transparence.',
+  compCorner: 'Fonctionnalités', fromShort: 'à partir de', compTrial: 'Essai gratuit 30j',
+  csPointage: 'Pointage & présence', cfWeb: 'Pointage web', cfMobile: 'Application mobile (iOS / Android)', cfGeo: 'Pointage géolocalisé',
+  csEmp: 'Gestion des employés', cfFiches: 'Fiches collaborateurs', cfCoffre: 'Coffre numérique', cfSign: 'Signature électronique',
+  csConges: 'Congés & absences', cfConges: 'Demandes de congés', csPaie: 'Paie & frais', cfPaie: 'Préparation paie · export paie',
+  csSecu: 'Sécurité & conformité', cfOvh: 'Hébergement France OVH', cfCrypto: 'Chiffrement AES-256 + TLS 1.3', cfBrand: 'Branding personnalisé',
+  csLimites: 'Limites & quotas', cfCollab: 'Collaborateurs inclus', cfStockage: 'Stockage inclus', cfSupport: 'Support',
+  cvSup1: 'Standard', cvSup2: 'Prioritaire', cvSup3: 'SLA prioritaire',
+
+  infoTitle: 'Informations commerciales', infoLead: "Conditions tarifaires susceptibles d'évoluer selon :",
+  infoItems: ['les fonctionnalités activées ;', "le volume d'utilisation ;", "le nombre d'utilisateurs ;", 'les modules complémentaires ;', 'les besoins de stockage ;', 'et les futures évolutions de la plateforme.'],
+  infoP1: 'Les abonnements annuels bénéficient de conditions tarifaires préférentielles. Les abonnements mensuels restent disponibles aux tarifs standards affichés.',
+  infoP2: "Les fonctionnalités IA avancées peuvent nécessiter l'activation de modules ou options complémentaires selon les usages et la volumétrie.",
+  infoP3: 'Déploiement et accompagnement possibles selon les besoins du client.',
+
+  servicesTitle: 'Services complémentaires & add-ons', serviceCol: 'Service', priceCol: 'Prix conseillé',
+  serviceRows: [
+    { service: 'Formation administrateurs (visio)', price: '290 €' },
+    { service: 'Formation sur site', price: 'À partir de 790 €/jour' },
+    { service: 'API publique', price: '+199 €/mois' },
+    { service: 'Hébergement dédié', price: 'À partir de 390 €/mois' },
+    { service: 'Pen-test annuel', price: 'À partir de 1 500 €' },
+    { service: 'Connecteurs ERP / Paie standard', price: 'À partir de 490 €' },
+    { service: 'Connecteurs ERP personnalisés', price: 'Sur devis' },
+    { service: 'Import de données assisté', price: 'À partir de 250 €' },
+    { service: 'Onboarding Premium', price: 'À partir de 390 €' },
+    { service: 'Coaching personnalisé (visio)', price: 'À partir de 190 €' },
+    { service: 'Coaching personnalisé demi-journée', price: 'À partir de 390 €' },
+    { service: 'Coaching personnalisé journée complète', price: 'À partir de 690 €' },
+    { service: 'Support prioritaire 24/7', price: '+149 €/mois' },
+    { service: 'Stockage supplémentaire', price: '+29 €/100 Go' },
+    { service: 'Domaine personnalisé', price: '+19 €/mois' },
+  ],
+
+  pctaBadge: '🎁 Essai gratuit 30j', pctaH2: 'Rejoignez les entreprises qui ont fait le choix de la sérénité.',
+  pctaP: "Testez Concorde Workforce gratuitement pendant 1 mois — sans CB, sans engagement. Déploiement en 2 semaines · Support francophone humain · ROI mesurable dès J+30.",
+  pf1: '1 mois gratuit sans CB', pf2: 'Onboarding expert inclus', pf3: 'Sans engagement de durée', pf4: 'Annulation en 1 clic',
+  pctaBtn: 'Démarrer mon essai gratuit 30j →',
+
+  ctTitle: 'Parlons de votre projet RH', ctSub: 'Notre équipe vous répond sous 24h ouvrées.',
+  ctEl: 'Email', ctAl: 'Adresse', ctAv: 'Paris 8e, France',
+  ctHl: 'Disponibilité', ctHv: 'Lundi – Vendredi, 9h – 18h',
+  ctDl: 'Démo rapide', ctDv: 'Accédez directement à la plateforme via concorde-work-force.com',
+  trialTitle: 'ESSAI GRATUIT 30 JOURS', trialSub: 'Sans engagement · Sans carte bancaire · Hébergement France',
+  trialNowBtn: 'Démarrer maintenant →', formTitle: 'Envoyez-nous un message',
+  flPrenom: 'Prénom *', flNom: 'Nom *', flEmail: 'Email professionnel *', flEnt: 'Entreprise',
+  flEmp: "Nombre d'employés", flEmpSel: 'Sélectionner…',
+  flObj: 'Objet du message *', flObjSel: 'Sélectionner…', flObjDemo: 'Demander une démo',
+  flObjEnt: 'Pack Enterprise Plus', flObjRec: 'Réclamation', flObjAut: 'Autre',
+  flMsg: 'Message *', flMsgPh: 'Décrivez votre projet ou votre question…', formSubmit: 'Envoyer le message →',
+
+  fDesc: 'La plateforme RH & pointage conçue pour les équipes terrain en Afrique francophone et en Europe.',
+  fFlags: 'Multi-pays', fcol1: 'Produit', fcol2: 'Ressources',
+  flPricing: 'Tarifs', flMobile: 'Application mobile', flContact: 'Contact',
+  flAbout: 'À propos', flLogin: 'Se connecter', flSignup: 'Créer un compte',
+  copyright: '© 2026 Concorde Workforce · Tous droits réservés',
+  privacy: 'Confidentialité', cgu: 'CGUS', legal: 'Mentions légales', cookies: 'Cookies',
+};
+
+const EN: Dict = {
+  navPricing: 'Pricing', navComp: 'Comparison', navDownload: 'Download', navContact: 'Contact',
+  login: 'Log in', signup: 'Create account', openMenu: 'Open menu', closeMenu: 'Close menu',
+
+  heroTitle: 'Time tracking and workforce', heroTitle2: 'management', heroAccent: 'simplified',
+  heroSub: 'Biometric terminals, mobile app, leave management, exit authorizations and payroll preparation — all centralized in one secure platform.',
+  btnHero1: '30-day free trial →', btnHero2: 'Request a free demo',
+  t1: 'GDPR compliant · TLS 1.3 · AES-256', t2: 'Hosted in France (OVH)', t3: 'French-speaking support', t4: 'Multi-country',
+
+  promoPill: '🌟 FOUNDER OFFER — SUMMER 2026',
+  promoTitleA: 'Preferential Founder', promoAccent: 'pricing terms',
+  promoSubPre: 'From', promoDate1: 'June 1st', promoMid: 'to', promoDate2: 'August 31, 2026', promoSuf: '— an exclusive window.',
+  cdLabel: 'The offer ends in', cdDays: 'days', cdHours: 'hours', cdMin: 'min', cdSec: 'sec',
+  avantages: [
+    { icon: '🎁', t: '1 month free', d: 'No credit card' },
+    { icon: '🚀', t: 'Fast activation', d: 'Up and running in 48h' },
+    { icon: '🎓', t: 'Onboarding included', d: 'Expert guidance' },
+    { icon: '🎧', t: 'Priority support', d: 'Priority queue access' },
+    { icon: '⚡', t: 'Early access', d: 'New features' },
+    { icon: '📅', t: 'No commitment', d: 'You decide after the trial' },
+  ],
+  promoCta: '🌟 Join the Founder offer →',
+  pt1: '🛡 Secure & GDPR compliant', pt2: '🏦 Hosted in France OVH', pt3: '⚡ Set up in 48h', pt4: '🎧 Human French-speaking support',
+
+  sl1: 'Client companies', sl2: 'Multi-country', sl3: 'Avg absenteeism', sl4: 'To deploy',
+
+  dlTag: '📱 Mobile app', dlTitle: 'Download the Concorde Workly app',
+  dlSubA: 'iOS · Android · Offline mode · Optional geolocation. Visit',
+  dlSubB: 'to get the latest version.',
+
+  howTag: 'Discover the platform', howTitle: 'Operational in', howAccent: '2 weeks',
+  howSub: 'A guided deployment, without a technician, without internal resistance.',
+  steps: [
+    { title: 'Sign up & validate your company number', desc: 'Account creation in 5 minutes. Automatic verification of your company number (SIRET FR, BCE BE, ICE MA, NINEA SN).', long: 'Account creation in 5 minutes. Automatic verification of your company number (SIRET FR, BCE BE, ICE MA, NINEA SN). No installation, no technician required: you start right away from your browser.' },
+    { title: 'Import your teams', desc: 'CSV upload or manual entry of your employees, sites and departments. Setup in under an hour.', long: 'CSV upload or manual entry of your employees, sites and departments. Setup in under an hour. Your data is encrypted and hosted in France from the very first import.' },
+    { title: 'Deploy in the field', desc: 'iOS/Android mobile app for employees. Compatible biometric terminals. Offline mode available.', long: 'iOS/Android mobile app for employees. Compatible biometric terminals. Offline mode available for sites without connectivity. Gradual roll-out, site by site.' },
+    { title: 'Manage in real time', desc: 'Real-time dashboard from day 1. Push notifications to managers. Automated payroll.', long: 'Real-time dashboard from day 1. Push notifications to managers. Automated payroll preparation and exports ready for your payroll software. Track absenteeism and productivity every day.' },
+  ],
+  stepLabel: 'Step {n} of 4', slideStart: 'Sign-up', slideEnd: 'Management',
+
+  pTag: 'Pricing', pTitleA: 'Transparent pricing,', pTitleAccent: 'no surprises',
+  pBannerTitle: '🎁 1 month free — no credit card',
+  pBannerSub: 'Try free for 30 days. No card required. Cancel anytime.',
+  pDemoCta: '🎬 Request a free demo',
+  btnMonthly: 'Monthly', btnAnnual: 'Annual commitment', from: 'From', perMonth: ' / mo excl. tax',
+  commitAnnual: '★ Annual commitment · preferential terms', noCard: 'No credit card',
+  crossSuffix: ' € excl. tax / mo', savePrefix: 'Save: ', saveSuffix: ' € excl. tax / year',
+  annualBill: 'annual rate · single invoice', popularBadge: '⭐ Most popular',
+  premiumBadge: '★ Premium', entBadge: '★ Custom',
+  pi1: '10 users included · 10 GB secure storage',
+  pi2: '25 users included · 50 GB secure storage',
+  pi3: '50 users included · 200 GB secure storage',
+  starterFeatures: ['Web & mobile time tracking (iOS / Android)', 'Essential HR management (records, contracts)', 'Leave & absence management', 'Simplified dashboard · PDF / Excel exports', 'Essential notifications', '10 GB secure storage · Hosted in France OVH', 'Multi-user'],
+  standardFeatures: ['Everything in Starter', 'Mobile app + geolocation', 'Digital vault & e-signature', 'Bulk Excel import (employees, services, roles…)', 'Payroll preparation · payroll export · simple multi-site', 'Leave, RTT, time-off, sanctions · push / email notifications', 'Advanced reporting · 50 GB secure storage', 'Hosted in France OVH · Multi-user'],
+  businessFeatures: ['Everything in Standard', 'Multi-subsidiary on quote · advanced dashboards', 'Enhanced security · advanced audit logs', 'Advanced supervision · 200 GB secure storage', 'Hosted in France OVH · Unlimited administrators', 'Guided onboarding · priority SLA'],
+  entFeatures: ['Advanced HR AI', 'Document search', 'Smart workflows', 'Advanced APIs & SSO', 'Dedicated hosting', 'Tailor-made architecture'],
+  entPriceLabel: 'Custom quote', entAmount: 'Custom', entAmountSuffix: ' pricing',
+  entCommit: 'based on your structure & volume', entSub: 'Unlimited administrators · Guided onboarding', entCta: 'Request a quote →',
+  trialBtn: '30-day free trial', demoCard: '🎬 Request a free demo',
+  pricingFoot: 'No time commitment · VAT extra · Secure Stripe billing',
+
+  compTag: 'Detailed comparison', compTitleA: 'Everything included in', compAccent: 'each plan',
+  compSub: 'The complete feature matrix, plan by plan. Choose with full transparency.',
+  compCorner: 'Features', fromShort: 'from', compTrial: '30-day free trial',
+  csPointage: 'Time tracking & attendance', cfWeb: 'Web time tracking', cfMobile: 'Mobile app (iOS / Android)', cfGeo: 'Geolocated time tracking',
+  csEmp: 'Employee management', cfFiches: 'Employee records', cfCoffre: 'Digital vault', cfSign: 'Electronic signature',
+  csConges: 'Leave & absences', cfConges: 'Leave requests', csPaie: 'Payroll & expenses', cfPaie: 'Payroll preparation · payroll export',
+  csSecu: 'Security & compliance', cfOvh: 'Hosted in France OVH', cfCrypto: 'AES-256 + TLS 1.3 encryption', cfBrand: 'Custom branding',
+  csLimites: 'Limits & quotas', cfCollab: 'Employees included', cfStockage: 'Storage included', cfSupport: 'Support',
+  cvSup1: 'Standard', cvSup2: 'Priority', cvSup3: 'Priority SLA',
+
+  infoTitle: 'Commercial information', infoLead: 'Pricing terms may change depending on:',
+  infoItems: ['enabled features;', 'usage volume;', 'number of users;', 'add-on modules;', 'storage needs;', 'and future platform developments.'],
+  infoP1: 'Annual subscriptions benefit from preferential pricing terms. Monthly subscriptions remain available at the standard rates shown.',
+  infoP2: 'Advanced AI features may require the activation of additional modules or options depending on usage and volume.',
+  infoP3: 'Deployment and guidance available depending on client needs.',
+
+  servicesTitle: 'Complementary services & add-ons', serviceCol: 'Service', priceCol: 'Recommended price',
+  serviceRows: [
+    { service: 'Administrator training (video)', price: '€290' },
+    { service: 'On-site training', price: 'From €790/day' },
+    { service: 'Public API', price: '+€199/mo' },
+    { service: 'Dedicated hosting', price: 'From €390/mo' },
+    { service: 'Annual pen-test', price: 'From €1,500' },
+    { service: 'Standard ERP / payroll connectors', price: 'From €490' },
+    { service: 'Custom ERP connectors', price: 'Custom quote' },
+    { service: 'Assisted data import', price: 'From €250' },
+    { service: 'Premium onboarding', price: 'From €390' },
+    { service: 'Personalized coaching (video)', price: 'From €190' },
+    { service: 'Personalized coaching half-day', price: 'From €390' },
+    { service: 'Personalized coaching full day', price: 'From €690' },
+    { service: '24/7 priority support', price: '+€149/mo' },
+    { service: 'Additional storage', price: '+€29/100 GB' },
+    { service: 'Custom domain', price: '+€19/mo' },
+  ],
+
+  pctaBadge: '🎁 30-day free trial', pctaH2: 'Join companies that chose peace of mind.',
+  pctaP: 'Test Concorde Workforce free for 1 month — no CC, no commitment. Deployment in 2 weeks · Human French-speaking support · measurable ROI from day 30.',
+  pf1: '1 month free, no CC', pf2: 'Expert onboarding included', pf3: 'No long-term commitment', pf4: 'Cancel in 1 click',
+  pctaBtn: 'Start my 30-day free trial →',
+
+  ctTitle: "Let's talk about your HR project", ctSub: 'Our team responds within 24 business hours.',
+  ctEl: 'Email', ctAl: 'Address', ctAv: 'Paris 8th, France',
+  ctHl: 'Availability', ctHv: 'Monday – Friday, 9am – 6pm',
+  ctDl: 'Quick demo', ctDv: 'Access the platform directly via concorde-work-force.com',
+  trialTitle: '30-DAY FREE TRIAL', trialSub: 'No commitment · No credit card · Hosted in France',
+  trialNowBtn: 'Get started now →', formTitle: 'Send us a message',
+  flPrenom: 'First name *', flNom: 'Last name *', flEmail: 'Professional email *', flEnt: 'Company',
+  flEmp: 'Number of employees', flEmpSel: 'Select…',
+  flObj: 'Subject *', flObjSel: 'Select…', flObjDemo: 'Request a demo',
+  flObjEnt: 'Enterprise Plus pack', flObjRec: 'Complaint', flObjAut: 'Other',
+  flMsg: 'Message *', flMsgPh: 'Describe your project or question…', formSubmit: 'Send message →',
+
+  fDesc: 'The HR & time tracking platform designed for field teams in French-speaking Africa and Europe.',
+  fFlags: 'Multi-country', fcol1: 'Product', fcol2: 'Resources',
+  flPricing: 'Pricing', flMobile: 'Mobile app', flContact: 'Contact',
+  flAbout: 'About us', flLogin: 'Log in', flSignup: 'Create account',
+  copyright: '© 2026 Concorde Workforce · All rights reserved',
+  privacy: 'Privacy', cgu: 'Terms', legal: 'Legal notice', cookies: 'Cookies',
+};
+
+const LANG: Record<Lang, Dict> = { fr: FR, en: EN };
+
+// ─── OFFRE FONDATEUR ÉTÉ 2026 — compte à rebours live (1er juin → 31 août 2026) ──
+const FOUNDER_OFFER_END = new Date('2026-09-01T00:00:00+02:00');
 
 function useFounderCountdown() {
   const calc = () => {
@@ -94,127 +362,33 @@ function useFounderCountdown() {
   return remaining;
 }
 
-function FounderPromoSection({ onSignup }: { onSignup: () => void }) {
-  const { t } = useTranslation();
-  const { jours, heures, minutes, secondes, expired } = useFounderCountdown();
-  const pad = (n: number) => String(n).padStart(2, '0');
-
-  if (expired) return null; // section disparaît automatiquement le 1er septembre
-
-  const AVANTAGES = t('homePage.founder.advantages', { returnObjects: true }) as Array<{ icon: string; label: string; sub: string }>;
-
-  return (
-    <section className="promo-launch promo-launch--top reveal" aria-label="Offre Fondateur Été 2026">
-      <div className="promo-launch-inner">
-
-        {/* Pill */}
-        <span className="promo-launch-pill">
-          <span className="promo-launch-pill-icon">🚀</span>
-          {t('homePage.founder.pill')}
-        </span>
-
-        {/* Titre + compte à rebours */}
-        <div className="founder-hero-row">
-          <div className="founder-title-block">
-            <h2 className="promo-launch-title">
-              {t('homePage.founder.titleA')}<br />
-              <span className="promo-launch-accent">{t('homePage.founder.titleAccent')}</span>
-              <span className="promo-launch-sparkle" aria-hidden="true">✨</span>
-            </h2>
-            <p className="promo-launch-sub">
-              {t('homePage.founder.subPrefix')} <span className="promo-launch-sub-hl">{t('homePage.founder.date1')}</span> {t('homePage.founder.subMiddle')}{' '}
-              <span className="promo-launch-sub-hl">{t('homePage.founder.date2')}</span> {t('homePage.founder.subSuffix')}
-            </p>
-          </div>
-
-          {/* Compte à rebours */}
-          <div className="founder-countdown" aria-label={t('homePage.founder.countdownLabel')}>
-            <div className="founder-countdown-label">{t('homePage.founder.countdownLabel')}</div>
-            <div className="founder-countdown-grid">
-              <div className="founder-countdown-unit">
-                <span className="founder-countdown-num">{pad(jours)}</span>
-                <span className="founder-countdown-sub">{t('homePage.founder.days')}</span>
-              </div>
-              <span className="founder-countdown-sep">:</span>
-              <div className="founder-countdown-unit">
-                <span className="founder-countdown-num">{pad(heures)}</span>
-                <span className="founder-countdown-sub">{t('homePage.founder.hours')}</span>
-              </div>
-              <span className="founder-countdown-sep">:</span>
-              <div className="founder-countdown-unit">
-                <span className="founder-countdown-num">{pad(minutes)}</span>
-                <span className="founder-countdown-sub">{t('homePage.founder.min')}</span>
-              </div>
-              <span className="founder-countdown-sep">:</span>
-              <div className="founder-countdown-unit">
-                <span className="founder-countdown-num">{pad(secondes)}</span>
-                <span className="founder-countdown-sub">{t('homePage.founder.sec')}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Grille des 6 avantages */}
-        <ul className="founder-avantages">
-          {AVANTAGES.map((a) => (
-            <li key={a.label} className="founder-avantage-item">
-              <div className="plf-icon">{a.icon}</div>
-              <div className="plf-text">
-                <strong>{a.label}</strong>
-                <span>{a.sub}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
-
-        {/* CTA */}
-        <button type="button" className="promo-launch-cta" onClick={onSignup}>
-          <span className="promo-launch-cta-icon">🚀</span>
-          {t('homePage.founder.cta')}
-          <span className="promo-launch-cta-arrow">→</span>
-        </button>
-
-        {/* Trust */}
-        <div className="promo-launch-trust">
-          <span><span className="plt-icon">🛡️</span> {t('homePage.founder.trust1')}</span>
-          <span><span className="plt-icon">🇫🇷</span> {t('homePage.founder.trust2')}</span>
-          <span><span className="plt-icon">⚡</span> {t('homePage.founder.trust3')}</span>
-          <span><span className="plt-icon">💬</span> {t('homePage.founder.trust4')}</span>
-        </div>
-
-      </div>
-    </section>
-  );
+// Rend une cellule du comparatif : true → ✓ vert, false → ✗ gris, string → valeur libre.
+function renderComparisonCell(value: CompCell): React.ReactNode {
+  if (value === true) return <span className="comp-check" aria-label="Inclus">✓</span>;
+  if (value === false) return <span className="comp-cross" aria-label="Non inclus">✗</span>;
+  return <span className="comp-value">{value}</span>;
 }
+
+// Logo embarqué en base64 dans la maquette → on réutilise l'asset public existant.
+const LOGO_SRC = '/concorde-workly-light.png';
+const DOWNLOAD_URL = 'https://concorde-work-force.com/download';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
-  // Données traduites (suivent la langue choisie via le LanguageSwitcher).
-  const STEPS = t('homePage.how.steps', { returnObjects: true }) as Step[];
-  const COMPARISON_ROWS = t('homePage.comparison.rows', { returnObjects: true }) as CompRow[];
-  // Session : si un utilisateur est déjà connecté à son tenant, le CTA « Essayer
-  // 30 jours gratuit » et les liens d'inscription doivent court-circuiter le
-  // flux signup (qui n'a aucun sens — il a déjà un compte) et le ramener à son
-  // espace plateforme. Source : /Utilisateurs/me — uticod non null.
+  const { i18n } = useTranslation();
+  const lang: Lang = i18n.language === 'en' ? 'en' : 'fr';
+  const d = LANG[lang];
+
   const { uticod } = useAuth();
   const isAuthenticated = Boolean(uticod);
-  // Popup d'inscription (essai gratuit) — ouverte par goToSignup.
+
   const [signupOpen, setSignupOpen] = useState(false);
-  const [activeStep, setActiveStep] = useState<StepIndex>(0);
-  // Par défaut on présente le cycle ANNUEL : 2026-05 — décision commerce,
-  // l'engagement annuel est plus avantageux et c'est l'offre à mettre en avant
-  // dès l'arrivée sur la landing. Le visiteur peut basculer en mensuel via le
-  // toggle s'il préfère sans engagement.
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('annual');
-  const [scrolled, setScrolled] = useState(false);
-  // Menu mobile : sous 900px on masque .nav-links et on remplace par un
-  // hamburger qui déplie cette liste verticalement. Avant : aucun moyen
-  // d'accéder à #pricing depuis mobile sans scroller jusqu'au footer.
+  const [activeStep, setActiveStep] = useState<StepIndex>(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const howSectionRef = useRef<HTMLDivElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const countdown = useFounderCountdown();
+  const pad = (n: number) => String(n).padStart(2, '0');
 
   // Rotation automatique de l'étape illustrée (4 étapes × 3,5 s).
   useEffect(() => {
@@ -224,636 +398,379 @@ export default function HomePage() {
     return () => window.clearInterval(id);
   }, []);
 
-  // Effet "scrolled" sur la nav (assombrissement subtil).
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  // Reveal au scroll : ajoute la classe .visible quand l'élément entre dans le viewport.
-  useEffect(() => {
-    const root = containerRef.current;
-    if (!root) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) entry.target.classList.add('visible');
-        });
-      },
-      { threshold: 0.1 }
-    );
-    root.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
-
-  // Scroll smooth vers une ancre interne.
-  const scrollTo = (ref: React.RefObject<HTMLElement | null>) => {
-    ref.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  // Grille tarifs.txt 2026-05 — alignée avec ABRPOINT.Server.Tenancy.PlanCatalog
-  // et PlanConfigurationPage. On affiche le prix « à partir de » selon le cycle :
-  //   • Mensuel : tarif d'engagement mensuel sans engagement annuel (99/219/449).
-  //   • Annuel  : tarif annuel par mois (69/119/249), facturé annuellement.
+  // ── Tarifs — Offre Fondateur Été 2026 (alignés avec PlanCatalog côté backend) ──
   const monthly = billingCycle === 'monthly';
-  const formatPrice = (v: number) =>
-    new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(v);
-  // Tarifs officiels — Offre Fondateur Été 2026 (email "Offre Fondateur" / Mme Aïda)
-  const monthlyBase   = { starter: 99,  standard: 219, premium: 449 };
-  const annualMonthly = { starter: 69,  standard: 119, premium: 249 };
-  // Économies annuelles exactes issues de l'email officiel
-  // Starter : (99−69)×12 = 360 € HT · Standard : (219−119)×12 = 1 200 € HT · Premium : (449−249)×12 = 2 400 € HT
+  const fmt = (v: number) => new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 }).format(v);
+  const monthlyBase = { starter: 99, standard: 219, premium: 449 };
+  const annualMonthly = { starter: 69, standard: 119, premium: 249 };
   const annualSavings = { starter: 360, standard: 1200, premium: 2400 };
-  // 2026-05-29 — Le prix affiché est TOUJOURS mensuel, y compris en engagement
-  // annuel : on montre le tarif mensuel réduit (annualMonthly = 69/119/249) facturé
-  // annuellement, au lieu du total annuel. Plus lisible pour comparer les deux cycles.
   const prices = {
-    starter:  monthly ? formatPrice(monthlyBase.starter)  : formatPrice(annualMonthly.starter),
-    standard: monthly ? formatPrice(monthlyBase.standard) : formatPrice(annualMonthly.standard),
-    premium:  monthly ? formatPrice(monthlyBase.premium)  : formatPrice(annualMonthly.premium),
+    starter: monthly ? monthlyBase.starter : annualMonthly.starter,
+    standard: monthly ? monthlyBase.standard : annualMonthly.standard,
+    premium: monthly ? monthlyBase.premium : annualMonthly.premium,
   };
-  const pricePeriod = t('homePage.pricing.period');
-  const priceCommitmentLabel = monthly ? t('homePage.pricing.commitmentMonthly') : t('homePage.pricing.commitmentAnnual');
 
-  // 2026-05-23 — Tous les CTAs « Essayer 30 jours gratuit » / « Créer un
-  // compte » naviguent désormais directement vers /signup (au lieu de
-  // scroller vers une carte inline dans la home). Si le visiteur est déjà
-  // connecté, on l'envoie sur son dashboard — le signup n'a aucun sens.
-  // L'essai 30j est sans carte bancaire : on ne passe PAS par Stripe Checkout
-  // tant que l'utilisateur n'upgrade pas manuellement.
-  // 2026-05-29 — Le CTA « Essayer 30 jours gratuit » ouvre désormais le formulaire
-  // d'inscription dans une POPUP (meilleure UX, pas de changement de page) et SANS
-  // sélecteur de pack (l'essai démarre en Standard par défaut — l'utilisateur pourra
-  // changer de pack ensuite). Si déjà connecté → dashboard.
-  const goToSignup = (_plan?: 'Starter' | 'Standard' | 'Premium') => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-      return;
-    }
+  // ── Navigation / CTAs ──────────────────────────────────────────────────────
+  const scrollToId = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    setMobileMenuOpen(false);
+  };
+  // « Essayer 30 jours gratuit » : si déjà connecté → dashboard ; sinon popup d'inscription.
+  const goToSignup = () => {
+    if (isAuthenticated) { navigate('/dashboard'); return; }
     setSignupOpen(true);
   };
-  // « Connexion » → page /login dédiée (pattern dougs.fr/signin). Si le visiteur
-  // est déjà authentifié, on shortcut directement vers son dashboard pour éviter
-  // de lui montrer un formulaire de login inutile.
   const goToLogin = () => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-      return;
-    }
+    if (isAuthenticated) { navigate('/dashboard'); return; }
     navigate('/login');
   };
-  // Clic sur une carte de prix → /signup avec le pack pré-sélectionné en state.
-  const goToPlanConfig = (plan: 'Starter' | 'Standard' | 'Premium') => goToSignup(plan);
-
-  // CTA « Demander un devis » du pack Enterprise Plus → site corporate
-  // Concorde Tech Innovation (page contact). Pas de navigate() : on quitte
-  // l'app SaaS pour le site marketing externe → window.open + _blank pour
-  // conserver la landing ouverte côté visiteur. noopener/noreferrer pour la
-  // sécurité (le site cible ne récupère pas window.opener).
-  const goToConcordeTechContact = () => {
-    window.open(CONCORDE_TECH_CONTACT_URL, '_blank', 'noopener,noreferrer');
+  // Le formulaire de contact n'a pas encore d'endpoint dédié : on redirige vers
+  // la page contact-sales existante (graceful fallback, pas de perte de prospect).
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate('/contact-sales');
   };
 
-  return (
-    <div className="home-page" ref={containerRef}>
-      <div className="bg-mesh" />
+  // ── Comparatif : lignes (labels suivent la langue) ──────────────────────────
+  const comparisonRows: CompRow[] = [
+    { type: 'section', label: d.csPointage },
+    { type: 'feature', label: d.cfWeb, s: true, st: true, b: true },
+    { type: 'feature', label: d.cfMobile, s: true, st: true, b: true },
+    { type: 'feature', label: d.cfGeo, s: false, st: true, b: true },
+    { type: 'section', label: d.csEmp },
+    { type: 'feature', label: d.cfFiches, s: true, st: true, b: true },
+    { type: 'feature', label: d.cfCoffre, s: false, st: true, b: true },
+    { type: 'feature', label: d.cfSign, s: false, st: true, b: true },
+    { type: 'section', label: d.csConges },
+    { type: 'feature', label: d.cfConges, s: true, st: true, b: true },
+    { type: 'section', label: d.csPaie },
+    { type: 'feature', label: d.cfPaie, s: false, st: true, b: true },
+    { type: 'section', label: d.csSecu },
+    { type: 'feature', label: d.cfOvh, s: true, st: true, b: true },
+    { type: 'feature', label: d.cfCrypto, s: true, st: true, b: true },
+    { type: 'feature', label: d.cfBrand, s: false, st: false, b: true },
+    { type: 'section', label: d.csLimites },
+    { type: 'feature', label: d.cfCollab, s: '10', st: '25', b: '50' },
+    { type: 'feature', label: d.cfStockage, s: '10 Go', st: '50 Go', b: '200 Go' },
+    { type: 'feature', label: d.cfSupport, s: d.cvSup1, st: d.cvSup2, b: d.cvSup3 },
+  ];
 
-      {/* NAV — fixée en tête de page. */}
-      <nav className={`hp-nav${scrolled ? ' scrolled' : ''}`}>
+  const stepNum = activeStep + 1;
+
+  return (
+    <div className="hp2">
+
+      {/* NAV */}
+      <nav className="nav">
         <div className="nav-logo">
-          <img className="logo-mark" src="/concorde-workly-light.png" alt="Concorde Workforce" />
+          <img className="logo" src={LOGO_SRC} alt="Concorde Workforce" />
+          <span>Concorde Workforce</span>
         </div>
         <ul className="nav-links">
-          <li><a href="#how">{t('homePage.nav.demo')}</a></li>
-          <li><a href="#pricing">{t('homePage.nav.pricing')}</a></li>
-          <li><a href="#comparison">{t('homePage.nav.comparison')}</a></li>
-          <li><a href="#download">{t('homePage.nav.download')}</a></li>
+          <li><a onClick={() => scrollToId('pricing')}>{d.navPricing}</a></li>
+          <li><a onClick={() => scrollToId('comp')}>{d.navComp}</a></li>
+          <li><a onClick={() => scrollToId('download')}>{d.navDownload}</a></li>
+          <li><a onClick={() => scrollToId('contact')}>{d.navContact}</a></li>
         </ul>
         <div className="nav-right">
           <LanguageSwitcher />
-          <button type="button" className="btn-ghost" onClick={goToLogin}>{t('homePage.nav.login')}</button>
-          <button type="button" className="btn-primary" onClick={() => goToSignup()}>
-            {t('homePage.nav.createAccount')} <span>→</span>
-          </button>
-          {/* Hamburger : visible uniquement sur mobile (cf. CSS @media).
-              Sur desktop, .nav-links est affichée et le bouton est masqué. */}
+          <button type="button" className="btn-ghost" onClick={goToLogin}>{d.login}</button>
+          <button type="button" className="btn-primary" onClick={goToSignup}>{d.signup} <span>→</span></button>
           <button
             type="button"
             className={`nav-mobile-toggle${mobileMenuOpen ? ' is-open' : ''}`}
-            aria-label={mobileMenuOpen ? t('homePage.nav.closeMenu') : t('homePage.nav.openMenu')}
+            aria-label={mobileMenuOpen ? d.closeMenu : d.openMenu}
             aria-expanded={mobileMenuOpen}
-            onClick={() => setMobileMenuOpen(o => !o)}
+            onClick={() => setMobileMenuOpen((o) => !o)}
           >
             <span /><span /><span />
           </button>
         </div>
       </nav>
 
-      {/* Menu mobile déplié — affiché uniquement quand mobileMenuOpen=true.
-          Clic sur un lien : ferme le menu pour éviter qu'il reste ouvert
-          après le smooth-scroll vers l'ancre. */}
       {mobileMenuOpen && (
-        <div className="nav-mobile-menu" role="menu" onClick={() => setMobileMenuOpen(false)}>
-          <a href="#how" role="menuitem">{t('homePage.nav.demo')}</a>
-          <a href="#pricing" role="menuitem">{t('homePage.nav.pricing')}</a>
-          <a href="#comparison" role="menuitem">{t('homePage.nav.comparison')}</a>
-          <a href="#download" role="menuitem">{t('homePage.nav.download')}</a>
+        <div className="nav-mobile-menu" role="menu">
+          <a role="menuitem" onClick={() => scrollToId('pricing')}>{d.navPricing}</a>
+          <a role="menuitem" onClick={() => scrollToId('comp')}>{d.navComp}</a>
+          <a role="menuitem" onClick={() => scrollToId('download')}>{d.navDownload}</a>
+          <a role="menuitem" onClick={() => scrollToId('contact')}>{d.navContact}</a>
         </div>
       )}
 
-      {/* HERO — titre et sous-titre en premier, avant la bannière promo.
-          Le dashboard a été supprimé (2026-05-27). */}
-      <section className="hero">
-        <h1 className="hero-title">
-          {t('homePage.hero.titleA')}<br />{t('homePage.hero.titleB')} <span className="accent">{t('homePage.hero.titleAccent')}</span>
-        </h1>
-        <p className="hero-sub">
-          {t('homePage.hero.sub')}
-        </p>
-        <div className="hero-cta-row">
-          <button type="button" className="btn-hero-primary" onClick={() => goToSignup()}>
-            {t('homePage.hero.ctaPrimary')}
-            <span>→</span>
-          </button>
-          <button type="button" className="btn-hero-secondary" onClick={() => scrollTo(howSectionRef)}>
-            <span>▶</span>
-            {t('homePage.hero.ctaSecondary')}
-          </button>
+      {/* HERO SPLIT */}
+      <section className="hero" id="hero">
+        <div className="hero-left">
+          <h1>{d.heroTitle}<br />{d.heroTitle2} <span className="accent">{d.heroAccent}</span></h1>
+          <p>{d.heroSub}</p>
+          <div className="hero-cta">
+            <button type="button" className="btn-hp" onClick={goToSignup}>{d.btnHero1}</button>
+            <button type="button" className="btn-hs" onClick={() => scrollToId('contact')}><span>🎬</span> {d.btnHero2}</button>
+          </div>
+          <div className="trust">
+            <div><span className="ti">✓</span><span>{d.t1}</span></div>
+            <div className="tsep" />
+            <div><span className="ti">✓</span><span>{d.t2}</span></div>
+            <div className="tsep" />
+            <div><span className="ti">✓</span><span>{d.t3}</span></div>
+            <div className="tsep" />
+            <div><span className="ti">✓</span><span>{d.t4}</span></div>
+          </div>
         </div>
-        <div className="hero-trust">
-          <div className="trust-item"><span className="trust-icon">✓</span> {t('homePage.hero.trust1')}</div>
-          <div className="trust-divider" />
-          <div className="trust-item"><span className="trust-icon">✓</span> {t('homePage.hero.trust2')}</div>
-          <div className="trust-divider" />
-          <div className="trust-item"><span className="trust-icon">✓</span> {t('homePage.hero.trust3')}</div>
-          <div className="trust-divider" />
-          <div className="trust-item"><span className="trust-icon">✓</span> {t('homePage.hero.trust4')}</div>
+        <div className="hero-right">
+          <video className="hero-video-box" src="/vide_o_finale_.mp4" controls muted loop playsInline autoPlay />
         </div>
       </section>
 
-      {/* OFFRE FONDATEUR ÉTÉ 2026 — placée après le hero (titre/sous-titre)
-          conformément à la demande UX 2026-05-27. */}
-      <FounderPromoSection onSignup={() => goToSignup()} />
+      {/* PROMO FONDATEUR NAVY */}
+      {!countdown.expired && (
+        <section className="promo" aria-label="Offre Fondateur Été 2026">
+          <div className="promo-inner">
+            <span className="promo-pill">{d.promoPill}</span>
+            <div className="promo-row">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h2 className="promo-title">{d.promoTitleA}<br /><span className="promo-accent">{d.promoAccent}</span></h2>
+                <p className="promo-sub">
+                  {d.promoSubPre} <span className="promo-sub-hl">{d.promoDate1}</span> {d.promoMid}{' '}
+                  <span className="promo-sub-hl">{d.promoDate2}</span> {d.promoSuf}
+                </p>
+              </div>
+              <div className="countdown" aria-label={d.cdLabel}>
+                <div className="countdown-label">{d.cdLabel}</div>
+                <div className="countdown-grid">
+                  <div className="cu"><span className="cn">{pad(countdown.jours)}</span><span className="cs">{d.cdDays}</span></div>
+                  <span className="csep">:</span>
+                  <div className="cu"><span className="cn">{pad(countdown.heures)}</span><span className="cs">{d.cdHours}</span></div>
+                  <span className="csep">:</span>
+                  <div className="cu"><span className="cn">{pad(countdown.minutes)}</span><span className="cs">{d.cdMin}</span></div>
+                  <span className="csep">:</span>
+                  <div className="cu"><span className="cn">{pad(countdown.secondes)}</span><span className="cs">{d.cdSec}</span></div>
+                </div>
+              </div>
+            </div>
+            <ul className="avantages">
+              {d.avantages.map((a) => (
+                <li key={a.t} className="av">
+                  <div className="av-icon">{a.icon}</div>
+                  <div className="av-text"><strong>{a.t}</strong><span>{a.d}</span></div>
+                </li>
+              ))}
+            </ul>
+            <button type="button" className="promo-cta" onClick={goToSignup}>{d.promoCta}</button>
+            <div className="promo-trust">
+              <span>{d.pt1}</span><span>{d.pt2}</span><span>{d.pt3}</span><span>{d.pt4}</span>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* STATS */}
-      <div className="stats-strip reveal">
-        <div className="stat-item">
-          <div className="stat-num">{t('homePage.stats.s1num')}</div>
-          <div className="stat-label">{t('homePage.stats.s1label')}</div>
+      <div className="stats">
+        <div className="stat"><div className="stat-num">500+</div><div className="stat-label">{d.sl1}</div></div>
+        <div className="stat"><div className="stat-num">5 {lang === 'fr' ? 'pays' : 'countries'}</div><div className="stat-label">{d.sl2}</div></div>
+        <div className="stat"><div className="stat-num">−34%</div><div className="stat-label">{d.sl3}</div></div>
+        <div className="stat"><div className="stat-num">2 {lang === 'fr' ? 'sem.' : 'wks'}</div><div className="stat-label">{d.sl4}</div></div>
+      </div>
+
+      {/* DOWNLOAD */}
+      <div id="download" className="download">
+        <div>
+          <div className="dl-tag">{d.dlTag}</div>
+          <div className="dl-title">{d.dlTitle}</div>
+          <div className="dl-sub">
+            {d.dlSubA} <a className="dl-link" href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">concorde-work-force.com</a> {d.dlSubB}
+          </div>
         </div>
-        <div className="stat-item">
-          <div className="stat-num">{t('homePage.stats.s2num')}</div>
-          <div className="stat-label">{t('homePage.stats.s2label')}</div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-num">{t('homePage.stats.s3num')}</div>
-          <div className="stat-label">{t('homePage.stats.s3label')}</div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-num">{t('homePage.stats.s4num')}</div>
-          <div className="stat-label">{t('homePage.stats.s4label')}</div>
+        <div className="store-btns">
+          <a className="store-btn" href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">
+            <div className="store-icon">⬇</div>
+            <div><span className="store-small">APK direct</span><span className="store-large">concorde-work-force.com</span></div>
+          </a>
         </div>
       </div>
 
-      {/* MOBILE DOWNLOAD — bandeau dédié pour rendre le lien de téléchargement
-          mobile (URL canonique : concordeworkly.com) immédiatement repérable
-          en haut de page, sans avoir à scroller jusqu'à l'étape « Déployez sur
-          le terrain ». */}
-      <section id="download" className="download-band reveal">
-        <div className="download-band-inner">
-          <div className="download-band-left">
-            <div className="download-band-tag">{t('homePage.download.tag')}</div>
-            <h3 className="download-band-title">{t('homePage.download.title')}</h3>
-            <p className="download-band-sub">
-              {t('homePage.download.subA')}{' '}
-              <a className="download-band-url" href="/download">concordeworkly.com</a>
-              {' '}{t('homePage.download.subB')}
-            </p>
-          </div>
-          <div className="download-band-buttons">
-            <a className="store-btn" href="/download">
-              <span className="store-btn-icon"></span>
-              <span className="store-btn-text">
-                <span className="store-btn-small">{t('homePage.download.appStoreSmall')}</span>
-                <span className="store-btn-large">{t('homePage.download.appStoreLarge')}</span>
-              </span>
-            </a>
-            <a className="store-btn" href="/download">
-              <span className="store-btn-icon">▶</span>
-              <span className="store-btn-text">
-                <span className="store-btn-small">{t('homePage.download.playSmall')}</span>
-                <span className="store-btn-large">{t('homePage.download.playLarge')}</span>
-              </span>
-            </a>
-            <a className="store-btn store-btn-apk" href="/download">
-              <span className="store-btn-icon">⬇</span>
-              <span className="store-btn-text">
-                <span className="store-btn-small">{t('homePage.download.apkSmall')}</span>
-                <span className="store-btn-large">{t('homePage.download.apkLarge')}</span>
-              </span>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section id="how" ref={howSectionRef} style={{ background: 'var(--hp-surface-container-lowest)' }}>
-        <div className="section-tag">{t('homePage.how.tag')}</div>
-        <h2 className="section-title">{t('homePage.how.titleA')} <span className="accent">{t('homePage.how.titleAccent')}</span></h2>
-        <p className="section-sub">{t('homePage.how.sub')}</p>
-        <div className="how-layout reveal">
+      {/* HOW — DÉCOUVRIR LA PLATEFORME */}
+      <section className="how" id="how">
+        <div className="section-tag">{d.howTag}</div>
+        <h2 className="section-title"><span>{d.howTitle}</span> <span className="accent">{d.howAccent}</span></h2>
+        <p className="section-sub">{d.howSub}</p>
+        <div className="how-layout">
           <div className="steps">
-            {STEPS.map((s, i) => (
+            {d.steps.map((s, i) => (
               <div
-                key={s.num}
+                key={s.title}
                 className={`step${activeStep === i ? ' active' : ''}`}
                 onClick={() => setActiveStep(i as StepIndex)}
               >
-                <div className="step-num">{s.num}</div>
-                <div className="step-content">
+                <div className="step-num">{pad(i + 1)}</div>
+                <div>
                   <div className="step-title">{s.title}</div>
                   <div className="step-desc">{s.desc}</div>
                 </div>
               </div>
             ))}
           </div>
-          {/* VIDÉO — remplace les illustrations des étapes (2026-05-27).
-              Lecture automatique déclenchée par IntersectionObserver au scroll.
-              Le fichier doit être placé dans public/ sous le nom vide_o_finale_.mp4 */}
-          <div className="step-video-wrap">
-            <video
-              ref={(el) => {
-                if (!el) return;
-                const obs = new IntersectionObserver(
-                  ([entry]) => {
-                    if (entry.isIntersecting) {
-                      el.play().catch(() => {});
-                    } else {
-                      el.pause();
-                    }
-                  },
-                  { threshold: 0.4 }
-                );
-                obs.observe(el);
-              }}
-              src="/vide_o_finale_.mp4"
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              className="step-video"
-              aria-label={t('homePage.how.videoAria')}
-            />
+          <div className="how-detail">
+            <div className="detail-badge">{pad(stepNum)}</div>
+            <div className="detail-step-label">{d.stepLabel.replace('{n}', String(stepNum))}</div>
+            <div className="detail-title">{d.steps[activeStep].title}</div>
+            <div className="detail-desc">{d.steps[activeStep].long}</div>
+            <div className="detail-slider-wrap">
+              <div className="detail-slider-head">
+                <span>{d.slideStart}</span>
+                <span>{d.slideEnd}</span>
+              </div>
+              <input
+                type="range" min={0} max={3} step={1} value={activeStep}
+                className="detail-slider"
+                style={{ '--fill': `${(activeStep / 3) * 100}%` } as React.CSSProperties}
+                onChange={(e) => setActiveStep(Number(e.target.value) as StepIndex)}
+              />
+              <div className="detail-dots">
+                {[0, 1, 2, 3].map((i) => (
+                  <span
+                    key={i}
+                    className={`detail-dot${activeStep === i ? ' active' : ''}`}
+                    onClick={() => setActiveStep(i as StepIndex)}
+                  >{pad(i + 1)}</span>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* PRICING */}
-      <section id="pricing" className="pricing-section">
-        <div style={{ textAlign: 'center', marginBottom: 0 }}>
-          <div className="section-tag" style={{ justifyContent: 'center' }}>{t('homePage.pricing.tag')}</div>
-          <h2 className="section-title" style={{ margin: '0 auto', textAlign: 'center' }}>
-            {t('homePage.pricing.titleA')} <span className="accent">{t('homePage.pricing.titleAccent')}</span>{t('homePage.pricing.titleB')}
+      <section id="pricing" className="pricing">
+        <div style={{ textAlign: 'center' }}>
+          <div className="section-tag">{d.pTag}</div>
+          <h2 className="section-title" style={{ margin: '0 auto 0', textAlign: 'center' }}>
+            {d.pTitleA} <span className="accent">{d.pTitleAccent}</span>
           </h2>
-          {/* Annonce commerciale "Conditions privilégiées" — ton or pour rester
-              cohérent avec le bandeau Early Launch et le pack Premium. Placée
-              juste sous le titre de la section pour valoriser l'offre avant
-              même que l'utilisateur ne lise la grille. */}
-          <div
-            style={{
-              margin: '20px auto 12px',
-              maxWidth: 720,
-              padding: '14px 22px',
-              background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-              border: '1px solid #d4af37',
-              borderRadius: 14,
-              textAlign: 'center',
-              boxShadow: '0 4px 14px rgba(212,175,55,0.18)',
-            }}
-          >
-            <div style={{ color: '#92400e', fontWeight: 800, fontSize: 15, marginBottom: 4, letterSpacing: 0.2 }}>
-              {t('homePage.pricing.bannerTitle')}
-            </div>
-            <div style={{ color: '#7c5a0b', fontWeight: 500, fontSize: 13.5, lineHeight: 1.55 }}>
-              {t('homePage.pricing.bannerText')}
+          <div className="pricing-banner">
+            <span style={{ fontSize: 26 }}>🎁</span>
+            <div>
+              <div className="banner-title">{d.pBannerTitle}</div>
+              <div className="banner-sub">{d.pBannerSub}</div>
             </div>
           </div>
-          <p className="section-sub" style={{ margin: '16px auto 48px', textAlign: 'center' }}>
-            {t('homePage.pricing.sub')}
-          </p>
+          <div style={{ textAlign: 'center', marginTop: 18 }}>
+            <button type="button" className="demo-cta" onClick={() => scrollToId('contact')}>{d.pDemoCta}</button>
+          </div>
         </div>
+
         <div className="pricing-toggle">
-          <button type="button" className={`toggle-btn${monthly ? ' active' : ''}`} onClick={() => setBillingCycle('monthly')}>{t('homePage.pricing.monthly')}</button>
-          <button type="button" className={`toggle-btn${!monthly ? ' active' : ''}`} onClick={() => setBillingCycle('annual')}>{t('homePage.pricing.annual')}</button>
+          <button type="button" className={`toggle-btn${monthly ? ' active' : ''}`} onClick={() => setBillingCycle('monthly')}>{d.btnMonthly}</button>
+          <button type="button" className={`toggle-btn${!monthly ? ' active' : ''}`} onClick={() => setBillingCycle('annual')}>{d.btnAnnual}</button>
         </div>
-        <div className="pricing-grid reveal">
 
-          {/* ── STARTER ── */}
+        <div className="pricing-grid">
+          {/* STARTER */}
           <div className="price-card">
-            <div className="price-tier">{t('homePage.pricing.starterTier')}</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 4 }}>{t('homePage.pricing.from')}</div>
-            <div className="price-amount">
-              <span className="currency">€</span>{prices.starter}<span className="period">{pricePeriod}</span>
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 600, fontStyle: 'italic', marginTop: 4 }}>
-              {monthly ? (
-                <span style={{ color: '#16a34a' }}>{t('homePage.pricing.noCommitment')}</span>
-              ) : (
-                <span style={{ color: '#0040a1' }}>{t('homePage.pricing.annualPref')}</span>
-              )}
-            </div>
-            {!monthly && (
-              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontSize: 17, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
-                  {t('homePage.pricing.perMonthStrike', { price: formatPrice(monthlyBase.starter) })}
-                </span>
-                <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>
-                  {t('homePage.pricing.savings', { amount: formatPrice(annualSavings.starter) })}
-                </span>
-              </div>
-            )}
-            <div className="price-included" style={{ marginTop: 12 }}>{t('homePage.pricing.starterIncluded')}</div>
-            <div className="price-per">{priceCommitmentLabel}</div>
-            <ul className="price-desc-list">
-              {(t('homePage.pricing.starterFeatures', { returnObjects: true }) as string[]).map((f, i) => <li key={i}>{f}</li>)}
-            </ul>
-            <button type="button" className="btn-plan btn-plan-ghost" onClick={() => goToPlanConfig('Starter')}>{t('homePage.pricing.trialBtn')}</button>
+            <div className="price-tier">Starter</div>
+            <div className="price-from">{d.from}</div>
+            <div className="price-amount"><span className="cu">€</span>{fmt(prices.starter)}<span className="pe">{d.perMonth}</span></div>
+            {!monthly && <div className="price-commit">{d.commitAnnual}</div>}
+            {!monthly && <div className="price-cross">{fmt(monthlyBase.starter)}{d.crossSuffix}</div>}
+            {!monthly && <div className="price-save">{d.savePrefix}{fmt(annualSavings.starter)}{d.saveSuffix}</div>}
+            <div className="price-incl">{d.pi1}</div>
+            <div className="price-per">{d.annualBill}</div>
+            <button type="button" className="btn-trial" onClick={goToSignup}>{d.trialBtn}</button>
+            <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--on-v)', margin: '10px 0', fontWeight: 500 }}>✓ {d.noCard}</div>
+            <button type="button" className="btn-demo-card" onClick={() => scrollToId('contact')}>{d.demoCard}</button>
+            <ul className="price-list">{d.starterFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
           </div>
 
-          {/* ── STANDARD ── */}
+          {/* STANDARD */}
           <div className="price-card featured">
-            <div className="popular-badge">{t('homePage.pricing.popular')}</div>
-            <div className="price-tier" style={{ marginTop: 10 }}>{t('homePage.pricing.standardTier')}</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 4 }}>{t('homePage.pricing.from')}</div>
-            <div className="price-amount">
-              <span className="currency">€</span>{prices.standard}<span className="period">{pricePeriod}</span>
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 600, fontStyle: 'italic', marginTop: 4 }}>
-              {monthly ? (
-                <span style={{ color: '#16a34a' }}>{t('homePage.pricing.noCommitment')}</span>
-              ) : (
-                <span style={{ color: '#0040a1' }}>{t('homePage.pricing.annualPref')}</span>
-              )}
-            </div>
-            {!monthly && (
-              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontSize: 17, fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
-                  {t('homePage.pricing.perMonthStrike', { price: formatPrice(monthlyBase.standard) })}
-                </span>
-                <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>
-                  {t('homePage.pricing.savings', { amount: formatPrice(annualSavings.standard) })}
-                </span>
-              </div>
-            )}
-            <div className="price-included" style={{ marginTop: 12 }}>{t('homePage.pricing.standardIncluded')}</div>
-            <div className="price-per">{priceCommitmentLabel}</div>
-            <ul className="price-desc-list">
-              {(t('homePage.pricing.standardFeatures', { returnObjects: true }) as string[]).map((f, i) => <li key={i}>{f}</li>)}
-            </ul>
-            <button type="button" className="btn-plan btn-plan-primary" onClick={() => goToPlanConfig('Standard')}>{t('homePage.pricing.trialBtn')}</button>
+            <div className="popular-badge">{d.popularBadge}</div>
+            <div className="price-tier" style={{ marginTop: 14 }}>Standard</div>
+            <div className="price-from">{d.from}</div>
+            <div className="price-amount"><span className="cu">€</span>{fmt(prices.standard)}<span className="pe">{d.perMonth}</span></div>
+            {!monthly && <div className="price-commit">{d.commitAnnual}</div>}
+            {!monthly && <div className="price-cross">{fmt(monthlyBase.standard)}{d.crossSuffix}</div>}
+            {!monthly && <div className="price-save">{d.savePrefix}{fmt(annualSavings.standard)}{d.saveSuffix}</div>}
+            <div className="price-incl">{d.pi2}</div>
+            <div className="price-per">{d.annualBill}</div>
+            <button type="button" className="btn-trial" onClick={goToSignup}>{d.trialBtn}</button>
+            <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--on-v)', margin: '10px 0', fontWeight: 500 }}>✓ {d.noCard}</div>
+            <button type="button" className="btn-demo-card" onClick={() => scrollToId('contact')}>{d.demoCard}</button>
+            <ul className="price-list">{d.standardFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
           </div>
 
-          {/* ── BUSINESS ── */}
-          <div
-            className="price-card price-card-premium"
-            style={{
-              border: '2px solid #d4af37',
-              background: 'linear-gradient(180deg, #fffdf5 0%, #ffffff 60%)',
-              boxShadow: '0 10px 30px rgba(212,175,55,0.18)',
-              position: 'relative',
-            }}
-          >
-            <div style={{
-              position: 'absolute', top: -12, right: 20,
-              background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
-              color: '#fff', fontSize: 11, fontWeight: 800,
-              padding: '4px 12px', borderRadius: 999,
-              letterSpacing: '0.08em', textTransform: 'uppercase',
-              boxShadow: '0 4px 10px rgba(184,134,11,0.32)',
-            }}>{t('homePage.pricing.premiumBadge')}</div>
-            <div className="price-tier" style={{ color: '#b8860b' }}>{t('homePage.pricing.premiumTier')}</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#b8860b', marginBottom: 4 }}>{t('homePage.pricing.from')}</div>
-            <div className="price-amount" style={{ color: '#92670a' }}>
-              <span className="currency">€</span>{prices.premium}<span className="period" style={{ color: '#b8860b' }}>{pricePeriod}</span>
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 600, fontStyle: 'italic', marginTop: 4 }}>
-              {monthly ? (
-                <span style={{ color: '#16a34a' }}>{t('homePage.pricing.noCommitment')}</span>
-              ) : (
-                <span style={{ color: '#b8860b' }}>{t('homePage.pricing.annualPref')}</span>
-              )}
-            </div>
-            {!monthly && (
-              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontSize: 17, fontWeight: 700, color: '#cbb778', textDecoration: 'line-through' }}>
-                  {t('homePage.pricing.perMonthStrike', { price: formatPrice(monthlyBase.premium) })}
-                </span>
-                <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>
-                  {t('homePage.pricing.savings', { amount: formatPrice(annualSavings.premium) })}
-                </span>
-              </div>
-            )}
-            <div className="price-included" style={{ marginTop: 12 }}>{t('homePage.pricing.premiumIncluded')}</div>
-            <div className="price-per">{priceCommitmentLabel}</div>
-            <ul className="price-desc-list">
-              {(t('homePage.pricing.premiumFeatures', { returnObjects: true }) as string[]).map((f, i) => <li key={i}>{f}</li>)}
-            </ul>
-            <button
-              type="button"
-              className="btn-plan"
-              onClick={() => goToPlanConfig('Premium')}
-              style={{
-                background: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)',
-                color: '#fff', border: 'none', fontWeight: 800,
-                boxShadow: '0 6px 18px rgba(184,134,11,0.32)',
-              }}
-            >
-              {t('homePage.pricing.trialBtn')}
-            </button>
+          {/* BUSINESS / PREMIUM */}
+          <div className="price-card" style={{ border: '2px solid #0040a1', background: 'linear-gradient(180deg,#f0f5ff,#fff)' }}>
+            <div style={{ position: 'absolute', top: -12, right: 20, background: 'linear-gradient(135deg,#0040a1,#0056d2)', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 999, letterSpacing: '.08em', textTransform: 'uppercase' }}>{d.premiumBadge}</div>
+            <div className="price-tier" style={{ color: '#0040a1' }}>Premium</div>
+            <div className="price-from" style={{ color: '#0040a1' }}>{d.from}</div>
+            <div className="price-amount" style={{ color: '#0040a1' }}><span className="cu">€</span>{fmt(prices.premium)}<span className="pe" style={{ color: '#0040a1' }}>{d.perMonth}</span></div>
+            {!monthly && <div className="price-commit" style={{ color: '#0040a1' }}>{d.commitAnnual}</div>}
+            {!monthly && <div className="price-cross" style={{ color: '#5a7da8' }}>{fmt(monthlyBase.premium)}{d.crossSuffix}</div>}
+            {!monthly && <div className="price-save">{d.savePrefix}{fmt(annualSavings.premium)}{d.saveSuffix}</div>}
+            <div className="price-incl" style={{ color: '#0040a1' }}>{d.pi3}</div>
+            <div className="price-per">{d.annualBill}</div>
+            <button type="button" className="btn-trial" style={{ background: 'linear-gradient(135deg,#0040a1,#0056d2)', boxShadow: '0 6px 18px rgba(0,64,161,.32)' }} onClick={goToSignup}>{d.trialBtn}</button>
+            <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--on-v)', margin: '10px 0', fontWeight: 500 }}>✓ {d.noCard}</div>
+            <button type="button" className="btn-demo-card" style={{ borderColor: '#0040a1', color: '#0040a1' }} onClick={() => scrollToId('contact')}>{d.demoCard}</button>
+            <ul className="price-list">{d.businessFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
           </div>
 
-          {/* ── ENTERPRISE PLUS ── */}
-          <div
-            className="price-card"
-            style={{
-              gridColumn: '1 / -1',
-              background: 'linear-gradient(135deg, #0f172a 0%, #0040a1 100%)',
-              border: '2px solid #0040a1',
-              boxShadow: '0 12px 36px rgba(0,64,161,0.22)',
-              color: '#fff',
-              display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 40,
-              padding: '28px 36px',
-            }}
-          >
-            {/* Gauche : titre + prix */}
-            <div style={{ flexShrink: 0 }}>
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: 99, padding: '3px 12px', fontSize: 10, fontWeight: 800,
-                letterSpacing: '0.1em', textTransform: 'uppercase', color: '#fff', marginBottom: 12,
-              }}>
-                {t('homePage.pricing.enterpriseBadge')}
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 6 }}>{t('homePage.pricing.enterpriseTier')}</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: '#fde68a', letterSpacing: '-0.02em', lineHeight: 1 }}>
-                {t('homePage.pricing.enterpriseQuote')}
-              </div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6, lineHeight: 1.5 }}>
-                {t('homePage.pricing.enterpriseDesc')}
-              </div>
-              {/* CTA redirigé vers le site corporate Concorde Tech Innovation
-                  (page contact) — c'est une offre sur mesure, le checkout
-                  automatique n'a pas de sens. window.open + _blank pour
-                  garder la landing ouverte derrière. */}
-              <button
-                type="button"
-                className="btn-plan"
-                style={{
-                  marginTop: 18, background: '#fff', color: '#0040a1',
-                  border: 'none', fontWeight: 800, padding: '11px 22px',
-                  width: 'fit-content', whiteSpace: 'nowrap',
-                }}
-                onClick={goToConcordeTechContact}
-              >
-                {t('homePage.pricing.enterpriseCta')}
-              </button>
-            </div>
-
-            {/* Séparateur */}
-            <div style={{ width: 1, alignSelf: 'stretch', background: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
-
-            {/* Droite : features en 2 colonnes */}
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.65)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>
-                {t('homePage.pricing.enterprisePlusTitle')}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 32px' }}>
-                {(t('homePage.pricing.enterpriseFeatures', { returnObjects: true }) as string[]).map((f, i) => (
-                  <div key={i} style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <span style={{ color: '#fde68a', fontWeight: 800, fontSize: 11 }}>✓</span>
-                    <span>{f}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {/* ENTERPRISE PLUS */}
+          <div className="price-card" style={{ border: '2px solid #43466B', background: 'linear-gradient(135deg,#43466B 0%,#505880 100%)', color: '#fff', boxShadow: '0 8px 32px rgba(67,70,107,.4)' }}>
+            <div style={{ position: 'absolute', top: -12, right: 20, background: '#43466B', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 999, letterSpacing: '.08em', textTransform: 'uppercase' }}>{d.entBadge}</div>
+            <div className="price-tier" style={{ color: '#7dd3fc' }}>Enterprise Plus</div>
+            <div className="price-from" style={{ color: '#fff' }}>{d.entPriceLabel}</div>
+            <div className="price-amount" style={{ color: '#fff' }}>{d.entAmount}<span className="pe" style={{ color: '#fff', fontSize: 13 }}>{d.entAmountSuffix}</span></div>
+            <div className="price-commit" style={{ color: '#fff', fontSize: 12 }}>{d.entCommit}</div>
+            <div style={{ color: '#fff', marginTop: 14, marginBottom: 18 }}>{d.entSub}</div>
+            <button type="button" className="btn-trial" style={{ background: '#fff', color: '#43466B', fontWeight: 600, boxShadow: '0 6px 18px rgba(67,70,107,.32)', marginBottom: 16 }} onClick={() => scrollToId('contact')}>{d.entCta}</button>
+            <ul className="price-list" style={{ color: '#fff' }}>{d.entFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
           </div>
-
         </div>
 
-        <div className="pricing-footnote">
-          {t('homePage.pricing.footnote')}
-        </div>
-
-        {/* Informations commerciales — bloc légal/marketing en petite typographie
-            sous les packs. Précise les paramètres qui peuvent faire évoluer le
-            tarif final (volume, modules, IA, accompagnement). Réduit le risque
-            de litige post-souscription et formalise les conditions de remise
-            annuelle (différence avec le tarif mensuel standard). */}
-        <div style={{
-          marginTop: 24,
-          maxWidth: 900,
-          marginLeft: 'auto',
-          marginRight: 'auto',
-          padding: '18px 22px',
-          background: '#f8fafc',
-          border: '1px solid #e2e8f0',
-          borderRadius: 14,
-          fontSize: 12,
-          lineHeight: 1.6,
-          color: '#475569',
-        }}>
-          <div style={{
-            fontSize: 10, fontWeight: 800, color: '#0040a1',
-            textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10,
-          }}>
-            {t('homePage.pricing.infoTitle')}
-          </div>
-          <div style={{ marginBottom: 8, fontWeight: 600, color: '#334155' }}>
-            {t('homePage.pricing.infoLead')}
-          </div>
-          <ul style={{ margin: 0, paddingLeft: 18, marginBottom: 12 }}>
-            {(t('homePage.pricing.infoItems', { returnObjects: true }) as string[]).map((it, i) => <li key={i}>{it}</li>)}
-          </ul>
-          <p style={{ margin: '0 0 6px 0' }}>{t('homePage.pricing.infoP1')}</p>
-          <p style={{ margin: '0 0 6px 0' }}>{t('homePage.pricing.infoP2')}</p>
-          <p style={{ margin: 0 }}>{t('homePage.pricing.infoP3')}</p>
-        </div>
+        <p style={{ textAlign: 'center', marginTop: 28, fontSize: 14, color: '#64748b' }}>{d.pricingFoot}</p>
       </section>
 
-      {/* ────────────────────────────────────────────────────────────────────────
-          COMPARATIF DÉTAILLÉ — table de comparaison des 3 packs sur la matrice
-          fonctionnelle complète. Source de vérité : ABRPOINT.Server.Tenancy.PlanCatalog
-          (les ✓/✗ doivent rester synchronisés avec PlanFeatures côté backend).
-          La structure (titre de section + table avec th sticky en colonne, lignes
-          regroupées par catégorie) est inspirée de la grille tarifaire dougs.fr.
-          ──────────────────────────────────────────────────────────────────── */}
-      <section id="comparison" className="comparison-section">
-        <div className="section-tag" style={{ margin: '0 auto', textAlign: 'center', display: 'block' }}>{t('homePage.comparison.tag')}</div>
-        <h2 className="section-title" style={{ margin: '8px auto 0', textAlign: 'center' }}>
-          {t('homePage.comparison.titleA')} <span className="accent">{t('homePage.comparison.titleAccent')}</span>
+      {/* COMPARATIF */}
+      <section id="comp" className="comp">
+        <div className="section-tag" style={{ display: 'block', margin: '0 auto 16px', textAlign: 'center' }}>{d.compTag}</div>
+        <h2 className="section-title" style={{ margin: '0 auto 12px', textAlign: 'center' }}>
+          {d.compTitleA} <span className="accent">{d.compAccent}</span>
         </h2>
-        <p className="section-sub" style={{ margin: '12px auto 36px', textAlign: 'center' }}>
-          {t('homePage.comparison.sub')}
-        </p>
-
-        <div className="comparison-wrapper">
-          <table className="comparison-table">
+        <p className="section-sub" style={{ margin: '0 auto 36px', textAlign: 'center' }}>{d.compSub}</p>
+        <div className="comp-wrapper">
+          <table className="comp-table">
             <thead>
               <tr>
-                <th className="comp-corner">{t('homePage.comparison.corner')}</th>
+                <th className="comp-corner">{d.compCorner}</th>
                 <th className="comp-plan">
-                  <div className="comp-plan-name">{t('homePage.pricing.starterTier')}</div>
-                  <div className="comp-plan-price">
-                    {t('homePage.comparison.fromShort')} <strong>{prices.starter} €</strong> HT{pricePeriod}
-                  </div>
-                  <button type="button" className="comp-cta" onClick={() => goToPlanConfig('Starter')}>
-                    {t('homePage.comparison.trial')}
-                  </button>
+                  <div className="comp-plan-name">Starter</div>
+                  <div className="comp-plan-price">{d.fromShort} <strong>{fmt(annualMonthly.starter)} €</strong> HT{lang === 'en' ? ' / mo' : ' / mois'}</div>
+                  <button type="button" className="comp-cta" onClick={goToSignup}>{d.compTrial}</button>
                 </th>
                 <th className="comp-plan comp-plan-featured">
-                  <div className="comp-plan-badge">{t('homePage.pricing.popular')}</div>
-                  <div className="comp-plan-name">{t('homePage.pricing.standardTier')}</div>
-                  <div className="comp-plan-price">
-                    {t('homePage.comparison.fromShort')} <strong>{prices.standard} €</strong> HT{pricePeriod}
-                  </div>
-                  <button type="button" className="comp-cta comp-cta-primary" onClick={() => goToPlanConfig('Standard')}>
-                    {t('homePage.comparison.trial')}
-                  </button>
+                  <div className="comp-plan-badge">{d.popularBadge}</div>
+                  <div className="comp-plan-name">Standard</div>
+                  <div className="comp-plan-price">{d.fromShort} <strong>{fmt(annualMonthly.standard)} €</strong> HT{lang === 'en' ? ' / mo' : ' / mois'}</div>
+                  <button type="button" className="comp-cta comp-cta-primary" onClick={goToSignup}>{d.compTrial}</button>
                 </th>
-                <th className="comp-plan comp-plan-premium-th">
-                  <div className="comp-plan-name" style={{ color: '#b8860b' }}>{t('homePage.pricing.premiumTier')}</div>
-                  <div className="comp-plan-price">
-                    {t('homePage.comparison.fromShort')} <strong>{prices.premium} €</strong> HT{pricePeriod}
-                  </div>
-                  <button type="button" className="comp-cta comp-cta-premium" onClick={() => goToPlanConfig('Premium')}>
-                    {t('homePage.comparison.trial')}
-                  </button>
+                <th className="comp-plan">
+                  <div className="comp-plan-name" style={{ color: '#b8860b' }}>Premium</div>
+                  <div className="comp-plan-price">{d.fromShort} <strong>{fmt(annualMonthly.premium)} €</strong> HT{lang === 'en' ? ' / mo' : ' / mois'}</div>
+                  <button type="button" className="comp-cta comp-cta-premium" onClick={goToSignup}>{d.compTrial}</button>
                 </th>
               </tr>
             </thead>
             <tbody>
-              {COMPARISON_ROWS.map((row, idx) => {
+              {comparisonRows.map((row, idx) => {
                 if (row.type === 'section') {
-                  return (
-                    <tr key={`section-${idx}`} className="comp-section-row">
-                      <td colSpan={4}>{row.label}</td>
-                    </tr>
-                  );
+                  return <tr key={`s-${idx}`} className="comp-section-row"><td colSpan={4}>{row.label}</td></tr>;
                 }
                 return (
-                  <tr key={`feat-${idx}`} className="comp-feature-row">
-                    <td className="comp-feature-label">
-                      {row.label}
-                      {row.hint && <span className="comp-feature-hint">{row.hint}</span>}
-                    </td>
-                    <td className="comp-cell">{renderComparisonCell(row.starter)}</td>
-                    <td className="comp-cell comp-cell-featured">{renderComparisonCell(row.standard)}</td>
-                    <td className="comp-cell">{renderComparisonCell(row.premium)}</td>
+                  <tr key={`f-${idx}`} className="comp-feature-row">
+                    <td>{row.label}</td>
+                    <td className="comp-cell">{renderComparisonCell(row.s)}</td>
+                    <td className="comp-cell comp-cell-featured">{renderComparisonCell(row.st)}</td>
+                    <td className="comp-cell">{renderComparisonCell(row.b)}</td>
                   </tr>
                 );
               })}
@@ -862,66 +779,143 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* PROMO CTA */}
-      <div className="promo-cta-wrap">
-        <div className="promo-cta reveal">
-          <div className="promo-cta-badge">
-            {t('homePage.promo.badge')}
+      {/* INFORMATIONS COMMERCIALES */}
+      <section className="info-box">
+        <h3>{d.infoTitle}</h3>
+        <p><strong>{d.infoLead}</strong></p>
+        <ul>{d.infoItems.map((it, i) => <li key={i}>{it}</li>)}</ul>
+        <p>{d.infoP1}</p>
+        <p>{d.infoP2}</p>
+        <p style={{ marginBottom: 0 }}>{d.infoP3}</p>
+      </section>
+
+      {/* SERVICES COMPLÉMENTAIRES */}
+      <section className="services">
+        <div className="services-inner">
+          <h3>{d.servicesTitle}</h3>
+          <div className="services-scroll">
+            <table className="services-table">
+              <thead>
+                <tr><th>{d.serviceCol}</th><th>{d.priceCol}</th></tr>
+              </thead>
+              <tbody>
+                {d.serviceRows.map((r) => (
+                  <tr key={r.service}><td>{r.service}</td><td>{r.price}</td></tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <h2>{t('homePage.promo.titleA')}<br />{t('homePage.promo.titleB')}</h2>
-          <p>{t('homePage.promo.textA')}<br />{t('homePage.promo.textB')}</p>
-          <div className="promo-features">
-            <div className="promo-feat-item"><span className="promo-feat-check">✓</span> {t('homePage.promo.feat1')}</div>
-            <div className="promo-feat-item"><span className="promo-feat-check">✓</span> {t('homePage.promo.feat2')}</div>
-            <div className="promo-feat-item"><span className="promo-feat-check">✓</span> {t('homePage.promo.feat3')}</div>
-            <div className="promo-feat-item"><span className="promo-feat-check">✓</span> {t('homePage.promo.feat4')}</div>
-          </div>
-          <button type="button" className="btn-cta-light" onClick={() => goToSignup()}>
-            {t('homePage.promo.cta')}
-          </button>
         </div>
+      </section>
+
+      {/* PROMO CTA */}
+      <div className="promo-cta-section">
+        <div className="promo-cta-badge">{d.pctaBadge}</div>
+        <h2>{d.pctaH2}</h2>
+        <p>{d.pctaP}</p>
+        <div className="promo-feats">
+          <div className="pf"><span className="pf-check">✓</span><span>{d.pf1}</span></div>
+          <div className="pf"><span className="pf-check">✓</span><span>{d.pf2}</span></div>
+          <div className="pf"><span className="pf-check">✓</span><span>{d.pf3}</span></div>
+          <div className="pf"><span className="pf-check">✓</span><span>{d.pf4}</span></div>
+        </div>
+        <button type="button" className="btn-cta-light" onClick={goToSignup}>{d.pctaBtn}</button>
       </div>
+
+      {/* CONTACT */}
+      <section id="contact" className="contact">
+        <div className="contact-inner">
+          <div>
+            <h2 className="contact-title">{d.ctTitle}</h2>
+            <p className="contact-sub">{d.ctSub}</p>
+            <div className="info-list">
+              <div className="info-item"><div className="info-icon">✉</div><div><div className="info-label">{d.ctEl}</div><a className="info-value" href="mailto:contact@concorde-tech.fr">contact@concorde-tech.fr</a></div></div>
+              <div className="info-item"><div className="info-icon">📍</div><div><div className="info-label">{d.ctAl}</div><div className="info-value">{d.ctAv}</div></div></div>
+              <div className="info-item"><div className="info-icon">🕐</div><div><div className="info-label">{d.ctHl}</div><div className="info-value">{d.ctHv}</div></div></div>
+              <div className="info-item"><div className="info-icon">🚀</div><div><div className="info-label">{d.ctDl}</div><div className="info-value">{d.ctDv}</div></div></div>
+            </div>
+            <div className="trial-box">
+              <div className="trial-title">{d.trialTitle}</div>
+              <div className="trial-sub">{d.trialSub}</div>
+              <button type="button" className="trial-btn" onClick={goToSignup}>{d.trialNowBtn}</button>
+            </div>
+          </div>
+          <div>
+            <div className="form-card">
+              <h3 className="form-title">{d.formTitle}</h3>
+              <form className="contact-form" onSubmit={handleContactSubmit}>
+                <div className="form-row">
+                  <div className="form-field"><label>{d.flPrenom}</label><input type="text" placeholder="Marie" /></div>
+                  <div className="form-field"><label>{d.flNom}</label><input type="text" placeholder="Dupont" /></div>
+                </div>
+                <div className="form-field"><label>{d.flEmail}</label><input type="email" placeholder="marie.dupont@entreprise.fr" /></div>
+                <div className="form-field"><label>{d.flEnt}</label><input type="text" placeholder={d.flEnt} /></div>
+                <div className="form-field"><label>{d.flEmp}</label>
+                  <select defaultValue=""><option value="" disabled>{d.flEmpSel}</option><option>1 – 10</option><option>11 – 50</option><option>51 – 200</option></select>
+                </div>
+                <div className="form-field"><label>{d.flObj}</label>
+                  <select defaultValue=""><option value="" disabled>{d.flObjSel}</option><option>{d.flObjDemo}</option><option>{d.flObjEnt}</option><option>{d.flObjRec}</option><option>{d.flObjAut}</option></select>
+                </div>
+                <div className="form-field"><label>{d.flMsg}</label><textarea rows={4} placeholder={d.flMsgPh} /></div>
+                <button type="submit" className="form-submit">{d.formSubmit}</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* FOOTER */}
       <footer>
         <div className="footer-grid">
           <div>
-            <div className="footer-logo nav-logo">
-              <img className="logo-mark" src="/concorde-workly-light.png" alt="Concorde Workforce" />
+            <div className="footer-logo">
+              <img src={LOGO_SRC} alt="Concorde Workforce" />
               <span>Concorde Workforce</span>
             </div>
-            <div className="footer-desc">
-              {t('homePage.footer.desc')}
+            <div className="footer-desc">{d.fDesc}</div>
+            <div className="footer-flags">🇫🇷 🇧🇪 🇲🇦 🇸🇳 · {d.fFlags}</div>
+            <div className="footer-social">
+              <a href="https://www.linkedin.com/company/concorde-tech-innovation/about/" target="_blank" rel="noopener noreferrer" className="si" aria-label="LinkedIn">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg>
+              </a>
+              <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" className="si" aria-label="Instagram">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" /></svg>
+              </a>
+              <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" className="si" aria-label="Facebook">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+              </a>
+              <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" className="si" aria-label="YouTube">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>
+              </a>
+              <a href="mailto:contact@concorde-tech.fr" className="si" aria-label="Email">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" /></svg>
+              </a>
             </div>
-            <div className="footer-flags">🇫🇷 🇧🇪 🇲🇦 🇸🇳</div>
           </div>
           <div className="footer-col">
-            <h4>{t('homePage.footer.productTitle')}</h4>
+            <h4>{d.fcol1}</h4>
             <div className="footer-links">
-              <a href="#pricing">{t('homePage.footer.productPricing')}</a>
-              <a href="#how">{t('homePage.footer.productDemo')}</a>
-              <a href="#download">{t('homePage.footer.productMobile')}</a>
-              <a href="/download">{t('homePage.footer.productSite')}</a>
-              <a href="#temoignages">{t('homePage.footer.productCases')}</a>
+              <a onClick={() => scrollToId('pricing')}>{d.flPricing}</a>
+              <a href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">{d.flMobile}</a>
+              <a onClick={() => scrollToId('contact')}>{d.flContact}</a>
             </div>
           </div>
           <div className="footer-col">
-            <h4>{t('homePage.footer.resourcesTitle')}</h4>
+            <h4>{d.fcol2}</h4>
             <div className="footer-links">
-              <a onClick={() => navigate('/contact-sales')}>{t('homePage.footer.resourcesContact')}</a>
-              <a onClick={() => navigate('/about')}>{t('homePage.footer.resourcesAbout')}</a>
-              <a onClick={() => navigate('/login')}>{t('homePage.footer.resourcesLogin')}</a>
-              <a onClick={() => navigate('/signup')}>{t('homePage.footer.resourcesSignup')}</a>
+              <a onClick={() => navigate('/about')}>{d.flAbout}</a>
+              <a onClick={goToLogin}>{d.flLogin}</a>
+              <a onClick={goToSignup}>{d.flSignup}</a>
             </div>
           </div>
         </div>
         <div className="footer-bottom">
-          <span>{t('homePage.footer.copyright')}</span>
+          <span>{d.copyright}</span>
           <span className="footer-bottom-links">
-            <a href="/docs/politique-confidentialite.pdf" target="_blank" rel="noopener noreferrer">{t('homePage.footer.privacy')}</a>
-            <a href="/docs/cgu.pdf" target="_blank" rel="noopener noreferrer">{t('homePage.footer.cgu')}</a>
-            <a href="/docs/mentions-legales.pdf" target="_blank" rel="noopener noreferrer">{t('homePage.footer.legal')}</a>
-            <a onClick={() => openCookieConsent()} style={{ cursor: 'pointer' }}>{t('homePage.footer.cookies', { defaultValue: 'Cookies' })}</a>
+            <a href="/docs/politique-confidentialite.pdf" target="_blank" rel="noopener noreferrer">{d.privacy}</a>
+            <a href="/docs/cgu.pdf" target="_blank" rel="noopener noreferrer">{d.cgu}</a>
+            <a href="/docs/mentions-legales.pdf" target="_blank" rel="noopener noreferrer">{d.legal}</a>
+            <a onClick={() => openCookieConsent()}>{d.cookies}</a>
           </span>
         </div>
       </footer>
@@ -944,8 +938,8 @@ export default function HomePage() {
           <CloseIcon />
         </IconButton>
         <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
-          {/* Wrapper .home-page : réinjecte les variables CSS --hp-* et les styles
-              scopés de la carte d'auth (le Dialog est portalisé hors de .home-page). */}
+          {/* Wrapper .home-page : réinjecte les styles scopés de la carte d'auth
+              (le Dialog est portalisé hors de .hp2 — voir HomePage.css). */}
           <div className="home-page home-page-dialog">
             <InlineAuthCard defaultTab="register" hidePlanPicker />
           </div>
