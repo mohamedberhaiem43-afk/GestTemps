@@ -382,7 +382,7 @@ function CongeFormDialog({ open, onClose, editConge, isBulk }: { open: boolean; 
         <Button onClick={onClose} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>{t('conge.titreConge.form.cancel')}</Button>
         <Button variant="contained" onClick={handleSubmit} disabled={isBusy}
           startIcon={isBusy ? <CircularProgress size={16} color="inherit" /> : isBulk ? <GavelIcon /> : <SaveIcon />}
-          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}>
+          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)' }}>
           {editConge ? t('conge.titreConge.form.save') : isBulk ? t('conge.congeGeneral.form.submitBulk') : t('conge.congeGeneral.form.submit')}
         </Button>
       </DialogActions>

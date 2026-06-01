@@ -268,7 +268,7 @@ function DemandeFormDialog({ open, onClose, editDemande, onSuccess, onError }: {
         <Button onClick={onClose} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>{t('demAutorisation.form.cancel')}</Button>
         <Button variant="contained" onClick={handleSubmit} disabled={loading}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}>
+          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)' }}>
           {editDemande ? t('demAutorisation.form.modify') : t('demAutorisation.form.submit')}
         </Button>
       </DialogActions>

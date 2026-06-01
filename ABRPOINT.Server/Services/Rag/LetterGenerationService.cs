@@ -167,6 +167,58 @@ public sealed class LetterGenerationService : ILetterGenerationService
         }
     }
 
+    public async Task<byte[]?> TryGenerateCongeLetterPdfAsync(string concod, CancellationToken ct = default)
+    {
+        var soccod = RequireSoccod();
+
+        // 1. Existe-t-il un modèle de courrier « congé » pour ce tenant ? La catégorie est
+        //    libre côté UI ; on matche tout libellé contenant « cong » (conge, congé, congés,
+        //    « demande de congé »…). Le motif « cong » est sans accent → insensible aux accents.
+        var templates = await _db.RagLetterTemplates
+            .Where(x => x.Soccod == soccod && x.Category != null)
+            .ToListAsync(ct);
+        var template = templates.FirstOrDefault(x => (x.Category ?? "").ToLowerInvariant().Contains("cong"));
+        if (template == null) return null; // pas de modèle congé → l'appelant utilisera FastReport
+
+        // 2. Récupère le congé (table conge) ou, à défaut, la demande (demconge).
+        var conge = await _db.Conges.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Soccod == soccod && c.Concod == concod, ct);
+        string? empcod = conge?.Empcod;
+        DateTime? condep = conge?.Condep, conret = conge?.Conret, condat = conge?.Condat;
+        float? connbjour = conge?.Connbjour;
+        string? conref = conge?.Conref, abscod = conge?.Abscod;
+        if (conge == null)
+        {
+            var dem = await _db.Demconges.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Soccod == soccod && c.Concod == concod, ct);
+            if (dem == null) return null; // ni congé ni demande → laisser FastReport gérer
+            empcod = dem.Empcod; condep = dem.Condep; conret = dem.Conret; condat = dem.Condat;
+            connbjour = dem.Connbjour; conref = dem.Conref; abscod = dem.Abscod;
+        }
+        if (string.IsNullOrEmpty(empcod)) return null;
+
+        // 3. Variables employé/société/contrat + spécifiques congé.
+        var vars = await BuildVariablesAsync(soccod, empcod, ct);
+        vars["concod"] = concod;
+        vars["condep"] = condep?.ToString("dd/MM/yyyy") ?? "";
+        vars["conret"] = conret?.ToString("dd/MM/yyyy") ?? "";
+        vars["condat"] = condat?.ToString("dd/MM/yyyy") ?? "";
+        vars["connbjour"] = connbjour?.ToString("0.##") ?? "";
+        vars["conref"] = conref ?? "";
+        if (!string.IsNullOrEmpty(abscod))
+        {
+            vars["abscod"] = abscod;
+            var abslib = await _db.Absences.AsNoTracking()
+                .Where(a => a.Soccod == soccod && a.Abscod == abscod)
+                .Select(a => a.Abslib)
+                .FirstOrDefaultAsync(ct);
+            vars["abslib"] = abslib ?? "";
+        }
+
+        var html = SubstitutePlaceholders(template.BodyHtml, vars);
+        return RenderPdf(html);
+    }
+
     private async Task<Dictionary<string, string>> BuildVariablesAsync(string soccod, string empcod, CancellationToken ct)
     {
         var vars = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)

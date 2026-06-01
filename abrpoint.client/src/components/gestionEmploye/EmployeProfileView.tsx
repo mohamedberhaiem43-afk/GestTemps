@@ -249,7 +249,7 @@ export default function EmployeProfileView() {
             onClick={() => navigate(`/dashboard/profil-employe?id=${empcod}&edit=true`)}
             sx={{
               textTransform: 'none', fontWeight: 700,
-              background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)',
+              background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)',
               boxShadow: '0 4px 12px rgba(0,64,161,0.25)',
               '&:hover': { background: 'linear-gradient(135deg, #003280 0%, #0040a1 100%)' },
             }}

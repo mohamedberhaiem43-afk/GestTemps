@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { ThemeProvider } from "@emotion/react";
 import { createTheme, CssBaseline } from "@mui/material";
+import { darken } from "@mui/material/styles";
 import DashboardLayoutBasic from "./components/navigation/Navigation";
 import { BrowserRouter as Router } from "react-router-dom";
 import { AuthProvider } from "./components/helper/AuthProvider";
@@ -73,13 +74,19 @@ function buildTheme(mode: 'light' | 'dark', branding?: BrandingColors) {
       // Branding « couleur des titres » : exposée en variable CSS (--brand-title-color) et
       // appliquée aux titres natifs h1–h6. Sans !important pour qu'un titre volontairement
       // coloré en ligne (sx/style, ex. titres blancs sur fond coloré) garde sa couleur.
+      // Variables CSS de marque exposées au :root → les composants partagés (boutons
+      // primaires, titres de page) peuvent les consommer via var(--brand-primary) /
+      // var(--brand-title) sans dépendre du thème MUI. --brand-title n'est appliquée aux
+      // h1–h6 que si le tenant a choisi une couleur de titre (sinon couleur par défaut).
       MuiCssBaseline: {
-        styleOverrides: titleColor
-          ? {
-              ':root': { '--brand-title-color': titleColor },
-              'h1,h2,h3,h4,h5,h6': { color: titleColor },
-            }
-          : {},
+        styleOverrides: {
+          ':root': {
+            '--brand-primary': brandPrimary,
+            '--brand-primary-dark': darken(brandPrimary, 0.14),
+            ...(titleColor ? { '--brand-title': titleColor, '--brand-title-color': titleColor } : {}),
+          },
+          ...(titleColor ? { 'h1,h2,h3,h4,h5,h6': { color: titleColor } } : {}),
+        },
       },
       MuiButton: {
         styleOverrides: {
@@ -87,10 +94,19 @@ function buildTheme(mode: 'light' | 'dark', branding?: BrandingColors) {
             borderRadius: "8px",
             padding: "10px 20px",
             boxShadow: "none",
-            ...(mode === 'light'
-              ? { ':hover': { backgroundColor: "#f5f5f7", boxShadow: "0px 1px 3px rgba(0,0,0,0.1)" } }
-              : { ':hover': { boxShadow: "0px 1px 3px rgba(0,0,0,0.3)" } }
-            ),
+          },
+          // Hover gris RÉSERVÉ aux variantes text/outlined : avant il était sur `root`
+          // et écrasait le hover des boutons `contained` (le primaire virait au gris au
+          // survol au lieu de foncer la couleur de marque).
+          text: mode === 'light' ? { ':hover': { backgroundColor: "#f5f5f7" } } : {},
+          outlined: mode === 'light' ? { ':hover': { backgroundColor: "#f5f5f7" } } : {},
+          // Bouton primaire = couleur de marque (et hover plus foncé). S'applique à tout
+          // <Button variant="contained" color="primary"> ET au ActionButton partagé qui
+          // n'imposent pas de background en dur via sx.
+          containedPrimary: {
+            backgroundColor: brandPrimary,
+            color: '#fff',
+            ':hover': { backgroundColor: darken(brandPrimary, 0.14), boxShadow: "0px 1px 3px rgba(0,0,0,0.2)" },
           },
         },
       },
@@ -291,6 +307,19 @@ function buildTheme(mode: 'light' | 'dark', branding?: BrandingColors) {
         styleOverrides: {
           root: {
             color: brandPrimary,
+          },
+        },
+      },
+      // Contraste des cases à cocher : par défaut MUI dessine la bordure non-cochée
+      // en gris très clair (rgba ~0.23) → peu lisible sur fond blanc, signalé sur les
+      // popups « Titre de congé » / « Congé général ». On force un neutre franc à l'état
+      // non coché et la couleur de marque à l'état coché (cohérent avec le branding).
+      MuiCheckbox: {
+        styleOverrides: {
+          root: {
+            color: mode === 'dark' ? '#94a3b8' : '#475569', // slate-600 : nettement visible
+            '&.Mui-checked': { color: brandPrimary },
+            '&.MuiCheckbox-indeterminate': { color: brandPrimary },
           },
         },
       },

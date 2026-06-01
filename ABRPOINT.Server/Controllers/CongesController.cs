@@ -21,11 +21,15 @@ namespace ABRPOINT.Server.Controllers
         private readonly ICongeRepository _congeRepository;
         private readonly IReportsGenerationService _reportsGenerationRepository;
         private readonly ApplicationDbContext _context;
-        public CongesController(ICongeRepository congeRepository,IReportsGenerationService reportsGenerationService, ApplicationDbContext context)
+        private readonly ILogger<CongesController> _logger;
+        private readonly ABRPOINT.Server.Services.Rag.ILetterGenerationService _letterService;
+        public CongesController(ICongeRepository congeRepository,IReportsGenerationService reportsGenerationService, ApplicationDbContext context, ILogger<CongesController> logger, ABRPOINT.Server.Services.Rag.ILetterGenerationService letterService)
         {
             _congeRepository = congeRepository;
             _reportsGenerationRepository = reportsGenerationService;
             _context = context;
+            _logger = logger;
+            _letterService = letterService;
         }
 
         // GET: api/Conges/get-next-concod/{soccod}
@@ -128,15 +132,26 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("get-report/{concod}")]
         [CanGetConge]
-        public IActionResult GenerateReport(string concod)
+        public async Task<IActionResult> GenerateReport(string concod)
         {
             try
             {
+                // 1. Si un MODÈLE DE COURRIER « congé » a été créé par le tenant, on imprime
+                //    à partir de ce modèle (placeholders hydratés). Sinon (null), on retombe
+                //    sur le rapport FastReport par défaut.
+                var letterPdf = await _letterService.TryGenerateCongeLetterPdfAsync(concod);
+                if (letterPdf != null)
+                    return File(letterPdf, "application/pdf", "Conge.pdf");
+
                 var pdfBytes = _reportsGenerationRepository.GenerateCongeReport(concod);
                 return File(pdfBytes, "application/pdf", "Conge.pdf");
             }
             catch (Exception ex)
             {
+                // On LOGGE l'exception réelle (avant on renvoyait un 500 muet, impossible à
+                // diagnostiquer). Cause fréquente sous Linux/Docker : FastReport (.frx) échoue
+                // à l'export PDF (libgdiplus/polices manquantes) ou template HTML introuvable.
+                _logger.LogError(ex, "Échec génération rapport congé pour concod={Concod}", concod);
                 return StatusCode(500, "An error occurred while generating the report: ");
             }
         }

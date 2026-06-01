@@ -294,7 +294,7 @@ export default function PointageAdjustDialog({
           startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon />}
           onClick={handleSave}
           disabled={!canModify || saving || !empcod}
-          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}
+          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)' }}
         >
           {saving ? 'Enregistrement…' : 'Enregistrer la correction'}
         </Button>

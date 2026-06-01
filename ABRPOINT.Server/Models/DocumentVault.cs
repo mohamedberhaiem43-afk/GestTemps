@@ -54,5 +54,20 @@ namespace ABRPOINT.Server.Models
         [Column("status")]
         [StringLength(20)]
         public string Status { get; set; } = "Validated"; // Validated, Pending Signature, Signed
+
+        // ── Workflow de signature électronique (Phase 0) ──
+        /// <summary>Miroir de signature_request.workflow_status pour filtrage rapide
+        /// (awaiting_signatures | in_validation | rejected | all_signed | archived). Null = hors workflow.</summary>
+        [Column("workflow_status")]
+        [StringLength(30)]
+        public string? WorkflowStatus { get; set; }
+
+        /// <summary>SHA-256 hex du PDF gelé au moment du scellement (tamper-evident). Null tant que non scellé.</summary>
+        [Column("seal_hash")]
+        [StringLength(64)]
+        public string? SealHash { get; set; }
+
+        [Column("sealed_at", TypeName = "timestamp without time zone")]
+        public DateTime? SealedAt { get; set; }
     }
 }

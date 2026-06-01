@@ -214,7 +214,7 @@ export default function DashboardCongeList({ data = [], isLoading }: DashboardCo
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <Avatar sx={{
                     width: 40, height: 40,
-                    background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)',
+                    background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)',
                     fontSize: 15, fontWeight: 700, borderRadius: '10px',
                   }}>
                     {(c.emplib || c.empcod)?.charAt(0)?.toUpperCase()}

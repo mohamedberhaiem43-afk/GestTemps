@@ -471,7 +471,7 @@ export default function AllaitementSaisieModern() {
               textTransform: 'none',
               fontWeight: 600,
               fontSize: '13px',
-              background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)',
+              background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)',
               boxShadow: '0 2px 8px rgba(0, 64, 161, 0.3)',
               '&:hover': {
                 background: 'linear-gradient(135deg, #003380 0%, #0040a1 100%)',

@@ -206,7 +206,7 @@ const ContactSalesPage: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2.5 text-sm text-on-surface-variant">
                   <Phone size={16} className="text-primary" />
-                  <strong className="text-on-surface">+33 1 86 76 12 34</strong>
+                  <strong className="text-on-surface">+33 6 49 50 81 68</strong>
                 </div>
                 <div className="flex items-center gap-2.5 text-sm text-on-surface-variant">
                   <Users size={16} className="text-primary" />

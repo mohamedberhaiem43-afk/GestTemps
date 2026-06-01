@@ -129,7 +129,7 @@ export default function SiteAccessPage() {
       <Box sx={{ mb: 2.5, display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, flexWrap: 'wrap' }}>
         <Box sx={{
           width: 44, height: 44, borderRadius: '12px',
-          background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)',
+          background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)',
           color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <ShieldCheck size={22} />
@@ -285,7 +285,7 @@ export default function SiteAccessPage() {
                             sx={{
                               textTransform: 'none', fontWeight: 700, fontSize: 12,
                               borderRadius: '8px', minWidth: 96,
-                              background: dirty ? 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' : undefined,
+                              background: dirty ? 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)' : undefined,
                             }}
                           >
                             Enregistrer

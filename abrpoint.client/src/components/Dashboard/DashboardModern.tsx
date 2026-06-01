@@ -1147,7 +1147,7 @@ function DashboardModernAdmin() {
       {/* Conge Dialog - Redesigned */}
       <Dialog open={openCongeDialog} onClose={() => setOpenCongeDialog(false)} maxWidth="md" fullWidth 
         PaperProps={{ sx: { borderRadius: '16px', overflow: 'hidden' } }}>
-        <Box sx={{ background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)', px: 3, py: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box sx={{ background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)', px: 3, py: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <EventAvailableIcon sx={{ color: 'white', fontSize: 24 }} />
             <Box>

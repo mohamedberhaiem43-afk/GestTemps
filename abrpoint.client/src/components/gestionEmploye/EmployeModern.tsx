@@ -1939,7 +1939,7 @@ const EmployeModernInner = () => {
                         }}
                         sx={{
                             borderRadius: '8px', textTransform: 'none', fontWeight: 700,
-                            background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)',
+                            background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)',
                             boxShadow: '0 4px 14px rgba(0,64,161,0.3)',
                         }}
                     >

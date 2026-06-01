@@ -3,6 +3,7 @@ using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace ABRPOINT.Server.Repository
 {
@@ -16,45 +17,99 @@ namespace ABRPOINT.Server.Repository
         }
         public async Task AddAsync(Autoriser autoriser)
         {
-            try
+            PrepareAutoriserFields(autoriser);
+
+            // Génération du Concod (PK = Soccod+Concod) tolérante aux collisions.
+            // CONTEXTE : le client web générait le Concod via un compteur en mémoire
+            // remis à 1 à chaque rechargement de page (`generateNumeroOrdre` → "002501"…),
+            // donc deux sessions / deux utilisateurs produisaient le MÊME code → 23505
+            // duplicate key sur PK_autoriser. On respecte la valeur fournie au 1er essai
+            // (compat mobile qui pré-affecte un Concod), mais en cas de collision on
+            // REGÉNÈRE côté serveur avec un schéma séquentiel par société ("A"+yyMM+seq)
+            // et on réessaie — la base reste l'autorité sur l'unicité.
+            const int maxAttempts = 6;
+            var prefix = "A" + DateTime.Now.ToString("yyMM");
+            for (int attempt = 0; attempt < maxAttempts; attempt++)
             {
-                autoriser.Conjour = "O";
-                autoriser.Conamdep = autoriser.Conamdep ?? "0";
-                autoriser.Conamret = autoriser.Conamret ?? "0";
-
-                // Calculate hours difference between Conret and Condep
-                if (autoriser.Condep.HasValue && autoriser.Conret.HasValue)
+                // 1er essai : on garde le Concod client s'il est fourni. Essais suivants
+                // (ou Concod absent) : on génère un code serveur garanti croissant.
+                if (attempt > 0 || string.IsNullOrWhiteSpace(autoriser.Concod))
                 {
-                    var condep = autoriser.Condep.Value;
-                    var conret = autoriser.Conret.Value;
-
-                    // Créer une nouvelle date pour conret avec l'année de condep
-                    var adjustedConret = new DateTime(
-                        condep.Year,
-                        condep.Month,
-                        condep.Day,
-                        conret.Hour,
-                        conret.Minute,
-                        conret.Second
-                    );
-                    autoriser.Conret = adjustedConret;
-
-                    TimeSpan duration = autoriser.Conret.Value - autoriser.Condep.Value;
-                    autoriser.Connbjour = (float)Math.Round(duration.TotalHours, 2); // Rounded to 2 decimal places
-                }
-                else
-                {
-                    autoriser.Connbjour = 0; // Default if dates are null
+                    if (string.IsNullOrEmpty(autoriser.Soccod)) break; // pas de société → laisser échouer naturellement
+                    var seq = await GetNextConcodSeqAsync(autoriser.Soccod, prefix) + attempt;
+                    autoriser.Concod = prefix + seq.ToString("D5");
                 }
 
-                await _dbContext.Autorisers.AddAsync(autoriser);
-                await _dbContext.SaveChangesAsync();
+                try
+                {
+                    _dbContext.Autorisers.Add(autoriser);
+                    await _dbContext.SaveChangesAsync();
+                    return;
+                }
+                catch (DbUpdateException ex) when (IsUniqueViolation(ex) && attempt < maxAttempts - 1)
+                {
+                    // Détache l'entité ratée pour pouvoir réinsérer avec un nouveau Concod.
+                    _dbContext.Entry(autoriser).State = EntityState.Detached;
+                }
             }
-            catch (Exception)
+
+            // Dernier filet : une ultime tentative qui laisse remonter l'exception si elle persiste.
+            _dbContext.Entry(autoriser).State = EntityState.Detached;
+            _dbContext.Autorisers.Add(autoriser);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        /// <summary>Champs dérivés communs à l'insert simple et bulk (Conjour, demi-journées,
+        /// recalage de l'année de Conret sur Condep, durée en heures).</summary>
+        private static void PrepareAutoriserFields(Autoriser autoriser)
+        {
+            autoriser.Conjour = "O";
+            autoriser.Conamdep = autoriser.Conamdep ?? "0";
+            autoriser.Conamret = autoriser.Conamret ?? "0";
+
+            if (autoriser.Condep.HasValue && autoriser.Conret.HasValue)
             {
-                throw;
+                var condep = autoriser.Condep.Value;
+                var conret = autoriser.Conret.Value;
+                var adjustedConret = new DateTime(
+                    condep.Year, condep.Month, condep.Day,
+                    conret.Hour, conret.Minute, conret.Second);
+                autoriser.Conret = adjustedConret;
+                TimeSpan duration = autoriser.Conret.Value - autoriser.Condep.Value;
+                autoriser.Connbjour = (float)Math.Round(duration.TotalHours, 2);
+            }
+            else
+            {
+                autoriser.Connbjour = 0;
             }
         }
+
+        /// <summary>Prochaine séquence pour un Concod "A"+yyMM dans une société. Lit le max
+        /// existant pour le préfixe et renvoie last+1 (1 si aucun). Concod est CHAR(10) →
+        /// on Trim() le padding avant de parser la séquence.</summary>
+        private async Task<int> GetNextConcodSeqAsync(string soccod, string prefix)
+        {
+            var maxConcod = await _dbContext.Autorisers.AsNoTracking()
+                .Where(a => a.Soccod == soccod && a.Concod.StartsWith(prefix))
+                .OrderByDescending(a => a.Concod)
+                .Select(a => a.Concod)
+                .FirstOrDefaultAsync();
+            int nextSeq = 1;
+            if (!string.IsNullOrEmpty(maxConcod))
+            {
+                var trimmed = maxConcod.Trim();
+                if (trimmed.Length > prefix.Length
+                    && int.TryParse(trimmed.Substring(prefix.Length), out int lastSeq))
+                {
+                    nextSeq = lastSeq + 1;
+                }
+            }
+            return nextSeq;
+        }
+
+        /// <summary>Vrai si l'exception EF encapsule une violation de contrainte unique PostgreSQL (23505).</summary>
+        private static bool IsUniqueViolation(DbUpdateException ex)
+            => ex.InnerException is PostgresException pg && pg.SqlState == "23505";
         private float? CalculateTotalDuration(DateTime? startDate, DateTime? endDate, string amDep, string amRet)
         {
             if (!startDate.HasValue || !endDate.HasValue)
@@ -82,46 +137,37 @@ namespace ABRPOINT.Server.Repository
         }
         public async Task AddMultipleAutorisation(List<Autoriser> autoriser)
         {
-            try
+            foreach (var auth in autoriser)
+                PrepareAutoriserFields(auth);
+
+            // Même logique anti-collision que AddAsync, mais sur le lot entier. Au 1er essai
+            // on garde les Concod fournis (le front « générale » tire des codes aléatoires) ;
+            // en cas de 23505 on RÉAFFECTE tout le lot avec des séquences serveur contiguës
+            // ("A"+yyMM+seq, seq, seq+1, …) — uniques entre elles ET vis-à-vis de l'existant.
+            const int maxAttempts = 6;
+            var prefix = "A" + DateTime.Now.ToString("yyMM");
+            var soccod = autoriser.FirstOrDefault(a => !string.IsNullOrEmpty(a.Soccod))?.Soccod;
+
+            for (int attempt = 0; attempt < maxAttempts; attempt++)
             {
-                foreach (var auth in autoriser)
+                if (attempt > 0 && !string.IsNullOrEmpty(soccod))
                 {
-                    auth.Conjour = "O";
-                    auth.Conamdep = auth.Conamdep ?? "0";
-                    auth.Conamret = auth.Conamret ?? "0";
-
-                    // Calculate hours difference between Conret and Condep
-                    if (auth.Condep.HasValue && auth.Conret.HasValue)
-                    {
-                        var condep = auth.Condep.Value;
-                        var conret = auth.Conret.Value;
-
-                        // Créer une nouvelle date pour conret avec l'année de condep
-                        var adjustedConret = new DateTime(
-                            condep.Year,
-                            condep.Month,
-                            condep.Day,
-                            conret.Hour,
-                            conret.Minute,
-                            conret.Second
-                        );
-                        auth.Conret = adjustedConret;
-
-                        TimeSpan duration = auth.Conret.Value - auth.Condep.Value;
-                        auth.Connbjour = (float)Math.Round(duration.TotalHours, 2); // Rounded to 2 decimal places
-                    }
-                    else
-                    {
-                        auth.Connbjour = 0; // Default if dates are null
-                    }
+                    var baseSeq = await GetNextConcodSeqAsync(soccod, prefix);
+                    for (int i = 0; i < autoriser.Count; i++)
+                        autoriser[i].Concod = prefix + (baseSeq + i).ToString("D5");
                 }
 
-                await _dbContext.Autorisers.AddRangeAsync(autoriser);
-                await _dbContext.SaveChangesAsync();
-            }
-            catch (Exception)
-            {
-                throw;
+                try
+                {
+                    await _dbContext.Autorisers.AddRangeAsync(autoriser);
+                    await _dbContext.SaveChangesAsync();
+                    return;
+                }
+                catch (DbUpdateException ex) when (IsUniqueViolation(ex) && attempt < maxAttempts - 1 && !string.IsNullOrEmpty(soccod))
+                {
+                    foreach (var auth in autoriser)
+                        _dbContext.Entry(auth).State = EntityState.Detached;
+                }
             }
         }
 

@@ -471,7 +471,7 @@ function PeriodFormDialog({
         <Button
           variant="contained"
           onClick={handleSave}
-          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}
+          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)' }}
         >
           {editData ? t('classeHoraire.modern.dialog.save') : t('classeHoraire.modern.dialog.create')}
         </Button>

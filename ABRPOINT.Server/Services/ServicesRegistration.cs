@@ -196,6 +196,8 @@ namespace ABRPOINT.Server.Services
             builder.Services.AddScoped<IDocumentVaultService, DocumentVaultService>();
             builder.Services.AddScoped<IDocumentIngestionService, DocumentIngestionService>();
             builder.Services.AddScoped<ILetterGenerationService, LetterGenerationService>();
+            // Workflow de signature électronique (Phase 1) : orchestration génération → signature → scellement.
+            builder.Services.AddScoped<ABRPOINT.Server.Services.Signature.ISignatureWorkflowService, ABRPOINT.Server.Services.Signature.SignatureWorkflowService>();
 
             // ClaudeRagService a son propre HttpClient (timeout long pour la génération).
             // Polly standard ajoute retry + circuit breaker. La clé Anthropic est dans RagOptions

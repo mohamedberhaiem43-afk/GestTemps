@@ -18,4 +18,13 @@ public interface ILetterGenerationService
         RagLetterGenerateRequest req,
         string? uticod,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Génère le PDF d'un congé (ou demande de congé) À PARTIR D'UN MODÈLE DE COURRIER
+    /// dont la catégorie évoque le congé (contient « cong »). Renvoie null si aucun modèle
+    /// de congé n'existe pour le tenant — l'appelant retombe alors sur le rapport FastReport.
+    /// Hydrate les placeholders employé/société/contrat + variables spécifiques congé
+    /// (condep, conret, connbjour, conref, abslib…).
+    /// </summary>
+    Task<byte[]?> TryGenerateCongeLetterPdfAsync(string concod, CancellationToken ct = default);
 }

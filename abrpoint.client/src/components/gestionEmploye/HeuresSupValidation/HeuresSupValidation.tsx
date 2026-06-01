@@ -204,7 +204,7 @@ export default function HeuresSupValidation() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
         <Box sx={{
           width: 44, height: 44, borderRadius: '12px',
-          background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)',
+          background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 4px 12px rgba(0,64,161,0.25)',
         }}>

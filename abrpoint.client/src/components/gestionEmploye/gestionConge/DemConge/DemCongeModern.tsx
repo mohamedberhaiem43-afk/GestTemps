@@ -635,7 +635,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
                   onClick={handleAddType}
                   disabled={addingAbsence}
                   startIcon={addingAbsence ? <CircularProgress size={14} color="inherit" /> : <SaveIcon sx={{ fontSize: 14 }} />}
-                  sx={{ textTransform: 'none', borderRadius: '8px', background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}
+                  sx={{ textTransform: 'none', borderRadius: '8px', background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)' }}
                 >
                   {t('conge.demConge.form.addTypeSave')}
                 </Button>
@@ -719,7 +719,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
         <Button onClick={onClose} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>{t('conge.demConge.form.cancel')}</Button>
         <Button variant="contained" onClick={handleSubmit} disabled={submitDisabled}
           startIcon={isBusy ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}>
+          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)' }}>
           {editConge ? t('conge.demConge.form.modify') : t('conge.demConge.form.submit')}
         </Button>
       </DialogActions>

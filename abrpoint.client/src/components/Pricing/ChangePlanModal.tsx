@@ -682,7 +682,7 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
             startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <RocketLaunchIcon />}
             sx={{
               textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3,
-              background: isDowngrade ? undefined : 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)',
+              background: isDowngrade ? undefined : 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)',
             }}
             color={isDowngrade ? 'warning' : 'primary'}
           >

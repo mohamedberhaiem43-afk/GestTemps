@@ -127,10 +127,14 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
   const [conref, setConref] = useState('');
   const [connbjour, setConnbjour] = useState(0);
 
-  // Balance logic
+  // Balance logic — le solde dépend du TYPE de congé sélectionné : on dérive le
+  // typeConge ("rtt" si la nature porte Abscng="R", sinon "paye"/CP) à partir de
+  // l'imputation choisie, pour que le backend renvoie le bon droit (CP vs RTT).
   const yearStart = `${new Date().getFullYear()}-01-01`;
   const yearEnd = `${new Date().getFullYear()}-12-31`;
-  const { data: droitCongeData } = useGetDroitConge(empcod, yearStart, yearEnd);
+  const selectedAbs = (absences as any[]).find((a) => a.abscod === abscod);
+  const typeConge = selectedAbs?.abscng === 'R' ? 'rtt' : 'paye';
+  const { data: droitCongeData } = useGetDroitConge(empcod, yearStart, yearEnd, typeConge);
   const droitConge = Array.isArray(droitCongeData) ? droitCongeData[0] : droitCongeData;
   const soldeAnterieur = (droitConge as any)?.soldeinit ?? (droitConge as any)?.Soldeinit ?? 0;
   const droitRestant = (droitConge as any)?.droitrestant ?? (droitConge as any)?.Droitrestant ?? 0;
@@ -154,10 +158,9 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
   // Set default type de congé when absences load
   useEffect(() => {
     if (!editConge && open && absences.length > 0 && !abscod) {
-      const absEntries = Object.entries(absences);
-      if (absEntries.length > 0) {
-        setAbscod(absEntries[0][0]);
-      }
+      // `absences` est un TABLEAU [{abscod, abslib, abscng}] (useGetCongeAbsenceLibs),
+      // pas un dictionnaire : on prend l'abscod du 1er élément, pas l'index "0".
+      setAbscod(absences[0]?.abscod ?? '');
     }
   }, [open, editConge, absences, abscod]);
 
@@ -269,7 +272,10 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
           <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.titreConge.form.imputation')}</Typography>
           <FormControl fullWidth size="small">
             <Select value={abscod} onChange={(e) => setAbscod(e.target.value)} sx={{ borderRadius: '8px', backgroundColor: '#f8fafc', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
-              {Object.entries(absences).map(([k, v]) => <MenuItem key={k} value={k}>{String(v)}</MenuItem>)}
+              {/* `absences` = tableau [{abscod, abslib}] → on mappe sur les objets,
+                  sinon Object.entries renvoyait (index, objet) → value=index et
+                  libellé "[object Object]". */}
+              {(absences as any[]).map((a) => <MenuItem key={a.abscod} value={a.abscod}>{a.abslib}</MenuItem>)}
             </Select>
           </FormControl>
         </Box>
@@ -327,7 +333,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
         <Button onClick={onClose} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>{t('conge.titreConge.form.cancel')}</Button>
         <Button variant="contained" onClick={handleSubmit} disabled={isBusy}
           startIcon={isBusy ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}>
+          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)' }}>
           {editConge ? t('conge.titreConge.form.save') : t('conge.titreConge.form.submit')}
         </Button>
       </DialogActions>
@@ -338,7 +344,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
 function TitreCongeInner() {
   const { t } = useTranslation();
   const { data: globalData = [], isLoading, refetch } = useGetTitreConge();
-  const { data: absenceLibs = {} } = useGetCongeAbsenceLibs();
+  const { data: absenceLibs = [] } = useGetCongeAbsenceLibs();
   const { setSelectedConge } = useCongeContext();
   const { mutate: deleteConge } = useDeleteTitreConge();
   const { hasPermission } = useAuth();
@@ -515,8 +521,10 @@ function TitreCongeInner() {
                 sx={{ height: 34, fontSize: '13px', background: '#fff', borderRadius: '8px' }}
               >
                 <MenuItem value=""><em>{t('conge.titreConge.filters.typeAll')}</em></MenuItem>
-                {Object.entries((absenceLibs as Record<string, string>) || {}).map(([code, lib]) => (
-                  <MenuItem key={code} value={code}>{lib}</MenuItem>
+                {/* absenceLibs = tableau [{abscod, abslib}] (useGetCongeAbsenceLibs) :
+                    on mappe les objets, pas Object.entries (qui donnait index→[object Object]). */}
+                {(absenceLibs as any[]).map((a) => (
+                  <MenuItem key={a.abscod} value={a.abscod}>{a.abslib}</MenuItem>
                 ))}
               </Select>
             </FormControl>

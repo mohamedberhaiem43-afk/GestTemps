@@ -183,7 +183,7 @@ export default function PlanUpgradePage() {
               onClick={handleDirectUpgrade}
               sx={{
                 textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3, py: 1.5,
-                background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)',
+                background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)',
                 boxShadow: '0 8px 24px rgba(0, 64, 161, 0.25)',
               }}
             >
@@ -196,7 +196,7 @@ export default function PlanUpgradePage() {
             sx={{
               textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3, py: 1.5,
               ...(canManage ? {} : {
-                background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)',
+                background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)',
                 boxShadow: '0 8px 24px rgba(0, 64, 161, 0.25)',
               }),
             }}

@@ -332,7 +332,7 @@ function SortieFormDialog({
         <Button onClick={onClose} sx={{ borderRadius: '8px', textTransform: 'none', color: '#64748b' }}>{t('autSortie.form.cancel')}</Button>
         <Button variant="contained" onClick={handleSubmit} disabled={isSaving}
           startIcon={isSaving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, #0040a1 0%, #0056d2 100%)' }}>
+          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)' }}>
           {editSortie ? t('autSortie.form.modify') : t('autSortie.form.submit')}
         </Button>
       </DialogActions>

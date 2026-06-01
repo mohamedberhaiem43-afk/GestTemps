@@ -314,6 +314,12 @@ public partial class ApplicationDbContext : DbContext
     public virtual DbSet<Ville> Villes { get; set; }
     public virtual DbSet<NoteDeFrais> NoteDeFrais { get; set; }
     public virtual DbSet<DocumentVault> DocumentVaults { get; set; }
+    // Workflow de signature électronique (Phase 0).
+    public virtual DbSet<SignatureRequest> SignatureRequests { get; set; }
+    public virtual DbSet<SignatureStep> SignatureSteps { get; set; }
+    public virtual DbSet<SignatureAction> SignatureActions { get; set; }
+    public virtual DbSet<SignatureSealLog> SignatureSealLogs { get; set; }
+    public virtual DbSet<SignatureTemplateMap> SignatureTemplateMaps { get; set; }
     public virtual DbSet<DemandeAutorisation> DemandeAutorisations { get; set; }
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
     public virtual DbSet<RetentionPolicy> RetentionPolicies { get; set; }
