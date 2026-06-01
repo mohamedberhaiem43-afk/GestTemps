@@ -35,6 +35,8 @@ type CompRow =
 interface Avantage { icon: string; t: string; d: string }
 interface HowStep { title: string; desc: string; long: string }
 interface ServiceRow { service: string; price: string }
+interface PricedItem { name: string; desc: string; price: string }
+interface QuoteItem { name: string; desc: string }
 
 interface Dict {
   // NAV
@@ -78,6 +80,13 @@ interface Dict {
   infoTitle: string; infoLead: string; infoItems: string[]; infoP1: string; infoP2: string; infoP3: string;
   // SERVICES
   servicesTitle: string; serviceCol: string; priceCol: string; serviceRows: ServiceRow[];
+  // MODULES OPTIONNELS / SERVICES (Payment Links Stripe) / SUR DEVIS
+  optTitle: string; optSub: string; modCol: string; descCol: string; tarifCol: string; addBtn: string;
+  optModules: PricedItem[];
+  svcTitle: string; svcSub: string; svcCol: string;
+  serviceItems: PricedItem[];
+  quoteTitle: string; quoteSub: string; quoteBtn: string;
+  quoteModules: QuoteItem[];
   // PROMO CTA
   pctaBadge: string; pctaH2: string; pctaP: string;
   pf1: string; pf2: string; pf3: string; pf4: string; pctaBtn: string;
@@ -189,6 +198,31 @@ const FR: Dict = {
     { service: 'Support prioritaire 24/7', price: '+149 €/mois' },
     { service: 'Stockage supplémentaire', price: '+29 €/100 Go' },
     { service: 'Domaine personnalisé', price: '+19 €/mois' },
+  ],
+
+  optTitle: 'Modules optionnels', optSub: 'Activez à la demande des modules complémentaires — facturation Stripe sécurisée, essai inclus, sans engagement.',
+  modCol: 'Module', descCol: 'Description', tarifCol: 'Tarif', addBtn: 'Ajouter',
+  optModules: [
+    { name: 'Assistant RH IA', desc: "Module d'assistance intelligente destiné à accompagner les équipes RH dans certaines tâches administratives.", price: '79 € / mois' },
+    { name: 'Signature électronique', desc: 'Signature électronique sécurisée de documents RH, validations internes et workflows administratifs.', price: '19 € / mois' },
+    { name: 'Stockage supplémentaire 100 Go', desc: 'Extension de capacité de stockage sécurisée pour documents, exports, pièces jointes et données complémentaires.', price: '29 € / mois' },
+  ],
+  svcTitle: 'Nos services', svcSub: 'Formation et accompagnement par nos experts pour tirer le meilleur de la plateforme.',
+  svcCol: 'Service',
+  serviceItems: [
+    { name: 'Formation administrateurs (visio)', desc: 'Session de formation à distance destinée aux administrateurs pour prendre en main Concorde Workforce : gestion des salariés, pointage, congés, validations, tableau de bord et paramétrage principal. Durée indicative : 2h30.', price: '290 €' },
+    { name: 'Accompagnement Expert (visio)', desc: "Session d'accompagnement personnalisée à distance pour assistance, optimisation, conseils ou accompagnement opérationnel autour de Concorde Workforce. Durée indicative : 1h30.", price: '190 €' },
+    { name: 'Accompagnement demi-journée', desc: "Accompagnement personnalisé dédié au déploiement, à l'organisation RH ou à l'optimisation de l'utilisation de la plateforme.", price: '490 €' },
+    { name: "Journée complète d'accompagnement", desc: "Journée complète d'accompagnement opérationnel et stratégique : déploiement, structuration RH, formation avancée ou optimisation des processus internes.", price: '890 €' },
+  ],
+  quoteTitle: 'Modules sur devis', quoteSub: 'Solutions avancées étudiées selon vos besoins — contactez-nous pour un devis personnalisé.',
+  quoteBtn: 'Demander un devis',
+  quoteModules: [
+    { name: 'Import de données assisté', desc: "Assistance technique et accompagnement pour l'import sécurisé des salariés, équipes, structures et données RH existantes vers Concorde Workforce." },
+    { name: 'Connecteurs ERP / Paie', desc: "Mise en place de connecteurs standards permettant l'échange de données entre Concorde Workforce et certains logiciels ERP ou solutions de paie compatibles." },
+    { name: 'Connecteurs ERP sur mesure', desc: "Développement et intégration de connecteurs personnalisés selon les besoins spécifiques du client et les logiciels tiers utilisés au sein de l'organisation." },
+    { name: 'Audit sécurité avancée', desc: "Audit de sécurité et analyse technique visant à renforcer la protection de la plateforme et identifier d'éventuelles vulnérabilités ou axes d'amélioration." },
+    { name: 'Branding personnalisé', desc: "Personnalisation avancée de l'environnement Concorde Workforce pour intégrer l'identité graphique de l'entreprise : logo, couleurs, éléments de marque et expérience utilisateur personnalisée." },
   ],
 
   pctaBadge: '🎁 Essai gratuit 30j', pctaH2: 'Rejoignez les entreprises qui ont fait le choix de la sérénité.',
@@ -313,6 +347,31 @@ const EN: Dict = {
     { service: 'Custom domain', price: '+€19/mo' },
   ],
 
+  optTitle: 'Optional modules', optSub: 'Enable add-on modules on demand — secure Stripe billing, trial included, no commitment.',
+  modCol: 'Module', descCol: 'Description', tarifCol: 'Price', addBtn: 'Add',
+  optModules: [
+    { name: 'HR AI Assistant', desc: 'Intelligent assistance module designed to support HR teams with certain administrative tasks.', price: '€79 / mo' },
+    { name: 'Electronic signature', desc: 'Secure electronic signature of HR documents, internal approvals and administrative workflows.', price: '€19 / mo' },
+    { name: 'Extra storage 100 GB', desc: 'Secure storage capacity extension for documents, exports, attachments and additional platform data.', price: '€29 / mo' },
+  ],
+  svcTitle: 'Our services', svcSub: 'Training and guidance from our experts to get the most out of the platform.',
+  svcCol: 'Service',
+  serviceItems: [
+    { name: 'Administrator training (video)', desc: 'Remote training session for administrators to get started with Concorde Workforce: employee management, time tracking, leave, approvals, dashboard and main configuration. Indicative duration: 2h30.', price: '€290' },
+    { name: 'Expert guidance (video)', desc: 'Personalized remote guidance session for assistance, optimization, advice or operational support around Concorde Workforce. Indicative duration: 1h30.', price: '€190' },
+    { name: 'Half-day guidance', desc: 'Personalized guidance dedicated to deployment, HR organization or optimizing platform usage.', price: '€490' },
+    { name: 'Full-day guidance', desc: 'Full day of operational and strategic guidance: deployment, HR structuring, advanced training or internal process optimization.', price: '€890' },
+  ],
+  quoteTitle: 'Modules on quote', quoteSub: 'Advanced solutions tailored to your needs — contact us for a custom quote.',
+  quoteBtn: 'Request a quote',
+  quoteModules: [
+    { name: 'Assisted data import', desc: 'Technical assistance and support for the secure import of your existing employees, teams, structures and HR data into Concorde Workforce.' },
+    { name: 'ERP / Payroll connectors', desc: 'Setup of standard connectors enabling data exchange between Concorde Workforce and certain compatible ERP or payroll software.' },
+    { name: 'Custom ERP connectors', desc: 'Development and integration of custom connectors based on the client\'s specific needs and the third-party software used within the organization.' },
+    { name: 'Advanced security audit', desc: 'Security audit and technical analysis to strengthen platform protection and identify potential vulnerabilities or areas for improvement.' },
+    { name: 'Custom branding', desc: 'Advanced customization of the Concorde Workforce environment to integrate the company\'s visual identity: logo, colors, brand elements and tailored user experience.' },
+  ],
+
   pctaBadge: '🎁 30-day free trial', pctaH2: 'Join companies that chose peace of mind.',
   pctaP: 'Test Concorde Workforce free for 1 month — no CC, no commitment. Deployment in 2 weeks · Human French-speaking support · measurable ROI from day 30.',
   pf1: '1 month free, no CC', pf2: 'Expert onboarding included', pf3: 'No long-term commitment', pf4: 'Cancel in 1 click',
@@ -396,6 +455,20 @@ const STRIPE_LINKS: Record<PaidPack, Record<BillingCycle, string>> = {
   },
 };
 
+// Payment Links des modules optionnels (ordre = dict.optModules). Essai/abonnement Stripe.
+const OPTIONAL_MODULE_LINKS = [
+  'https://buy.stripe.com/5kQfZa4q9gA1bRJ1hf0000', // Assistant RH IA — 79 €/mois
+  'https://buy.stripe.com/cNi28k1dX3Nf6xpaRP0000a', // Signature électronique — 19 €/mois
+  'https://buy.stripe.com/6oU8wI5ud1F79JBaRP00009', // Stockage supplémentaire 100 Go — 29 €/mois
+];
+// Payment Links des services ponctuels (ordre = dict.serviceItems).
+const SERVICE_LINKS = [
+  'https://buy.stripe.com/3cI14g7CI4RjaNF9NL0000d', // Formation administrateurs (visio) — 290 €
+  'https://buy.stripe.com/aFa3coe0J97zcVN3pn0000e', // Accompagnement Expert (visio) — 190 €
+  'https://buy.stripe.com/3cI00c6yhbfH8Fxgc90000f', // Accompagnement demi-journée — 490 €
+  'https://buy.stripe.com/dRmcMY5udabDaNF1hf0000g', // Journée complète d'accompagnement — 890 €
+];
+
 export default function HomePage() {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
@@ -468,6 +541,17 @@ export default function HomePage() {
     const url = `${STRIPE_LINKS[pack][billingCycle]}?client_reference_id=${encodeURIComponent(slug)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
+  // Ouvre un Payment Link Stripe d'un module / service. On y injecte client_reference_id
+  // (slug du tenant) quand il est disponible pour rattacher l'achat au bon tenant côté
+  // webhook. `requireTenant` = true pour les modules qui débloquent des fonctionnalités
+  // (il FAUT un compte pour les rattacher → visiteur anonyme redirigé vers l'inscription) ;
+  // false pour les services ponctuels (formation/accompagnement), ouverts directement.
+  const openStripeLink = (url: string, requireTenant: boolean) => {
+    const slug = (typeof window !== 'undefined' && window.localStorage.getItem('tenantSlug')) || '';
+    if (requireTenant && (!isAuthenticated || !slug)) { goToSignup(); return; }
+    const full = slug ? `${url}?client_reference_id=${encodeURIComponent(slug)}` : url;
+    window.open(full, '_blank', 'noopener,noreferrer');
+  };
   // Le formulaire de contact n'a pas encore d'endpoint dédié : on redirige vers
   // la page contact-sales existante (graceful fallback, pas de perte de prospect).
   const handleContactSubmit = (e: React.FormEvent) => {
@@ -500,6 +584,16 @@ export default function HomePage() {
   ];
 
   const stepNum = activeStep + 1;
+
+  // Styles partagés des nouvelles sections (modules optionnels / services / sur devis).
+  const secHeading: React.CSSProperties = { fontFamily: 'inherit', fontSize: 18, fontWeight: 800, color: '#0040a1', letterSpacing: '.06em', textTransform: 'uppercase', textAlign: 'center', margin: '0 0 8px' };
+  const secSub: React.CSSProperties = { textAlign: 'center', color: '#64748b', maxWidth: 720, margin: '0 auto 28px', fontSize: 15, lineHeight: 1.55 };
+  const tblWrap: React.CSSProperties = { overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: 14, background: '#fff' };
+  const tbl: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', fontSize: 14 };
+  const thS: React.CSSProperties = { padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#0f172a', background: '#f7f9fb', borderBottom: '2px solid #e5e7eb' };
+  const tdS: React.CSSProperties = { padding: '14px 16px', color: '#334155', borderBottom: '1px solid #e5e7eb', verticalAlign: 'top', lineHeight: 1.5 };
+  const addBtnS: React.CSSProperties = { background: 'linear-gradient(135deg,#0040a1,#0056d2)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 18px', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,64,161,.22)' };
+  const quoteBtnS: React.CSSProperties = { background: 'transparent', color: '#0040a1', border: '1.5px solid #0040a1', borderRadius: 9, padding: '9px 18px', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' };
 
   return (
     <div className="hp2">
@@ -775,6 +869,38 @@ export default function HomePage() {
         </div>
 
         <p style={{ textAlign: 'center', marginTop: 28, fontSize: 14, color: '#64748b' }}>{d.pricingFoot}</p>
+
+        {/* MODULES OPTIONNELS — juste sous les 4 packs. Bouton « Ajouter » → Payment Link
+            Stripe du module (rattaché au tenant via client_reference_id ; visiteur anonyme
+            redirigé d'abord vers l'inscription car un module débloque des fonctionnalités). */}
+        <div style={{ maxWidth: 1100, margin: '56px auto 0' }}>
+          <h3 style={secHeading}>{d.optTitle}</h3>
+          <p style={secSub}>{d.optSub}</p>
+          <div style={tblWrap}>
+            <table style={tbl}>
+              <thead>
+                <tr>
+                  <th style={thS}>{d.modCol}</th>
+                  <th style={thS}>{d.descCol}</th>
+                  <th style={{ ...thS, whiteSpace: 'nowrap' }}>{d.tarifCol}</th>
+                  <th style={{ ...thS, textAlign: 'center' }} aria-label={d.addBtn} />
+                </tr>
+              </thead>
+              <tbody>
+                {d.optModules.map((m, i) => (
+                  <tr key={m.name}>
+                    <td style={{ ...tdS, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>{m.name}</td>
+                    <td style={tdS}>{m.desc}</td>
+                    <td style={{ ...tdS, fontWeight: 700, color: '#0040a1', whiteSpace: 'nowrap' }}>{m.price}</td>
+                    <td style={{ ...tdS, textAlign: 'center' }}>
+                      <button type="button" style={addBtnS} onClick={() => openStripeLink(OPTIONAL_MODULE_LINKS[i], true)}>{d.addBtn}</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       {/* COMPARATIF */}
@@ -836,21 +962,66 @@ export default function HomePage() {
         <p style={{ marginBottom: 0 }}>{d.infoP3}</p>
       </section>
 
-      {/* SERVICES COMPLÉMENTAIRES */}
+      {/* SERVICES (Payment Links Stripe) + SERVICES SUR DEVIS */}
       <section className="services">
-        <div className="services-inner">
-          <h3>{d.servicesTitle}</h3>
-          <div className="services-scroll">
-            <table className="services-table">
-              <thead>
-                <tr><th>{d.serviceCol}</th><th>{d.priceCol}</th></tr>
-              </thead>
-              <tbody>
-                {d.serviceRows.map((r) => (
-                  <tr key={r.service}><td>{r.service}</td><td>{r.price}</td></tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="services-inner" style={{ display: 'flex', flexDirection: 'column', gap: 56 }}>
+          {/* Nos services — bouton « Ajouter » → Payment Link Stripe (service ponctuel,
+              ouvert directement ; client_reference_id ajouté si un tenant est connu). */}
+          <div>
+            <h3 style={secHeading}>{d.svcTitle}</h3>
+            <p style={secSub}>{d.svcSub}</p>
+            <div style={tblWrap}>
+              <table style={tbl}>
+                <thead>
+                  <tr>
+                    <th style={thS}>{d.svcCol}</th>
+                    <th style={thS}>{d.descCol}</th>
+                    <th style={{ ...thS, whiteSpace: 'nowrap' }}>{d.tarifCol}</th>
+                    <th style={{ ...thS, textAlign: 'center' }} aria-label={d.addBtn} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {d.serviceItems.map((s, i) => (
+                    <tr key={s.name}>
+                      <td style={{ ...tdS, fontWeight: 700, color: '#0f172a' }}>{s.name}</td>
+                      <td style={tdS}>{s.desc}</td>
+                      <td style={{ ...tdS, fontWeight: 700, color: '#0040a1', whiteSpace: 'nowrap' }}>{s.price}</td>
+                      <td style={{ ...tdS, textAlign: 'center' }}>
+                        <button type="button" style={addBtnS} onClick={() => openStripeLink(SERVICE_LINKS[i], false)}>{d.addBtn}</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Modules sur devis — bouton « Demander un devis » → section contact (formulaire). */}
+          <div>
+            <h3 style={secHeading}>{d.quoteTitle}</h3>
+            <p style={secSub}>{d.quoteSub}</p>
+            <div style={tblWrap}>
+              <table style={tbl}>
+                <thead>
+                  <tr>
+                    <th style={thS}>{d.modCol}</th>
+                    <th style={thS}>{d.descCol}</th>
+                    <th style={{ ...thS, textAlign: 'center' }} aria-label={d.quoteBtn} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {d.quoteModules.map((q) => (
+                    <tr key={q.name}>
+                      <td style={{ ...tdS, fontWeight: 700, color: '#0f172a' }}>{q.name}</td>
+                      <td style={tdS}>{q.desc}</td>
+                      <td style={{ ...tdS, textAlign: 'center' }}>
+                        <button type="button" style={quoteBtnS} onClick={() => scrollToId('contact')}>{d.quoteBtn}</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>

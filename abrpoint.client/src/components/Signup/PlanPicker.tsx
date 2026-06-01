@@ -175,7 +175,7 @@ export default function PlanPicker({
             },
           }}
         >
-          <ToggleButton value="annual">Annuel <Chip size="small" label="-45%" sx={{ ml: 0.7, height: 18, fontSize: 10, bgcolor: '#10b981', color: '#fff' }} /></ToggleButton>
+          <ToggleButton value="annual">Annuel <Chip size="small" sx={{ ml: 0.7, height: 18, fontSize: 10, bgcolor: '#10b981', color: '#fff' }} /></ToggleButton>
           <ToggleButton value="monthly">Mensuel</ToggleButton>
         </ToggleButtonGroup>
       </Stack>

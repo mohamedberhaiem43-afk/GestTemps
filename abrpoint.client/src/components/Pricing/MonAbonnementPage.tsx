@@ -301,6 +301,15 @@ export default function MonAbonnementPage() {
   // si elle est étendue plus tard ; pour l'instant on affiche les deux totaux côte à côte.
   const draftMonthlyTotal = addonsDraft.reduce((sum, k) => sum + (ADDON_LABELS[k]?.priceMonthlyEur ?? 0), 0);
 
+  // Ouvre le Payment Link Stripe d'un module en y injectant ?client_reference_id={slug}
+  // pour que le webhook checkout.session.completed rattache l'achat au tenant courant.
+  // Le slug vient de /billing/subscription (info.slug), avec repli sur localStorage.
+  const openModuleStripeLink = (link: string) => {
+    const slug = info?.slug || (typeof window !== 'undefined' ? window.localStorage.getItem('tenantSlug') : '') || '';
+    const url = slug ? `${link}?client_reference_id=${encodeURIComponent(slug)}` : link;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const fetchInfo = async (opts: { silent?: boolean } = {}): Promise<SubscriptionInfo | null> => {
     if (!opts.silent) setLoading(true);
     setError(null);
@@ -1402,6 +1411,23 @@ export default function MonAbonnementPage() {
                           {' '}/mois
                         </Typography>
                       </Typography>
+                    )}
+                    {/* Souscription payante via le Payment Link Stripe du module (essai inclus
+                        côté Stripe). Affiché quand le module n'est pas déjà inclus/souscrit et
+                        qu'un lien existe — l'achat est rattaché au tenant via client_reference_id. */}
+                    {m.stripeLink && !included && !checked && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => openModuleStripeLink(m.stripeLink!)}
+                        sx={{
+                          mt: 0.75, textTransform: 'none', fontWeight: 700, fontSize: 12,
+                          borderRadius: '8px', py: 0.25, px: 1.25, minWidth: 0,
+                          color: '#7C3AED', borderColor: '#d8b4fe', '&:hover': { borderColor: '#7C3AED', bgcolor: '#faf5ff' },
+                        }}
+                      >
+                        Ajouter via Stripe →
+                      </Button>
                     )}
                   </Box>
                 </Stack>

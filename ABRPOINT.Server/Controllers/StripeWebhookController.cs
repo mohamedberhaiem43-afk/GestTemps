@@ -210,50 +210,59 @@ public class StripeWebhookController : ControllerBase
                         _log.LogWarning("Tenant introuvable pour checkout.session.completed (ref={TenantRef}).", tenantRef);
                         break;
                     }
-                    var oldSubId = tenant.StripeSubscriptionId;
-                    tenant.StripeSubscriptionId = session.SubscriptionId;
-                    if (!string.IsNullOrEmpty(session.CustomerId)) tenant.StripeCustomerId = session.CustomerId;
-                    // Activation du plan SEULEMENT maintenant (paiement confirmé). On lit le plan
-                    // depuis le Metadata["plan"] posé à la création de la session de checkout. Avant,
-                    // le plan était écrit dès la création du checkout → un paiement annulé laissait
-                    // le pack marqué comme souscrit. On ne l'active donc qu'ici.
-                    if (session.Metadata != null
+                    // Le plan de CE checkout vient soit du Metadata["plan"] (Checkout API), soit
+                    // du price de base de la subscription (Payment Link de pack), dérivé par
+                    // ApplyCheckoutSubscriptionAsync (qui pose aussi le floor de collaborateurs
+                    // supplémentaires extra_seats_purchased).
+                    string? metaPlan = (session.Metadata != null
                         && session.Metadata.TryGetValue("plan", out var planFromMeta)
-                        && !string.IsNullOrWhiteSpace(planFromMeta))
-                    {
-                        tenant.PlanCode = planFromMeta;
-                    }
-                    tenant.Status = "Active";
-                    await master.SaveChangesAsync(ct);
-                    _tenantStore.Invalidate(tenant.Slug);
+                        && !string.IsNullOrWhiteSpace(planFromMeta)) ? planFromMeta : null;
 
-                    // Payment Link : la session n'a pas de Metadata["plan"] et porte la quantité de
-                    // collaborateurs supplémentaires sur un item de prix dédié. On réconcilie ici le
-                    // pack dérivé du price de base + le floor de sièges pré-achetés (extra_seats_purchased).
+                    CheckoutProvisionResult? provision = null;
                     try
                     {
-                        var provision = await _billing.ApplyCheckoutSubscriptionAsync(tenant, session.SubscriptionId, ct);
-                        if (provision?.PlanCode is { Length: > 0 } derivedPlan
-                            && !string.Equals(tenant.PlanCode, derivedPlan, StringComparison.OrdinalIgnoreCase))
-                        {
-                            // Le price de base de la subscription fait foi quand aucun plan n'était
-                            // posé en metadata (cas Payment Link). On persiste le pack dérivé.
-                            tenant.PlanCode = derivedPlan;
-                            await master.SaveChangesAsync(ct);
-                            _tenantStore.Invalidate(tenant.Slug);
-                        }
+                        provision = await _billing.ApplyCheckoutSubscriptionAsync(tenant, session.SubscriptionId, ct);
                     }
                     catch (Exception ex)
                     {
-                        // Best-effort : l'activation reste effective même si la réconciliation des
-                        // line items échoue. Le true-up quotidien (EmployeeBillingSync) corrigera.
+                        // Best-effort : la suite reste effective même si la lecture des line items échoue.
                         _log.LogWarning(ex, "ApplyCheckoutSubscription échoué pour tenant {Slug} (session={SessionId}).", tenant.Slug, session.Id);
                     }
 
-                    if (!string.IsNullOrEmpty(oldSubId) && oldSubId != session.SubscriptionId)
+                    var planForCheckout = metaPlan ?? provision?.PlanCode;
+                    if (!string.IsNullOrEmpty(session.CustomerId)) tenant.StripeCustomerId = session.CustomerId;
+
+                    if (!string.IsNullOrWhiteSpace(planForCheckout))
                     {
-                        try { await new SubscriptionService().CancelAsync(oldSubId, cancellationToken: ct); }
-                        catch (StripeException ex) { _log.LogWarning(ex, "Annulation de l'ancienne subscription {OldSubId} échouée.", oldSubId); }
+                        // ── Checkout de PACK : la nouvelle subscription remplace l'abonnement
+                        // trial/précédent et active le plan (paiement confirmé). On annule ensuite
+                        // l'ancienne subscription pour ne pas avoir deux abonnements actifs.
+                        var oldSubId = tenant.StripeSubscriptionId;
+                        tenant.StripeSubscriptionId = session.SubscriptionId;
+                        tenant.PlanCode = planForCheckout;
+                        tenant.Status = "Active";
+                        await master.SaveChangesAsync(ct);
+                        _tenantStore.Invalidate(tenant.Slug);
+
+                        if (!string.IsNullOrEmpty(oldSubId) && oldSubId != session.SubscriptionId)
+                        {
+                            try { await new SubscriptionService().CancelAsync(oldSubId, cancellationToken: ct); }
+                            catch (StripeException ex) { _log.LogWarning(ex, "Annulation de l'ancienne subscription {OldSubId} échouée.", oldSubId); }
+                        }
+                    }
+                    else
+                    {
+                        // ── Checkout de MODULE / add-on (Payment Link dédié : Assistant RH IA,
+                        // signature, stockage…). C'est ADDITIF : on ne remplace PAS l'abonnement
+                        // de pack et on n'annule rien, sous peine de résilier le pack du client.
+                        // On se contente de rattacher le customer Stripe. Le déblocage fonctionnel
+                        // de l'add-on (Tenant.Addons) nécessitera le mapping price_id → clé addon
+                        // quand les SKU modules seront renseignés dans Stripe:Prices.
+                        await master.SaveChangesAsync(ct);
+                        _tenantStore.Invalidate(tenant.Slug);
+                        _log.LogInformation(
+                            "checkout.session.completed additif (module/service) pour {Slug} (sub={Sub}) — abonnement de pack inchangé.",
+                            tenant.Slug, session.SubscriptionId);
                     }
                     break;
                 }
