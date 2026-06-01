@@ -327,7 +327,7 @@ export default function CredentialsSignInPage() {
 
   return (
     <Box className="login-root">
-      {/* Left Side: Visual plein cadre (sans texte superposé, cf. maquette finale) */}
+      {/* Left Side: Visual + logo Concorde Workly et accroche superposés (cf. maquette). */}
       <Box
         className="login-left"
         role="img"
@@ -339,6 +339,18 @@ export default function CredentialsSignInPage() {
             alt=""
             className="login-left-img"
           />
+        </Box>
+
+        {/* Overlay : logo encadré (style « cadre mural ») + accroche en bas. Un scrim
+            sombre assure la lisibilité du texte blanc par-dessus l'image. */}
+        <Box className="login-left-overlay">
+          <Box className="login-left-logo-frame">
+            <img src="/concorde-workly-light.png" alt="Concorde Workforce" className="login-left-logo" />
+          </Box>
+          <Box className="login-left-copy">
+            <Typography className="login-left-title">{t('login.leftTitle')}</Typography>
+            <Typography className="login-left-subtitle">{t('login.leftSubtitle')}</Typography>
+          </Box>
         </Box>
       </Box>
 

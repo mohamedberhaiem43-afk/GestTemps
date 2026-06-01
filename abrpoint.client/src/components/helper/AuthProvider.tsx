@@ -32,6 +32,12 @@ interface AuthContextType {
   // Raccourci dérivé (isDualRole && viewMode === 'employee'). Consommé par la navigation et le
   // dashboard pour forcer l'expérience salarié quand l'utilisateur a choisi sa vue « salarié ».
   viewAsEmployee: boolean;
+  // Vrai quand l'utilisateur doit voir les données de GESTION (listes de tous les employés /
+  // demandes de l'équipe) plutôt que ses seules données salarié. = rôle de gestion (admin /
+  // manager / ResponsableRH) ET pas en vue « salarié ». Source unique de vérité pour les hooks
+  // qui choisissaient l'endpoint via `isEmp` brut — ce qui cassait pour un dual-rôle (employé +
+  // manager) resté scopé à lui-même en mode Gestion. À utiliser à la place de `!isEmp`.
+  isManagementView: boolean;
   setViewMode: (mode: 'management' | 'employee') => void;
   // État de l'abonnement / essai gratuit. isTrialing === true ⇒ limites Trial actives
   // (10 collaborateurs, 1 société/filiale, états & paie masqués). Source : /Utilisateurs/me.
@@ -144,6 +150,7 @@ const AuthContext = createContext<AuthContextType>({
   isDualRole: false,
   viewMode: 'management',
   viewAsEmployee: false,
+  isManagementView: false,
   setViewMode: () => { },
   isTrialing: false,
   trialEndsAt: null,
@@ -517,14 +524,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     authData.isEmp && (authData.isAdmin || authData.isManager || authData.roleName === 'ResponsableRH')
   );
   const viewAsEmployee = isDualRole && viewMode === 'employee';
+  // Vue de gestion effective : rôle de gestion ET pas en train de regarder son espace salarié.
+  // Pour un non-employé (admin/manager pur) viewAsEmployee est toujours false → management.
+  // Pour un dual-rôle, suit le sélecteur d'interface. Pour un employé simple → false.
+  const isManagementView = Boolean(
+    (authData.isAdmin || authData.isManager || authData.roleName === 'ResponsableRH') && !viewAsEmployee
+  );
 
   const value = useMemo(
     () => ({
       ...authData, authReady, hasPermission, planAllows, setAuthData: setAuth, refreshAuth, clearAuth,
-      isDualRole, viewMode, viewAsEmployee, setViewMode,
+      isDualRole, viewMode, viewAsEmployee, isManagementView, setViewMode,
     }),
     [authData, authReady, hasPermission, planAllows, setAuth, refreshAuth, clearAuth,
-     isDualRole, viewMode, viewAsEmployee, setViewMode]
+     isDualRole, viewMode, viewAsEmployee, isManagementView, setViewMode]
   );
 
   return (

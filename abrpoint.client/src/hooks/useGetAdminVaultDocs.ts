@@ -3,16 +3,19 @@ import { useAuth } from "../components/helper/AuthProvider";
 import apiInstance from "../components/API/apiInstance";
 
 const useGetAdminVaultDocs = () => {
-    const { soccod, isEmp } = useAuth();
+    // Coffre-fort de GESTION (vue globale). Activé en vue de gestion : `isManagementView`
+    // inclut le dual-rôle en mode Gestion, là où l'ancien garde `!isEmp` rendait le coffre
+    // global vide pour un admin/manager possédant aussi une fiche employé.
+    const { soccod, isManagementView } = useAuth();
 
     return useQuery({
-        queryKey: ["adminVaultDocs", soccod],
+        queryKey: ["adminVaultDocs", soccod, isManagementView],
         queryFn: async () => {
-            if (isEmp || !soccod) return [];
+            if (!isManagementView || !soccod) return [];
             const response = await apiInstance.get(`/Vault/admin/${soccod}`);
             return response.data;
         },
-        enabled: !!soccod && !isEmp
+        enabled: !!soccod && isManagementView
     });
 };
 

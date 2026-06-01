@@ -3,14 +3,17 @@ import { useAuth } from "../../components/helper/AuthProvider";
 import apiInstance from "../../components/API/apiInstance";
 
 const useGetDemConges = () => {
-    const { soccod, uticod, isEmp } = useAuth();
+    // Endpoint choisi selon la VUE EFFECTIVE (isManagementView) et non `isEmp` brut : un
+    // dual-rôle en mode Gestion voit toutes les demandes (get-demconge), en vue salarié ses
+    // seules demandes (get-emp-demconge). Corrige Solde congé / Titre congé vides en mode Gestion.
+    const { soccod, uticod, isManagementView } = useAuth();
 
     return useQuery({
-        queryKey: ["demconges", soccod, uticod, isEmp],
+        queryKey: ["demconges", soccod, uticod, isManagementView],
         queryFn: async () => {
-            const endpoint = isEmp
-                ? `/DemConges/get-emp-demconge/${soccod}/${uticod}`
-                : `/DemConges/get-demconge/${soccod}/${uticod}`;
+            const endpoint = isManagementView
+                ? `/DemConges/get-demconge/${soccod}/${uticod}`
+                : `/DemConges/get-emp-demconge/${soccod}/${uticod}`;
 
             const response = await apiInstance.get(endpoint);
             return response.data;

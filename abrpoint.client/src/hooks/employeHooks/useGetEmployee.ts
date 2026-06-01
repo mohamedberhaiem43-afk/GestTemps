@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../components/helper/AuthProvider";
 
 const useGetEmployee = (sitcod?: string, sercod?: string, dircod?: string, empreg?: string) => {
-    const { soccod, uticod, isEmp, isManager, sercod: managerSercod } = useAuth();
+    const { soccod, uticod, isEmp, isManager, isAdmin, sercod: managerSercod } = useAuth();
     const effectiveSercod = isManager && managerSercod ? managerSercod : sercod;
 
     // Bug log #3 — Avant : ce hook utilisait le cache key "employes_libs" alors que
@@ -21,7 +21,12 @@ const useGetEmployee = (sitcod?: string, sercod?: string, dircod?: string, empre
             );
             return response.data;
         },
-        enabled: !!soccod && !!uticod && !isEmp,
+        // Le dropdown liste les AUTRES employés (Solde congé, Titre congé, Autorisations…).
+        // On le désactive pour un employé SIMPLE (qui n'agit que sur lui-même), mais on le
+        // réactive pour les rôles de gestion MÊME s'ils sont aussi salariés (dual-rôle) :
+        // sans ce `|| isManager || isAdmin`, un manager/admin également employé voyait la
+        // requête désactivée → dropdown vide alors qu'il accède bien à la liste globale.
+        enabled: !!soccod && !!uticod && (!isEmp || isManager || isAdmin),
     })
 }
 
