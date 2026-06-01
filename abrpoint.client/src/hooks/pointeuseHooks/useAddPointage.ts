@@ -36,11 +36,15 @@ const captureGeo = (timeoutMs = 5000): Promise<GeoCoords | null> => {
 
 const useAddPointage = () => {
   const queryClient = useQueryClient();
-  const { soccod } = useAuth();
+  const { soccod, planAllows } = useAuth();
 
   return useMutation({
     mutationFn: async (params: AddPointageParams) => {
-      const gps = await captureGeo(5000);
+      // Pointage géolocalisé réservé aux plans incluant la feature Geolocation
+      // (Standard +). Sur Starter, on pointe SANS GPS : on n'appelle même pas
+      // navigator.geolocation (pas de prompt de permission inutile) et on n'envoie
+      // pas lat/lon — sinon le backend renvoie 402 plan_feature_locked.
+      const gps = planAllows('geolocation') ? await captureGeo(5000) : null;
       const qs = new URLSearchParams();
       if (gps) {
         qs.set('lat', String(gps.latitude));

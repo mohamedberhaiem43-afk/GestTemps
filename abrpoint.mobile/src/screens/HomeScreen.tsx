@@ -252,21 +252,27 @@ export default function HomeScreen({ navigation }: any) {
     if (!user?.soccod || !user?.uticod || pointing) return;
     setPointing(true);
     try {
+      // Pointage géolocalisé réservé aux plans incluant Geolocation (Standard +).
+      // Sur Starter, on pointe SANS GPS : on ne demande pas la permission de
+      // localisation et on n'envoie pas lat/lon — sinon le backend renvoie 402.
+      const geoAllowed = planAllows('geolocation');
       // Capture GPS en best-effort : on ne bloque pas le pointage si refusé/timeout.
       // Le backend journalise les coords pour l'audit anti-fraude (validation de zone à venir).
-      const gps = await captureCurrentPosition(5000);
+      const gps = geoAllowed ? await captureCurrentPosition(5000) : null;
       await apiService.markPresence(
         user.soccod,
         user.uticod,
         undefined,
-        gps.coords ?? undefined
+        gps?.coords ?? undefined
       );
       // Refresh à la fois le statut du jour ET les KPIs (heures travaillées,
       // % objectif) pour que la home reflète immédiatement le nouveau pointage.
       await Promise.all([loadTodayStatus(), loadKPISummary()]);
-      const gpsHint = gps.status === 'granted'
+      const gpsHint = !geoAllowed
+        ? '✅ Pointage validé'
+        : gps?.status === 'granted'
         ? `📍 Position enregistrée (±${Math.round(gps.coords?.accuracy || 0)}m)`
-        : gps.status === 'blocked' || gps.status === 'denied'
+        : gps?.status === 'blocked' || gps?.status === 'denied'
         ? '⚠️ Position non autorisée — activez la localisation dans les réglages'
         : '⚠️ Position indisponible — pointage validé sans GPS';
       Alert.alert('✅ Pointage enregistré', gpsHint);

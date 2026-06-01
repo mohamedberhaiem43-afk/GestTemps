@@ -1283,10 +1283,15 @@ export default function MonAbonnementPage() {
           (info?.status === 'Active' || info?.status === 'Trialing')
         }
         onViewDevis={(plan, cycle) => setDevisDialog({ plan, cycle })}
-        onSuccess={(newPlan) => {
+        onSuccess={async (newPlan) => {
           setChangePlanOpen(false);
           setSuccessMsg(`Votre formule a été changée pour ${newPlan}. Le différentiel est ajusté sur votre prochaine facture.`);
-          fetchInfo();
+          // refreshAuth → /me recharge planCode + planFeatures (flags fusionnés via
+          // GetEffectiveFeatures). SANS ça, le contexte global useAuth restait sur
+          // l'ancien pack : la sidebar, les gates de features et le badge « votre pack »
+          // affichaient encore Starter alors que le backend était déjà passé à Standard.
+          // fetchInfo() ne rafraîchit QUE l'état local de cette page, pas le contexte auth.
+          await Promise.all([fetchInfo(), refreshAuth()]);
         }}
       />
 
