@@ -24,6 +24,10 @@ namespace ABRPOINT.Server.Controllers
     /// </summary>
     [ApiController]
     [Authorize]
+    // Assistant IA conversationnel = addon « Assistant RH IA » (aiAssistantRh → AiChatbot).
+    // Distinct du RAG documentaire (ChatRagController, gated RagAi). Premium l'inclut ; les
+    // tenants RAG l'ont aussi (cascade dans GetEffectiveFeatures).
+    [Tenancy.RequirePlanFeature(nameof(Tenancy.PlanFeatures.AiChatbot))]
     [Route("api/[controller]")]
     public class AIAssistantController : ControllerBase
     {

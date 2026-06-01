@@ -54,7 +54,13 @@ public sealed class RequirePlanFeatureAttribute : ActionFilterAttribute
             return;
         }
 
-        var enabled = (bool)(prop.GetValue(plan.Features) ?? false);
+        // On évalue sur les features EFFECTIVES (plan de base + addons souscrits), et NON sur le
+        // seul plan de base. Sinon un tenant ayant payé un module optionnel (ex. signatureElectronique
+        // → Coffre-fort + Signature électronique sur un pack Starter) voyait bien l'entrée dans la
+        // sidebar — /me expose GetEffectiveFeatures — mais se faisait rejeter en 402 par CE filtre,
+        // d'où la redirection automatique hors de la page. On aligne donc le gating API sur /me.
+        var effectiveFeatures = PlanCatalog.GetEffectiveFeatures(tenant?.PlanCode, tenant?.Addons);
+        var enabled = (bool)(prop.GetValue(effectiveFeatures) ?? false);
         if (!enabled)
         {
             ctx.Result = new ObjectResult(new

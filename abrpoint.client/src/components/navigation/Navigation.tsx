@@ -508,7 +508,10 @@ const useNavigationItems = (): NavGroup[] => {
           // Builder de modèles de contrat : lié à PlanFeatures.contractManagement
           // (mêmes endpoints /api/Templates côté backend qui posent le 402 sur Starter).
           ...(planAllows('contractManagement') ? [{ label: t('navigation.contractTemplates'), href: '/dashboard/template-builder', icon: FileText }] : []),
-          { label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText },
+          // Documents juridiques (coffre-fort doc) : même feature commerciale que le Coffre-fort
+          // (DocumentsController gated RequirePlanFeature(DigitalVault)). On masque donc l'entrée
+          // si le pack n'inclut pas le coffre-fort — sinon clic → 402 → redirection.
+          ...(planAllows('digitalVault') ? [{ label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText }] : []),
           // Courriers IA : la génération de lettres passe par le pipeline RAG
           // (cf. LetterGenerationService) — gated sur PlanFeatures.ragAi
           // (Premium uniquement). Le composant LetterTemplatesModern appelle
@@ -1005,7 +1008,10 @@ function DashboardLayoutAccount(_props: DemoProps) {
   // 2026-05-12 : l'assistant IA (RAG) est gaté au plan Premium. Sur Starter/Standard,
   // on masque le bouton flottant — sinon l'utilisateur l'ouvre et tous les appels
   // échouent en 402 côté backend (RagController gaté par RequirePlanFeature(RagAi)).
-  const chatbotAllowed = planAllows('ragAi');
+  // Le chatbot flottant = assistant IA conversationnel (onglet « Assistant », /AIAssistant/chat),
+  // débloqué par l'addon aiAssistantRh → planAllows('aiChatbot'). L'onglet « Documents juridiques »
+  // (RAG, sur devis) reste gaté à part par ragAi DANS le hub. ragAi implique aiChatbot (cascade backend).
+  const chatbotAllowed = planAllows('aiChatbot');
   const { i18n, t } = useTranslation();
   const NAVIGATION = useNavigationItems();
   const outerTheme = useMuiTheme();

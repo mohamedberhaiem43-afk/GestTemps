@@ -116,6 +116,9 @@ export interface PlanFeatures {
   // prioritySupport   = débloqué par l'addon supportPrioritaire → badge "Prioritaire" sur menu Support.
   apiAccess: boolean;
   prioritySupport: boolean;
+  // Assistant IA conversationnel (addon « Assistant RH IA » / aiAssistantRh). Distinct du RAG
+  // documentaire (ragAi, sur devis). Contrôle l'affichage du chatbot flottant (onglet Assistant).
+  aiChatbot: boolean;
 }
 
 /** Couleurs de base personnalisables via l'option « Branding personnalisé ». */

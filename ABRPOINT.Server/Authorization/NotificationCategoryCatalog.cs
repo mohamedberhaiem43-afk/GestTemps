@@ -16,6 +16,7 @@ public static class NotificationCategoryCatalog
     public const string GroupReminders = "reminders";
     public const string GroupLeaves = "leaves";
     public const string GroupAuthorizations = "authorizations";
+    public const string GroupPunctuality = "punctuality";
     public const string GroupSystem = "system";
 
     public static IReadOnlyList<CategorySpec> All { get; } = new CategorySpec[]
@@ -28,6 +29,8 @@ public static class NotificationCategoryCatalog
         new("auth_request_created",   "Nouvelle autorisation",      "Pour les managers : nouvelle autorisation à valider.",   GroupAuthorizations),
         new("auth_request_accepted",  "Autorisation acceptée",      "Confirmation quand ma demande d'autorisation est acceptée.", GroupAuthorizations),
         new("auth_request_refused",   "Autorisation refusée",       "Confirmation quand ma demande d'autorisation est refusée.",  GroupAuthorizations),
+        new("late_arrival",           "Retard de pointage",         "Pour les managers/RH : un collaborateur a pointé en retard.", GroupPunctuality),
+        new("early_leave",            "Départ anticipé",            "Pour les managers/RH : un collaborateur a pointé sa sortie en avance.", GroupPunctuality),
         new("test_push",              "Notification de test",       "Notification de test envoyée par un administrateur.",    GroupSystem),
     };
 

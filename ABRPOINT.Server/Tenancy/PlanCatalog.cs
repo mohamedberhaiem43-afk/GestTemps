@@ -111,7 +111,12 @@ public sealed record PlanFeatures(
     // PrioritySupport   = badge "Prioritaire" sur le menu Support + canal de
     //                     contact dédié affiché dans SupportPage.
     bool ApiAccess,
-    bool PrioritySupport);
+    bool PrioritySupport,
+    // 2026-06 — Assistant IA conversationnel (chatbot opérationnel /AIAssistant/chat : KPIs,
+    // présence, congés, navigation). C'est l'addon self-service « Assistant RH IA » (aiAssistantRh),
+    // DISTINCT du RAG documentaire (RagAi, /ChatRag/ask) qui reste « sur devis » (iaDocumentaireAvancee).
+    // Défaut false → Starter/Standard ne l'ont pas sans l'addon. Premium l'inclut.
+    bool AiChatbot = false);
 
 /// <summary>
 /// Catalogue des plans commerciaux (Starter / Standard / Premium) et des
@@ -301,7 +306,9 @@ public static class PlanCatalog
             // Addon-only sur Premium aussi (le client doit explicitement souscrire,
             // c'est un service supplémentaire facturé en plus du pack).
             ApiAccess: false,
-            PrioritySupport: false));
+            PrioritySupport: false,
+            // Premium inclut l'assistant IA conversationnel (aiAssistantRh bundlé).
+            AiChatbot: true));
 
     /// <summary>Retourne la définition pour un code donné, ou null si inconnu.</summary>
     public static PlanDefinition? GetPlan(string? rawCode)
@@ -411,8 +418,8 @@ public static class PlanCatalog
     /// les features incluses dans son <paramref name="planCode"/> avec les addons
     /// souscrits (<paramref name="addonsCsv"/>). Mapping addon → flag :
     /// <list type="bullet">
-    /// <item><c>aiAssistantRh</c>          → <c>RagAi = true</c></item>
-    /// <item><c>iaDocumentaireAvancee</c>  → <c>RagAi = true</c></item>
+    /// <item><c>aiAssistantRh</c>          → (plus aucun flag RAG — voir note RAG sur devis ci-dessous)</item>
+    /// <item><c>iaDocumentaireAvancee</c>  → <c>RagAi = true</c> (addon RAG « sur devis »)</item>
     /// <item><c>signatureElectronique</c>  → <c>ElectronicSignature = true</c> ET <c>DigitalVault = true</c>
     ///   (cascade obligatoire : on ne peut pas signer sans coffre-fort pour stocker
     ///   les documents signés. Sans ce cascade, un client Starter qui souscrivait
@@ -435,8 +442,11 @@ public static class PlanCatalog
 
         // OR-merge : on ne RETIRE jamais une feature plan (les addons ne servent qu'à
         // débloquer en plus). Le with-expression record copy garantit l'immutabilité.
+        // RAG = « sur devis » : débloqué UNIQUEMENT par l'addon négocié iaDocumentaireAvancee
+        // (ou un plan l'incluant nativement). L'addon self-service aiAssistantRh (« Assistant RH IA »)
+        // ne donne PLUS accès au RAG — décision produit 2026-06 : le RAG n'est pas inclus dans
+        // l'aide RH, il reste commercialisé sur devis via iaDocumentaireAvancee.
         bool ragAi = feat.RagAi
-            || addons.Contains("aiAssistantRh")
             || addons.Contains("iaDocumentaireAvancee");
 
         bool hasSignAddon = addons.Contains("signatureElectronique");
@@ -450,6 +460,10 @@ public static class PlanCatalog
         bool apiAccess = feat.ApiAccess || addons.Contains("apiAvancee");
         bool prioritySupport = feat.PrioritySupport || addons.Contains("supportPrioritaire");
 
+        // Assistant IA conversationnel : débloqué par l'addon self-service aiAssistantRh.
+        // Le RAG (sur devis) est un sur-ensemble fonctionnel → un tenant RAG a aussi le chatbot.
+        bool aiChatbot = feat.AiChatbot || addons.Contains("aiAssistantRh") || ragAi;
+
         return feat with
         {
             RagAi = ragAi,
@@ -457,6 +471,7 @@ public static class PlanCatalog
             DigitalVault = digitalVault,
             ApiAccess = apiAccess,
             PrioritySupport = prioritySupport,
+            AiChatbot = aiChatbot,
         };
     }
 }

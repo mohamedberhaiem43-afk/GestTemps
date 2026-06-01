@@ -110,7 +110,10 @@ function HubContent() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { soccod, uticod, userName, roleName, isAdmin, isManager, isEmp, sercod } = useAuth();
+  const { soccod, uticod, userName, roleName, isAdmin, isManager, isEmp, sercod, planAllows } = useAuth();
+  // L'onglet « Documents juridiques » (RAG, /ChatRag/ask) est « sur devis » → gaté par ragAi.
+  // L'onglet « Assistant » reste accessible dès que le hub est affiché (planAllows('aiChatbot')).
+  const ragAllowed = planAllows('ragAi');
 
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<TabKey>('assistant');
@@ -160,7 +163,8 @@ Posez-moi votre question !`;
   //   window.dispatchEvent(new Event('rag-chat:open'))    → onglet RAG
   //   window.dispatchEvent(new Event('assistant:open'))   → onglet Assistant
   useEffect(() => {
-    const openRag = () => { setTab('rag'); setOpen(true); };
+    // Onglet RAG « sur devis » : on n'y bascule que si le tenant y a droit, sinon on ouvre l'Assistant.
+    const openRag = () => { setTab(ragAllowed ? 'rag' : 'assistant'); setOpen(true); };
     const openAssistant = () => { setTab('assistant'); setOpen(true); };
     window.addEventListener('rag-chat:open', openRag);
     window.addEventListener('assistant:open', openAssistant);
@@ -168,7 +172,7 @@ Posez-moi votre question !`;
       window.removeEventListener('rag-chat:open', openRag);
       window.removeEventListener('assistant:open', openAssistant);
     };
-  }, []);
+  }, [ragAllowed]);
 
   // Auto-scroll au bas de la conversation visible.
   useEffect(() => {
@@ -395,13 +399,15 @@ Posez-moi votre question !`;
             label="Assistant"
             sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }}
           />
-          <Tab
-            value="rag"
-            icon={<GavelIcon fontSize="small" />}
-            iconPosition="start"
-            label="Documents juridiques"
-            sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }}
-          />
+          {ragAllowed && (
+            <Tab
+              value="rag"
+              icon={<GavelIcon fontSize="small" />}
+              iconPosition="start"
+              label="Documents juridiques"
+              sx={{ minHeight: 44, textTransform: 'none', fontWeight: 600 }}
+            />
+          )}
         </Tabs>
 
         {/* Body */}

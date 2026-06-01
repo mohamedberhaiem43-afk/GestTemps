@@ -358,6 +358,9 @@ builder.Services.AddHttpClient(nameof(ABRPOINT.Server.Services.ExpoPushService))
 builder.Services.AddSingleton<ABRPOINT.Server.Services.IExpoPushService, ABRPOINT.Server.Services.ExpoPushService>();
 builder.Services.AddScoped<ABRPOINT.Server.Services.IUserNotificationService, ABRPOINT.Server.Services.UserNotificationService>();
 builder.Services.AddHostedService<ABRPOINT.Server.Services.PunctualityReminderHostedService>();
+// Alerte employeur : retard d'entrée / départ anticipé d'un collaborateur (notif managers/RH/admin
+// rattachés au site, dédup quotidienne). Cf. LateClockNotifierHostedService.
+builder.Services.AddHostedService<ABRPOINT.Server.Services.LateClockNotifierHostedService>();
 // RGPD Art. 32 — purge quotidienne des journaux d'audit > 6 mois (configurable
 // via Security:AuditLogRetentionDays, minimum applicatif 30j).
 builder.Services.AddHostedService<ABRPOINT.Server.Services.AuditLogRetentionHostedService>();

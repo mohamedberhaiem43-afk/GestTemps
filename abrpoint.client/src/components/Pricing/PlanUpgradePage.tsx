@@ -54,6 +54,8 @@ const MINIMUM_PLAN_FOR_FEATURE: Record<keyof PlanFeatures, PlanKey | null> = {
   // PlanCatalog.GetEffectiveFeatures pour le mapping addon → flag.
   apiAccess: null,
   prioritySupport: null,
+  // Assistant IA conversationnel : inclus nativement en Premium, sinon via l'addon aiAssistantRh.
+  aiChatbot: 'Premium',
 };
 
 // Le backend renvoie la feature en PascalCase (cf. RequirePlanFeatureAttribute) ; on
