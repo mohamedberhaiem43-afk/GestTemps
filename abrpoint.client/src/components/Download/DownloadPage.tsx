@@ -120,7 +120,7 @@ export default function DownloadPage() {
           </h1>
           <p className="dl-sub">
             L'app mobile officielle de pointage, congés et notifications RH —
-            iOS et Android. Lien canonique :{' '}
+            Android. Lien canonique :{' '}
             <strong>concordeworkly.com</strong>.
           </p>
         </div>
@@ -215,22 +215,6 @@ export default function DownloadPage() {
                   Scannez le QR code avec votre téléphone pour télécharger l'app
                   directement. Ou cliquez sur l'un des liens ci-dessous.
                 </p>
-                <div className="dl-stores-row">
-                  <a className="dl-btn dl-btn-secondary" href={STORE_LINKS.ios} target="_blank" rel="noreferrer">
-                    <span className="dl-btn-icon"></span>
-                    <span className="dl-btn-content">
-                      <span className="dl-btn-small">Télécharger sur</span>
-                      <span className="dl-btn-large">App Store</span>
-                    </span>
-                  </a>
-                  <a className="dl-btn dl-btn-secondary" href={STORE_LINKS.android} target="_blank" rel="noreferrer">
-                    <span className="dl-btn-icon">▶</span>
-                    <span className="dl-btn-content">
-                      <span className="dl-btn-small">DISPONIBLE SUR</span>
-                      <span className="dl-btn-large">Google Play</span>
-                    </span>
-                  </a>
-                </div>
                 {apkInfo === null ? (
                   <div className="dl-btn dl-btn-loading">
                     <span className="dl-btn-icon">⏳</span>

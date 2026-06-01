@@ -89,6 +89,18 @@ docker run --rm \
   alpine:3 \
   sh -c "tar czf /backup/uploads.tar.gz -C /data ."
 
+# ── 1bis. Modèles de contrat/lettres édités (volume vault_templates_data) ────
+# Stockés en fichiers HTML dans /app/VaultTemplates (hors Postgres), donc non
+# couverts par pg_dump. Le `|| true` évite d'échouer le backup si le volume
+# n'existe pas encore (ancienne installation sans le volume).
+echo "[$(date -Iseconds)] Modèles VaultTemplates → vault-templates.tar.gz"
+docker run --rm \
+  -v abrpoint_vault_templates_data:/data:ro \
+  -v "$DAY_DIR":/backup \
+  alpine:3 \
+  sh -c "tar czf /backup/vault-templates.tar.gz -C /data ." || \
+  echo "[WARN] volume abrpoint_vault_templates_data introuvable — modèles non sauvegardés"
+
 # ── 2. Postgres : list databases (master + tous les tenants_*) ───────────────
 echo "[$(date -Iseconds)] Énumération bases Postgres"
 # pg_database = catalog Postgres listant les DB du cluster. On filtre :

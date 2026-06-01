@@ -61,7 +61,7 @@ interface Dict {
   btnMonthly: string; btnAnnual: string; from: string; perMonth: string;
   commitAnnual: string; noCard: string; crossSuffix: string; savePrefix: string; saveSuffix: string;
   annualBill: string; popularBadge: string; premiumBadge: string; entBadge: string;
-  pi1: string; pi2: string; pi3: string;
+  pi1: string; pi2: string; pi3: string; extraCollab: string;
   starterFeatures: string[]; standardFeatures: string[]; businessFeatures: string[]; entFeatures: string[];
   entPriceLabel: string; entAmount: string; entAmountSuffix: string; entCommit: string; entSub: string; entCta: string;
   trialBtn: string; demoCard: string; pricingFoot: string;
@@ -146,9 +146,10 @@ const FR: Dict = {
   pi1: '10 collaborateurs inclus · 10 Go stockage sécurisé',
   pi2: '25 collaborateurs inclus · 50 Go stockage sécurisé',
   pi3: '50 collaborateurs inclus · 200 Go stockage sécurisé',
+  extraCollab: 'puis +{price} € HT / mois par collaborateur supplémentaire',
   starterFeatures: ['Pointage web & mobile (iOS / Android)', 'Gestion RH essentielle (fiches, contrats)', 'Gestion congés & absences', 'Tableau de bord simplifié · exports PDF / Excel', 'Notifications essentielles', '10 Go stockage sécurisé · Hébergement France OVH', 'Multi utilisateurs'],
-  standardFeatures: ['Tout le pack Starter', 'Application mobile + géolocalisation', 'Coffre numérique & signature électronique', 'Import Excel en masse (employés, services, fonctions…)', 'Préparation paie · export paie · Multi-sites simple', 'Congés, RTT, CET, sanctions · Notifications push / email', 'Reporting avancé · 50 Go stockage sécurisé', 'Hébergement France OVH · Multi utilisateurs'],
-  businessFeatures: ['Tout le pack Standard', 'Multi-filiales sur devis · tableaux de bord avancés', 'Sécurité renforcée · Audit logs avancés', 'Supervision avancée · 200 Go stockage sécurisé', 'Hébergement France OVH · Administrateurs illimités', 'Onboarding accompagné · SLA prioritaire'],
+  standardFeatures: ['Tout le pack Starter', 'Application mobile + géolocalisation', 'Coffre numérique & signature électronique', 'Import Excel en masse (employés, services, fonctions, rubriques…)', 'Préparation paie · export paie · Multi-sites simple', 'Congés, RTT, CET, sanctions · Notifications push / email', 'Reporting avancé · 50 Go stockage sécurisé', 'Hébergement France OVH · Multi utilisateurs', 'Idéal : PME en croissance · équipes terrain · structures multi-sites · gestion RH centralisée'],
+  businessFeatures: ['Tout le pack Standard', 'Multi-filiales sur devis · tableaux de bord avancés', 'Sécurité renforcée · Audit logs avancés', 'Supervision avancée · 200 Go stockage sécurisé', 'Hébergement France OVH · Administrateurs illimités', 'Onboarding accompagné · SLA prioritaire', 'Idéal : PME structurées · groupes multi-sites · conformité & sécurité avancées · organisations en croissance'],
   entFeatures: ['IA RH avancée', 'Recherche documentaire', 'Workflows intelligents', 'API avancées & SSO', 'Hébergement dédié', 'Architecture sur mesure'],
   entPriceLabel: 'Sur devis', entAmount: 'Tarification', entAmountSuffix: ' personnalisée',
   entCommit: 'selon votre structure & volume', entSub: 'Administrateurs illimités · Onboarding accompagné', entCta: 'Demander un devis →',
@@ -267,9 +268,10 @@ const EN: Dict = {
   pi1: '10 users included · 10 GB secure storage',
   pi2: '25 users included · 50 GB secure storage',
   pi3: '50 users included · 200 GB secure storage',
+  extraCollab: 'then +€{price} excl. tax / mo per additional employee',
   starterFeatures: ['Web & mobile time tracking (iOS / Android)', 'Essential HR management (records, contracts)', 'Leave & absence management', 'Simplified dashboard · PDF / Excel exports', 'Essential notifications', '10 GB secure storage · Hosted in France OVH', 'Multi-user'],
-  standardFeatures: ['Everything in Starter', 'Mobile app + geolocation', 'Digital vault & e-signature', 'Bulk Excel import (employees, services, roles…)', 'Payroll preparation · payroll export · simple multi-site', 'Leave, RTT, time-off, sanctions · push / email notifications', 'Advanced reporting · 50 GB secure storage', 'Hosted in France OVH · Multi-user'],
-  businessFeatures: ['Everything in Standard', 'Multi-subsidiary on quote · advanced dashboards', 'Enhanced security · advanced audit logs', 'Advanced supervision · 200 GB secure storage', 'Hosted in France OVH · Unlimited administrators', 'Guided onboarding · priority SLA'],
+  standardFeatures: ['Everything in Starter', 'Mobile app + geolocation', 'Digital vault & e-signature', 'Bulk Excel import (employees, services, roles, items…)', 'Payroll preparation · payroll export · simple multi-site', 'Leave, RTT, time-off, sanctions · push / email notifications', 'Advanced reporting · 50 GB secure storage', 'Hosted in France OVH · Multi-user', 'Ideal for: growing SMEs · field teams · multi-site structures · centralized HR management'],
+  businessFeatures: ['Everything in Standard', 'Multi-subsidiary on quote · advanced dashboards', 'Enhanced security · advanced audit logs', 'Advanced supervision · 200 GB secure storage', 'Hosted in France OVH · Unlimited administrators', 'Guided onboarding · priority SLA', 'Ideal for: structured SMEs · multi-site groups · advanced compliance & security · growing organizations'],
   entFeatures: ['Advanced HR AI', 'Document search', 'Smart workflows', 'Advanced APIs & SSO', 'Dedicated hosting', 'Tailor-made architecture'],
   entPriceLabel: 'Custom quote', entAmount: 'Custom', entAmountSuffix: ' pricing',
   entCommit: 'based on your structure & volume', entSub: 'Unlimited administrators · Guided onboarding', entCta: 'Request a quote →',
@@ -373,6 +375,27 @@ function renderComparisonCell(value: CompCell): React.ReactNode {
 const LOGO_SRC = '/concorde-workly-light.png';
 const DOWNLOAD_URL = 'https://concorde-work-force.com/download';
 
+// ── Liens de paiement Stripe (Checkout hébergé) ─────────────────────────────
+// Un lien par pack payant × cycle de facturation. Le tunnel Stripe inclut déjà
+// l'essai gratuit 30 jours : le bouton « Essai gratuit 30j » des cartes ouvre
+// donc directement le checkout du pack choisi (cf. cycle mensuel / annuel).
+// Enterprise Plus n'a pas de lien (tarification sur devis → section contact).
+type PaidPack = 'starter' | 'standard' | 'premium';
+const STRIPE_LINKS: Record<PaidPack, Record<BillingCycle, string>> = {
+  starter: {
+    monthly: 'https://buy.stripe.com/9B6dR21dX83v9JBcZX00002',
+    annual: 'https://buy.stripe.com/aFa9AMcWFgA14ph2lj00003',
+  },
+  standard: {
+    monthly: 'https://buy.stripe.com/9B628k09TbfHaNF2lj00004',
+    annual: 'https://buy.stripe.com/00w4gs2i197z7Bt1hf00005',
+  },
+  premium: {
+    monthly: 'https://buy.stripe.com/8x24gs1dX83v8Fxgc900006',
+    annual: 'https://buy.stripe.com/4gMcMY4q91F7091cZX00007',
+  },
+};
+
 export default function HomePage() {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
@@ -404,6 +427,10 @@ export default function HomePage() {
   const monthlyBase = { starter: 99, standard: 219, premium: 449 };
   const annualMonthly = { starter: 69, standard: 119, premium: 249 };
   const annualSavings = { starter: 360, standard: 1200, premium: 2400 };
+  // Tarif du collaborateur supplémentaire au-delà de l'inclus (HT / mois) — aligné sur
+  // PlanCatalog.OverageRatePerEmployeeEur côté serveur ET sur l'item « collaborateur
+  // supplémentaire » des Payment Links Stripe (ex. Starter 4,90 €/mois = 58,80 €/an).
+  const overageRates = { starter: 4.9, standard: 6.9, premium: 9.9 };
   const prices = {
     starter: monthly ? monthlyBase.starter : annualMonthly.starter,
     standard: monthly ? monthlyBase.standard : annualMonthly.standard,
@@ -423,6 +450,23 @@ export default function HomePage() {
   const goToLogin = () => {
     if (isAuthenticated) { navigate('/dashboard'); return; }
     navigate('/login');
+  };
+  // « Essai gratuit 30j » d'une carte payante (Payment Link Stripe, essai 30 j inclus).
+  // Pour que le paiement soit rattaché au bon tenant côté webhook
+  // (checkout.session.completed → ApplyCheckoutSubscriptionAsync), le lien doit porter
+  // ?client_reference_id={slug}. On ne dispose de ce slug qu'une fois le compte créé :
+  //   • visiteur anonyme  → on ouvre d'abord l'inscription (essai 30 j sans CB) ; le
+  //     paiement/abonnement via le lien se fera ensuite depuis l'espace « Mon abonnement ».
+  //   • utilisateur connecté → on ouvre directement le Payment Link avec son slug.
+  // Le cycle actif (mensuel / annuel) sélectionne le bon lien. Nouvel onglet.
+  const goToCheckout = (pack: PaidPack) => {
+    const slug = (typeof window !== 'undefined' && window.localStorage.getItem('tenantSlug')) || '';
+    if (!isAuthenticated || !slug) {
+      goToSignup();
+      return;
+    }
+    const url = `${STRIPE_LINKS[pack][billingCycle]}?client_reference_id=${encodeURIComponent(slug)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
   // Le formulaire de contact n'a pas encore d'endpoint dédié : on redirige vers
   // la page contact-sales existante (graceful fallback, pas de perte de prospect).
@@ -673,8 +717,9 @@ export default function HomePage() {
             {!monthly && <div className="price-cross">{fmt(monthlyBase.starter)}{d.crossSuffix}</div>}
             {!monthly && <div className="price-save">{d.savePrefix}{fmt(annualSavings.starter)}{d.saveSuffix}</div>}
             <div className="price-incl">{d.pi1}</div>
+            <div className="price-extra" style={{ fontSize: 12.5, color: '#64748b', margin: '4px 0 2px' }}>{d.extraCollab.replace('{price}', fmt(overageRates.starter))}</div>
             <div className="price-per">{d.annualBill}</div>
-            <button type="button" className="btn-trial" onClick={goToSignup}>{d.trialBtn}</button>
+            <button type="button" className="btn-trial" onClick={() => goToCheckout('starter')}>{d.trialBtn}</button>
             <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--on-v)', margin: '10px 0', fontWeight: 500 }}>✓ {d.noCard}</div>
             <button type="button" className="btn-demo-card" onClick={() => scrollToId('contact')}>{d.demoCard}</button>
             <ul className="price-list">{d.starterFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
@@ -690,8 +735,9 @@ export default function HomePage() {
             {!monthly && <div className="price-cross">{fmt(monthlyBase.standard)}{d.crossSuffix}</div>}
             {!monthly && <div className="price-save">{d.savePrefix}{fmt(annualSavings.standard)}{d.saveSuffix}</div>}
             <div className="price-incl">{d.pi2}</div>
+            <div className="price-extra" style={{ fontSize: 12.5, color: '#64748b', margin: '4px 0 2px' }}>{d.extraCollab.replace('{price}', fmt(overageRates.standard))}</div>
             <div className="price-per">{d.annualBill}</div>
-            <button type="button" className="btn-trial" onClick={goToSignup}>{d.trialBtn}</button>
+            <button type="button" className="btn-trial" onClick={() => goToCheckout('standard')}>{d.trialBtn}</button>
             <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--on-v)', margin: '10px 0', fontWeight: 500 }}>✓ {d.noCard}</div>
             <button type="button" className="btn-demo-card" onClick={() => scrollToId('contact')}>{d.demoCard}</button>
             <ul className="price-list">{d.standardFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
@@ -707,8 +753,9 @@ export default function HomePage() {
             {!monthly && <div className="price-cross" style={{ color: '#5a7da8' }}>{fmt(monthlyBase.premium)}{d.crossSuffix}</div>}
             {!monthly && <div className="price-save">{d.savePrefix}{fmt(annualSavings.premium)}{d.saveSuffix}</div>}
             <div className="price-incl" style={{ color: '#0040a1' }}>{d.pi3}</div>
+            <div className="price-extra" style={{ fontSize: 12.5, color: '#3b6bb5', margin: '4px 0 2px' }}>{d.extraCollab.replace('{price}', fmt(overageRates.premium))}</div>
             <div className="price-per">{d.annualBill}</div>
-            <button type="button" className="btn-trial" style={{ background: 'linear-gradient(135deg,#0040a1,#0056d2)', boxShadow: '0 6px 18px rgba(0,64,161,.32)' }} onClick={goToSignup}>{d.trialBtn}</button>
+            <button type="button" className="btn-trial" style={{ background: 'linear-gradient(135deg,#0040a1,#0056d2)', boxShadow: '0 6px 18px rgba(0,64,161,.32)' }} onClick={() => goToCheckout('premium')}>{d.trialBtn}</button>
             <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--on-v)', margin: '10px 0', fontWeight: 500 }}>✓ {d.noCard}</div>
             <button type="button" className="btn-demo-card" style={{ borderColor: '#0040a1', color: '#0040a1' }} onClick={() => scrollToId('contact')}>{d.demoCard}</button>
             <ul className="price-list">{d.businessFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
@@ -745,18 +792,18 @@ export default function HomePage() {
                 <th className="comp-plan">
                   <div className="comp-plan-name">Starter</div>
                   <div className="comp-plan-price">{d.fromShort} <strong>{fmt(annualMonthly.starter)} €</strong> HT{lang === 'en' ? ' / mo' : ' / mois'}</div>
-                  <button type="button" className="comp-cta" onClick={goToSignup}>{d.compTrial}</button>
+                  <button type="button" className="comp-cta" onClick={() => goToCheckout('starter')}>{d.compTrial}</button>
                 </th>
                 <th className="comp-plan comp-plan-featured">
                   <div className="comp-plan-badge">{d.popularBadge}</div>
                   <div className="comp-plan-name">Standard</div>
                   <div className="comp-plan-price">{d.fromShort} <strong>{fmt(annualMonthly.standard)} €</strong> HT{lang === 'en' ? ' / mo' : ' / mois'}</div>
-                  <button type="button" className="comp-cta comp-cta-primary" onClick={goToSignup}>{d.compTrial}</button>
+                  <button type="button" className="comp-cta comp-cta-primary" onClick={() => goToCheckout('standard')}>{d.compTrial}</button>
                 </th>
                 <th className="comp-plan">
                   <div className="comp-plan-name" style={{ color: '#b8860b' }}>Premium</div>
                   <div className="comp-plan-price">{d.fromShort} <strong>{fmt(annualMonthly.premium)} €</strong> HT{lang === 'en' ? ' / mo' : ' / mois'}</div>
-                  <button type="button" className="comp-cta comp-cta-premium" onClick={goToSignup}>{d.compTrial}</button>
+                  <button type="button" className="comp-cta comp-cta-premium" onClick={() => goToCheckout('premium')}>{d.compTrial}</button>
                 </th>
               </tr>
             </thead>

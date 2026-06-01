@@ -137,7 +137,41 @@ public interface IBillingService
         int delta,
         int activeEmployeeCount,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Réconcilie l'état d'un tenant avec une subscription Stripe issue d'un
+    /// <b>Payment Link</b> (lien <c>buy.stripe.com</c> de la page d'accueil). Contrairement
+    /// au Checkout piloté par l'API (qui pose <c>Metadata["plan"]</c> + un item user_supp à 0),
+    /// un Payment Link arrive « brut » : pas de metadata plan, et la quantité de
+    /// collaborateurs supplémentaires choisie par le client est portée par un item de prix
+    /// dédié (mappé sur <c>UserSupp:{Plan}:{cycle}</c>). Cette méthode :
+    /// <list type="number">
+    /// <item>charge la subscription avec ses items + prix expandés ;</item>
+    /// <item>déduit le <c>PlanCode</c> et le cycle depuis le price_id de base
+    ///   (reverse-map de <c>Stripe:Prices</c>) ;</item>
+    /// <item>lit la quantité de l'item <c>user_supp</c> = collaborateurs supplémentaires
+    ///   pré-achetés, et la grave comme floor <c>extra_seats_purchased</c> dans la metadata
+    ///   de la subscription (respecté par <see cref="SyncSupplementaryEmployeesAsync"/>).</item>
+    /// </list>
+    /// Idempotent : un replay du webhook ne réduit jamais le floor existant.
+    /// </summary>
+    /// <returns>Le pack/cycle dérivés + le nombre de collaborateurs supplémentaires détectés,
+    /// ou null si Stripe n'est pas configuré ou la subscription est introuvable.</returns>
+    Task<CheckoutProvisionResult?> ApplyCheckoutSubscriptionAsync(
+        Tenant tenant,
+        string subscriptionId,
+        CancellationToken ct = default);
 }
+
+/// <summary>
+/// Résultat de la réconciliation d'une subscription Payment Link
+/// (cf. <see cref="IBillingService.ApplyCheckoutSubscriptionAsync"/>). <c>PlanCode</c>/<c>Cycle</c>
+/// sont null si aucun price de base connu n'a pu être identifié dans la subscription.
+/// </summary>
+public sealed record CheckoutProvisionResult(
+    string? PlanCode,
+    string? Cycle,
+    int ExtraSeatsPurchased);
 
 /// <summary>
 /// Résultat d'un achat de sièges supplémentaires (cf. <see cref="IBillingService.PurchaseExtraSeatsAsync"/>).

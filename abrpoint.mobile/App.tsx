@@ -66,7 +66,9 @@ import HolidaysScreen from './src/screens/HolidaysScreen';
 import ScheduleScreen from './src/screens/ScheduleScreen';
 import ChatRagScreen from './src/screens/ChatRagScreen';
 import MissionsScreen from './src/screens/MissionsScreen';
-import AddRequestScreen from './src/screens/AddRequestScreen';
+// AddRequestScreen (écran générique « Ajouter une demande ») retiré 2026-06 au
+// profit d'écrans dédiés par type. Les heures sup. ont désormais le leur.
+import HeuresSupScreen from './src/screens/HeuresSupScreen';
 
 // Manager Screens
 import EmployeeListScreen from './src/screens/manager/EmployeeListScreen';
@@ -117,7 +119,7 @@ function AppStack() {
       <Stack.Screen name="Schedule" component={ScheduleScreen} />
       <Stack.Screen name="ChatRag" component={ChatRagScreen} />
       <Stack.Screen name="Missions" component={MissionsScreen} />
-      <Stack.Screen name="AddRequest" component={AddRequestScreen} />
+      <Stack.Screen name="HeuresSup" component={HeuresSupScreen} />
       {/* Manager Screens - always registered, access controlled by UI */}
       <Stack.Screen name="EmployeeList" component={EmployeeListScreen} />
       <Stack.Screen name="AddEmployee" component={AddEmployeeScreen} />

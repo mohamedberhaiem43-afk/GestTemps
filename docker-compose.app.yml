@@ -20,6 +20,9 @@
 
 volumes:
   uploads_data:
+  # Modèles de contrats/lettres édités via VaultTemplates (/app/VaultTemplates).
+  # Volume nommé → survit à la recréation des conteneurs (sinon perdus).
+  vault_templates_data:
   letsencrypt_data:
   qdrant_data:
   crowdsec_data:
@@ -82,6 +85,8 @@ services:
     restart: unless-stopped
     volumes:
       - uploads_data:/app/uploads
+      # Persiste les modèles de contrat/lettres édités (cf. note sur le volume).
+      - vault_templates_data:/app/VaultTemplates
     environment:
       # ── Connexion Postgres distant (serveur DB séparé) ──────────────
       # Format Npgsql. Ssl Mode=Prefer : tente TLS si dispo, retombe en

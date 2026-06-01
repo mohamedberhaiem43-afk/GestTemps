@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   Alert, RefreshControl, ActivityIndicator,
@@ -81,7 +81,6 @@ const toIsoDate = (d: Date) => d.toISOString().split('T')[0];
 export default function MissionsScreen({ navigation }: any) {
   const { user } = useAuth();
   const [missions, setMissions] = useState<Mission[]>([]);
-  const [natures, setNatures] = useState<AbsenceNature[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -98,9 +97,13 @@ export default function MissionsScreen({ navigation }: any) {
     abscod: '',
   };
   const [form, setForm] = useState(defaultForm);
+  // Nature d'absence forcée à « mission ». Décision produit 2026-06 : côté
+  // mobile, missions ET formations sont systématiquement rattachées à la nature
+  // « mission » (toutes deux Abscng="6"), et le champ Nature n'est plus exposé à
+  // l'utilisateur. On mémorise le code retenu pour le réinjecter à chaque reset.
+  const [missionAbscod, setMissionAbscod] = useState('');
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
-  const [showNaturePicker, setShowNaturePicker] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
   useEffect(() => { loadAll(); }, [user?.soccod, user?.uticod]);
@@ -113,7 +116,16 @@ export default function MissionsScreen({ navigation }: any) {
         apiService.getMissionNatures(user.soccod),
       ]);
       setMissions(Array.isArray(missionsRes) ? missionsRes : []);
-      setNatures(Array.isArray(naturesRes) ? naturesRes : []);
+      const naturesList: AbsenceNature[] = Array.isArray(naturesRes) ? naturesRes : [];
+      // Sélection automatique de la nature « mission » : on privilégie le libellé
+      // contenant « mission » (et pas « formation ») ; à défaut on prend la
+      // première nature configurée (Abscng="6"). Aucune liste déroulante affichée.
+      const forced =
+        naturesList.find(n => /mission/i.test(n.abslib) && !/formation/i.test(n.abslib))?.abscod
+        || naturesList[0]?.abscod
+        || '';
+      setMissionAbscod(forced);
+      setForm(f => ({ ...f, abscod: forced }));
     } catch (e) {
       console.log('Missions load error:', e);
     } finally {
@@ -158,7 +170,7 @@ export default function MissionsScreen({ navigation }: any) {
       });
       Alert.alert('✅ Succès', 'Mission créée avec succès.');
       setShowForm(false);
-      setForm(defaultForm);
+      setForm({ ...defaultForm, abscod: missionAbscod });
       loadAll();
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Impossible de créer la mission.';
@@ -167,11 +179,6 @@ export default function MissionsScreen({ navigation }: any) {
       setSubmitting(false);
     }
   };
-
-  const selectedNatureLib = useMemo(
-    () => natures.find(n => n.abscod === form.abscod)?.abslib || '',
-    [form.abscod, natures]
-  );
 
   if (loading) {
     return (
@@ -273,12 +280,8 @@ export default function MissionsScreen({ navigation }: any) {
                 placeholderTextColor="#94a3b8"
               />
 
-              <Text style={styles.fieldLabel}>NATURE *</Text>
-              <TouchableOpacity style={styles.input} onPress={() => setShowNaturePicker(true)}>
-                <Text style={[styles.inputText, !form.abscod && styles.placeholder]}>
-                  {selectedNatureLib || 'Sélectionner une nature…'}
-                </Text>
-              </TouchableOpacity>
+              {/* Champ NATURE retiré : la nature est forcée à « mission » côté
+                  mobile (cf. missionAbscod). Aucune liste déroulante exposée. */}
 
               <Text style={styles.fieldLabel}>DESTINATION</Text>
               <TextInput
@@ -379,39 +382,7 @@ export default function MissionsScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* Picker nature : liste simple en bottom sheet */}
-      {showNaturePicker && (
-        <View style={styles.formOverlay}>
-          <View style={[styles.formSheet, { maxHeight: '60%' }]}>
-            <View style={styles.formHandle} />
-            <View style={styles.formHeader}>
-              <Text style={styles.formTitle}>Nature de mission</Text>
-              <TouchableOpacity onPress={() => setShowNaturePicker(false)}>
-                <MaterialCommunityIcons name="close" size={24} color={COLORS.outline} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView>
-              {natures.length === 0 ? (
-                <Text style={styles.naturesEmpty}>
-                  Aucune nature de mission n'est encore configurée. Demandez à votre administrateur d'en créer une.
-                </Text>
-              ) : natures.map(n => (
-                <TouchableOpacity
-                  key={n.abscod}
-                  style={[styles.natureItem, form.abscod === n.abscod && styles.natureItemActive]}
-                  onPress={() => { setForm({ ...form, abscod: n.abscod }); setShowNaturePicker(false); }}
-                >
-                  <Text style={styles.natureCode}>{n.abscod}</Text>
-                  <Text style={styles.natureLib}>{n.abslib}</Text>
-                  {form.abscod === n.abscod && (
-                    <MaterialCommunityIcons name="check-circle" size={20} color={COLORS.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      )}
+      {/* Picker nature retiré : nature forcée à « mission » côté mobile. */}
 
       <DatePickerModal
         visible={showStartPicker}

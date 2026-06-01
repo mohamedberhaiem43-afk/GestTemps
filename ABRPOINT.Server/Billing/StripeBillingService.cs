@@ -1341,6 +1341,124 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
             MonthlyCostEur: newQuantity * plan.OverageRatePerEmployeeEur,
             OverageRatePerSeat: plan.OverageRatePerEmployeeEur);
     }
+
+    /// <summary>
+    /// Construit le reverse-map price_id → (plan, cycle, kind) à partir de <c>Stripe:Prices</c>.
+    /// Reconnaît les clés <c>{Plan}:base:{cycle}</c>, le legacy <c>{Plan}:{cycle}</c> (= base),
+    /// et <c>UserSupp:{Plan}:{cycle}</c> (= collaborateur supplémentaire). Un même price_id peut
+    /// être partagé entre mensuel/annuel (cf. config actuelle où UserSupp:*:monthly == *:annual) :
+    /// dans ce cas on retient la 1re occurrence, le cycle réel étant de toute façon redétecté via
+    /// l'intervalle Stripe ailleurs. <c>kind</c> ∈ { "base", "usersupp" }.
+    /// </summary>
+    private Dictionary<string, (string Plan, string Cycle, string Kind)> BuildPriceReverseMap()
+    {
+        var map = new Dictionary<string, (string, string, string)>(System.StringComparer.Ordinal);
+        foreach (var kv in _opts.Prices)
+        {
+            var pid = kv.Value;
+            if (string.IsNullOrWhiteSpace(pid) || pid.Contains("REPLACE")) continue;
+            var seg = kv.Key.Split(':');
+            if (seg.Length == 3 && string.Equals(seg[0], "UserSupp", System.StringComparison.OrdinalIgnoreCase))
+            {
+                if (!map.ContainsKey(pid)) map[pid] = (PlanCatalog.Normalize(seg[1]), seg[2].ToLowerInvariant(), "usersupp");
+            }
+            else if (seg.Length == 3 && string.Equals(seg[1], "base", System.StringComparison.OrdinalIgnoreCase))
+            {
+                if (!map.ContainsKey(pid)) map[pid] = (PlanCatalog.Normalize(seg[0]), seg[2].ToLowerInvariant(), "base");
+            }
+            else if (seg.Length == 2)
+            {
+                // Legacy {Plan}:{cycle} = prix de base unique. N'écrase pas une clé moderne déjà vue.
+                if (!map.ContainsKey(pid)) map[pid] = (PlanCatalog.Normalize(seg[0]), seg[1].ToLowerInvariant(), "base");
+            }
+        }
+        return map;
+    }
+
+    public async Task<CheckoutProvisionResult?> ApplyCheckoutSubscriptionAsync(
+        Tenant tenant,
+        string subscriptionId,
+        CancellationToken ct = default)
+    {
+        if (!_opts.IsConfigured) return null;
+        if (string.IsNullOrWhiteSpace(subscriptionId)) return null;
+
+        Stripe.StripeConfiguration.ApiKey = _opts.SecretKey;
+        Subscription sub;
+        try
+        {
+            sub = await _subscriptions.GetAsync(
+                subscriptionId,
+                new SubscriptionGetOptions { Expand = new List<string> { "items.data.price" } },
+                cancellationToken: ct);
+        }
+        catch (StripeException ex)
+        {
+            _log.LogWarning(ex, "ApplyCheckoutSubscription : subscription {Sub} introuvable pour tenant {Slug}.", subscriptionId, tenant.Slug);
+            return null;
+        }
+        if (sub?.Items?.Data is null) return null;
+
+        var reverse = BuildPriceReverseMap();
+        string? derivedPlan = null;
+        string? derivedCycle = null;
+        var extraSeats = 0;
+
+        foreach (var item in sub.Items.Data)
+        {
+            var pid = item.Price?.Id;
+            if (string.IsNullOrEmpty(pid)) continue;
+            // Le cycle réel vient de l'intervalle Stripe (year → annual), plus fiable que la
+            // clé de config quand un même price_id couvre mensuel ET annuel.
+            var itemCycle = string.Equals(item.Price?.Recurring?.Interval, "year", System.StringComparison.OrdinalIgnoreCase)
+                ? "annual" : "monthly";
+            if (reverse.TryGetValue(pid, out var info))
+            {
+                if (info.Kind == "base")
+                {
+                    derivedPlan = info.Plan;
+                    derivedCycle = itemCycle;
+                }
+                else if (info.Kind == "usersupp")
+                {
+                    extraSeats += (int)(item.Quantity);
+                }
+            }
+        }
+
+        // Pose le floor de sièges pré-achetés sur la subscription Payment Link, sans jamais
+        // le réduire (idempotence des replays webhook). SyncSupplementaryEmployeesAsync lira
+        // ce floor via ReadPurchasedExtras et le respectera au true-up quotidien.
+        if (extraSeats > 0)
+        {
+            var prev = ReadPurchasedExtras(sub);
+            var floor = System.Math.Max(prev, extraSeats);
+            if (floor != prev)
+            {
+                try
+                {
+                    await _subscriptions.UpdateAsync(subscriptionId, new SubscriptionUpdateOptions
+                    {
+                        Metadata = new Dictionary<string, string>
+                        {
+                            [ExtraSeatsPurchasedMetaKey] = floor.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        },
+                    }, cancellationToken: ct);
+                }
+                catch (StripeException ex)
+                {
+                    _log.LogWarning(ex, "ApplyCheckoutSubscription : échec écriture floor extra_seats={Floor} sur {Sub} (tenant {Slug}).",
+                        floor, subscriptionId, tenant.Slug);
+                }
+            }
+        }
+
+        _log.LogInformation(
+            "ApplyCheckoutSubscription : tenant {Slug} ← Payment Link sub {Sub} (plan={Plan}, cycle={Cycle}, collab_supp={Extra}).",
+            tenant.Slug, subscriptionId, derivedPlan ?? "?", derivedCycle ?? "?", extraSeats);
+
+        return new CheckoutProvisionResult(derivedPlan, derivedCycle, extraSeats);
+    }
 }
 
 internal sealed class StripeOptions

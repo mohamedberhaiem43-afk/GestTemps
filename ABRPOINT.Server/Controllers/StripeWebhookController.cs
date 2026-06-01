@@ -185,18 +185,29 @@ public class StripeWebhookController : ControllerBase
                     // au tenant et on annule l'éventuelle subscription trial pré-existante pour
                     // éviter d'avoir deux subscriptions actives sur le même customer.
                     var session = stripeEvent.Data.Object as Stripe.Checkout.Session;
-                    var tenantIdRaw = session?.ClientReferenceId
+                    // client_reference_id (ou Metadata["tenant_id"]) identifie le tenant. Pour le
+                    // Checkout piloté par l'API c'est le Guid du tenant ; pour un Payment Link de
+                    // la page d'accueil (buy.stripe.com), le frontend injecte le SLUG via
+                    // ?client_reference_id={slug}. On accepte donc les DEUX formes.
+                    var tenantRef = session?.ClientReferenceId
                         ?? (session?.Metadata != null && session.Metadata.TryGetValue("tenant_id", out var tid) ? tid : null);
-                    if (!Guid.TryParse(tenantIdRaw, out var tenantId) || string.IsNullOrEmpty(session?.SubscriptionId))
+                    if (string.IsNullOrWhiteSpace(tenantRef) || string.IsNullOrEmpty(session?.SubscriptionId))
                     {
-                        _log.LogWarning("checkout.session.completed sans tenant_id ou subscription_id (session={SessionId}).", session?.Id);
+                        _log.LogWarning("checkout.session.completed sans tenant_ref ou subscription_id (session={SessionId}).", session?.Id);
                         break;
                     }
                     await using var master = await _masterFactory.CreateDbContextAsync(ct);
-                    var tenant = await master.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, ct);
+                    Tenant? tenant;
+                    if (Guid.TryParse(tenantRef, out var tenantId))
+                        tenant = await master.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, ct);
+                    else
+                    {
+                        var refSlug = tenantRef.Trim().ToLowerInvariant();
+                        tenant = await master.Tenants.FirstOrDefaultAsync(t => t.Slug == refSlug, ct);
+                    }
                     if (tenant is null)
                     {
-                        _log.LogWarning("Tenant {TenantId} introuvable pour checkout.session.completed.", tenantId);
+                        _log.LogWarning("Tenant introuvable pour checkout.session.completed (ref={TenantRef}).", tenantRef);
                         break;
                     }
                     var oldSubId = tenant.StripeSubscriptionId;
@@ -215,6 +226,29 @@ public class StripeWebhookController : ControllerBase
                     tenant.Status = "Active";
                     await master.SaveChangesAsync(ct);
                     _tenantStore.Invalidate(tenant.Slug);
+
+                    // Payment Link : la session n'a pas de Metadata["plan"] et porte la quantité de
+                    // collaborateurs supplémentaires sur un item de prix dédié. On réconcilie ici le
+                    // pack dérivé du price de base + le floor de sièges pré-achetés (extra_seats_purchased).
+                    try
+                    {
+                        var provision = await _billing.ApplyCheckoutSubscriptionAsync(tenant, session.SubscriptionId, ct);
+                        if (provision?.PlanCode is { Length: > 0 } derivedPlan
+                            && !string.Equals(tenant.PlanCode, derivedPlan, StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Le price de base de la subscription fait foi quand aucun plan n'était
+                            // posé en metadata (cas Payment Link). On persiste le pack dérivé.
+                            tenant.PlanCode = derivedPlan;
+                            await master.SaveChangesAsync(ct);
+                            _tenantStore.Invalidate(tenant.Slug);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Best-effort : l'activation reste effective même si la réconciliation des
+                        // line items échoue. Le true-up quotidien (EmployeeBillingSync) corrigera.
+                        _log.LogWarning(ex, "ApplyCheckoutSubscription échoué pour tenant {Slug} (session={SessionId}).", tenant.Slug, session.Id);
+                    }
 
                     if (!string.IsNullOrEmpty(oldSubId) && oldSubId != session.SubscriptionId)
                     {

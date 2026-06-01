@@ -5,6 +5,13 @@ volumes:
   # `docker volume rm <project>_sqlserver-data` après migration des données.
   #postgres-data:
   uploads_data:
+  # Modèles de lettres/contrats édités via l'éditeur VaultTemplates (écrits dans
+  # /app/VaultTemplates par TemplatesController). Sans ce volume nommé, les
+  # modèles créés/modifiés à l'exécution vivaient sur le filesystem éphémère du
+  # conteneur et étaient PERDUS à chaque recréation (docker compose down/up,
+  # rebuild). Un volume *nommé* recopie les modèles seedés de l'image à sa
+  # première création, puis conserve les modifications utilisateur.
+  vault_templates_data:
   letsencrypt_data:
   qdrant_data:
   crowdsec_data:
@@ -123,6 +130,8 @@ services:
     image: mohamedbenrhaiem2003/abrpoint-server
     volumes:
       - uploads_data:/app/uploads
+      # Persiste les modèles de contrat/lettres édités (cf. note sur le volume).
+      - vault_templates_data:/app/VaultTemplates
     environment:
       # ── PostgreSQL connection (ex-SQL Server) ─────────────────────────
       # Format Npgsql : Host=...;Database=...;Username=...;Password=...

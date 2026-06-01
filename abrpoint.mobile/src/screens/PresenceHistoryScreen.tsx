@@ -500,17 +500,17 @@ export default function PresenceHistoryScreen({ navigation }: any) {
             l'utilisateur vers des écrans dédiés (DemandeAbsenceScreen,
             LeaveRequestScreen, etc.) accessibles depuis les tuiles HomeScreen.
             Pour les heures supp, une tuile dédiée "Heures supp" a été ajoutée
-            sur HomeScreen (presetType=heuressup vers AddRequestScreen).
-            On garde le bloc JSX en commentaire JSX pour réactivation triviale
-            si la décision est revue. NE PAS supprimer sans concertation. */}
+            sur HomeScreen (écran dédié HeuresSupScreen). L'écran générique
+            AddRequestScreen a été retiré (2026-06). On garde le bloc JSX en
+            commentaire pour réactivation triviale si la décision est revue. */}
         {false && (
           <TouchableOpacity
             style={styles.addRequestBtn}
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('AddRequest', { presetDate: formatYMD(selectedDate) })}
+            onPress={() => navigation.navigate('HeuresSup', { presetDate: formatYMD(selectedDate) })}
           >
             <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#fff" />
-            <Text style={styles.addRequestBtnText}>Ajouter une demande</Text>
+            <Text style={styles.addRequestBtnText}>Heures supplémentaires</Text>
           </TouchableOpacity>
         )}
 

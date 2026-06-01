@@ -546,7 +546,7 @@ export default function HomeScreen({ navigation }: any) {
             <TouchableOpacity
               style={styles.quickAction}
               activeOpacity={0.8}
-              onPress={() => navigation.navigate('AddRequest', { presetType: 'heuressup' })}
+              onPress={() => navigation.navigate('HeuresSup')}
             >
               <View style={[styles.quickIconBox, { backgroundColor: '#fde68a' }]}>
                 <MaterialCommunityIcons name="clock-plus-outline" size={22} color="#92400e" />
