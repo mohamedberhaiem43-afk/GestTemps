@@ -1362,13 +1362,21 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
             {
                 if (!map.ContainsKey(pid)) map[pid] = (PlanCatalog.Normalize(seg[1]), seg[2].ToLowerInvariant(), "usersupp");
             }
+            else if (seg.Length == 3 && string.Equals(seg[0], "Addon", System.StringComparison.OrdinalIgnoreCase))
+            {
+                // Addon:{addonKey}:{cycle} — module optionnel. On préserve la casse de la clé
+                // (les addonKeys sont camelCase, ex. aiAssistantRh) : pas de Normalize ici.
+                if (!map.ContainsKey(pid)) map[pid] = (seg[1], seg[2].ToLowerInvariant(), "addon");
+            }
             else if (seg.Length == 3 && string.Equals(seg[1], "base", System.StringComparison.OrdinalIgnoreCase))
             {
                 if (!map.ContainsKey(pid)) map[pid] = (PlanCatalog.Normalize(seg[0]), seg[2].ToLowerInvariant(), "base");
             }
-            else if (seg.Length == 2)
+            else if (seg.Length == 2 && PlanCatalog.GetPlan(seg[0]) != null)
             {
-                // Legacy {Plan}:{cycle} = prix de base unique. N'écrase pas une clé moderne déjà vue.
+                // Legacy {Plan}:{cycle} = prix de base unique, UNIQUEMENT si seg[0] est un vrai
+                // plan (Starter/Standard/Premium). La garde évite qu'une clé `Service:xxx`
+                // (2 segments) soit interprétée à tort comme un prix de base de pack.
                 if (!map.ContainsKey(pid)) map[pid] = (PlanCatalog.Normalize(seg[0]), seg[1].ToLowerInvariant(), "base");
             }
         }
@@ -1403,6 +1411,7 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
         string? derivedPlan = null;
         string? derivedCycle = null;
         var extraSeats = 0;
+        var addonKeys = new List<string>();
 
         foreach (var item in sub.Items.Data)
         {
@@ -1422,6 +1431,12 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
                 else if (info.Kind == "usersupp")
                 {
                     extraSeats += (int)(item.Quantity);
+                }
+                else if (info.Kind == "addon")
+                {
+                    // info.Plan porte ici la clé d'addon (cf. BuildPriceReverseMap). Le webhook
+                    // filtrera sur ValidAddonKeys avant de l'ajouter à Tenant.Addons.
+                    if (!addonKeys.Contains(info.Plan)) addonKeys.Add(info.Plan);
                 }
             }
         }
@@ -1454,10 +1469,10 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
         }
 
         _log.LogInformation(
-            "ApplyCheckoutSubscription : tenant {Slug} ← Payment Link sub {Sub} (plan={Plan}, cycle={Cycle}, collab_supp={Extra}).",
-            tenant.Slug, subscriptionId, derivedPlan ?? "?", derivedCycle ?? "?", extraSeats);
+            "ApplyCheckoutSubscription : tenant {Slug} ← Payment Link sub {Sub} (plan={Plan}, cycle={Cycle}, collab_supp={Extra}, addons=[{Addons}]).",
+            tenant.Slug, subscriptionId, derivedPlan ?? "?", derivedCycle ?? "?", extraSeats, string.Join(",", addonKeys));
 
-        return new CheckoutProvisionResult(derivedPlan, derivedCycle, extraSeats);
+        return new CheckoutProvisionResult(derivedPlan, derivedCycle, extraSeats, addonKeys);
     }
 }
 

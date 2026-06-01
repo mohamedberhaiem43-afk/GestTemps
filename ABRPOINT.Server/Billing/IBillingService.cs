@@ -171,7 +171,8 @@ public interface IBillingService
 public sealed record CheckoutProvisionResult(
     string? PlanCode,
     string? Cycle,
-    int ExtraSeatsPurchased);
+    int ExtraSeatsPurchased,
+    IReadOnlyList<string> AddonKeys);
 
 /// <summary>
 /// Résultat d'un achat de sièges supplémentaires (cf. <see cref="IBillingService.PurchaseExtraSeatsAsync"/>).

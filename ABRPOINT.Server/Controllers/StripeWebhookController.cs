@@ -232,6 +232,20 @@ public class StripeWebhookController : ControllerBase
                     var planForCheckout = metaPlan ?? provision?.PlanCode;
                     if (!string.IsNullOrEmpty(session.CustomerId)) tenant.StripeCustomerId = session.CustomerId;
 
+                    // Auto-déblocage des modules : si le paiement (pack OU module) porte un price
+                    // mappé sur `Addon:{key}:{cycle}`, on ajoute la clé d'addon valide à Tenant.Addons
+                    // → GetEffectiveFeatures débloque la fonctionnalité dès le prochain /me. Dédup +
+                    // filtre ValidAddonKeys (storage100Go & co. ignorés). Idempotent (HashSet).
+                    if (provision?.AddonKeys is { Count: > 0 } detectedAddons)
+                    {
+                        var merged = PlanCatalog.ParseAddons(tenant.Addons);
+                        foreach (var k in detectedAddons)
+                            if (PlanCatalog.ValidAddonKeys.Contains(k)) merged.Add(k);
+                        tenant.Addons = merged.Count == 0
+                            ? null
+                            : string.Join(",", merged.OrderBy(a => a, StringComparer.OrdinalIgnoreCase));
+                    }
+
                     if (!string.IsNullOrWhiteSpace(planForCheckout))
                     {
                         // ── Checkout de PACK : la nouvelle subscription remplace l'abonnement
