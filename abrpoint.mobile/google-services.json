@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "29286465434",
+    "project_id": "concorde-workly-bc145",
+    "storage_bucket": "concorde-workly-bc145.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:29286465434:android:6caccf322fe025c8acc423",
+        "android_client_info": {
+          "package_name": "com.concorde.workly"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBs5iySn82_NS_94bUJvOaigrs___BRIww"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

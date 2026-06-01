@@ -70,11 +70,22 @@ public sealed class ExpoPushService : IExpoPushService
             var invalid = new List<string>();
             for (int i = 0; i < tickets.Count && i < list.Count; i++)
             {
-                if (tickets[i].Status == "error" &&
-                    string.Equals(tickets[i].Details?.Error, "DeviceNotRegistered", StringComparison.OrdinalIgnoreCase))
+                var tk = tickets[i];
+                if (string.Equals(tk.Status, "ok", StringComparison.OrdinalIgnoreCase))
                 {
-                    invalid.Add(list[i].To);
+                    // Le ticket "ok" = Expo a ACCEPTÉ le message ; la livraison réelle (FCM/APNs)
+                    // n'est confirmée que par le RECEIPT (récupérable ~15 min après via /getReceipts
+                    // avec ce ticketId). Un "ok" ici + rien sur le téléphone = quasi toujours
+                    // FCM/APNs non configuré côté EAS (cf. erreurs MismatchSenderId/InvalidCredentials
+                    // dans le receipt). On logge le ticketId pour pouvoir corréler.
+                    _log.LogInformation("Expo push ticket OK pour {To} (ticketId={Id}).", list[i].To, tk.Id);
+                    continue;
                 }
+                // Ticket en erreur : on remonte le détail Expo (token invalide, payload, etc.).
+                _log.LogWarning("Expo push ticket ERROR pour {To} : {Message} (error={Error}).",
+                    list[i].To, tk.Message, tk.Details?.Error);
+                if (string.Equals(tk.Details?.Error, "DeviceNotRegistered", StringComparison.OrdinalIgnoreCase))
+                    invalid.Add(list[i].To);
             }
             return new ExpoPushResult(list.Count - invalid.Count, invalid);
         }
