@@ -28,6 +28,7 @@
   },
   "navigation": {
     "dashboard": "لوحة التحكم",
+    "signatureInbox": "طلبات التوقيع",
     "dataBase": "البيانات المرجعية والإعدادات",
     "administrator": "الإدارة",
     "clockingMachine": "تتبع الوقت",

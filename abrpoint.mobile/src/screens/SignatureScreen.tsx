@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Alert, TextInput, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,6 +25,68 @@ export default function SignatureScreen({ navigation, route }: any) {
   const documentId = route?.params?.documentId;
   const documentName = route?.params?.docName || "Contrat de travail";
 
+  // Mode workflow (Phase 4) : on arrive via un deep-link push (signature_pending)
+  // avec requestId + stepId. La validation passe alors par api/Signatures (circuit
+  // multi-étapes + OTP + scellement) au lieu de l'ancien /Vault/sign.
+  const isWorkflow = !!route?.params?.workflow && route?.params?.requestId != null && route?.params?.stepId != null;
+  const requestId = route?.params?.requestId as number | undefined;
+  const stepId = route?.params?.stepId as number | undefined;
+
+  // OTP optionnel (renforce le niveau de garantie). E-mail uniquement côté mobile
+  // (le TOTP reste disponible côté web ; pas de saisie d'authenticator ici).
+  const [otpEnabled, setOtpEnabled] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSentTo, setOtpSentTo] = useState<string | null>(null);
+  const [otpSending, setOtpSending] = useState(false);
+
+  const handleSendOtp = async () => {
+    if (!isWorkflow) return;
+    try {
+      setOtpSending(true);
+      const res = await apiService.sendSignatureOtp(Number(requestId), Number(stepId));
+      setOtpSentTo(res?.email ?? null);
+      Alert.alert('Code envoyé', `Un code de vérification a été envoyé à ${res?.email ?? 'votre adresse e-mail'} (valable 10 min).`);
+    } catch (e: any) {
+      const msg = e?.response?.data?.code === 'no_email'
+        ? "Aucune adresse e-mail n'est associée à votre compte."
+        : "Impossible d'envoyer le code. Réessayez.";
+      Alert.alert('Erreur', msg);
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const submitReject = async (motif: string) => {
+    if (motif.trim().length < 3) {
+      Alert.alert('Motif requis', 'Merci d’indiquer un motif d’au moins 3 caractères.');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await apiService.rejectSignatureStep(Number(requestId), Number(stepId), motif.trim());
+      Alert.alert('Document refusé', 'Votre refus a été enregistré et le demandeur a été notifié.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.response?.data?.error || 'Échec du refus.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectMotif, setRejectMotif] = useState('');
+
+  const handleReject = () => {
+    if (!isWorkflow) return;
+    // Alert.prompt est iOS-only : sur Android on bascule sur un champ de saisie inline.
+    if (typeof Alert.prompt === 'function') {
+      Alert.prompt('Refuser le document', 'Indiquez le motif du refus (transmis au demandeur) :', (motif?: string) => submitReject(motif ?? ''));
+    } else {
+      setRejectOpen(true);
+    }
+  };
+
   const handleClear = () => {
     padRef.current?.clear();
     setHasSigned(false);
@@ -38,6 +100,44 @@ export default function SignatureScreen({ navigation, route }: any) {
     const dataUri = padRef.current?.toDataUri();
     if (!dataUri) {
       Alert.alert('Erreur', 'Impossible de capturer la signature. Réessayez.');
+      return;
+    }
+
+    // Mode workflow : signe l'étape courante du circuit (OTP optionnel).
+    if (isWorkflow) {
+      if (otpEnabled && otpCode.trim().length < 4) {
+        Alert.alert('Code requis', 'Saisissez le code de vérification reçu avant de signer.');
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const res = await apiService.signSignatureStep(Number(requestId), Number(stepId), {
+          signatureData: `drawn:${dataUri}`,
+          signerName: user?.utilib || '',
+          mention: 'Lu et approuvé',
+          otpCode: otpEnabled ? otpCode.trim() : undefined,
+          otpMethod: otpEnabled ? 'email' : undefined,
+        });
+        const completed = res?.completed === true;
+        Alert.alert(
+          '✅ Succès',
+          completed
+            ? 'Document signé et scellé. La signature est juridiquement opposable.'
+            : 'Votre signature est enregistrée. Le document a été transmis au prochain approbateur.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }],
+        );
+      } catch (e: any) {
+        const code = e?.response?.data?.code;
+        const status = e?.response?.status;
+        const msg = (code === 'otp_invalid' || status === 401)
+          ? 'Code de vérification invalide ou expiré. Demandez un nouveau code.'
+          : status === 409
+            ? (e?.response?.data?.error || "Cette étape n'est plus celle en cours.")
+            : (e?.response?.data?.error || e?.message || 'Erreur lors de la signature.');
+        Alert.alert('Erreur', msg);
+      } finally {
+        setSubmitting(false);
+      }
       return;
     }
 
@@ -181,13 +281,71 @@ export default function SignatureScreen({ navigation, route }: any) {
           </View>
         </View>
 
+        {/* OTP optionnel (mode workflow) : renforce le niveau de garantie. */}
+        {isWorkflow && (
+          <View style={styles.otpBox}>
+            <View style={styles.otpHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.otpTitle}>Renforcer avec un code (OTP)</Text>
+                <Text style={styles.otpSub}>Ajoute une vérification d'identité par e-mail (recommandé).</Text>
+              </View>
+              <Switch value={otpEnabled} onValueChange={setOtpEnabled} trackColor={{ true: COLORS.primary }} />
+            </View>
+
+            {otpEnabled && (
+              <>
+                <View style={styles.otpRow}>
+                  <TextInput
+                    style={styles.otpInput}
+                    keyboardType="number-pad"
+                    maxLength={8}
+                    value={otpCode}
+                    onChangeText={(v) => setOtpCode(v.replace(/\D/g, ''))}
+                    placeholder="••••••"
+                    placeholderTextColor={COLORS.outline}
+                  />
+                  <TouchableOpacity style={styles.otpSendBtn} onPress={handleSendOtp} disabled={otpSending}>
+                    <MaterialCommunityIcons name="email-outline" size={16} color={COLORS.primary} />
+                    <Text style={styles.otpSendText}>{otpSending ? 'Envoi…' : otpSentTo ? 'Renvoyer' : 'Recevoir un code'}</Text>
+                  </TouchableOpacity>
+                </View>
+                {otpSentTo && <Text style={styles.otpSent}>Code envoyé à {otpSentTo} (valable 10 min)</Text>}
+              </>
+            )}
+          </View>
+        )}
+
+        {/* Refus inline (Android — Alert.prompt indisponible) */}
+        {isWorkflow && rejectOpen && (
+          <View style={[styles.otpBox, { borderColor: '#ef9a9a' }]}>
+            <Text style={styles.otpTitle}>Motif du refus</Text>
+            <TextInput
+              style={styles.rejectInput}
+              multiline
+              numberOfLines={3}
+              value={rejectMotif}
+              onChangeText={setRejectMotif}
+              placeholder="Expliquez pourquoi vous refusez de signer…"
+              placeholderTextColor={COLORS.outline}
+            />
+            <View style={styles.rejectActions}>
+              <TouchableOpacity style={styles.rejectCancel} onPress={() => { setRejectOpen(false); setRejectMotif(''); }}>
+                <Text style={styles.btnText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.rejectConfirm} onPress={() => submitReject(rejectMotif)} disabled={submitting}>
+                <Text style={[styles.btnText, { color: '#fff' }]}>Confirmer le refus</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Actions */}
         <View style={styles.actionsGrid}>
           <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
             <MaterialCommunityIcons name="cancel" size={20} color={COLORS.onSurface} />
             <Text style={styles.btnText}>Annuler</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.validateBtn} onPress={handleValidate} disabled={submitting}>
             <LinearGradient
               colors={[COLORS.primary, COLORS.primaryContainer]}
@@ -200,6 +358,14 @@ export default function SignatureScreen({ navigation, route }: any) {
             </LinearGradient>
           </TouchableOpacity>
         </View>
+
+        {/* Refuser (mode workflow) */}
+        {isWorkflow && !rejectOpen && (
+          <TouchableOpacity style={styles.rejectLink} onPress={handleReject} disabled={submitting}>
+            <MaterialCommunityIcons name="close-circle-outline" size={18} color="#ba1a1a" />
+            <Text style={styles.rejectLinkText}>Refuser ce document</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* BottomNavBar */}
@@ -284,4 +450,34 @@ const styles = StyleSheet.create({
   },
   navItem: { alignItems: 'center', gap: 4 },
   navLabel: { fontSize: 9, fontWeight: '700', color: '#94a3b8' },
+
+  // ── Phase 4 — OTP & refus (mode workflow) ──
+  otpBox: {
+    backgroundColor: COLORS.surfaceContainerLowest, borderWidth: 1, borderColor: 'rgba(115, 119, 133, 0.25)',
+    borderRadius: 16, padding: 16, marginBottom: 16,
+  },
+  otpHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  otpTitle: { fontSize: 14, fontWeight: '800', color: COLORS.onSurface },
+  otpSub: { fontSize: 12, color: COLORS.secondary, marginTop: 2 },
+  otpRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
+  otpInput: {
+    flex: 1, height: 48, borderWidth: 1, borderColor: 'rgba(115, 119, 133, 0.3)', borderRadius: 10,
+    textAlign: 'center', fontSize: 20, fontWeight: '800', letterSpacing: 6, color: COLORS.onSurface,
+    backgroundColor: COLORS.background,
+  },
+  otpSendBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 48,
+    borderRadius: 10, borderWidth: 1, borderColor: COLORS.primary, justifyContent: 'center',
+  },
+  otpSendText: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
+  otpSent: { fontSize: 11, color: COLORS.tertiary, marginTop: 8, fontWeight: '600' },
+  rejectInput: {
+    minHeight: 72, borderWidth: 1, borderColor: 'rgba(115, 119, 133, 0.3)', borderRadius: 10,
+    padding: 12, marginTop: 10, textAlignVertical: 'top', color: COLORS.onSurface, backgroundColor: COLORS.background,
+  },
+  rejectActions: { flexDirection: 'row', gap: 12, marginTop: 12 },
+  rejectCancel: { flex: 1, height: 48, borderRadius: 12, backgroundColor: COLORS.surfaceContainerHigh, justifyContent: 'center', alignItems: 'center' },
+  rejectConfirm: { flex: 1, height: 48, borderRadius: 12, backgroundColor: '#ba1a1a', justifyContent: 'center', alignItems: 'center' },
+  rejectLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, paddingVertical: 8 },
+  rejectLinkText: { fontSize: 13, fontWeight: '700', color: '#ba1a1a' },
 });

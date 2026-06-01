@@ -20,18 +20,22 @@ namespace ABRPOINT.Server.Controllers;
 public class SignaturesController : ControllerBase
 {
     private readonly ISignatureWorkflowService _workflow;
+    private readonly ISignatureOtpService _otp;
     private readonly ApplicationDbContext _db;
     private readonly ILogger<SignaturesController> _log;
 
-    public SignaturesController(ISignatureWorkflowService workflow, ApplicationDbContext db, ILogger<SignaturesController> log)
+    public SignaturesController(ISignatureWorkflowService workflow, ISignatureOtpService otp, ApplicationDbContext db, ILogger<SignaturesController> log)
     {
         _workflow = workflow;
+        _otp = otp;
         _db = db;
         _log = log;
     }
 
-    public sealed record StartBody(string SourceType, string? SourceId, string Empcod, string? DocName, Dictionary<string, string>? ExtraVars);
-    public sealed record SignBody(string SignatureData, string? SignerName, string? Mention, string? Location);
+    public sealed record StartBody(string SourceType, string? SourceId, string Empcod, string? DocName, Dictionary<string, string>? ExtraVars, int ApproverLevels = 1);
+    public sealed record SignBody(string SignatureData, string? SignerName, string? Mention, string? Location, string? OtpCode, string? OtpMethod);
+    public sealed record RejectBody(string Motif);
+    public sealed record DelegateBody(string ToEmpcod);
 
     // POST api/Signatures/start
     [HttpPost("start")]
@@ -50,7 +54,7 @@ public class SignaturesController : ControllerBase
         try
         {
             var res = await _workflow.StartAsync(
-                new SignatureStartRequest(body.SourceType, body.SourceId, body.Empcod, body.DocName, body.ExtraVars),
+                new SignatureStartRequest(body.SourceType, body.SourceId, body.Empcod, body.DocName, body.ExtraVars, body.ApproverLevels),
                 caller, ct);
             return Ok(new { requestId = res.RequestId, documentVaultId = res.DocumentVaultId, docName = res.DocName });
         }
@@ -114,9 +118,10 @@ public class SignaturesController : ControllerBase
             var ua = Request.Headers.UserAgent.ToString();
             if (ua.Length > 256) ua = ua.Substring(0, 256);
             var res = await _workflow.SignStepAsync(id, stepId,
-                new SignStepInput(body.SignatureData, body.SignerName, body.Mention, body.Location, "handwritten", ip, ua), ct);
+                new SignStepInput(body.SignatureData, body.SignerName, body.Mention, body.Location, caller, body.OtpCode, body.OtpMethod, ip, ua), ct);
             return Ok(new { completed = res.Completed, certificateId = res.CertificateId, workflowStatus = res.WorkflowStatus, sealHash = res.SealHash });
         }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(new { error = ex.Message, code = "otp_invalid" }); }
         catch (InvalidOperationException ex) { return Conflict(new { error = ex.Message }); }
         catch (KeyNotFoundException ex) { return NotFound(new { error = ex.Message }); }
         catch (Exception ex)
@@ -124,6 +129,74 @@ public class SignaturesController : ControllerBase
             _log.LogError(ex, "Échec signature étape (request={Req}, step={Step}).", id, stepId);
             return StatusCode(500, new { error = "Échec de la signature." });
         }
+    }
+
+    // POST api/Signatures/{id}/steps/{stepId}/otp — envoie un OTP email au signataire courant
+    // (niveau de garantie « avancé »). Le code est ensuite passé au /sign.
+    [HttpPost("{id:int}/steps/{stepId:int}/otp")]
+    public async Task<IActionResult> SendOtp(int id, int stepId, CancellationToken ct)
+    {
+        var caller = Caller();
+        if (string.IsNullOrEmpty(caller)) return Unauthorized();
+        if (!await OwnsStepOrAdminAsync(id, stepId, caller)) return Forbid();
+        try
+        {
+            var masked = await _otp.SendEmailOtpAsync(caller, ct);
+            return Ok(new { sent = true, email = masked });
+        }
+        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message, code = "no_email" }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { error = ex.Message }); }
+    }
+
+    // POST api/Signatures/{id}/steps/{stepId}/reject
+    [HttpPost("{id:int}/steps/{stepId:int}/reject")]
+    public async Task<IActionResult> Reject(int id, int stepId, [FromBody] RejectBody body, CancellationToken ct)
+    {
+        var caller = Caller();
+        if (string.IsNullOrEmpty(caller)) return Unauthorized();
+        if (!await OwnsStepOrAdminAsync(id, stepId, caller)) return Forbid();
+
+        try
+        {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var ua = Request.Headers.UserAgent.ToString();
+            if (ua.Length > 256) ua = ua.Substring(0, 256);
+            await _workflow.RejectStepAsync(id, stepId, caller, body?.Motif ?? string.Empty, ip, ua, ct);
+            return Ok(new { rejected = true });
+        }
+        catch (InvalidOperationException ex) { return Conflict(new { error = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { error = ex.Message }); }
+    }
+
+    // POST api/Signatures/{id}/steps/{stepId}/delegate
+    [HttpPost("{id:int}/steps/{stepId:int}/delegate")]
+    public async Task<IActionResult> Delegate(int id, int stepId, [FromBody] DelegateBody body, CancellationToken ct)
+    {
+        if (body is null || string.IsNullOrWhiteSpace(body.ToEmpcod))
+            return BadRequest(new { error = "toEmpcod requis." });
+        var caller = Caller();
+        if (string.IsNullOrEmpty(caller)) return Unauthorized();
+        if (!await OwnsStepOrAdminAsync(id, stepId, caller)) return Forbid();
+
+        try
+        {
+            await _workflow.DelegateStepAsync(id, stepId, caller, body.ToEmpcod, ct);
+            return Ok(new { delegated = true, toEmpcod = body.ToEmpcod });
+        }
+        catch (InvalidOperationException ex) { return Conflict(new { error = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { error = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { error = ex.Message }); }
+    }
+
+    /// <summary>Le caller est-il le signataire de l'étape (ou son délégué), ou un admin ?</summary>
+    private async Task<bool> OwnsStepOrAdminAsync(int requestId, int stepId, string caller)
+    {
+        var step = await _db.SignatureSteps.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == stepId && s.RequestId == requestId);
+        if (step == null) return false;
+        var owns = string.Equals(step.SignerEmpcod, caller, StringComparison.OrdinalIgnoreCase)
+                   || string.Equals(step.DelegatedTo, caller, StringComparison.OrdinalIgnoreCase);
+        return owns || await CallerIsAdminAsync();
     }
 
     // POST api/Signatures/verify-seal/{documentVaultId} — vérification d'intégrité (lecture)

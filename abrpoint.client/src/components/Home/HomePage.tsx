@@ -918,9 +918,9 @@ export default function HomePage() {
         <div className="footer-bottom">
           <span>{t('homePage.footer.copyright')}</span>
           <span className="footer-bottom-links">
-            <a href="/confidentialite">{t('homePage.footer.privacy')}</a>
-            <a href="/cgu">{t('homePage.footer.cgu')}</a>
-            <a href="/mentions-legales">{t('homePage.footer.legal')}</a>
+            <a href="/docs/politique-confidentialite.pdf" target="_blank" rel="noopener noreferrer">{t('homePage.footer.privacy')}</a>
+            <a href="/docs/cgu.pdf" target="_blank" rel="noopener noreferrer">{t('homePage.footer.cgu')}</a>
+            <a href="/docs/mentions-legales.pdf" target="_blank" rel="noopener noreferrer">{t('homePage.footer.legal')}</a>
             <a onClick={() => openCookieConsent()} style={{ cursor: 'pointer' }}>{t('homePage.footer.cookies', { defaultValue: 'Cookies' })}</a>
           </span>
         </div>

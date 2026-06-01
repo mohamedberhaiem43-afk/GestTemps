@@ -203,6 +203,13 @@ public sealed class ProvisioningService : IProvisioningService
 
         await db.SaveChangesAsync(ct);
 
+        // 6c. Modèles de documents par défaut (contrat, titre/demande de congé, autorisation de
+        //     sortie, certificat/attestation de travail, visite médicale, attestation de salaire)
+        //     + liaisons signature_template_map associées. Évite que la génération de courrier et
+        //     le parcours de signature se bloquent faute de modèle. Gère son propre SaveChanges
+        //     (la liaison référence l'id auto-généré du modèle). Idempotent.
+        await DefaultLetterTemplateSeeder.SeedAsync(db, Soccod, ct);
+
         // 7. Permissions modules legacy (Modusers).
         await GrantAllModulesToAdminAsync(db, AdminCode, ct);
 

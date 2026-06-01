@@ -637,17 +637,34 @@ namespace ABRPOINT.Server.Repository
         {
             try
             {
-                var query = from e in _dbContext.Employes
-                            join su in _dbContext.Socusers
-                                on new { e.Soccod, e.Sitcod } equals new { su.Soccod, su.Sitcod }
-                            where e.Soccod == soccod
-                                  && e.Actif == "A"
-                                  && su.Uticod == uticod
-                            select e;
+                var query = _dbContext.Employes
+                    .AsNoTracking()
+                    .Where(e => e.Soccod == soccod);
 
-                // Admin / RH : pas de restriction service automatique (visibilité globale).
+                // Employés ACTIFS uniquement — mais de façon TOLÉRANTE. La colonne Actif est
+                // représentée de façon hétérogène selon la source de création : "A", "1", "Oui",
+                // ou NULL (fiche sans valeur). Filtrer strictement sur `Actif == "A"` vidait le
+                // dropdown pour tout tenant dont les employés portent une autre représentation —
+                // alors qu'ils apparaissent dans la liste globale (GetAllAsync, sans filtre Actif).
+                // C'était la cause du « dropdown vide » sur Solde congé / Titre congé / Autorisations.
+                // On considère actif tout statut connu actif OU non renseigné ; seul un statut
+                // explicitement inactif ("N"/"0"/"Non") est exclu. Cohérent avec BillingController
+                // (comptage des actifs) et PunctualityReminderHostedService (null = actif).
+                query = query.Where(e =>
+                    e.Actif == null || e.Actif == "A" || e.Actif == "1" || e.Actif == "Oui");
+
+                // Périmètre d'accès IDENTIQUE à GetAllAsync (la liste globale, qui fonctionne pour
+                // le manager) : admin / Responsable RH = visibilité complète ; sinon scope par les
+                // sites Socuser du demandeur + le service du manager. Avant, une jointure INNER sur
+                // Socusers s'appliquait À TOUS (admin/RH compris) — incohérent avec la liste globale
+                // et source de dropdowns vides pour un RH rattaché à un autre site.
                 if (!await IsPrivilegedViewerAsync(uticod))
                 {
+                    query = query.Where(e =>
+                        _dbContext.Socusers.Any(s => s.Soccod == soccod &&
+                                                     s.Uticod == uticod &&
+                                                     s.Sitcod == e.Sitcod));
+
                     string? managerSercod = await GetManagerServiceCodeAsync(soccod, uticod);
                     if (!string.IsNullOrEmpty(managerSercod))
                     {

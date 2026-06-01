@@ -43,10 +43,11 @@ const MINIMUM_PLAN_FOR_FEATURE: Record<keyof PlanFeatures, PlanKey | null> = {
   generalExit: 'Standard',
   leaveManagement: 'Standard',
   authorizationManagement: 'Standard',
-  // Modules métier facturables (2026-05-23) : exclus du Starter.
+  // Modules métier facturables (2026-05-23) : exclus du Starter, SAUF la gestion
+  // de contrat qui est éligible dès le Starter (2026-06).
   expenseReports: 'Standard',
   breastfeedingManagement: 'Standard',
-  contractManagement: 'Standard',
+  contractManagement: 'Starter',
   documentScanOcr: 'Standard',
   bulkImport: 'Standard',
   // Addon-only (2026-05-26) — aucun pack ne les inclut, débloqués uniquement

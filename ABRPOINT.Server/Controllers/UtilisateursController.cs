@@ -822,9 +822,7 @@ namespace GestionDesTickets.Server.Controllers
                     u.Utiimg,
                     u.Utimail,
                     u.UtiEmailVerified,
-                    Role = _dbContext.Roles
-                        .Include(r => r.Permissions)
-                        .FirstOrDefault(r => r.RoleName == u.Utirole)
+                    u.Utirole,
                 })
                 .FirstOrDefaultAsync();
 
@@ -832,6 +830,22 @@ namespace GestionDesTickets.Server.Controllers
             {
                 return Unauthorized();
             }
+
+            // Rôle + matrice de permissions, chargés dans une requête SÉPARÉE et MATÉRIALISÉE.
+            // ⚠ BUG corrigé : auparavant le rôle était projeté via
+            //   Role = _dbContext.Roles.Include(r => r.Permissions).FirstOrDefault(...)
+            // À L'INTÉRIEUR du .Select(...) ci-dessus. Or EF Core IGNORE silencieusement un
+            // .Include() placé dans une projection → la collection Permissions revenait TOUJOURS
+            // vide. /me renvoyait donc `permissions: []` pour tout non-admin, et comme le front
+            // rappelle /me à chaque chargement (refreshAuth), il écrasait les permissions
+            // correctement renvoyées par /connect. Résultat : la matrice RBAC personnalisée
+            // (ex. accès « Note de Frais » accordé au Manager) ne s'appliquait jamais après
+            // rechargement. Le chargement direct (entité matérialisée) honore l'Include.
+            var role = string.IsNullOrEmpty(user.Utirole)
+                ? null
+                : await _dbContext.Roles
+                    .Include(r => r.Permissions)
+                    .FirstOrDefaultAsync(r => r.RoleName == user.Utirole);
 
             var isEmp = await _dbContext.Employes.AnyAsync(e => e.Empcod == uticod);
             var utilib = $"{user.Utiprn} {user.Utinom}".Trim();
@@ -873,7 +887,7 @@ namespace GestionDesTickets.Server.Controllers
             // Source de vérité côté front pour les checks d'autorisation : roleName + permissions.
             // utiadm + isManager + isAdmin sont fournis en bonus pour les composants legacy
             // qui les lisent encore directement.
-            var roleName = user.Role?.RoleName;
+            var roleName = role?.RoleName ?? user.Utirole;
             var isAdmin = ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(roleName) || user.Utiadm == "1";
             var isManager = string.Equals(roleName, ABRPOINT.Server.Authorization.PermissionCatalog.Roles.Manager, StringComparison.OrdinalIgnoreCase)
                             || (roleName?.Contains("manager", StringComparison.OrdinalIgnoreCase) ?? false);
@@ -958,7 +972,7 @@ namespace GestionDesTickets.Server.Controllers
                 planFeatures = effectiveFeatures,
                 addons = subscribedAddons,
                 branding,
-                permissions = user.Role?.Permissions ?? new List<RolePermission>()
+                permissions = role?.Permissions ?? new List<RolePermission>()
             });
         }
 

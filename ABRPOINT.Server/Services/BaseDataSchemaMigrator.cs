@@ -184,6 +184,13 @@ public static class BaseDataSchemaMigrator
         await AddColumnIfMissingAsync(db, "utilisateur", "uti_email_verif_expiry", "TIMESTAMP NULL", ct);
         await AddColumnIfMissingAsync(db, "utilisateur", "uti_email_verif_attempts", "INTEGER NULL", ct);
 
+        // OTP de signature électronique (2026-06, Phase 3) : stockage dédié pour l'OTP
+        // demandé au moment de signer (niveau de garantie « avancé »), distinct de la vérif
+        // email du signup. BCrypt-hashé, expiry court, anti-bruteforce. Cf. SignatureOtpService.
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_sign_otp_code", "VARCHAR(72) NULL", ct);
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_sign_otp_expiry", "TIMESTAMP NULL", ct);
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_sign_otp_attempts", "INTEGER NULL", ct);
+
         // AuditLog : capture de l'IP cliente à l'origine de l'action. 45 chars suffisent
         // pour un IPv6 complet (39) + suffixe scope éventuel. NULL pour les actions issues
         // d'un hosted service ou d'une migration design-time sans HttpContext.
@@ -246,6 +253,13 @@ public static class BaseDataSchemaMigrator
         await AddColumnIfMissingAsync(db, "documentvault", "seal_hash", "VARCHAR(64) NULL", ct);
         await AddColumnIfMissingAsync(db, "documentvault", "sealed_at", "TIMESTAMP NULL", ct);
         await EnsureSignatureWorkflowTablesAsync(db, ct);
+
+        // Modèles de documents par défaut (contrat, titre/demande de congé, autorisation de
+        // sortie, certificat/attestation de travail, visite médicale, attestation de salaire)
+        // + liaisons signature_template_map. Seedés par société, idempotent. Permet aux tenants
+        // EXISTANTS de les obtenir automatiquement au premier accès (sans appeler manuellement
+        // POST /api/Roles/seed-system). Évite « parcours de signature bloqué faute de modèle ».
+        await SeedDefaultLetterTemplatesAsync(db, ct);
 
         // Tables mobiles + notifications + known_devices : on délègue à MobileTablesInstaller
         // qui sait déjà créer push_tokens, notifications, notification_preferences,
@@ -582,6 +596,31 @@ WHERE NOT EXISTS (
         {
             // Best-effort : un échec de seed (table société absente, course au démarrage…)
             // ne doit jamais empêcher l'application de démarrer. Retenté au prochain boot.
+        }
+    }
+
+    /// <summary>
+    /// Seede les modèles de documents par défaut + liaisons signature pour CHAQUE société du
+    /// tenant (idempotent, délégué à <see cref="ABRPOINT.Server.Provisioning.DefaultLetterTemplateSeeder"/>).
+    /// Best-effort : un échec ne doit jamais empêcher le démarrage (réessayé au prochain boot).
+    /// </summary>
+    private static async Task SeedDefaultLetterTemplatesAsync(ApplicationDbContext db, CancellationToken ct)
+    {
+        try
+        {
+            if (!await TableExistsAsync(db, "rag_letter_template", ct)) return;
+            if (!await TableExistsAsync(db, "signature_template_map", ct)) return;
+
+            var soccods = await db.Societes
+                .Where(s => s.Soccod != null)
+                .Select(s => s.Soccod!)
+                .ToListAsync(ct);
+            foreach (var soccod in soccods)
+                await ABRPOINT.Server.Provisioning.DefaultLetterTemplateSeeder.SeedAsync(db, soccod, ct);
+        }
+        catch
+        {
+            // Best-effort : course au démarrage, table société absente, etc. — retenté au prochain boot.
         }
     }
 

@@ -4,6 +4,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../helper/AuthProvider';
 import apiInstance from '../../API/apiInstance';
+import { signatureWorkflowApi, SignatureRequestView } from '../../API/signatureWorkflow';
+import SignatureTimeline from './SignatureTimeline';
 import { DocumentVault } from '../../../models/DocumentVault';
 import './Signature.css';
 
@@ -62,8 +64,16 @@ const SignaturePage = () => {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const docId = searchParams.get('id');
+  // Mode workflow (Phase 4) : on arrive depuis la boîte de signature / un deep-link
+  // avec requestId + stepId. La signature passe alors par api/Signatures (circuit
+  // multi-étapes, OTP, scellement) au lieu de l'ancien /Vault/sign mono-signataire.
+  const requestId = searchParams.get('requestId');
+  const stepId = searchParams.get('stepId');
+  const isWorkflow = !!requestId && !!stepId;
   const navigate = useNavigate();
-  const { userName, soclib, isEmp, authReady } = useAuth();
+  // uticod === empcod (claim NameIdentifier côté serveur) — sert à surligner « Vous »
+  // dans la timeline et à choisir la méthode OTP par défaut.
+  const { userName, soclib, isEmp, authReady, uticod } = useAuth();
   // Représentant Société : on utilise le libellé de la société (Soclib) plutôt
   // qu'un nom hardcodé. Initiales calculées à partir des deux premiers mots.
   const companyName = soclib?.trim() || 'Société';
@@ -91,6 +101,23 @@ const SignaturePage = () => {
   const [copied, setCopied] = useState(false);
   const [signedImageData, setSignedImageData] = useState<string | null>(null);
 
+  // workflow (Phase 4)
+  const [request, setRequest] = useState<SignatureRequestView | null>(null);
+  const [signError, setSignError] = useState<string | null>(null);
+  // true = c'était la dernière étape (document scellé) ; false = étape signée, circuit en cours.
+  const [signCompleted, setSignCompleted] = useState<boolean | null>(null);
+  // OTP optionnel : renforce la signature ('avancé'). Désactivé par défaut.
+  const [otpEnabled, setOtpEnabled] = useState(false);
+  const [otpMethod, setOtpMethod] = useState<'email' | 'totp'>('email');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSentTo, setOtpSentTo] = useState<string | null>(null);
+  const [otpSending, setOtpSending] = useState(false);
+  // refus (réservé au mode workflow — approbateur ou employé qui refuse)
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectMotif, setRejectMotif] = useState('');
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejected, setRejected] = useState(false);
+
   // drawing
   const drawing = useDrawingCanvas();
 
@@ -105,9 +132,22 @@ const SignaturePage = () => {
   useEffect(() => {
     if (!authReady) return;
     if (userName) setSignerName(prev => prev || userName);
+    if (isWorkflow) fetchRequest();
     if (!docId) { setLoading(false); return; }
     fetchDocument();
-  }, [authReady, docId]);
+  }, [authReady, docId, requestId, stepId]);
+
+  // Vue d'état du parcours (timeline + statut). N'altère pas l'aperçu du document,
+  // qui reste chargé via le documentVaultId (param `id`).
+  const fetchRequest = async () => {
+    if (!requestId) return;
+    try {
+      const view = await signatureWorkflowApi.get(Number(requestId));
+      setRequest(view);
+    } catch {
+      /* best-effort : la timeline est un complément, la signature reste possible */
+    }
+  };
 
   const fetchDocument = async () => {
     try {
@@ -118,11 +158,36 @@ const SignaturePage = () => {
       if (fetchedDoc) loadPreviewBlob(fetchedDoc);
     } catch (err: any) {
       if (err?.response?.status !== 404) console.error(err);
-      setDoc(null);
+      // En mode workflow, un approbateur peut ne pas avoir d'accès Vault au document
+      // de l'employé (hors de son service). On ne bloque pas la signature pour autant :
+      // on synthétise un document minimal (libellé via docName passé par l'inbox) et
+      // l'aperçu retombe sur le panneau statique « non prévisualisable ».
+      if (isWorkflow) {
+        setDoc(buildFallbackDoc());
+        setPreviewError("Aperçu indisponible (accès restreint). Vous pouvez tout de même signer l'étape qui vous est assignée.");
+      } else {
+        setDoc(null);
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  // Document de repli (workflow) quand l'aperçu Vault est inaccessible au signataire.
+  const buildFallbackDoc = (): DocumentVault => ({
+    id: docId ? Number(docId) : 0,
+    soccod: '',
+    empcod: '',
+    docName: searchParams.get('docName') || 'Document à signer',
+    docType: searchParams.get('sourceType') || 'Document',
+    docPath: '',
+    docSize: 0,
+    docDate: new Date().toISOString(),
+    isSigned: false,
+    signatureDate: null,
+    signaturePath: null,
+    status: 'Pending Signature',
+  });
 
   // Fetch file as blob (sends proper auth headers), then make an object URL for the iframe
   const loadPreviewBlob = async (document: DocumentVault) => {
@@ -141,34 +206,102 @@ const SignaturePage = () => {
     }
   };
 
+  /* ─── OTP (mode workflow) ─── */
+  const handleSendOtp = async () => {
+    if (!isWorkflow) return;
+    try {
+      setOtpSending(true);
+      setSignError(null);
+      const res = await signatureWorkflowApi.sendOtp(Number(requestId), Number(stepId));
+      setOtpSentTo(res.email);
+    } catch (err: any) {
+      const code = err?.response?.data?.code;
+      setSignError(code === 'no_email'
+        ? "Aucune adresse e-mail n'est associée à votre compte pour recevoir le code."
+        : "Impossible d'envoyer le code. Réessayez.");
+    } finally { setOtpSending(false); }
+  };
+
   /* ─── Sign ─── */
   const handleSign = async () => {
     if (!consent || !docId) return;
     const hasHandwriting = signMethod === 'draw' && drawing.getHasDrawn();
     const hasTyped = signMethod === 'type' && mention.trim().length > 3;
     if (!hasTyped && !hasHandwriting) return;
+    // En mode workflow avec OTP activé, le code est obligatoire avant de signer.
+    if (isWorkflow && otpEnabled && otpCode.trim().length < 4) {
+      setSignError('Saisissez le code de vérification reçu avant de signer.');
+      return;
+    }
 
     try {
       setIsSigning(true);
+      setSignError(null);
       const drawnData = drawing.getDataURL();
       const signatureData = signMethod === 'draw'
         ? `drawn:${drawnData}`
         : `phrase:${mention}`;
 
-      const res = await apiInstance.post(`/Vault/sign/${docId}`, {
-        signatureData,
-        signerName: signerName || doc?.empcod,
-        mention: mention,
-        location: location,
-        date: new Date().toISOString(),
-      });
+      let certificateId: string | null = null;
+
+      if (isWorkflow) {
+        // Nouveau circuit multi-étapes : signe l'étape courante. Le serveur tamponne,
+        // journalise (avec la méthode OTP si fournie), fait avancer le circuit et scelle
+        // le PDF à la dernière étape.
+        const res = await signatureWorkflowApi.sign(Number(requestId), Number(stepId), {
+          signatureData,
+          signerName: signerName || doc?.empcod,
+          mention,
+          location,
+          otpCode: otpEnabled ? otpCode.trim() : undefined,
+          otpMethod: otpEnabled ? otpMethod : undefined,
+        });
+        certificateId = res.certificateId;
+        setSignCompleted(res.completed);
+        fetchRequest(); // rafraîchit la timeline (étape signée, étape suivante notifiée)
+      } else {
+        // Legacy : signature mono-signataire directe sur le document du coffre.
+        const res = await apiInstance.post(`/Vault/sign/${docId}`, {
+          signatureData,
+          signerName: signerName || doc?.empcod,
+          mention,
+          location,
+          date: new Date().toISOString(),
+        });
+        certificateId = res.data?.certificateId ?? null;
+      }
 
       if (signMethod === 'draw') setSignedImageData(drawnData);
-
-      setCertId(res.data?.certificateId ?? `CERT-LEDG-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
+      setCertId(certificateId ?? `CERT-LEDG-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
       setStep(3);
-    } catch (err) { console.error(err); }
+    } catch (err: any) {
+      const code = err?.response?.data?.code;
+      const status = err?.response?.status;
+      if (code === 'otp_invalid' || status === 401) {
+        setSignError('Code de vérification invalide ou expiré. Demandez un nouveau code.');
+      } else if (status === 409) {
+        setSignError(err?.response?.data?.error ?? "Cette étape n'est plus celle en cours (déjà signée ou circuit clos).");
+      } else {
+        setSignError('Échec de la signature. Réessayez.');
+      }
+      console.error(err);
+    }
     finally { setIsSigning(false); }
+  };
+
+  /* ─── Reject (mode workflow) ─── */
+  const handleReject = async () => {
+    if (!isWorkflow || rejectMotif.trim().length < 3) return;
+    try {
+      setRejecting(true);
+      setSignError(null);
+      await signatureWorkflowApi.reject(Number(requestId), Number(stepId), rejectMotif.trim());
+      setRejected(true);
+      setRejectOpen(false);
+      fetchRequest();
+    } catch (err: any) {
+      setSignError(err?.response?.data?.error ?? 'Échec du refus. Réessayez.');
+    } finally { setRejecting(false); }
   };
 
   const copyCert = () => {
@@ -219,6 +352,21 @@ const SignaturePage = () => {
         Le document ID={docId} n'existe pas ou vous n'y avez pas accès.
       </p>
       <button className="sig-btn-primary" onClick={() => navigate(-1)}>← Retour</button>
+    </div>
+  );
+
+  // Confirmation de refus (mode workflow) : le circuit est clos, le demandeur notifié.
+  if (rejected) return (
+    <div className="sig-shell sig-empty">
+      <span className="material-symbols-outlined" style={{ fontSize: '3rem', color: '#ba1a1a' }}>block</span>
+      <p style={{ fontWeight: 700, color: '#334155', margin: '0.75rem 0 0.25rem' }}>Document refusé</p>
+      <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem', maxWidth: 420, textAlign: 'center' }}>
+        Votre refus a été enregistré et le demandeur en a été informé avec votre motif. Le document n'a pas été scellé.
+      </p>
+      <button className="sig-btn-primary" onClick={() => navigate('/dashboard/signature-inbox')}>
+        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>drafts</span>
+        Retour à mes demandes
+      </button>
     </div>
   );
 
@@ -508,38 +656,143 @@ const SignaturePage = () => {
                   <span>J'accepte que cette signature numérique soit l'équivalent légal de ma signature manuscrite, conformément aux lois en vigueur.</span>
                 </label>
 
+                {/* ── OTP optionnel (mode workflow) : renforce le niveau de garantie ── */}
+                {isWorkflow && (
+                  <div className="sig-otp-box">
+                    <label className="sig-consent-label" style={{ margin: 0 }}>
+                      <input type="checkbox" checked={otpEnabled} onChange={e => { setOtpEnabled(e.target.checked); setSignError(null); }} className="sig-checkbox" />
+                      <div className="sig-otp-head">
+                        <div>
+                          <div className="sig-otp-title">Renforcer avec un code à usage unique (OTP)</div>
+                          <div className="sig-otp-sub">Ajoute une vérification d'identité à votre signature (recommandé).</div>
+                        </div>
+                      </div>
+                    </label>
+
+                    {otpEnabled && (
+                      <>
+                        <div className="sig-otp-method-tabs">
+                          <button type="button" className={`sig-otp-method-tab ${otpMethod === 'email' ? 'active' : ''}`} onClick={() => setOtpMethod('email')}>
+                            Code par e-mail
+                          </button>
+                          <button type="button" className={`sig-otp-method-tab ${otpMethod === 'totp' ? 'active' : ''}`} onClick={() => { setOtpMethod('totp'); setOtpSentTo(null); }}>
+                            Authentificateur (TOTP)
+                          </button>
+                        </div>
+
+                        <div className="sig-otp-row">
+                          <input
+                            className="sig-otp-input"
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            maxLength={8}
+                            value={otpCode}
+                            onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                            placeholder="••••••"
+                          />
+                          {otpMethod === 'email' && (
+                            <button type="button" className="sig-btn-secondary" disabled={otpSending} onClick={handleSendOtp}>
+                              {otpSending
+                                ? <CircularProgress size={14} />
+                                : <><span className="material-symbols-outlined" style={{ fontSize: 16 }}>mail</span> {otpSentTo ? 'Renvoyer' : 'Recevoir un code'}</>}
+                            </button>
+                          )}
+                        </div>
+                        {otpMethod === 'email' && otpSentTo && (
+                          <div className="sig-otp-sent">
+                            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check_circle</span>
+                            Code envoyé à {otpSentTo} (valable 10 min)
+                          </div>
+                        )}
+                        {otpMethod === 'totp' && (
+                          <div className="sig-otp-sub" style={{ marginTop: 6 }}>Saisissez le code à 6 chiffres de votre application d'authentification.</div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {signError && (
+                  <div className="sig-otp-sent" style={{ color: '#ba1a1a', marginTop: '0.75rem' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>error</span>
+                    {signError}
+                  </div>
+                )}
+
                 <button className="sig-btn-primary sig-btn-primary--full" style={{ marginTop: '1rem' }} disabled={!canSign || isSigning} onClick={handleSign}>
                   {isSigning
                     ? <><CircularProgress size={14} style={{ color: '#fff' }} /> Signature…</>
                     : <><span className="material-symbols-outlined" style={{ fontSize: 16 }}>draw</span> Valider la Signature</>}
                 </button>
+
+                {/* ── Refus (mode workflow) — un signataire/approbateur peut renvoyer au demandeur ── */}
+                {isWorkflow && !rejectOpen && (
+                  <button className="sig-btn-secondary sig-btn-secondary--full" style={{ marginTop: '0.625rem' }} onClick={() => { setRejectOpen(true); setSignError(null); }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#ba1a1a' }}>block</span>
+                    Refuser ce document
+                  </button>
+                )}
+                {isWorkflow && rejectOpen && (
+                  <div className="sig-otp-box" style={{ borderColor: '#fca5a5', background: '#fdf2f2' }}>
+                    <div className="sig-otp-title">Motif du refus</div>
+                    <div className="sig-input-group" style={{ marginTop: '0.5rem' }}>
+                      <textarea
+                        className="sig-name-input"
+                        rows={3}
+                        value={rejectMotif}
+                        onChange={e => setRejectMotif(e.target.value)}
+                        placeholder="Expliquez pourquoi vous refusez de signer ce document…"
+                        style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      <button className="sig-btn-secondary" style={{ flex: 1 }} onClick={() => { setRejectOpen(false); setRejectMotif(''); }} disabled={rejecting}>
+                        Annuler
+                      </button>
+                      <button className="sig-btn-primary" style={{ flex: 1, background: '#ba1a1a' }} disabled={rejectMotif.trim().length < 3 || rejecting} onClick={handleReject}>
+                        {rejecting ? <CircularProgress size={14} style={{ color: '#fff' }} /> : 'Confirmer le refus'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="sig-panel">
-                <div className="sig-panel-section-label">Signataires du Document</div>
-                <div className="sig-signatories">
-                  <div className="sig-signatory-row">
-                    <div className="sig-signatory-info">
-                      <div className="sig-avatar">{companyInitials}</div>
-                      <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 800 }}>{companyName}</div>
-                        <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Représentant Société</div>
+              {/* Mode workflow : timeline réelle du circuit (étapes + registre). */}
+              {isWorkflow && request && (
+                <div className="sig-panel">
+                  <SignatureTimeline request={request} currentEmpcod={uticod} />
+                </div>
+              )}
+
+              {/* Mode legacy : aperçu statique des deux signataires. */}
+              {!isWorkflow && (
+                <div className="sig-panel">
+                  <div className="sig-panel-section-label">Signataires du Document</div>
+                  <div className="sig-signatories">
+                    <div className="sig-signatory-row">
+                      <div className="sig-signatory-info">
+                        <div className="sig-avatar">{companyInitials}</div>
+                        <div>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 800 }}>{companyName}</div>
+                          <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Représentant Société</div>
+                        </div>
                       </div>
+                      <span className="sig-badge sig-badge--signed"><span className="material-symbols-outlined" style={{ fontSize: 12 }}>check_circle</span>Signé</span>
                     </div>
-                    <span className="sig-badge sig-badge--signed"><span className="material-symbols-outlined" style={{ fontSize: 12 }}>check_circle</span>Signé</span>
-                  </div>
-                  <div className="sig-signatory-row">
-                    <div className="sig-signatory-info">
-                      <div className="sig-avatar" style={{ background: '#0040a1', color: '#fff' }}>{initials}</div>
-                      <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 800 }}>{displayName} (Vous)</div>
-                        <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Collaborateur</div>
+                    <div className="sig-signatory-row">
+                      <div className="sig-signatory-info">
+                        <div className="sig-avatar" style={{ background: '#0040a1', color: '#fff' }}>{initials}</div>
+                        <div>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 800 }}>{displayName} (Vous)</div>
+                          <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Collaborateur</div>
+                        </div>
                       </div>
+                      <span className="sig-badge sig-badge--pending"><span className="material-symbols-outlined" style={{ fontSize: 12 }}>pending</span>En attente</span>
                     </div>
-                    <span className="sig-badge sig-badge--pending"><span className="material-symbols-outlined" style={{ fontSize: 12 }}>pending</span>En attente</span>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="sig-security-card">
                 <span className="material-symbols-outlined" style={{ color: '#0040a1', fontSize: '1.25rem' }}>lock</span>
@@ -560,9 +813,13 @@ const SignaturePage = () => {
                 <div className="sig-success-icon-wrap">
                   <span className="material-symbols-outlined" style={{ fontSize: '2.5rem', color: '#005136' }}>check_circle</span>
                 </div>
-                <h3 className="sig-success-title">Signature validée avec succès !</h3>
+                <h3 className="sig-success-title">
+                  {isWorkflow && signCompleted === false ? 'Votre signature est enregistrée !' : 'Signature validée avec succès !'}
+                </h3>
                 <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-                  Le document a été signé électroniquement et archivé de manière sécurisée dans votre coffre-fort.
+                  {isWorkflow && signCompleted === false
+                    ? "Le document a été transmis au prochain approbateur du circuit, qui a été notifié. Il sera scellé une fois toutes les signatures recueillies."
+                    : 'Le document a été signé électroniquement et archivé de manière sécurisée dans votre coffre-fort.'}
                 </p>
                 <div className="sig-cert-box">
                   <div className="sig-cert-label">ID du Certificat</div>
@@ -591,23 +848,29 @@ const SignaturePage = () => {
                 </div>
               </div>
 
-              <div className="sig-panel">
-                <div className="sig-panel-section-label">Statut des Signataires</div>
-                <div className="sig-signatories">
-                  {[[companyInitials, companyName, 'Représentant Société'], [initials, displayName, 'Collaborateur']].map(([ini, name, role]) => (
-                    <div key={name} className="sig-signatory-row">
-                      <div className="sig-signatory-info">
-                        <div className="sig-avatar" style={{ background: '#0040a1', color: '#fff' }}>{ini}</div>
-                        <div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 800 }}>{name}</div>
-                          <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{role}</div>
-                        </div>
-                      </div>
-                      <span className="sig-badge sig-badge--signed"><span className="material-symbols-outlined" style={{ fontSize: 12 }}>check_circle</span>Signé</span>
-                    </div>
-                  ))}
+              {isWorkflow && request ? (
+                <div className="sig-panel">
+                  <SignatureTimeline request={request} currentEmpcod={uticod} />
                 </div>
-              </div>
+              ) : (
+                <div className="sig-panel">
+                  <div className="sig-panel-section-label">Statut des Signataires</div>
+                  <div className="sig-signatories">
+                    {[[companyInitials, companyName, 'Représentant Société'], [initials, displayName, 'Collaborateur']].map(([ini, name, role]) => (
+                      <div key={name} className="sig-signatory-row">
+                        <div className="sig-signatory-info">
+                          <div className="sig-avatar" style={{ background: '#0040a1', color: '#fff' }}>{ini}</div>
+                          <div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 800 }}>{name}</div>
+                            <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{role}</div>
+                          </div>
+                        </div>
+                        <span className="sig-badge sig-badge--signed"><span className="material-symbols-outlined" style={{ fontSize: 12 }}>check_circle</span>Signé</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="sig-security-card">
                 <span className="material-symbols-outlined" style={{ color: '#0040a1', fontSize: '1.25rem' }}>verified</span>

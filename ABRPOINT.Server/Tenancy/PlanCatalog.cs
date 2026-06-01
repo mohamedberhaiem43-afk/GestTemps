@@ -85,10 +85,12 @@ public sealed record PlanFeatures(
     // simple, sans workflow RH").
     bool LeaveManagement,
     bool AuthorizationManagement,
-    // 2026-05-23 : modules métier facturables — exclus du Starter par défaut.
+    // 2026-05-23 : modules métier facturables — exclus du Starter par défaut,
+    // À L'EXCEPTION de ContractManagement (éligible Starter depuis 2026-06).
     // ExpenseReports         = saisie/validation des notes de frais (NoteDeFraisController).
     // BreastfeedingManagement = gestion des heures d'allaitement (AllaitementsController).
     // ContractManagement      = saisie/édition des contrats employés (ContratsController).
+    //                           Inclus dès le Starter (2026-06).
     // DocumentScanOcr         = scan OCR de pièces d'identité pour ajout d'un collaborateur
     //                           (DocumentScanController).
     // BulkImport             = imports en masse Excel pour toutes les données de base
@@ -185,11 +187,13 @@ public static class PlanCatalog
             GeneralExit: false,
             LeaveManagement: true,
             AuthorizationManagement: true,
-            // Starter exclut explicitement les 5 modules métier avancés (l'import en
-            // masse fait partie du package Standard pour cohérence avec la grille).
+            // Starter exclut les modules métier avancés, SAUF la gestion de contrat
+            // qui y est désormais éligible (2026-06 — décision commerciale : la
+            // saisie/édition des contrats employés est un besoin de base, inclus dès
+            // le Starter). L'import en masse reste réservé au package Standard.
             ExpenseReports: false,
             BreastfeedingManagement: false,
-            ContractManagement: false,
+            ContractManagement: true,
             DocumentScanOcr: false,
             BulkImport: false,
             // Addon-only — aucun pack ne les inclut, débloqués via addons souscrits.

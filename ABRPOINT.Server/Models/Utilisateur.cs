@@ -99,4 +99,17 @@ public partial class Utilisateur : BaseEntity
     /// </summary>
     [Column("uti_email_verif_attempts")]
     public int? UtiEmailVerifAttempts { get; set; }
+
+    // ── OTP de signature électronique (Phase 3) ──
+    // Stockage DÉDIÉ (distinct de la vérif email signup) pour ne pas écraser un code
+    // de vérification d'adresse en cours. BCrypt-hashé, expiry court, anti-bruteforce.
+    [Column("uti_sign_otp_code")]
+    [StringLength(72)]
+    public string? UtiSignOtpCode { get; set; }
+
+    [Column("uti_sign_otp_expiry")]
+    public DateTime? UtiSignOtpExpiry { get; set; }
+
+    [Column("uti_sign_otp_attempts")]
+    public int? UtiSignOtpAttempts { get; set; }
 }

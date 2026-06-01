@@ -1,25 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  Box, Typography, TextField, Button, CircularProgress, Alert, Link, Checkbox, FormControlLabel,
-  Paper, Stack, InputAdornment, MenuItem, ToggleButton, ToggleButtonGroup,
-} from '@mui/material';
-import BusinessIcon from '@mui/icons-material/Business';
-import CategoryIcon from '@mui/icons-material/Category';
-import PublicIcon from '@mui/icons-material/Public';
-import LinkIcon from '@mui/icons-material/Link';
-import PersonIcon from '@mui/icons-material/Person';
-import MailIcon from '@mui/icons-material/Mail';
-import LockIcon from '@mui/icons-material/Lock';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ErrorIcon from '@mui/icons-material/Error';
 import apiInstance from '../API/apiInstance';
 import { sendSupportMessage } from '../../services/ContactService';
 import { useAuth } from '../helper/AuthProvider';
-import GetRestCountries from '../../services/RestCountriesService/GetRestCountries';
 import { type PlanKey, type Cycle, type AddonKey } from './PlanPicker';
-// import VerifyEmailPage from './VerifyEmailPage'; // removed unused import
-import { BadgeIcon } from 'lucide-react';
+import './Signup.css';
 
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$/;
 
@@ -40,7 +25,7 @@ type SiretStatus = 'idle' | 'checking' | 'available' | 'format' | 'checksum' | '
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ─────────────────────────────────────────────────────────────────────────
-// Multi-pays (2026-05) : 4 pays supportés au signup. La config détermine le
+// Multi-pays (2026-05) : 5 pays supportés au signup. La config détermine le
 // label/placeholder/regex du champ ID + le message d'aide. Le mapping est
 // CALÉ sur les validations côté backend (SiretValidator.ValidateXxx) — toute
 // modification ici doit être propagée là-bas et vice-versa.
@@ -125,6 +110,12 @@ const COUNTRY_CONFIG: Record<CountryCode, CountryConfig> = {
 
 const SUPPORTED_COUNTRIES: CountryCode[] = ['FR', 'BE', 'MA', 'SN', 'TN'];
 
+// Drapeaux emoji pour l'indicateur visuel du sélecteur de pays (les <option> natives
+// ne peuvent pas afficher d'image). Léger, sans dépendance réseau.
+const COUNTRY_FLAGS: Record<CountryCode, string> = {
+  FR: '🇫🇷', BE: '🇧🇪', MA: '🇲🇦', SN: '🇸🇳', TN: '🇹🇳',
+};
+
 function slugify(input: string): string {
   return input
     .toLowerCase()
@@ -152,13 +143,6 @@ export default function SignupPage() {
   const [country, setCountry] = useState<CountryCode>('FR');
   const countryConfig = COUNTRY_CONFIG[country];
 
-  // Drapeaux récupérés de restcountries.com (même API que la fiche collaborateur).
-  // On filtre côté client sur les 4 pays supportés. Si l'appel échoue, l'app reste
-  // fonctionnelle — les drapeaux sont juste un confort UX, pas critiques.
-  const [countryFlags, setCountryFlags] = useState<Record<CountryCode, string>>({
-    FR: '', BE: '', MA: '', SN: '', TN: '',
-  });
-
   // Identifiant entreprise. Validé selon le pays sélectionné — quand le user change
   // de pays, on reset l'ID et son statut pour éviter d'afficher une validation
   // périmée (ex: SIRET FR valide affiché comme valide après bascule sur la Belgique).
@@ -182,7 +166,6 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [emailStatus, setEmailStatus] = useState<EmailStatus>('idle');
   const [password, setPassword] = useState('');
-
 
   // Sélection du pack + cycle + modules optionnels. Pré-rempli depuis planFromPricing
   // si l'utilisateur vient de la pricing page ; sinon défauts commerciaux (Standard +
@@ -223,27 +206,6 @@ export default function SignupPage() {
     }
   };
   useEffect(() => { refreshCaptcha(); }, []);
-
-  // Chargement des drapeaux : on tape la même API restcountries.com utilisée par la
-  // fiche collaborateur. On extrait uniquement nos 4 pays supportés. Best-effort : si
-  // l'appel échoue, l'app reste utilisable, juste sans icônes drapeau.
-  useEffect(() => {
-    (async () => {
-      try {
-        const all = await GetRestCountries.getAll();
-        const flags: Record<CountryCode, string> = { FR: '', BE: '', MA: '', SN: '', TN: '' };
-        for (const cc of SUPPORTED_COUNTRIES) {
-          const cca3 = COUNTRY_CONFIG[cc].cca3;
-          const match = all.find(c => c.cca3 === cca3);
-          if (match) flags[cc] = match.flagPng || match.flagSvg || '';
-        }
-        setCountryFlags(flags);
-      } catch {
-        // restcountries.com inaccessible — on tolère, le dropdown affichera juste les
-        // noms sans drapeaux. Pas de blocage du signup.
-      }
-    })();
-  }, []);
 
   // Quand l'utilisateur change de pays : reset complet de l'ID. Sinon un SIRET FR
   // validé resterait marqué "available" même après bascule vers la Belgique alors
@@ -477,16 +439,11 @@ export default function SignupPage() {
     }
   }, [slug, slugStatus]);
 
-  // Force du mot de passe (0-3) — pilote les 3 barres visuelles sous le champ.
-  // 1 = longueur ≥ 8 ; +1 = majuscule & chiffre ; +1 = caractère spécial.
-  const pwScore = useMemo(() => {
-    if (!password) return 0;
-    let s = 0;
-    if (password.length >= 8) s++;
-    if (/[A-Z]/.test(password) && /[0-9]/.test(password)) s++;
-    if (/[^A-Za-z0-9]/.test(password)) s++;
-    return s;
-  }, [password]);
+  // Critères de mot de passe (affichage). Le minimum bloquant reste 8 caractères
+  // (cf. canSubmit). Majuscule / caractère spécial sont des recommandations guidées.
+  const pwOkLen = password.length >= 8;
+  const pwOkUpper = /[A-Z]/.test(password);
+  const pwOkSpecial = /[^A-Za-z0-9]/.test(password);
 
   // Le bouton est actif dès que le format du slug est correct et qu'il n'est pas
   // explicitement connu comme pris/réservé. L'attente d'un "available" formel
@@ -496,7 +453,7 @@ export default function SignupPage() {
     && slugStatus !== 'reserved'
     && slugStatus !== 'invalid';
 
-  /// L'ID entreprise est obligatoire (anti-fraude). Format exigécanSc selon le pays
+  // L'ID entreprise est obligatoire (anti-fraude). Format exigé selon le pays
   // (countryConfig.idDigits + idRegex optionnel pour les ID alphanumériques) ;
   // on ne bloque pas sur 'checking' ou 'idle' pour permettre la soumission si
   // l'API Sirene FR est lente (le backend re-valide de toute façon et la
@@ -514,7 +471,6 @@ export default function SignupPage() {
     siretStatus !== 'closed' &&
     siretStatus !== 'already_used' &&
     siretStatus !== 'invalid';
-
 
   const submit = async () => {
     setError(null);
@@ -591,7 +547,7 @@ export default function SignupPage() {
       if (pickerAddons.length > 0) {
         sessionStorage.setItem('signupAddons', JSON.stringify(pickerAddons));
       }
-      // After successful signup, redirect to login page
+      // After successful signup, redirect to email verification page
       navigate('/verify-email', { state: { email: email.trim() } });
     } catch (e: any) {
       // Handle specific error codes
@@ -620,6 +576,7 @@ export default function SignupPage() {
       setSubmitting(false);
     }
   };
+
   const canSubmit =
     !submitting &&
     companyName.trim().length >= 2 &&
@@ -633,390 +590,360 @@ export default function SignupPage() {
     password.length >= 8 &&
     captchaChallengeId.length > 0 &&
     captchaAnswer.trim() !== '' &&
-    termsAccepted &&
-    slugAccepted;
+    termsAccepted;
+
+  // Indicateur de statut (✓ / ✗ / ⏳) affiché à droite d'un champ vérifié async.
+  const renderStatus = (status: SlugStatus | EmailStatus | SiretStatus) => {
+    if (status === 'checking') return <span className="signup-input-status loading">⏳</span>;
+    if (status === 'available') return <span className="signup-input-status valid">✓</span>;
+    const errStates = ['taken', 'invalid', 'format', 'checksum', 'not_found', 'closed', 'already_used', 'reserved'];
+    if (errStates.includes(status)) return <span className="signup-input-status invalid">✗</span>;
+    return null;
+  };
+
+  const hintClass = (color?: string) =>
+    color === 'error' ? 'signup-field-hint error'
+      : color === 'success' ? 'signup-field-hint success'
+        : 'signup-field-hint';
+
+  const fromPricing = Boolean(planFromPricing?.plan && planFromPricing?.userCount);
+
   return (
-    <Box sx={{
-      minHeight: '100vh',
-      bgcolor: '#f7f7fa',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      p: { xs: 2, md: 4 },
-    }}>
-      <Paper elevation={2} sx={{ maxWidth: 820, width: '100%', p: { xs: 3, md: 5 }, borderRadius: 3 }}>
-        <Box sx={{ textAlign: 'center', mb: 3 }}>
-          {/* Tous les packs (Starter/Standard/Premium) = 30 jours offerts sans CB. Le titre
-              s'adapte selon que l'utilisateur arrive depuis PlanConfiguration (étape 1 sur 2,
-              CB pré-enregistrée à l'étape suivante) ou en signup direct. */}
-          {planFromPricing?.plan && planFromPricing?.userCount ? (
-            <>
-              <Typography variant="h4" fontWeight={800} sx={{ mb: 1 }}>
-                Créer mon compte
-              </Typography>
-              <Typography color="text.secondary">
-                Étape 1 sur 2 — 30 jours gratuits sans CB. Votre moyen de paiement
-                sera pré-enregistré à l'étape suivante (aucun débit avant la fin de l'essai).
-              </Typography>
-            </>
-          ) : (
-            <>
-              <Typography variant="h4" fontWeight={800} sx={{ mb: 1 }}>
-                Démarrer mon essai gratuit
-              </Typography>
-              <Typography color="text.secondary">
-                30 jours, sans carte bancaire — Concorde Workforce
-              </Typography>
-            </>
-          )}
-          {/* Bandeau de confiance — repris de la maquette signup (sans CB + données FR). */}
-          <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap" useFlexGap sx={{ mt: 2 }}>
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, bgcolor: '#e8f0fe', color: '#0040a1', fontSize: 12, fontWeight: 700, px: 1.5, py: 0.6, borderRadius: 99 }}>
-              ✓ Sans carte bancaire
-            </Box>
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, bgcolor: '#e8f0fe', color: '#0040a1', fontSize: 12, fontWeight: 700, px: 1.5, py: 0.6, borderRadius: 99 }}>
-              🛡️ Données hébergées en France
-            </Box>
-          </Stack>
-          {/* Chip « Plan sélectionné » supprimée — l'information vit désormais dans
-              le PlanPicker ci-dessous, qui affiche le pack actif visuellement + permet
-              de le changer. Éviter le doublon réduit la charge cognitive. */}
-        </Box>
+    <div className="signup-root">
+      {/* NAV */}
+      <nav className="signup-nav">
+        <a href="https://concorde-work-force.com" className="signup-nav-logo">
+          <span className="signup-logo-mark">CW</span>
+          Concorde Workforce
+        </a>
+        <span
+          className="signup-nav-login"
+          role="link"
+          tabIndex={0}
+          onClick={() => navigate('/login')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/login'); }}
+        >
+          Déjà inscrit ? <span>Se connecter →</span>
+        </span>
+      </nav>
 
-        <Stack spacing={2.5}>
-          {/* Sélection du pack — version simplifiée (2026-05-29) : uniquement le choix
-              du NOM de pack via 3 boutons, sans détails ni modules. Le pack choisi est
-              posé sur Tenant.PlanCode au signup et débloque les bons modules via /me
-              pendant l'essai 30j. Les détails et les modules optionnels se consultent
-              et s'ajustent ensuite depuis « Mon abonnement ». */}
-          <Box>
-            <Typography sx={{ fontWeight: 800, fontSize: 16, color: '#0f172a', mb: 1 }}>
-              Choisissez votre formule
-            </Typography>
-            <ToggleButtonGroup
-              value={pickerPlan}
-              exclusive
-              fullWidth
-              onChange={(_, v) => { if (v) setPickerPlan(v as PlanKey); }}
-              sx={{
-                '& .MuiToggleButton-root': {
-                  textTransform: 'none', fontWeight: 700, py: 1.25, fontSize: 15,
-                  border: '2px solid #e2e8f0', borderRadius: 2,
-                  '&.Mui-selected': {
-                    bgcolor: '#0040a1', color: '#fff', borderColor: '#0040a1',
-                    '&:hover': { bgcolor: '#003080' },
-                  },
-                },
-              }}
-            >
-              <ToggleButton value="Starter">Starter</ToggleButton>
-              <ToggleButton value="Standard">Standard</ToggleButton>
-              <ToggleButton value="Premium">Premium</ToggleButton>
-            </ToggleButtonGroup>
-            <Typography sx={{ fontSize: 12, color: '#64748b', mt: 1 }}>
-              30 jours d'essai gratuit sans carte bancaire. Vous pourrez comparer les
-              détails des packs et activer des modules plus tard depuis « Mon abonnement ».
-            </Typography>
-          </Box>
+      {/* PAGE */}
+      <main className="signup-main">
+        <div className="signup-card">
+          {/* HEADER */}
+          <div className="signup-card-header">
+            <h1 className="signup-card-title">
+              {fromPricing ? 'Créer mon compte' : 'Démarrer mon essai gratuit'}
+            </h1>
+            <p className="signup-card-subtitle">
+              {fromPricing ? (
+                <>Étape 1 sur 2 — 30 jours gratuits sans CB. Votre moyen de paiement sera pré-enregistré à l'étape suivante (aucun débit avant la fin de l'essai).</>
+              ) : (
+                <><strong>30 jours, sans carte bancaire</strong> — Concorde Workforce</>
+              )}
+            </p>
+            <div className="signup-trust-pills">
+              <div className="signup-trust-pill">✓ Sans carte bancaire</div>
+              <div className="signup-trust-pill">🛡️ Données hébergées en France</div>
+            </div>
+          </div>
 
-          <Typography sx={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.secondary', mt: 1 }}>
-            Votre entreprise
-          </Typography>
+          <div className="signup-divider" />
 
-          {/* Ordre des champs (2026-05) : Pays + ID entreprise EN PREMIER, puis email
-              pro, puis nom de société (souvent auto-rempli depuis l'API Sirene/BCE),
-              puis slug, identité de l'admin, mot de passe. Le pays détermine le format
-              de l'ID demandé ; l'ID valide auto-remplit nom + adresse de l'entreprise. */}
-          <TextField
-            fullWidth
-            select
-            label="Pays de l'entreprise"
-            value={country}
-            onChange={(e) => setCountry(e.target.value as CountryCode)}
-            InputProps={{ startAdornment: <InputAdornment position="start"><PublicIcon /></InputAdornment> }}
+          {/* FORM */}
+          <form
+            className="signup-form"
+            noValidate
+            onSubmit={(e) => { e.preventDefault(); if (canSubmit) submit(); }}
           >
-            {SUPPORTED_COUNTRIES.map((cc) => {
-              const cfg = COUNTRY_CONFIG[cc];
-              const flag = countryFlags[cc];
-              return (
-                <MenuItem key={cc} value={cc}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    {flag ? (
-                      <img src={flag} alt="" style={{ width: 22, height: 16, objectFit: 'cover', borderRadius: 2 }} />
-                    ) : (
-                      <Box sx={{ width: 22, height: 16, bgcolor: '#e2e8f0', borderRadius: 0.5 }} />
-                    )}
-                    <span>{cfg.label}</span>
-                  </Box>
-                </MenuItem>
-              );
-            })}
-          </TextField>
+            {/* Formule — choix du pack (Starter/Standard/Premium). Pose Tenant.PlanCode
+                au signup et débloque les modules via /me pendant l'essai 30j. */}
+            <div className="signup-section-label">Choisissez votre formule</div>
+            <div className="signup-plan-group">
+              {(['Starter', 'Standard', 'Premium'] as PlanKey[]).map((p) => (
+                <button
+                  type="button"
+                  key={p}
+                  className={`signup-plan-btn ${pickerPlan === p ? 'active' : ''}`}
+                  onClick={() => setPickerPlan(p)}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+            <div className="signup-field-hint">
+              30 jours d'essai gratuit sans carte bancaire. Vous pourrez comparer les détails des packs et activer des modules plus tard depuis « Mon abonnement ».
+            </div>
 
-          <Box>
-            <TextField
-              fullWidth
-              label={countryConfig.idLabel}
-              value={siret}
-              onChange={(e) => {
-                // Filtre de saisie : on accepte espaces/tirets/points pour confort (variants
-                // de formatage : BCE "0123.456.789", ICE par segments, Matricule Fiscal TN
-                // "1234567/A/M/001"…). Pour les pays alphanumériques (TN), on autorise aussi
-                // les lettres ; sinon chiffres uniquement.
-                const allowed = countryConfig.idAlphanumeric ? /[^0-9A-Za-z\s\-./]/g : /[^0-9\s\-.]/g;
-                const maxLen = countryConfig.idMaxInputLength ?? (countryConfig.idDigits + 6);
-                const cleaned = e.target.value.replace(allowed, '').slice(0, maxLen);
-                setSiret(cleaned);
-              }}
-              placeholder={countryConfig.idPlaceholder}
-              InputProps={{
-                startAdornment: <InputAdornment position="start"><BadgeIcon /></InputAdornment>,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    {siretStatus === 'checking' && <CircularProgress size={18} />}
-                    {siretStatus === 'available' && <CheckCircleIcon color="success" fontSize="small" />}
-                    {['format', 'checksum', 'not_found', 'closed', 'already_used', 'invalid'].includes(siretStatus) && (
-                      <ErrorIcon color="error" fontSize="small" />
-                    )}
-                  </InputAdornment>
-                ),
-              }}
-              // inputMode : "numeric" déclenche le pavé numérique sur mobile (FR/BE/MA/SN
-              // 100% chiffres). Pour TN qui contient des lettres, on bascule sur le clavier
-              // texte standard sinon l'utilisateur mobile ne peut pas saisir "A".
-              inputProps={{ inputMode: countryConfig.idAlphanumeric ? 'text' : 'numeric' }}
-              helperText={countryConfig.idHelper + ' Un seul essai gratuit par numéro.'}
-            />
-            {siretHelper && (
-              <Typography variant="caption" color={`${siretHelper.color}.main`} sx={{ display: 'block', mt: 0.5, ml: 1 }}>
-                {siretHelper.text}
-              </Typography>
-            )}
-            {/* Adresse récupérée de l'API officielle — affichée en lecture seule
-                pour confirmer visuellement à l'utilisateur que c'est bien la bonne
-                entreprise. Le nom de société, lui, a déjà été auto-rempli dans le
-                champ « Nom de votre entreprise » (cf. useEffect SIRET). */}
-            {siretStatus === 'available' && siretCompanyAddress && (
-              <Box sx={{ mt: 1, p: 1.2, borderRadius: 1.5, bgcolor: '#f0f9ff', border: '1px solid #bae6fd' }}>
-                <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-                  Adresse officielle
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#0c4a6e', mt: 0.3, lineHeight: 1.3 }}>
-                  {siretCompanyAddress}
-                </Typography>
-              </Box>
-            )}
-          </Box>
+            <div className="signup-divider" style={{ margin: '8px 0' }} />
+            <div className="signup-section-label">Votre entreprise</div>
 
-          <Box>
-            <TextField
-              fullWidth
-              type="email"
-              label="Adresse email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              InputProps={{
-                startAdornment: <InputAdornment position="start"><MailIcon /></InputAdornment>,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    {emailStatus === 'checking' && <CircularProgress size={18} />}
-                    {emailStatus === 'available' && <CheckCircleIcon color="success" fontSize="small" />}
-                    {(emailStatus === 'taken' || emailStatus === 'invalid') && (
-                      <ErrorIcon color="error" fontSize="small" />
-                    )}
-                  </InputAdornment>
-                ),
-              }}
-              helperText="Un code à 6 chiffres sera envoyé à cette adresse pour confirmer votre inscription."
-            />
-            {emailHelper && (
-              <Typography variant="caption" color={`${emailHelper.color}.main`} sx={{ display: 'block', mt: 0.5, ml: 1 }}>
-                {emailHelper.text}
-              </Typography>
-            )}
-          </Box>
+            {/* Pays */}
+            <div className="signup-field">
+              <label className="signup-field-label" htmlFor="su-pays">
+                Pays de l'entreprise <span className="req">*</span>
+              </label>
+              <div className="signup-input-wrap">
+                <span className="signup-select-flag">{COUNTRY_FLAGS[country]}</span>
+                <select
+                  id="su-pays"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value as CountryCode)}
+                >
+                  {SUPPORTED_COUNTRIES.map((cc) => (
+                    <option key={cc} value={cc}>{COUNTRY_CONFIG[cc].label}</option>
+                  ))}
+                </select>
+                <span className="signup-select-arrow">⌄</span>
+              </div>
+            </div>
 
-          <TextField
-            fullWidth
-            label="Nom de l'entreprise"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            InputProps={{ startAdornment: <InputAdornment position="start"><BusinessIcon /></InputAdornment> }}
-            helperText="Auto-rempli depuis l'API officielle quand l'identifiant est reconnu."
-          />
+            {/* ID entreprise */}
+            <div className="signup-field">
+              <label className="signup-field-label" htmlFor="su-siret">
+                {countryConfig.idLabel} <span className="req">*</span>
+              </label>
+              <div className="signup-input-wrap">
+                <span className="signup-input-icon">🏛️</span>
+                <input
+                  id="su-siret"
+                  type="text"
+                  value={siret}
+                  placeholder={countryConfig.idPlaceholder}
+                  inputMode={countryConfig.idAlphanumeric ? 'text' : 'numeric'}
+                  className={siretStatus === 'available' ? 'valid' : ['format', 'checksum', 'not_found', 'closed', 'already_used', 'invalid'].includes(siretStatus) ? 'invalid' : ''}
+                  onChange={(e) => {
+                    // Filtre de saisie : on accepte espaces/tirets/points pour confort (variants
+                    // de formatage : BCE "0123.456.789", ICE par segments, Matricule Fiscal TN
+                    // "1234567/A/M/001"…). Pour les pays alphanumériques (TN), on autorise aussi
+                    // les lettres ; sinon chiffres uniquement.
+                    const allowed = countryConfig.idAlphanumeric ? /[^0-9A-Za-z\s\-./]/g : /[^0-9\s\-.]/g;
+                    const maxLen = countryConfig.idMaxInputLength ?? (countryConfig.idDigits + 6);
+                    const cleaned = e.target.value.replace(allowed, '').slice(0, maxLen);
+                    setSiret(cleaned);
+                  }}
+                />
+                {renderStatus(siretStatus)}
+              </div>
+              <div className={hintClass(siretHelper?.color)}>
+                {siretHelper ? siretHelper.text : `${countryConfig.idHelper} Un seul essai gratuit par numéro.`}
+              </div>
+              {/* Adresse récupérée de l'API officielle — affichée en lecture seule pour
+                  confirmer visuellement la bonne entreprise. */}
+              {siretStatus === 'available' && siretCompanyAddress && (
+                <div className="signup-address-box">
+                  <span className="signup-address-title">Adresse officielle</span>
+                  <div className="signup-address-value">{siretCompanyAddress}</div>
+                </div>
+              )}
+            </div>
 
-          {/* Secteur d'activité — pré-rempli depuis Sirene FR (libellé NAF) / BCE BE
-              (libellé NACE) quand l'API renvoie l'info ; sinon saisie libre. Sert au
-              profilage commercial (segmenter par vertical) et au prompt-engineering
-              de l'assistant IA (réponses adaptées BTP vs cabinet d'audit). */}
-          <TextField
-            fullWidth
-            label="Secteur d'activité"
-            value={activitySector}
-            onChange={(e) => { setActivitySector(e.target.value); setActivitySectorAutofilled(true); }}
-            InputProps={{ startAdornment: <InputAdornment position="start"><CategoryIcon /></InputAdornment> }}
-            placeholder="Ex: Conseil en gestion, BTP, Restauration…"
-          />
+            {/* Email */}
+            <div className="signup-field">
+              <label className="signup-field-label" htmlFor="su-email">
+                Adresse email <span className="req">*</span>
+              </label>
+              <div className="signup-input-wrap">
+                <span className="signup-input-icon">✉️</span>
+                <input
+                  id="su-email"
+                  type="email"
+                  value={email}
+                  placeholder="vous@entreprise.com"
+                  autoComplete="email"
+                  className={emailStatus === 'available' ? 'valid' : (emailStatus === 'taken' || emailStatus === 'invalid') ? 'invalid' : ''}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                {renderStatus(emailStatus)}
+              </div>
+              <div className={hintClass(emailHelper?.color)}>
+                {emailHelper ? emailHelper.text : 'Un code à 6 chiffres vous sera envoyé pour confirmer votre inscription.'}
+              </div>
+            </div>
 
-          <Box>
-            <TextField
-              fullWidth
-              label="Adresse de votre espace"
-              value={slug}
-              onChange={(e) => { setSlugTouched(true); setSlug(slugify(e.target.value)); }}
-              InputProps={{
-                startAdornment: <InputAdornment position="start"><LinkIcon /></InputAdornment>,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    {slugStatus === 'checking' && <CircularProgress size={18} />}
-                    {slugStatus === 'available' && <CheckCircleIcon color="success" fontSize="small" />}
-                    {(slugStatus === 'taken' || slugStatus === 'reserved' || slugStatus === 'invalid') && (
-                      <ErrorIcon color="error" fontSize="small" />
-                    )}
-                  </InputAdornment>
-                ),
-              }}
-              helperText={`https://${slug || 'votre-slug'}.concorde.com`}
-            />
-            {slugHelper && (
-              <Typography variant="caption" color={`${slugHelper.color}.main`} sx={{ display: 'block', mt: 0.5, ml: 1 }}>
-                {slugHelper.text}
-              </Typography>
-            )}
-          </Box>
+            {/* Nom entreprise */}
+            <div className="signup-field">
+              <label className="signup-field-label" htmlFor="su-company">
+                Nom de l'entreprise <span className="req">*</span>
+              </label>
+              <div className="signup-input-wrap">
+                <span className="signup-input-icon">🏢</span>
+                <input
+                  id="su-company"
+                  type="text"
+                  value={companyName}
+                  placeholder="Raison sociale"
+                  autoComplete="organization"
+                  onChange={(e) => setCompanyName(e.target.value)}
+                />
+              </div>
+              <div className="signup-field-hint">Auto-rempli depuis l'API officielle quand l'identifiant est reconnu.</div>
+            </div>
 
-          <Typography sx={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.secondary', mt: 1 }}>
-            Votre compte administrateur
-          </Typography>
+            {/* Secteur */}
+            <div className="signup-field">
+              <label className="signup-field-label" htmlFor="su-sector">Secteur d'activité</label>
+              <div className="signup-input-wrap">
+                <span className="signup-input-icon">🏭</span>
+                <input
+                  id="su-sector"
+                  type="text"
+                  value={activitySector}
+                  placeholder="Ex : Conseil en gestion, BTP, Restauration…"
+                  onChange={(e) => { setActivitySector(e.target.value); setActivitySectorAutofilled(true); }}
+                />
+              </div>
+            </div>
 
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField
-              fullWidth
-              label="Prénom"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              InputProps={{ startAdornment: <InputAdornment position="start"><PersonIcon /></InputAdornment> }}
-            />
-            <TextField
-              fullWidth
-              label="Nom"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              InputProps={{ startAdornment: <InputAdornment position="start"><PersonIcon /></InputAdornment> }}
-            />
-          </Stack>
+            {/* Slug */}
+            <div className="signup-field">
+              <label className="signup-field-label" htmlFor="su-slug">
+                Adresse de votre espace <span className="req">*</span>
+              </label>
+              <div className="signup-input-wrap">
+                <span className="signup-input-icon">🔗</span>
+                <input
+                  id="su-slug"
+                  type="text"
+                  value={slug}
+                  placeholder="votre-slug"
+                  autoComplete="off"
+                  className={slugStatus === 'available' ? 'valid' : (slugStatus === 'taken' || slugStatus === 'reserved' || slugStatus === 'invalid') ? 'invalid' : ''}
+                  onChange={(e) => { setSlugTouched(true); setSlug(slugify(e.target.value)); }}
+                />
+                {renderStatus(slugStatus)}
+              </div>
+              <div className="signup-slug-preview">https://<span>{slug || 'votre-slug'}</span>.concorde.com</div>
+              {slugHelper && <div className={hintClass(slugHelper.color)}>{slugHelper.text}</div>}
+            </div>
 
+            <div className="signup-divider" style={{ margin: '8px 0' }} />
+            <div className="signup-section-label">Votre compte administrateur</div>
 
-          <Box>
-            <TextField
-              fullWidth
-              type="password"
-              label="Mot de passe (8 caractères min.)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              InputProps={{ startAdornment: <InputAdornment position="start"><LockIcon /></InputAdornment> }}
-            />
-            {/* Indicateur visuel de force du mot de passe (3 barres). */}
-            {password && (
-              <Stack direction="row" spacing={0.5} sx={{ mt: 0.8 }} aria-hidden>
-                {[1, 2, 3].map((i) => (
-                  <Box
-                    key={i}
-                    sx={{
-                      flex: 1, height: 3, borderRadius: 99,
-                      bgcolor: pwScore >= i
-                        ? (pwScore === 1 ? '#dc2626' : pwScore === 2 ? '#f59e0b' : '#16a34a')
-                        : '#e2e8f0',
-                      transition: 'background-color .3s',
-                    }}
-                  />
-                ))}
-              </Stack>
-            )}
-          </Box>
+            {/* Prénom / Nom */}
+            <div className="signup-field-row">
+              <div className="signup-field">
+                <label className="signup-field-label" htmlFor="su-firstname">Prénom <span className="req">*</span></label>
+                <div className="signup-input-wrap">
+                  <span className="signup-input-icon">👤</span>
+                  <input id="su-firstname" type="text" value={firstName} placeholder="Prénom" autoComplete="given-name" onChange={(e) => setFirstName(e.target.value)} />
+                </div>
+              </div>
+              <div className="signup-field">
+                <label className="signup-field-label" htmlFor="su-lastname">Nom <span className="req">*</span></label>
+                <div className="signup-input-wrap">
+                  <span className="signup-input-icon">👤</span>
+                  <input id="su-lastname" type="text" value={lastName} placeholder="Nom de famille" autoComplete="family-name" onChange={(e) => setLastName(e.target.value)} />
+                </div>
+              </div>
+            </div>
 
-          {/* Captcha anti-bot — question arithmétique simple, single-use, 5 min TTL.
-              Aucune dépendance tierce (RGPD-friendly, pas de bandeau cookie supplémentaire). */}
-          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-            <Box
-              sx={{
-                px: 2.5, py: 1.5, borderRadius: 1, bgcolor: '#f1f5f9',
-                fontFamily: 'monospace', fontSize: 18, fontWeight: 700, letterSpacing: 2,
-                minWidth: 110, textAlign: 'center', userSelect: 'none', color: '#0f172a',
-              }}
+            {/* Mot de passe */}
+            <div className="signup-field">
+              <label className="signup-field-label" htmlFor="su-password">Mot de passe <span className="req">*</span></label>
+              <div className="signup-input-wrap">
+                <span className="signup-input-icon">🔒</span>
+                <input
+                  id="su-password"
+                  type="password"
+                  value={password}
+                  placeholder="8 caractères minimum"
+                  autoComplete="new-password"
+                  className={password ? (pwOkLen ? 'valid' : 'invalid') : ''}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <ul className="signup-pw-criteria">
+                <li className={`signup-pw-rule ${pwOkLen ? 'valid' : ''}`}><span className="pw-rule-icon" /> 8 caractères minimum</li>
+                <li className={`signup-pw-rule ${pwOkUpper ? 'valid' : ''}`}><span className="pw-rule-icon" /> 1 majuscule (recommandé)</li>
+                <li className={`signup-pw-rule ${pwOkSpecial ? 'valid' : ''}`}><span className="pw-rule-icon" /> 1 caractère spécial (recommandé)</li>
+              </ul>
+            </div>
+
+            <div className="signup-divider" style={{ margin: '8px 0' }} />
+
+            {/* Captcha */}
+            <div className="signup-field">
+              <label className="signup-field-label">Vérification anti-robot <span className="req">*</span></label>
+              <div className="signup-captcha-wrap">
+                <div className="signup-captcha-box">
+                  <div className="signup-captcha-eq">{captchaQuestion ? `${captchaQuestion} = ?` : '…'}</div>
+                  <div className="signup-captcha-sub">Anti-robot</div>
+                </div>
+                <div className="signup-captcha-input-wrap">
+                  <div className="signup-input-wrap">
+                    <span className="signup-input-icon">∑</span>
+                    <input
+                      type="number"
+                      value={captchaAnswer}
+                      placeholder="Votre réponse"
+                      inputMode="numeric"
+                      onChange={(e) => setCaptchaAnswer(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <button type="button" className="signup-captcha-refresh" onClick={refreshCaptcha} title="Nouvelle question">↻</button>
+              </div>
+            </div>
+
+            {/* CGU */}
+            <div
+              className={`signup-checkbox-wrap ${termsAccepted ? 'checked' : ''}`}
+              role="checkbox"
+              aria-checked={termsAccepted}
+              tabIndex={0}
+              onClick={() => setTermsAccepted((v) => !v)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTermsAccepted((v) => !v); } }}
             >
-              {captchaQuestion ? `${captchaQuestion} = ?` : '…'}
-            </Box>
-            <TextField
-              fullWidth
-              type="number"
-              label="Vérification anti-robot"
-              value={captchaAnswer}
-              onChange={(e) => setCaptchaAnswer(e.target.value)}
-              inputProps={{ inputMode: 'numeric' }}
-            />
-            <Button
-              size="small"
-              variant="text"
-              onClick={refreshCaptcha}
-              sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }}
-              title="Générer un nouveau calcul"
-            >
-              ↻
-            </Button>
-          </Box>
+              <div className="signup-custom-check"><span className="signup-custom-check-icon">✓</span></div>
+              <span className="signup-checkbox-label">
+                J'accepte les{' '}
+                <a href="/docs/cgu.pdf" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Conditions Générales d'Utilisation</a>
+                {' '}et la{' '}
+                <a href="/docs/politique-confidentialite.pdf" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Politique de Confidentialité</a>
+                {' '}de Concorde Workforce.
+              </span>
+            </div>
 
-          {error && <Alert severity="error">{error}</Alert>}
+            {error && <div className="signup-error">{error}</div>}
 
-          <Button
-            variant="contained"
-            size="large"
-            disabled={!canSubmit}
-            onClick={submit}
-            sx={{ py: 1.5, fontWeight: 700 }}
-          >
-            {submitting ? (
-              <CircularProgress size={22} />
-            ) : planFromPricing?.plan && planFromPricing?.userCount ? (
-              'Continuer vers le paiement'
-            ) : (
-              'Démarrer mon essai gratuit'
-            )}
-          </Button>
+            {/* SUBMIT */}
+            <button type="submit" className="signup-btn-submit" disabled={!canSubmit}>
+              {submitting && <span className="signup-spinner" />}
+              <span>
+                {submitting
+                  ? 'Création de votre espace…'
+                  : fromPricing
+                    ? 'Continuer vers le paiement →'
+                    : 'Démarrer mon essai gratuit →'}
+              </span>
+            </button>
+            <div className="signup-btn-submit-sub">
+              Aucune carte bancaire requise · La facturation démarre après l'essai
+            </div>
 
-          <Box sx={{ mb: 2 }}>
-            <FormControlLabel
-              control={<Checkbox checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />}
-              label={
-                <Typography variant="body2" component="span">
-                  J'accepte les{' '}
-                  <Link href="/cgu" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                    Conditions Générales d’Utilisation
-                  </Link>{' '}
-                  et la{' '}
-                  <Link href="/confidentialite" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                    Politique de Confidentialité
-                  </Link>.
-                </Typography>
-              }
-            />
-          </Box>
-
-          <Box sx={{ textAlign: 'center', pt: 1 }}>
-            <Typography variant="body2" color="text.secondary">
+            {/* Login */}
+            <div className="signup-login-link">
               Vous avez déjà un compte ?{' '}
-              <Button size="small" onClick={() => navigate('/login')} sx={{ textTransform: 'none' }}>
+              <a
+                role="link"
+                tabIndex={0}
+                onClick={() => navigate('/login')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/login'); }}
+              >
                 Se connecter
-              </Button>
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
-            <Link href="/cgu" target="_blank" rel="noopener" underline="hover" color="inherit">Conditions Générales d’Utilisation et de Services</Link>
-            <Link href="/confidentialite" target="_blank" rel="noopener" underline="hover" color="inherit">Politique de Confidentialité</Link>
-            <Link href="/mentions-legales" target="_blank" rel="noopener" underline="hover" color="inherit">Mentions Légales</Link>
-          </Box>
-        </Stack>
-      </Paper>
-    </Box>
+              </a>
+            </div>
+          </form>
+        </div>
+      </main>
+
+      {/* FOOTER */}
+      <footer className="signup-footer">
+        <a href="/docs/cgu.pdf" target="_blank" rel="noopener noreferrer">Conditions Générales d'Utilisation</a>
+        <a href="/docs/politique-confidentialite.pdf" target="_blank" rel="noopener noreferrer">Politique de Confidentialité</a>
+        <a href="/docs/mentions-legales.pdf" target="_blank" rel="noopener noreferrer">Mentions Légales</a>
+      </footer>
+    </div>
   );
 }

@@ -770,7 +770,7 @@ export default function InlineAuthCard({ presetPlan, presetNonce, defaultTab, hi
             <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
             <span className="signup-cgu-box">{termsAccepted ? '✓' : ''}</span>
             <span className="signup-cgu-text">
-              J'accepte les <a href="/cgu" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Conditions Générales d'Utilisation</a> et la <a href="/confidentialite" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Politique de Confidentialité</a>.
+              J'accepte les <a href="/docs/cgu.pdf" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Conditions Générales d'Utilisation</a> et la <a href="/docs/politique-confidentialite.pdf" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Politique de Confidentialité</a>.
             </span>
           </label>
 
@@ -781,11 +781,11 @@ export default function InlineAuthCard({ presetPlan, presetNonce, defaultTab, hi
             Déjà un compte ? <a onClick={() => setTab('login')}>Se connecter</a>
           </div>
           <div className="signup-legal-links">
-            <a href="/cgu" target="_blank" rel="noopener noreferrer">Conditions Générales d'Utilisation</a>
+            <a href="/docs/cgu.pdf" target="_blank" rel="noopener noreferrer">Conditions Générales d'Utilisation</a>
             <span className="signup-legal-sep">·</span>
-            <a href="/confidentialite" target="_blank" rel="noopener noreferrer">Politique de Confidentialité</a>
+            <a href="/docs/politique-confidentialite.pdf" target="_blank" rel="noopener noreferrer">Politique de Confidentialité</a>
             <span className="signup-legal-sep">·</span>
-            <a href="/mentions-legales" target="_blank" rel="noopener noreferrer">Mentions Légales</a>
+            <a href="/docs/mentions-legales.pdf" target="_blank" rel="noopener noreferrer">Mentions Légales</a>
           </div>
         </form>
       )}

@@ -327,32 +327,18 @@ export default function CredentialsSignInPage() {
 
   return (
     <Box className="login-root">
-      {/* Left Side: Architectural Canvas */}
-      <Box className="login-left">
+      {/* Left Side: Visual plein cadre (sans texte superposé, cf. maquette finale) */}
+      <Box
+        className="login-left"
+        role="img"
+        aria-label="Concorde Workforce — L'excellence structurelle au service de votre capital humain."
+      >
         <Box className="login-left-bg">
           <img
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWqJf3IUUEowPCqYCPt4vLryLnDfZvOC0tonFBF2KVL6-ma6MKEs_0Sh1ax79f_me6Wv8W7-TinaUluS3ZPD7rNZCtrYwOnTg-xYIoDQtgIseYaV8yPhn6o3BsDtiHpGzfwtBPk874gN3wRLU-Kh40AhyHADwh-b8HIelIhd6KPJqSpClx5heiL1LQHCz3B9Mb9nPzmbX9ou-NYhjnQqXtGiFp1f94eXFaW_vC8a2PIhU6Y-fSmnEP8oU0LsfCTnlPHQfFG074zJw"
-            alt="Architectural interior"
+            alt=""
             className="login-left-img"
           />
-          <Box className="login-left-overlay" />
-          <Box className="login-left-gradient" />
-        </Box>
-        <Box className="login-left-content">
-          <Box className="login-left-text">
-            <Typography className="login-left-title">
-              {t('login.leftTitle')}
-            </Typography>
-            <Typography className="login-left-subtitle">
-              {t('login.leftSubtitle')}
-            </Typography>
-          </Box>
-        </Box>
-        {/* Logo */}
-        <Box className="login-left-logo">
-          <Box className="login-logo-icon" sx={{ p: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src="/concorde-workly-light.png" alt="Concorde Logo" style={{ width: 64, height: 64, objectFit: 'contain' }} />
-          </Box>
         </Box>
       </Box>
 
@@ -361,7 +347,7 @@ export default function CredentialsSignInPage() {
         <Box className="login-form-container">
           {/* Mobile Logo */}
           <Box className="login-mobile-logo">
-            <img src="/concorde-workly-light.png" alt="Concorde Logo" style={{ width: 140, height: 140, marginBottom: 8, objectFit: 'contain' }} />
+            <img src="/concorde-workly-light.png" alt="Concorde Logo" style={{ width: 88, height: 'auto', objectFit: 'contain' }} />
           </Box>
 
           {/* Header — adapté au contexte : en mode setup (lien d'invitation salarié)

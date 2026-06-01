@@ -360,15 +360,15 @@ export default function LoginScreen() {
                 {/* Mentions légales — visibles dès le login (exigence Apple
                     Guideline 5.1.1(i) et Google Play Data Safety). */}
                 <View style={styles.legalLinks}>
-                  <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/confidentialite')}>
+                  <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/docs/politique-confidentialite.pdf')}>
                     <Text style={styles.legalLink}>Confidentialité</Text>
                   </TouchableOpacity>
                   <Text style={styles.legalSep}>·</Text>
-                  <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/cgu')}>
+                  <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/docs/cgu.pdf')}>
                     <Text style={styles.legalLink}>CGU</Text>
                   </TouchableOpacity>
                   <Text style={styles.legalSep}>·</Text>
-                  <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/mentions-legales')}>
+                  <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/docs/mentions-legales.pdf')}>
                     <Text style={styles.legalLink}>Mentions légales</Text>
                   </TouchableOpacity>
                 </View>

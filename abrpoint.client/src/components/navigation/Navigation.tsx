@@ -89,6 +89,7 @@ const DocumentsModern = React.lazy(() => import('../Rag/Documents/DocumentsModer
 const RagAuditTable = React.lazy(() => import('../Rag/Audit/RagAuditTable'));
 const LetterTemplatesModern = React.lazy(() => import('../Rag/Letters/LetterTemplatesModern'));
 const SignaturePage = React.lazy(() => import('../gestionEmploye/Vault/SignaturePage'));
+const SignatureInbox = React.lazy(() => import('../gestionEmploye/Vault/SignatureInbox'));
 const PlanUpgradePage = React.lazy(() => import('../Pricing/PlanUpgradePage'));
 const AboutPage = React.lazy(() => import('../About/AboutPage'));
 const PlanConfigurationPage = React.lazy(() => import('../Pricing/PlanConfigurationPage'));
@@ -104,9 +105,10 @@ const FormationsPage = React.lazy(() => import('../Support/FormationsPage'));
 const CoachingPage = React.lazy(() => import('../Support/CoachingPage'));
 const PackMiseEnPlacePage = React.lazy(() => import('../Support/PackMiseEnPlacePage'));
 const ContactPage = React.lazy(() => import('../Support/ContactPage'));
-const PrivacyPolicyPage = React.lazy(() => import('../Legal/PrivacyPolicyPage'));
-const LegalNoticesPage = React.lazy(() => import('../Legal/LegalNoticesPage'));
-const TermsOfServicePage = React.lazy(() => import('../Legal/TermsOfServicePage'));
+// Pages légales : les versions HTML ont été supprimées (2026-06). Les routes
+// /cgu, /mentions-legales et /confidentialite redirigent désormais vers le PDF
+// officiel correspondant (cf. LegalPdfRedirect). Import non lazy : composant trivial.
+const LegalPdfRedirect = React.lazy(() => import('../Legal/LegalPdfRedirect'));
 const ServicesPage = React.lazy(() => import('../Services/ServicesPage'));
 
 /* ── Lucide icons ── */
@@ -163,6 +165,7 @@ import {
   Cookie,
   Laptop,
   CheckSquare,
+  PenLine,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
@@ -252,6 +255,7 @@ const useNavigationItems = (): NavGroup[] => {
       'chat-bot': 'Administration',
       'coffre-fort': 'Gestion Employés',
       'sign-document': 'Gestion Employés',
+      'signature-inbox': 'Gestion Employés',
       'admin-vault': 'Gestion Employés',
       'template-builder': 'Administration',
       'documents': 'Administration',
@@ -360,10 +364,10 @@ const useNavigationItems = (): NavGroup[] => {
         items: [
           ...(canSee('gestion-employe') ? [{ label: t('navigation.employeeManagement'), href: '/dashboard/gestion-employe', icon: Users }] : []),
           ...(canSee('profil-employe') ? [{ label: t('navigation.employeeProfile'), href: '/dashboard/profil-employe', icon: User }] : []),
-          // Gating commercial : Gestion des contrats est un module facturable
-          // (cf. PlanFeatures.contractManagement) — exclu du pack Starter qui se
-          // limite au pointage + fiches collaborateurs. Sans ce gate, l'entrée
-          // s'affichait sur Starter mais le backend renvoyait 402 à l'ouverture.
+          // Gating commercial : Gestion des contrats est gatée par
+          // PlanFeatures.contractManagement. Éligible dès le Starter (2026-06) —
+          // le gate reste pour les rares cas où la feature serait désactivée et
+          // pour rester aligné sur le 402 renvoyé par ContratsController.
           ...(canSee('contrat') && planAllows('contractManagement') ? [{ label: t('navigation.contractManagement'), href: '/dashboard/contrat', icon: FileText }] : []),
           ...(planAllows('missions') ? [{ label: t('navigation.missions'), href: '/dashboard/missions', icon: Briefcase }] : []),
           // Renouvellement de contrat : intégré directement dans la liste des contrats (bouton
@@ -371,6 +375,9 @@ const useNavigationItems = (): NavGroup[] => {
           // NB : "Allaitement" a été déplacé vers le groupe "Congés & Validations" (c'est un
           // congé/aménagement et non une donnée du personnel) — cf. plus bas.
           ...(canSee('coffre-fort') && planAllows('digitalVault') ? [{ label: t('navigation.vault'), href: '/dashboard/coffre-fort', icon: Shield }] : []),
+          // Boîte de signature (Phase 4) : demandes en attente de la signature/validation
+          // de l'utilisateur. Gated electronicSignature (même feature que SignaturesController).
+          ...(planAllows('electronicSignature') ? [{ label: t('navigation.signatureInbox'), href: '/dashboard/signature-inbox', icon: PenLine }] : []),
           ...(canSee('admin-vault') && planAllows('digitalVault') ? [{ label: t('navigation.vaultGlobalView'), href: '/dashboard/admin-vault', icon: Eye }] : []),
         ],
       },
@@ -659,6 +666,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/courriers': content = <LetterTemplatesModern />; break;
     case '/dashboard/rag-audit': content = <RagAuditTable />; break;
     case '/dashboard/sign-document': content = <SignaturePage />; break;
+    case '/dashboard/signature-inbox': content = <SignatureInbox />; break;
     case '/dashboard/plan-configuration': content = <PlanConfigurationPage />; break;
     case '/dashboard/services': content = <ServicesPage />; break;
     case '/dashboard/mon-abonnement': content = <MonAbonnementPage />; break;
@@ -672,10 +680,11 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/support/pack-mise-en-place': content = <PackMiseEnPlacePage />; break;
     case '/dashboard/support/contact': content = <ContactPage />; break;
     // Mentions légales — pages publiques (cf. PUBLIC_PATHS) requises par les stores
-    // (Apple Privacy Policy URL, Google Play Privacy + ToS) et le RGPD.
-    case '/confidentialite': content = <PrivacyPolicyPage />; break;
-    case '/mentions-legales': content = <LegalNoticesPage />; break;
-    case '/cgu': content = <TermsOfServicePage />; break;
+    // (Apple Privacy Policy URL, Google Play Privacy + ToS) et le RGPD. Les pages
+    // HTML ont été retirées (2026-06) : ces routes redirigent vers le PDF officiel.
+    case '/confidentialite': content = <LegalPdfRedirect to="/docs/politique-confidentialite.pdf" />; break;
+    case '/mentions-legales': content = <LegalPdfRedirect to="/docs/mentions-legales.pdf" />; break;
+    case '/cgu': content = <LegalPdfRedirect to="/docs/cgu.pdf" />; break;
     default: content = <DashboardModernSync />;
   }
 

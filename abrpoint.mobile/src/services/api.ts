@@ -929,6 +929,39 @@ class ApiService {
     return response.data;
   }
 
+  // ── Workflow de signature électronique (Phase 4) ──────────────────────────
+  // Mappe api/Signatures/* (multi-étapes, OTP, scellement). Utilisé par
+  // SignatureScreen quand on arrive via un deep-link push (requestId + stepId).
+  async getSignatureInbox() {
+    const response = await this.client.get(`/Signatures/inbox`);
+    return response.data ?? [];
+  }
+
+  async getSignatureRequest(requestId: number) {
+    const response = await this.client.get(`/Signatures/${requestId}`);
+    return response.data;
+  }
+
+  /** Envoie un OTP e-mail au signataire de l'étape courante. Renvoie l'e-mail masqué. */
+  async sendSignatureOtp(requestId: number, stepId: number) {
+    const response = await this.client.post(`/Signatures/${requestId}/steps/${stepId}/otp`, {});
+    return response.data;
+  }
+
+  async signSignatureStep(
+    requestId: number,
+    stepId: number,
+    body: { signatureData: string; signerName?: string; mention?: string; location?: string; otpCode?: string; otpMethod?: 'email' | 'totp' },
+  ) {
+    const response = await this.client.post(`/Signatures/${requestId}/steps/${stepId}/sign`, body);
+    return response.data;
+  }
+
+  async rejectSignatureStep(requestId: number, stepId: number, motif: string) {
+    const response = await this.client.post(`/Signatures/${requestId}/steps/${stepId}/reject`, { motif });
+    return response.data;
+  }
+
   async deleteVaultDocument(id: number) {
     const response = await this.client.delete(`/Vault/${id}`);
     return response.data;

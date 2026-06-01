@@ -101,7 +101,8 @@ public class PlanCatalogTests
         var f = PlanCatalog.Starter.Features;
         f.ExpenseReports.Should().BeFalse();
         f.BreastfeedingManagement.Should().BeFalse();
-        f.ContractManagement.Should().BeFalse();
+        // ContractManagement est désormais inclus dès le Starter (2026-06) —
+        // voir Starter_IncludesContractManagement.
         f.DocumentScanOcr.Should().BeFalse();
         f.BulkImport.Should().BeFalse();
         f.Missions.Should().BeFalse();
@@ -109,6 +110,13 @@ public class PlanCatalogTests
         f.RagAi.Should().BeFalse();
         f.MultiSite.Should().BeFalse();
         f.MultiSociete.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Starter_IncludesContractManagement()
+    {
+        // 2026-06 — la gestion de contrat est éligible dès le pack Starter.
+        PlanCatalog.Starter.Features.ContractManagement.Should().BeTrue();
     }
 
     [Fact]

@@ -677,11 +677,11 @@ export default function ProfileScreen({ navigation, route }: any) {
         {/* Liens légaux — requis par Apple Guideline 5.1.1(i) et Google Play
             Data Safety (accessibles depuis l'app, pas seulement depuis la fiche store). */}
         <View style={styles.legalLinks}>
-          <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/confidentialite')}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/docs/politique-confidentialite.pdf')}>
             <Text style={styles.legalLink}>Politique de confidentialité</Text>
           </TouchableOpacity>
           <Text style={styles.legalSep}>·</Text>
-          <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/cgu')}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/docs/cgu.pdf')}>
             <Text style={styles.legalLink}>CGU</Text>
           </TouchableOpacity>
         </View>

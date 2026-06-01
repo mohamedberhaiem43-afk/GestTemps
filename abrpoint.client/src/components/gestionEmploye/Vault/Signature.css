@@ -799,3 +799,77 @@
   font-weight: 700;
   margin-top: 4px;
 }
+
+/* ───────────────────────────── Phase 4 — workflow ───────────────────────────── */
+
+.sig-badge--rejected { background: #fdeaea; color: #ba1a1a; }
+
+/* ── Timeline de statut ── */
+.sig-timeline { display: flex; flex-direction: column; gap: 0.75rem; }
+.sig-timeline-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.sig-timeline-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.sig-timeline-item { position: relative; display: flex; gap: 0.75rem; padding-bottom: 1rem; }
+.sig-timeline-item:not(:last-child)::before {
+  content: ''; position: absolute; left: 13px; top: 28px; bottom: 0; width: 2px; background: #e2e8f0;
+}
+.sig-timeline-item.is-current .sig-timeline-dot { box-shadow: 0 0 0 3px rgba(0,64,161,0.15); }
+.sig-timeline-dot {
+  flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; z-index: 1;
+}
+.sig-timeline-content { flex: 1; min-width: 0; padding-top: 2px; }
+.sig-timeline-row { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.sig-timeline-role { font-size: 0.8rem; font-weight: 800; color: #191c1e; }
+.sig-timeline-you { font-weight: 700; color: #0040a1; font-size: 0.72rem; }
+.sig-timeline-status { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
+.sig-timeline-meta { font-size: 0.72rem; color: #64748b; margin-top: 1px; word-break: break-word; }
+.sig-timeline-deleg { color: #94a3b8; font-style: italic; }
+.sig-timeline-detail { font-size: 0.68rem; color: #94a3b8; margin-top: 2px; }
+.sig-timeline-detail--reject { color: #ba1a1a; font-weight: 600; }
+.sig-timeline-detail--current { color: #b45309; font-weight: 700; }
+.sig-timeline-cert { font-family: monospace; font-size: 0.62rem; color: #0040a1; }
+.sig-timeline-seal {
+  display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.625rem 0.75rem;
+  background: #e6f4ee; border-radius: 10px; margin-top: 0.25rem;
+}
+.sig-timeline-seal-label { font-size: 0.68rem; font-weight: 800; color: #005136; }
+.sig-timeline-seal-hash { font-family: monospace; font-size: 0.6rem; color: #475569; word-break: break-all; }
+
+/* ── OTP (renforcement de signature) ── */
+.sig-otp-box { border: 1px dashed #cbd5e1; border-radius: 12px; padding: 0.875rem; margin-top: 0.75rem; background: #f8fafc; }
+.sig-otp-head { display: flex; align-items: flex-start; gap: 0.5rem; }
+.sig-otp-title { font-size: 0.78rem; font-weight: 800; color: #191c1e; }
+.sig-otp-sub { font-size: 0.68rem; color: #64748b; margin-top: 1px; }
+.sig-otp-row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.625rem; }
+.sig-otp-input {
+  flex: 1; letter-spacing: 0.4em; font-weight: 800; text-align: center; font-size: 1.05rem;
+  padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 8px;
+}
+.sig-otp-sent { font-size: 0.66rem; color: #005136; margin-top: 0.4rem; display: flex; align-items: center; gap: 4px; }
+.sig-otp-method-tabs { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+.sig-otp-method-tab {
+  flex: 1; padding: 0.3rem; border: 1px solid #e2e8f0; background: #fff; border-radius: 6px;
+  font-size: 0.66rem; font-weight: 700; color: #64748b; cursor: pointer;
+}
+.sig-otp-method-tab.active { border-color: #0040a1; color: #0040a1; background: #eff4fc; }
+
+/* ── Inbox (boîte des demandes à signer) ── */
+.sig-inbox-shell { padding: 1.5rem; max-width: 980px; margin: 0 auto; width: 100%; }
+.sig-inbox-head { margin-bottom: 1.25rem; }
+.sig-inbox-title { font-size: 1.4rem; font-weight: 900; color: #191c1e; display: flex; align-items: center; gap: 0.5rem; }
+.sig-inbox-sub { font-size: 0.85rem; color: #64748b; margin-top: 0.25rem; }
+.sig-inbox-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.sig-inbox-card {
+  display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; transition: box-shadow .15s, border-color .15s;
+}
+.sig-inbox-card:hover { border-color: #0040a1; box-shadow: 0 4px 16px rgba(0,64,161,0.08); }
+.sig-inbox-icon {
+  flex: 0 0 44px; width: 44px; height: 44px; border-radius: 12px; background: #eff4fc;
+  display: flex; align-items: center; justify-content: center;
+}
+.sig-inbox-info { flex: 1; min-width: 0; }
+.sig-inbox-docname { font-weight: 800; font-size: 0.9rem; color: #191c1e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sig-inbox-metaline { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; }
+.sig-inbox-empty { text-align: center; padding: 4rem 1rem; color: #64748b; }
+.sig-inbox-empty .material-symbols-outlined { font-size: 3rem; color: #cbd5e1; }

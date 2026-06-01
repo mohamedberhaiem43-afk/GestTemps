@@ -128,6 +128,18 @@ namespace ABRPOINT.Server.Controllers
                     absencesCreated += await Provisioning.DefaultAbsenceSeeder.SeedAsync(_dbContext, soccod, ct);
                 if (absencesCreated > 0) await _dbContext.SaveChangesAsync(ct);
 
+                // Rattrapage des modèles de documents par défaut + liaisons signature pour chaque
+                // société du tenant qui n'en a pas (tenants créés avant l'introduction de ce seed).
+                // Idempotent ; le seeder gère son propre SaveChanges.
+                var letterTemplatesCreated = 0;
+                var signatureMapsCreated = 0;
+                foreach (var soccod in soccods)
+                {
+                    var (tpl, maps) = await Provisioning.DefaultLetterTemplateSeeder.SeedAsync(_dbContext, soccod, ct);
+                    letterTemplatesCreated += tpl;
+                    signatureMapsCreated += maps;
+                }
+
                 return Ok(new
                 {
                     message = "Seed terminé.",
@@ -136,6 +148,8 @@ namespace ABRPOINT.Server.Controllers
                     permissionsCreated = report.PermissionsCreated,
                     legacyUsersMigrated = report.LegacyUsersMigrated,
                     absenceNaturesCreated = absencesCreated,
+                    letterTemplatesCreated,
+                    signatureMapsCreated,
                 });
             }
             catch (Exception ex)

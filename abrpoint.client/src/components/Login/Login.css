@@ -1,3 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* ── Design tokens (alignés sur la maquette « Page log in version finale ») ── */
+.login-root {
+  --navy: #0040a1;
+  --navy-deep: #06337f;
+  --ink: #16233a;
+  --muted: #8a93a3;
+  --label: #9aa3b2;
+  --field-bg: #f5f7fb;
+  --field-border: #e5eaf1;
+  --link: #0040a1;
+  --panel: #ffffff;
+  --page: #eef1f6;
+}
+
 /* ── Hide app bar and toolbar elements when login is shown ─────────────── */
 body:has(.login-root) header.MuiAppBar-root,
 body:has(.login-root) .MuiToolbar-root,
@@ -10,19 +26,23 @@ body:has(.login-root) .MuiAppBar-root {
   display: flex;
   min-height: 100vh;
   width: 100%;
-  font-family: 'Inter', sans-serif;
-  background-color: #f7f9fb;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background-color: var(--page);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* ── Left Side: Architectural Canvas ─────────────────────────────────────── */
+/* ── Left Side: Visual ───────────────────────────────────────────────────── */
 .login-left {
   display: none;
-  width: 58.333%;
+  flex: 0 0 58.2%;
   position: relative;
   overflow: hidden;
+  background-color: #1b3a5e;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 920px) {
   .login-left {
     display: flex;
   }
@@ -38,191 +58,82 @@ body:has(.login-root) .MuiAppBar-root {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.login-left-overlay {
-  position: absolute;
-  inset: 0;
-  background-color: rgba(0, 64, 161, 0.1);
-  mix-blend-mode: multiply;
-}
-
-.login-left-gradient {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0, 64, 161, 0.4), transparent);
-}
-
-.login-left-content {
-  position: relative;
-  z-index: 1;
-  padding: 64px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  width: 100%;
-}
-
-.login-left-text {
-  max-width: 560px;
-}
-
-.login-left-title {
-  font-family: 'Manrope', sans-serif;
-  font-size: 48px;
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: -0.025em;
-  line-height: 1.1;
-  margin-bottom: 24px;
-}
-
-.login-left-subtitle {
-  font-family: 'Inter', sans-serif;
-  font-size: 18px;
-  color: #ccd8ff;
-  opacity: 0.9;
-  max-width: 448px;
-  line-height: 1.6;
-}
-
-/* Logo overlay */
-.login-left-logo {
-  position: absolute;
-  top: 48px;
-  left: 48px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.login-logo-icon {
-  width: 40px;
-  height: 40px;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
-}
-
-.login-logo-text {
-  font-family: 'Manrope', sans-serif;
-  font-size: 24px;
-  font-weight: 900;
-  color: #ffffff;
-  letter-spacing: -0.03em;
+  object-position: center left;
 }
 
 /* ── Right Side: Login Form ──────────────────────────────────────────────── */
 .login-right {
-  width: 100%;
+  flex: 1 1 41.6%;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px;
-  background-color: #f7f9fb;
+  padding: 48px 56px;
+  background-color: var(--panel);
 }
 
-@media (min-width: 1024px) {
+@media (max-width: 919px) {
   .login-right {
-    width: 41.667%;
-    padding: 48px;
+    flex: 1 1 100%;
+    padding: 64px 26px 40px;
+    align-items: flex-start;
+    min-height: 100vh;
+  }
+}
+
+@media (max-width: 380px) {
+  .login-right {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 }
 
 .login-form-container {
   width: 100%;
-  max-width: 400px;
-}
-
-/* ── Language Selector ───────────────────────────────────────────────────── */
-.login-lang-selector {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 32px;
-}
-
-.login-lang-wrap {
-  display: flex;
-  align-items: center;
-  background: #f2f4f6;
-  border-radius: 9999px;
-  padding: 4px;
-  border: 1px solid rgba(195, 198, 214, 0.15);
-}
-
-.login-lang-btn {
-  padding: 4px 16px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 9999px;
-  border: none;
-  cursor: pointer;
-  background: transparent;
-  color: #424654;
-  transition: all 0.2s ease;
-}
-
-.login-lang-btn:hover {
-  color: #191c1e;
-}
-
-.login-lang-active {
-  background: #ffffff;
-  color: #0040a1;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  max-width: 430px;
 }
 
 /* ── Mobile Logo ─────────────────────────────────────────────────────────── */
 .login-mobile-logo {
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 48px;
+  margin-bottom: 24px;
 }
 
-@media (min-width: 1024px) {
+@media (max-width: 919px) {
   .login-mobile-logo {
-    display: none;
+    display: flex;
   }
-}
-
-.login-mobile-logo-text {
-  font-family: 'Manrope', sans-serif;
-  font-size: 30px;
-  font-weight: 900;
-  color: #0040a1;
-  letter-spacing: -0.03em;
 }
 
 /* ── Form Header ─────────────────────────────────────────────────────────── */
 .login-form-header {
-  margin-bottom: 40px;
-  text-align: center;
+  margin-bottom: 0;
+  text-align: left;
 }
 
-@media (min-width: 1024px) {
+@media (max-width: 919px) {
   .login-form-header {
-    text-align: left;
+    text-align: center;
   }
 }
 
 .login-form-title {
-  font-family: 'Manrope', sans-serif;
-  font-size: 30px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 34px;
   font-weight: 700;
-  letter-spacing: -0.025em;
-  color: #191c1e;
-  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  line-height: 1.15;
 }
 
 .login-form-subtitle {
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  color: #424654;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  margin-top: 12px;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--muted);
   line-height: 1.5;
 }
 
@@ -231,46 +142,60 @@ body:has(.login-root) .MuiAppBar-root {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  margin-top: 34px;
 }
 
 .login-field-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 9px;
 }
 
 .login-field-label {
-  font-family: 'Inter', sans-serif;
-  font-size: 10px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.09em;
   font-weight: 700;
-  color: #424654;
-  margin-left: 4px;
+  color: var(--label);
 }
 
+/* Inputs MUI restylés pour matcher la maquette (champ haut 54px, icône à gauche) */
 .login-input .MuiOutlinedInput-root {
-  border-radius: 12px !important;
-  background-color: #f2f4f6;
-  transition: all 0.3s ease;
+  border-radius: 13px !important;
+  background-color: var(--field-bg);
+  min-height: 54px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.login-input .MuiOutlinedInput-notchedOutline {
+  border-color: var(--field-border);
 }
 
 .login-input .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-color: #c3c6d6;
-}
-
-.login-input .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #0040a1;
-  border-bottom-width: 2px;
+  border-color: #cdd6e3;
 }
 
 .login-input .MuiOutlinedInput-root.Mui-focused {
   background-color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 64, 161, 0.1);
+}
+
+.login-input .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--navy);
+  border-width: 1px;
 }
 
 .login-input .MuiOutlinedInput-input {
-  font-size: 13px;
-  padding: 12px 14px;
+  font-size: 15px;
+  padding: 16px 14px;
+  color: var(--ink);
+}
+
+.login-input .MuiOutlinedInput-input::placeholder {
+  color: #aeb6c2;
+  opacity: 1;
 }
 
 .login-field-row {
@@ -282,24 +207,25 @@ body:has(.login-root) .MuiAppBar-root {
 /* ── Submit Button ───────────────────────────────────────────────────────── */
 .login-submit-btn {
   width: 100%;
-  padding: 16px;
-  background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%) !important;
+  height: 56px;
+  background: linear-gradient(180deg, #0a4cb8 0%, var(--navy) 55%, var(--navy-deep) 100%) !important;
   color: #ffffff !important;
-  font-family: 'Manrope', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.05em;
-  border-radius: 12px;
-  box-shadow: 0 12px 24px -4px rgba(0, 64, 161, 0.3);
-  text-transform: none;
-  transition: all 0.3s ease;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 13px;
+  box-shadow: 0 12px 26px -8px rgba(0, 64, 161, 0.55);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
   margin-top: 8px;
 }
 
 .login-submit-btn:hover {
-  transform: translateY(-2px);
-  background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%) !important;
-  box-shadow: 0 16px 32px -4px rgba(0, 64, 161, 0.4);
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  background: linear-gradient(180deg, #0a4cb8 0%, var(--navy) 55%, var(--navy-deep) 100%) !important;
+  box-shadow: 0 16px 32px -8px rgba(0, 64, 161, 0.62);
   color: #ffffff !important;
 }
 
@@ -309,8 +235,9 @@ body:has(.login-root) .MuiAppBar-root {
 }
 
 .login-submit-btn:disabled {
-  background: linear-gradient(135deg, #0040a1 0%, #0056d2 100%) !important;
+  background: linear-gradient(180deg, #0a4cb8 0%, var(--navy) 55%, var(--navy-deep) 100%) !important;
   color: rgba(255, 255, 255, 0.7) !important;
+  filter: saturate(0.8);
 }
 
 .login-submit-btn .MuiButton-label {
@@ -327,19 +254,19 @@ body:has(.login-root) .MuiAppBar-root {
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */
 .login-footer {
-  margin-top: 48px;
+  margin-top: 30px;
   text-align: center;
+  line-height: 2.1;
 }
 
 .login-footer-text {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  color: #424654;
-  opacity: 0.6;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  color: var(--muted);
 }
 
 .login-footer-link {
-  color: #0040a1;
+  color: var(--link);
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;

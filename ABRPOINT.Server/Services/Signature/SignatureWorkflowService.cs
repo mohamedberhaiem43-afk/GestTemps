@@ -25,6 +25,8 @@ public sealed class SignatureWorkflowService : ISignatureWorkflowService
     private readonly IVaultRepository _vault;
     private readonly EncryptionService _enc;
     private readonly ICurrentTenant _tenant;
+    private readonly ISignatureOtpService _otp;
+    private readonly IUserNotificationService? _notify;
     private readonly ILogger<SignatureWorkflowService> _log;
 
     public SignatureWorkflowService(
@@ -33,14 +35,47 @@ public sealed class SignatureWorkflowService : ISignatureWorkflowService
         IVaultRepository vault,
         EncryptionService enc,
         ICurrentTenant tenant,
-        ILogger<SignatureWorkflowService> log)
+        ISignatureOtpService otp,
+        ILogger<SignatureWorkflowService> log,
+        IUserNotificationService? notify = null)
     {
         _db = db;
         _letter = letter;
         _vault = vault;
         _enc = enc;
         _tenant = tenant;
+        _otp = otp;
+        _notify = notify;
         _log = log;
+    }
+
+    /// <summary>Construit le circuit : étape 1 = employé, puis 1..N approbateurs résolus en
+    /// remontant l'organigramme (Employe.Empresp). Coupe sur cycle/absence de manager.</summary>
+    private async Task<List<(string Empcod, string Role, string Placeholder)>> ResolveChainAsync(
+        string soccod, string employeeEmpcod, int approverLevels, CancellationToken ct)
+    {
+        var steps = new List<(string, string, string)> { (employeeEmpcod, "employee", "[Signature_Collaborateur]") };
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { employeeEmpcod };
+        var current = employeeEmpcod;
+        for (int level = 1; level <= Math.Max(0, approverLevels); level++)
+        {
+            var manager = await _db.Employes.AsNoTracking()
+                .Where(e => e.Soccod == soccod && e.Empcod == current)
+                .Select(e => e.Empresp)
+                .FirstOrDefaultAsync(ct);
+            if (string.IsNullOrWhiteSpace(manager) || seen.Contains(manager)) break;
+            seen.Add(manager);
+            steps.Add((manager, "approver", $"[Signature_Approbateur_{level}]"));
+            current = manager;
+        }
+        return steps;
+    }
+
+    private async Task NotifyAsync(string signerEmpcod, string title, string body, object? data)
+    {
+        if (_notify == null || string.IsNullOrWhiteSpace(signerEmpcod)) return;
+        try { await _notify.NotifyUserAsync(signerEmpcod, title, body, data); }
+        catch (Exception ex) { _log.LogWarning(ex, "Notification signature échouée pour {Emp}.", signerEmpcod); }
     }
 
     public async Task<SignatureStartResult> StartAsync(SignatureStartRequest req, string requestedByEmpcod, CancellationToken ct = default)
@@ -102,18 +137,29 @@ public sealed class SignatureWorkflowService : ISignatureWorkflowService
         _db.SignatureRequests.Add(sr);
         await _db.SaveChangesAsync(ct);
 
-        _db.SignatureSteps.Add(new SignatureStep
+        // Circuit : employé (étape 1) puis approbateurs via l'organigramme (Empresp).
+        var chain = await ResolveChainAsync(soccod, req.Empcod, req.ApproverLevels, ct);
+        for (int i = 0; i < chain.Count; i++)
         {
-            RequestId = sr.Id,
-            StepOrder = 1,
-            SignerEmpcod = req.Empcod,
-            SignerRole = "employee",
-            PlaceholderKey = "[Signature_Collaborateur]",
-            Status = "pending",
-        });
+            _db.SignatureSteps.Add(new SignatureStep
+            {
+                RequestId = sr.Id,
+                StepOrder = i + 1,
+                SignerEmpcod = chain[i].Empcod,
+                SignerRole = chain[i].Role,
+                PlaceholderKey = chain[i].Placeholder,
+                Status = "pending",
+            });
+        }
         await _db.SaveChangesAsync(ct);
 
-        _log.LogInformation("Signature workflow démarré (request={Req}, doc={Doc}, source={Src}/{Id}).", sr.Id, doc.Id, req.SourceType, req.SourceId);
+        // Notifie le 1er signataire (l'employé) qu'un document attend sa signature.
+        await NotifyAsync(req.Empcod, "✍️ Document à signer",
+            $"Le document « {doc.DocName} » attend votre signature.",
+            new { type = "signature_pending", requestId = sr.Id, documentVaultId = doc.Id });
+
+        _log.LogInformation("Signature workflow démarré (request={Req}, doc={Doc}, source={Src}/{Id}, étapes={N}).",
+            sr.Id, doc.Id, req.SourceType, req.SourceId, chain.Count);
         return new SignatureStartResult(sr.Id, doc.Id, doc.DocName);
     }
 
@@ -135,6 +181,20 @@ public sealed class SignatureWorkflowService : ISignatureWorkflowService
         var doc = await _vault.GetDocumentByIdAsync(sr.DocumentVaultId.Value)
                   ?? throw new KeyNotFoundException("Document introuvable.");
 
+        // Signataire réel (= le délégué pour une étape déléguée, sinon le titulaire).
+        var signerEmpcod = string.IsNullOrWhiteSpace(input.CallerEmpcod) ? step.SignerEmpcod : input.CallerEmpcod;
+
+        // Authentification renforcée optionnelle : si un OTP est fourni, on le vérifie AVANT
+        // de tamponner et on journalise la méthode réellement utilisée (valeur probante).
+        var authMethod = "handwritten";
+        if (!string.IsNullOrWhiteSpace(input.OtpCode))
+        {
+            var method = string.Equals(input.OtpMethod, "totp", StringComparison.OrdinalIgnoreCase) ? "totp" : "email";
+            var ok = await _otp.VerifyAsync(signerEmpcod, input.OtpCode!, method, ct);
+            if (!ok) throw new UnauthorizedAccessException("Code de signature invalide ou expiré.");
+            authMethod = method == "totp" ? "totp" : "password_otp_email";
+        }
+
         var signedAt = DateTime.UtcNow;
         var certificateId = $"CERT-LEDG-{signedAt.Year}-{Guid.NewGuid().ToString()[..8].ToUpper()}";
 
@@ -152,7 +212,7 @@ public sealed class SignatureWorkflowService : ISignatureWorkflowService
             if (File.Exists(sourcePdf) && string.Equals(Path.GetExtension(sourcePdf), ".pdf", StringComparison.OrdinalIgnoreCase))
             {
                 var opts = new PdfSignatureStamper.StampOptions(
-                    SignerName: string.IsNullOrWhiteSpace(input.SignerName) ? step.SignerEmpcod : input.SignerName,
+                    SignerName: string.IsNullOrWhiteSpace(input.SignerName) ? signerEmpcod : input.SignerName,
                     SignedAtUtc: signedAt,
                     CertificateId: certificateId,
                     Mention: input.Mention,
@@ -186,11 +246,11 @@ public sealed class SignatureWorkflowService : ISignatureWorkflowService
         {
             RequestId = requestId,
             StepId = stepId,
-            SignerEmpcod = step.SignerEmpcod,
+            SignerEmpcod = signerEmpcod,
             Action = "signed",
             SignaturePath = signaturePath,
             CertificateId = certificateId,
-            AuthMethod = input.AuthMethod,
+            AuthMethod = authMethod,
             IpAddress = input.Ip,
             UserAgent = input.UserAgent,
             SignedAt = signedAt,
@@ -213,12 +273,101 @@ public sealed class SignatureWorkflowService : ISignatureWorkflowService
         }
         else
         {
-            sealHash = await SealInternalAsync(sr, doc, step.SignerEmpcod, ct);
+            sealHash = await SealInternalAsync(sr, doc, signerEmpcod, ct);
             completed = true;
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // Notifications post-commit (best-effort) : approbateur suivant, ou demandeur si terminé.
+        if (nextStep != null)
+        {
+            var target = string.IsNullOrWhiteSpace(nextStep.DelegatedTo) ? nextStep.SignerEmpcod : nextStep.DelegatedTo!;
+            await NotifyAsync(target, "🖊️ Document à valider",
+                $"Un document attend votre validation (étape {nextStep.StepOrder}).",
+                new { type = "signature_pending", requestId, stepId = nextStep.Id, documentVaultId = doc.Id });
+        }
+        else
+        {
+            await NotifyAsync(sr.RequestedBy, "✅ Document signé et scellé",
+                "Toutes les signatures sont apposées ; le document est scellé et archivé.",
+                new { type = "signature_completed", requestId, documentVaultId = doc.Id });
+        }
+
         return new SignatureSignResult(completed, certificateId, sr.WorkflowStatus, sealHash);
+    }
+
+    public async Task RejectStepAsync(int requestId, int stepId, string byEmpcod, string motif, string? ip, string? userAgent, CancellationToken ct = default)
+    {
+        var sr = await _db.SignatureRequests.FirstOrDefaultAsync(r => r.Id == requestId, ct)
+                 ?? throw new KeyNotFoundException("Demande de signature introuvable.");
+        var step = await _db.SignatureSteps.FirstOrDefaultAsync(s => s.Id == stepId && s.RequestId == requestId, ct)
+                   ?? throw new KeyNotFoundException("Étape introuvable.");
+        if (!string.Equals(step.Status, "pending", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Cette étape a déjà été traitée.");
+        if (step.StepOrder != sr.CurrentStep)
+            throw new InvalidOperationException("Cette étape n'est pas l'étape courante du circuit.");
+
+        var now = DateTime.UtcNow;
+        _db.SignatureActions.Add(new SignatureAction
+        {
+            RequestId = requestId,
+            StepId = stepId,
+            SignerEmpcod = byEmpcod,
+            Action = "rejected",
+            Motif = string.IsNullOrWhiteSpace(motif) ? null : Truncate(motif, 500),
+            AuthMethod = "handwritten",
+            IpAddress = ip,
+            UserAgent = userAgent,
+            SignedAt = now,
+        });
+        step.Status = "rejected";
+        sr.WorkflowStatus = "rejected";
+        sr.CompletedAt = now;
+
+        // Le document reste en l'état (non scellé). On reflète le rejet sur le coffre.
+        if (sr.DocumentVaultId is int dvId)
+        {
+            var doc = await _vault.GetDocumentByIdAsync(dvId);
+            if (doc != null) doc.WorkflowStatus = "rejected";
+        }
+        await _db.SaveChangesAsync(ct);
+
+        // Notifie le demandeur du rejet + motif.
+        await NotifyAsync(sr.RequestedBy, "⛔ Document rejeté",
+            string.IsNullOrWhiteSpace(motif) ? "Votre document a été rejeté." : $"Document rejeté : {motif}",
+            new { type = "signature_rejected", requestId, documentVaultId = sr.DocumentVaultId });
+        _log.LogInformation("Signature rejetée (request={Req}, step={Step}, par={By}).", requestId, stepId, byEmpcod);
+    }
+
+    public async Task DelegateStepAsync(int requestId, int stepId, string byEmpcod, string toEmpcod, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(toEmpcod)) throw new ArgumentException("Délégataire requis.");
+        var sr = await _db.SignatureRequests.FirstOrDefaultAsync(r => r.Id == requestId, ct)
+                 ?? throw new KeyNotFoundException("Demande de signature introuvable.");
+        var step = await _db.SignatureSteps.FirstOrDefaultAsync(s => s.Id == stepId && s.RequestId == requestId, ct)
+                   ?? throw new KeyNotFoundException("Étape introuvable.");
+        if (!string.Equals(step.Status, "pending", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Cette étape a déjà été traitée.");
+        if (step.StepOrder != sr.CurrentStep)
+            throw new InvalidOperationException("Cette étape n'est pas l'étape courante du circuit.");
+
+        step.DelegatedTo = toEmpcod;
+        _db.SignatureActions.Add(new SignatureAction
+        {
+            RequestId = requestId,
+            StepId = stepId,
+            SignerEmpcod = byEmpcod,
+            Action = "delegated",
+            Motif = Truncate($"Délégué à {toEmpcod}", 500),
+            SignedAt = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync(ct);
+
+        await NotifyAsync(toEmpcod, "🖊️ Signature déléguée",
+            "Une signature vous a été déléguée et attend votre validation.",
+            new { type = "signature_pending", requestId, stepId, documentVaultId = sr.DocumentVaultId });
+        _log.LogInformation("Étape déléguée (request={Req}, step={Step}, de={By} vers={To}).", requestId, stepId, byEmpcod, toEmpcod);
     }
 
     /// <summary>Scelle le PDF gelé : SHA-256 des octets finaux, chaîné au sceau précédent du
