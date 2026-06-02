@@ -17,7 +17,7 @@ public class GeminiPlugin
     {
         _httpClientFactory = httpClientFactory;
         _apiKey = apiKey;
-        _model = model ?? "google/gemini-3.5-flash";
+        _model = model ?? "google/gemma-4-31b-it:free";
         _kernel = kernel;
     }
 
