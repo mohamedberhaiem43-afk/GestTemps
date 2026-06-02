@@ -774,7 +774,13 @@
     "codeSent": "Si un compte existe avec cet email, un code vous a été envoyé.",
     "codeSendError": "Erreur lors de l'envoi du code.",
     "passwordReset": "Mot de passe réinitialisé.",
-    "resetError": "Erreur lors de la réinitialisation."
+    "resetError": "Erreur lors de la réinitialisation.",
+    "setupTitle": "Activez votre compte",
+    "setupSubtitle": "Définissez votre mot de passe pour finaliser votre accès Concorde Workforce.",
+    "setupBannerTitle": "Bienvenue sur Concorde Workforce",
+    "setupBannerBody": "Choisissez votre mot de passe pour activer votre compte ({{email}}). Il vous servira à toutes vos prochaines connexions.",
+    "activateAccount": "Activer mon compte",
+    "paymentConfirmed": "Paiement confirmé ✓ — connectez-vous pour finaliser la réactivation de votre espace."
   },
   "posteHoraire": {
     "day": "Journée",

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import apiInstance from '../API/apiInstance';
 import { sendSupportMessage } from '../../services/ContactService';
 import { useAuth } from '../helper/AuthProvider';
@@ -116,6 +117,355 @@ const COUNTRY_FLAGS: Record<CountryCode, string> = {
   FR: '🇫🇷', BE: '🇧🇪', MA: '🇲🇦', SN: '🇸🇳', TN: '🇹🇳',
 };
 
+// ── i18n — dictionnaire local FR/EN (même pattern que ServicesPage.tsx) ─────
+type Lang = 'fr' | 'en';
+
+// Libellés d'affichage dépendant du pays. SEULS les textes visibles sont
+// traduits ici ; les valeurs métier (code pays, regex, idDigits…) restent dans
+// COUNTRY_CONFIG et ne changent jamais selon la langue.
+interface CountryStrings {
+  label: string;       // libellé du pays dans le <select>
+  idLabel: string;     // libellé du champ identifiant entreprise
+  idPlaceholder: string;
+  idHelper: string;
+}
+
+interface Dict {
+  // NAV / header
+  alreadyRegistered: string;
+  loginArrow: string;
+  titleCreate: string;
+  titleTrial: string;
+  subtitleFromPricing: string;
+  subtitleTrialPrefix: string; // texte avant le nom produit (gras)
+  trustNoCard: string;
+  trustHostedFr: string;
+  // Sections
+  choosePlan: string;
+  planHint: string;
+  yourCompany: string;
+  yourAdminAccount: string;
+  // Pays + ID
+  countryLabel: string;
+  idOneTrial: string; // suffixe « Un seul essai gratuit par numéro. »
+  officialAddress: string;
+  // Email
+  emailLabel: string;
+  emailPlaceholder: string;
+  emailHelperDefault: string;
+  // Nom entreprise
+  companyLabel: string;
+  companyPlaceholder: string;
+  companyHelper: string;
+  // Secteur
+  sectorLabel: string;
+  sectorPlaceholder: string;
+  // Slug
+  slugLabel: string;
+  slugPlaceholder: string;
+  slugFallback: string; // « votre-slug » de remplacement
+  // Prénom / nom
+  firstNameLabel: string;
+  firstNamePlaceholder: string;
+  lastNameLabel: string;
+  lastNamePlaceholder: string;
+  // Mot de passe
+  passwordLabel: string;
+  passwordPlaceholder: string;
+  pwRuleLen: string;
+  pwRuleUpper: string;
+  pwRuleSpecial: string;
+  // Captcha
+  captchaLabel: string;
+  captchaSub: string;
+  captchaPlaceholder: string;
+  captchaRefreshTitle: string;
+  // CGU
+  termsAcceptPrefix: string;
+  termsLinkCgu: string;
+  termsAnd: string;
+  termsLinkPrivacy: string;
+  termsOf: string; // « de Concorde Workforce. »
+  // Submit
+  submitCreating: string;
+  submitContinuePayment: string;
+  submitStartTrial: string;
+  submitSubNote: string;
+  // Login (bas de page)
+  alreadyHaveAccount: string;
+  loginCta: string;
+  // Footer
+  footerCgu: string;
+  footerPrivacy: string;
+  footerLegal: string;
+  // Statuts SIRET (helper)
+  siretCheckingSirene: string;   // « Vérification auprès du référentiel Sirene… »
+  siretCheckingBce: string;      // « Vérification auprès du registre BCE… »
+  siretCheckingFormat: string;   // « Vérification du format et de l'unicité… »
+  siretRecognized: (name: string) => string;
+  siretValid: (idName: string) => string;
+  siretFormatNumeric: (digits: number) => string;
+  siretFormatAlphanumeric: (placeholder: string) => string;
+  siretChecksumFr: string;
+  siretChecksumBe: string;
+  siretChecksumGeneric: string;
+  siretNotFound: string;
+  siretClosed: string;
+  siretAlreadyUsed: string;
+  siretInvalid: string;
+  // Statuts email (helper)
+  emailChecking: string;
+  emailAvailable: string;
+  emailTaken: string;
+  emailInvalid: string;
+  // Statuts slug (helper)
+  slugChecking: string;
+  slugAvailable: (slug: string) => string;
+  slugTaken: string;
+  slugReserved: string;
+  slugInvalid: string;
+  slugInconclusive: string;
+  // Erreurs submit
+  errTooManyRequests: string;
+  errCancelledReactivatable: string;
+  errSignupFailed: string;
+  // Message support interne (envoyé au backend — voir contrainte : reste FR métier)
+  // Libellés des pays + champ identifiant (dépendant du pays)
+  countries: Record<CountryCode, CountryStrings>;
+}
+
+const FR: Dict = {
+  alreadyRegistered: 'Déjà inscrit ?',
+  loginArrow: 'Se connecter →',
+  titleCreate: 'Créer mon compte',
+  titleTrial: 'Démarrer mon essai gratuit',
+  subtitleFromPricing: "Étape 1 sur 2 — 30 jours gratuits sans CB. Votre moyen de paiement sera pré-enregistré à l'étape suivante (aucun débit avant la fin de l'essai).",
+  subtitleTrialPrefix: '30 jours, sans carte bancaire',
+  trustNoCard: '✓ Sans carte bancaire',
+  trustHostedFr: '🛡️ Données hébergées en France',
+  choosePlan: 'Choisissez votre formule',
+  planHint: "30 jours d'essai gratuit sans carte bancaire. Vous pourrez comparer les détails des packs et activer des modules plus tard depuis « Mon abonnement ».",
+  yourCompany: 'Votre entreprise',
+  yourAdminAccount: 'Votre compte administrateur',
+  countryLabel: "Pays de l'entreprise",
+  idOneTrial: 'Un seul essai gratuit par numéro.',
+  officialAddress: 'Adresse officielle',
+  emailLabel: 'Adresse email',
+  emailPlaceholder: 'vous@entreprise.com',
+  emailHelperDefault: 'Un code à 6 chiffres vous sera envoyé pour confirmer votre inscription.',
+  companyLabel: "Nom de l'entreprise",
+  companyPlaceholder: 'Raison sociale',
+  companyHelper: "Auto-rempli depuis l'API officielle quand l'identifiant est reconnu.",
+  sectorLabel: "Secteur d'activité",
+  sectorPlaceholder: 'Ex : Conseil en gestion, BTP, Restauration…',
+  slugLabel: 'Adresse de votre espace',
+  slugPlaceholder: 'votre-slug',
+  slugFallback: 'votre-slug',
+  firstNameLabel: 'Prénom',
+  firstNamePlaceholder: 'Prénom',
+  lastNameLabel: 'Nom',
+  lastNamePlaceholder: 'Nom de famille',
+  passwordLabel: 'Mot de passe',
+  passwordPlaceholder: '8 caractères minimum',
+  pwRuleLen: '8 caractères minimum',
+  pwRuleUpper: '1 majuscule (recommandé)',
+  pwRuleSpecial: '1 caractère spécial (recommandé)',
+  captchaLabel: 'Vérification anti-robot',
+  captchaSub: 'Anti-robot',
+  captchaPlaceholder: 'Votre réponse',
+  captchaRefreshTitle: 'Nouvelle question',
+  termsAcceptPrefix: "J'accepte les",
+  termsLinkCgu: "Conditions Générales d'Utilisation du service",
+  termsAnd: 'et la',
+  termsLinkPrivacy: 'Politique de Confidentialité',
+  termsOf: 'de Concorde Workforce.',
+  submitCreating: 'Création de votre espace…',
+  submitContinuePayment: 'Continuer vers le paiement →',
+  submitStartTrial: 'Démarrer mon essai gratuit →',
+  submitSubNote: "Aucune carte bancaire requise · La facturation démarre après l'essai",
+  alreadyHaveAccount: 'Vous avez déjà un compte ?',
+  loginCta: 'Se connecter',
+  footerCgu: "Conditions Générales d'Utilisation",
+  footerPrivacy: 'Politique de Confidentialité',
+  footerLegal: 'Mentions Légales',
+  siretCheckingSirene: 'Vérification auprès du référentiel Sirene…',
+  siretCheckingBce: 'Vérification auprès du registre BCE…',
+  siretCheckingFormat: "Vérification du format et de l'unicité…",
+  siretRecognized: (name) => `Entreprise reconnue : ${name}.`,
+  siretValid: (idName) => `${idName} valide.`,
+  siretFormatNumeric: (digits) => `Le numéro doit contenir ${digits} chiffres.`,
+  siretFormatAlphanumeric: (placeholder) => `Format invalide. Attendu : ${placeholder}.`,
+  siretChecksumFr: 'Numéro invalide (clé de contrôle SIRET).',
+  siretChecksumBe: 'Numéro invalide (clé de contrôle mod 97).',
+  siretChecksumGeneric: 'Numéro invalide (clé de contrôle ).',
+  siretNotFound: 'Aucune entreprise enregistrée pour ce numéro dans le référentiel.',
+  siretClosed: 'Cet établissement est administrativement fermé.',
+  siretAlreadyUsed: "Un compte existe déjà pour ce numéro. Connectez-vous depuis l'écran de login.",
+  siretInvalid: 'Numéro non valide.',
+  emailChecking: 'Vérification…',
+  emailAvailable: 'Email disponible.',
+  emailTaken: 'Cet email est déjà utilisé.',
+  emailInvalid: "Format d'email invalide.",
+  slugChecking: 'Vérification…',
+  slugAvailable: (slug) => `${slug}.concorde.com est disponible.`,
+  slugTaken: 'Ce slug est déjà utilisé.',
+  slugReserved: 'Ce slug est réservé.',
+  slugInvalid: '3 à 30 caractères : a-z, 0-9, tirets. Ne pas commencer/finir par tiret.',
+  slugInconclusive: 'Vérification non concluante — le serveur tranchera à la soumission.',
+  errTooManyRequests: 'Trop de requêtes. Veuillez réessayer dans quelques instants.',
+  errCancelledReactivatable: 'Votre compte a été résilié. Connectez-vous pour le réactiver et reprendre votre abonnement (vos données sont conservées 90 jours).',
+  errSignupFailed: 'Inscription échouée. Réessayez.',
+  countries: {
+    FR: {
+      label: 'France',
+      idLabel: "SIRET de l'entreprise",
+      idPlaceholder: '14 chiffres — ex. 123 456 789 00012',
+      idHelper: 'Vérifié contre le référentiel Sirene (API gouvernementale).',
+    },
+    BE: {
+      label: 'Belgique',
+      idLabel: 'Numéro BCE (Banque-Carrefour des Entreprises)',
+      idPlaceholder: '10 chiffres — ex. 0123456789',
+      idHelper: 'Vérifié contre le registre BCE (cbeapi.be) + clé de contrôle mod 97.',
+    },
+    MA: {
+      label: 'Maroc',
+      idLabel: "ICE (Identifiant Commun de l'Entreprise)",
+      idPlaceholder: '15 chiffres — ex. 001234567000089',
+      idHelper: "Validation du format uniquement (15 chiffres). Aucune API publique fiable n'est disponible côté DGI.",
+    },
+    SN: {
+      label: 'Sénégal',
+      idLabel: "NINEA (Numéro d'Identification Nationale)",
+      idPlaceholder: '9 chiffres — ex. 123456789',
+      idHelper: "Validation du format uniquement (9 chiffres). Aucune API publique n'est disponible côté ADEPME.",
+    },
+    TN: {
+      label: 'Tunisie',
+      idLabel: 'Matricule Fiscal',
+      idPlaceholder: 'ex. 1234567A (court) ou 1234567AAM001 (complet)',
+      idHelper: 'Format DGI : 7 chiffres + 1 lettre clé, suivis optionnellement des codes TVA/catégorie/établissement. Aucune API publique disponible.',
+    },
+  },
+};
+
+const EN: Dict = {
+  alreadyRegistered: 'Already registered?',
+  loginArrow: 'Sign in →',
+  titleCreate: 'Create my account',
+  titleTrial: 'Start my free trial',
+  subtitleFromPricing: 'Step 1 of 2 — 30 days free, no credit card. Your payment method will be pre-registered in the next step (no charge before the end of the trial).',
+  subtitleTrialPrefix: '30 days, no credit card',
+  trustNoCard: '✓ No credit card',
+  trustHostedFr: '🛡️ Data hosted in France',
+  choosePlan: 'Choose your plan',
+  planHint: 'A 30-day free trial with no credit card. You can compare plan details and enable modules later from "My subscription".',
+  yourCompany: 'Your company',
+  yourAdminAccount: 'Your administrator account',
+  countryLabel: 'Company country',
+  idOneTrial: 'One free trial per number.',
+  officialAddress: 'Official address',
+  emailLabel: 'Email address',
+  emailPlaceholder: 'you@company.com',
+  emailHelperDefault: 'A 6-digit code will be sent to you to confirm your registration.',
+  companyLabel: 'Company name',
+  companyPlaceholder: 'Legal name',
+  companyHelper: 'Auto-filled from the official API when the identifier is recognized.',
+  sectorLabel: 'Industry',
+  sectorPlaceholder: 'E.g.: Management consulting, Construction, Catering…',
+  slugLabel: 'Your workspace address',
+  slugPlaceholder: 'your-slug',
+  slugFallback: 'your-slug',
+  firstNameLabel: 'First name',
+  firstNamePlaceholder: 'First name',
+  lastNameLabel: 'Last name',
+  lastNamePlaceholder: 'Last name',
+  passwordLabel: 'Password',
+  passwordPlaceholder: 'At least 8 characters',
+  pwRuleLen: 'At least 8 characters',
+  pwRuleUpper: '1 uppercase letter (recommended)',
+  pwRuleSpecial: '1 special character (recommended)',
+  captchaLabel: 'Anti-bot verification',
+  captchaSub: 'Anti-bot',
+  captchaPlaceholder: 'Your answer',
+  captchaRefreshTitle: 'New question',
+  termsAcceptPrefix: 'I accept the',
+  termsLinkCgu: "service's Terms of Use",
+  termsAnd: 'and the',
+  termsLinkPrivacy: 'Privacy Policy',
+  termsOf: 'of Concorde Workforce.',
+  submitCreating: 'Creating your workspace…',
+  submitContinuePayment: 'Continue to payment →',
+  submitStartTrial: 'Start my free trial →',
+  submitSubNote: 'No credit card required · Billing starts after the trial',
+  alreadyHaveAccount: 'Already have an account?',
+  loginCta: 'Sign in',
+  footerCgu: 'Terms of Use',
+  footerPrivacy: 'Privacy Policy',
+  footerLegal: 'Legal Notice',
+  siretCheckingSirene: 'Checking against the Sirene registry…',
+  siretCheckingBce: 'Checking against the BCE registry…',
+  siretCheckingFormat: 'Checking format and uniqueness…',
+  siretRecognized: (name) => `Company recognized: ${name}.`,
+  siretValid: (idName) => `${idName} valid.`,
+  siretFormatNumeric: (digits) => `The number must contain ${digits} digits.`,
+  siretFormatAlphanumeric: (placeholder) => `Invalid format. Expected: ${placeholder}.`,
+  siretChecksumFr: 'Invalid number (SIRET check digit).',
+  siretChecksumBe: 'Invalid number (mod 97 check digit).',
+  siretChecksumGeneric: 'Invalid number (check digit ).',
+  siretNotFound: 'No company registered for this number in the registry.',
+  siretClosed: 'This establishment is administratively closed.',
+  siretAlreadyUsed: 'An account already exists for this number. Sign in from the login screen.',
+  siretInvalid: 'Invalid number.',
+  emailChecking: 'Checking…',
+  emailAvailable: 'Email available.',
+  emailTaken: 'This email is already in use.',
+  emailInvalid: 'Invalid email format.',
+  slugChecking: 'Checking…',
+  slugAvailable: (slug) => `${slug}.concorde.com is available.`,
+  slugTaken: 'This slug is already in use.',
+  slugReserved: 'This slug is reserved.',
+  slugInvalid: '3 to 30 characters: a-z, 0-9, hyphens. Must not start/end with a hyphen.',
+  slugInconclusive: 'Inconclusive check — the server will decide on submission.',
+  errTooManyRequests: 'Too many requests. Please try again in a few moments.',
+  errCancelledReactivatable: 'Your account was cancelled. Sign in to reactivate it and resume your subscription (your data is kept for 90 days).',
+  errSignupFailed: 'Signup failed. Please try again.',
+  countries: {
+    FR: {
+      label: 'France',
+      idLabel: 'Company SIRET',
+      idPlaceholder: '14 digits — e.g. 123 456 789 00012',
+      idHelper: 'Verified against the Sirene registry (government API).',
+    },
+    BE: {
+      label: 'Belgium',
+      idLabel: 'BCE number (Crossroads Bank for Enterprises)',
+      idPlaceholder: '10 digits — e.g. 0123456789',
+      idHelper: 'Verified against the BCE registry (cbeapi.be) + mod 97 check digit.',
+    },
+    MA: {
+      label: 'Morocco',
+      idLabel: 'ICE (Common Company Identifier)',
+      idPlaceholder: '15 digits — e.g. 001234567000089',
+      idHelper: 'Format validation only (15 digits). No reliable public API is available from the DGI.',
+    },
+    SN: {
+      label: 'Senegal',
+      idLabel: 'NINEA (National Identification Number)',
+      idPlaceholder: '9 digits — e.g. 123456789',
+      idHelper: 'Format validation only (9 digits). No public API is available from ADEPME.',
+    },
+    TN: {
+      label: 'Tunisia',
+      idLabel: 'Tax ID (Matricule Fiscal)',
+      idPlaceholder: 'e.g. 1234567A (short) or 1234567AAM001 (full)',
+      idHelper: 'DGI format: 7 digits + 1 key letter, optionally followed by VAT/category/establishment codes. No public API available.',
+    },
+  },
+};
+
+const LANG: Record<Lang, Dict> = { fr: FR, en: EN };
+
 function slugify(input: string): string {
   return input
     .toLowerCase()
@@ -130,6 +480,9 @@ export default function SignupPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { refreshAuth } = useAuth();
+  const { i18n } = useTranslation();
+  const lang: Lang = i18n.language === 'en' ? 'en' : 'fr';
+  const d = LANG[lang];
   const planFromPricing = (location.state as any) ?? null;
 
   const [companyName, setCompanyName] = useState('');
@@ -385,59 +738,59 @@ export default function SignupPage() {
   const siretHelper = useMemo(() => {
     // Messages cohérents avec le pays : on remplace "SIRET" par le nom métier de l'ID
     // selon le pays sélectionné, et on adapte "API Sirene" quand l'API n'est pas FR.
-    const idName = countryConfig.idLabel.split(' ')[0]; // "SIRET" / "Numéro" / "ICE" / "NINEA" / "Matricule"
+    const idName = d.countries[country].idLabel.split(' ')[0]; // "SIRET" / "Numéro" / "ICE" / "NINEA" / "Matricule"
     // Source de vérification dépend du pays : Sirene pour FR, cbeapi.be pour BE, sinon format local.
-    const verifSource =
-      country === 'FR' ? 'auprès du référentiel Sirene' :
-        country === 'BE' ? 'auprès du registre BCE' :
-          'du format et de l\'unicité';
+    const checkingText =
+      country === 'FR' ? d.siretCheckingSirene :
+        country === 'BE' ? d.siretCheckingBce :
+          d.siretCheckingFormat;
     // Message d'erreur format adapté : pour TN (alphanumérique) on évite "doit contenir N chiffres"
     // qui est faux ; on renvoie sur le placeholder/helper qui décrit le format DGI.
     const formatErrorText = countryConfig.idAlphanumeric
-      ? `Format invalide. Attendu : ${countryConfig.idPlaceholder}.`
-      : `Le numéro doit contenir ${countryConfig.idDigits} chiffres.`;
+      ? d.siretFormatAlphanumeric(d.countries[country].idPlaceholder)
+      : d.siretFormatNumeric(countryConfig.idDigits);
     switch (siretStatus) {
-      case 'checking': return { color: 'info' as const, text: `Vérification ${verifSource}…` };
+      case 'checking': return { color: 'info' as const, text: checkingText };
       case 'available': return {
         color: 'success' as const,
-        text: siretCompanyName ? `Entreprise reconnue : ${siretCompanyName}.` : `${idName} valide.`,
+        text: siretCompanyName ? d.siretRecognized(siretCompanyName) : d.siretValid(idName),
       };
       case 'format': return { color: 'error' as const, text: formatErrorText };
-      case 'checksum': return { color: 'error' as const, text: `Numéro invalide (clé de contrôle ${country === 'FR' ? 'SIRET' : country === 'BE' ? 'mod 97' : ''}).` };
-      case 'not_found': return { color: 'error' as const, text: 'Aucune entreprise enregistrée pour ce numéro dans le référentiel.' };
-      case 'closed': return { color: 'error' as const, text: 'Cet établissement est administrativement fermé.' };
+      case 'checksum': return { color: 'error' as const, text: country === 'FR' ? d.siretChecksumFr : country === 'BE' ? d.siretChecksumBe : d.siretChecksumGeneric };
+      case 'not_found': return { color: 'error' as const, text: d.siretNotFound };
+      case 'closed': return { color: 'error' as const, text: d.siretClosed };
       case 'already_used': return {
         color: 'error' as const,
-        text: 'Un compte existe déjà pour ce numéro. Connectez-vous depuis l\'écran de login.',
+        text: d.siretAlreadyUsed,
       };
-      case 'invalid': return { color: 'error' as const, text: 'Numéro non valide.' };
+      case 'invalid': return { color: 'error' as const, text: d.siretInvalid };
       default: return null;
     }
-  }, [siretStatus, siretCompanyName, country, countryConfig]);
+  }, [siretStatus, siretCompanyName, country, countryConfig, d]);
 
   const emailHelper = useMemo(() => {
     switch (emailStatus) {
-      case 'checking': return { color: 'info' as const, text: 'Vérification…' };
-      case 'available': return { color: 'success' as const, text: 'Email disponible.' };
-      case 'taken': return { color: 'error' as const, text: 'Cet email est déjà utilisé.' };
-      case 'invalid': return { color: 'error' as const, text: 'Format d\'email invalide.' };
+      case 'checking': return { color: 'info' as const, text: d.emailChecking };
+      case 'available': return { color: 'success' as const, text: d.emailAvailable };
+      case 'taken': return { color: 'error' as const, text: d.emailTaken };
+      case 'invalid': return { color: 'error' as const, text: d.emailInvalid };
       default: return null;
     }
-  }, [emailStatus]);
+  }, [emailStatus, d]);
 
   const slugHelper = useMemo(() => {
     switch (slugStatus) {
-      case 'checking': return { color: 'info' as const, text: 'Vérification…' };
-      case 'available': return { color: 'success' as const, text: `${slug}.concorde.com est disponible.` };
-      case 'taken': return { color: 'error' as const, text: 'Ce slug est déjà utilisé.' };
-      case 'reserved': return { color: 'error' as const, text: 'Ce slug est réservé.' };
-      case 'invalid': return { color: 'error' as const, text: '3 à 30 caractères : a-z, 0-9, tirets. Ne pas commencer/finir par tiret.' };
+      case 'checking': return { color: 'info' as const, text: d.slugChecking };
+      case 'available': return { color: 'success' as const, text: d.slugAvailable(slug) };
+      case 'taken': return { color: 'error' as const, text: d.slugTaken };
+      case 'reserved': return { color: 'error' as const, text: d.slugReserved };
+      case 'invalid': return { color: 'error' as const, text: d.slugInvalid };
       case 'idle': return SLUG_REGEX.test(slug)
-        ? { color: 'warning' as const, text: 'Vérification non concluante — le serveur tranchera à la soumission.' }
+        ? { color: 'warning' as const, text: d.slugInconclusive }
         : null;
       default: return null;
     }
-  }, [slug, slugStatus]);
+  }, [slug, slugStatus, d]);
 
   // Critères de mot de passe (affichage). Le minimum bloquant reste 8 caractères
   // (cf. canSubmit). Majuscule / caractère spécial sont des recommandations guidées.
@@ -552,7 +905,7 @@ export default function SignupPage() {
     } catch (e: any) {
       // Handle specific error codes
       if (e?.response?.status === 429) {
-        setError('Trop de requêtes. Veuillez réessayer dans quelques instants.');
+        setError(d.errTooManyRequests);
         // Optional: could implement exponential backoff retry here.
       } else if (e?.response?.data?.code === 'cancelled_account_reactivatable') {
         const cancelledSlug = e?.response?.data?.slug;
@@ -560,12 +913,12 @@ export default function SignupPage() {
         navigate('/login', {
           state: {
             email: email.trim(),
-            notice: 'Votre compte a été résilié. Connectez-vous pour le réactiver et reprendre votre abonnement (vos données sont conservées 90 jours).',
+            notice: d.errCancelledReactivatable,
           },
         });
         return;
       } else {
-        const msg = e?.response?.data?.error || e?.response?.data?.detail || 'Inscription échouée. Réessayez.';
+        const msg = e?.response?.data?.error || e?.response?.data?.detail || d.errSignupFailed;
         setError(msg);
       }
       // Captcha invalide → on régénère un nouveau challenge pour la prochaine tentative.
@@ -623,7 +976,7 @@ export default function SignupPage() {
           onClick={() => navigate('/login')}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/login'); }}
         >
-          Déjà inscrit ? <span>Se connecter →</span>
+          {d.alreadyRegistered} <span>{d.loginArrow}</span>
         </span>
       </nav>
 
@@ -633,18 +986,18 @@ export default function SignupPage() {
           {/* HEADER */}
           <div className="signup-card-header">
             <h1 className="signup-card-title">
-              {fromPricing ? 'Créer mon compte' : 'Démarrer mon essai gratuit'}
+              {fromPricing ? d.titleCreate : d.titleTrial}
             </h1>
             <p className="signup-card-subtitle">
               {fromPricing ? (
-                <>Étape 1 sur 2 — 30 jours gratuits sans CB. Votre moyen de paiement sera pré-enregistré à l'étape suivante (aucun débit avant la fin de l'essai).</>
+                <>{d.subtitleFromPricing}</>
               ) : (
-                <><strong>30 jours, sans carte bancaire</strong> — Concorde Workforce</>
+                <><strong>{d.subtitleTrialPrefix}</strong> — Concorde Workforce</>
               )}
             </p>
             <div className="signup-trust-pills">
-              <div className="signup-trust-pill">✓ Sans carte bancaire</div>
-              <div className="signup-trust-pill">🛡️ Données hébergées en France</div>
+              <div className="signup-trust-pill">{d.trustNoCard}</div>
+              <div className="signup-trust-pill">{d.trustHostedFr}</div>
             </div>
           </div>
 
@@ -658,7 +1011,7 @@ export default function SignupPage() {
           >
             {/* Formule — choix du pack (Starter/Standard/Premium). Pose Tenant.PlanCode
                 au signup et débloque les modules via /me pendant l'essai 30j. */}
-            <div className="signup-section-label">Choisissez votre formule</div>
+            <div className="signup-section-label">{d.choosePlan}</div>
             <div className="signup-plan-group">
               {(['Starter', 'Standard', 'Premium'] as PlanKey[]).map((p) => (
                 <button
@@ -672,16 +1025,16 @@ export default function SignupPage() {
               ))}
             </div>
             <div className="signup-field-hint">
-              30 jours d'essai gratuit sans carte bancaire. Vous pourrez comparer les détails des packs et activer des modules plus tard depuis « Mon abonnement ».
+              {d.planHint}
             </div>
 
             <div className="signup-divider" style={{ margin: '8px 0' }} />
-            <div className="signup-section-label">Votre entreprise</div>
+            <div className="signup-section-label">{d.yourCompany}</div>
 
             {/* Pays */}
             <div className="signup-field">
               <label className="signup-field-label" htmlFor="su-pays">
-                Pays de l'entreprise <span className="req">*</span>
+                {d.countryLabel} <span className="req">*</span>
               </label>
               <div className="signup-input-wrap">
                 <span className="signup-select-flag">{COUNTRY_FLAGS[country]}</span>
@@ -691,7 +1044,7 @@ export default function SignupPage() {
                   onChange={(e) => setCountry(e.target.value as CountryCode)}
                 >
                   {SUPPORTED_COUNTRIES.map((cc) => (
-                    <option key={cc} value={cc}>{COUNTRY_CONFIG[cc].label}</option>
+                    <option key={cc} value={cc}>{d.countries[cc].label}</option>
                   ))}
                 </select>
                 <span className="signup-select-arrow">⌄</span>
@@ -701,7 +1054,7 @@ export default function SignupPage() {
             {/* ID entreprise */}
             <div className="signup-field">
               <label className="signup-field-label" htmlFor="su-siret">
-                {countryConfig.idLabel} <span className="req">*</span>
+                {d.countries[country].idLabel} <span className="req">*</span>
               </label>
               <div className="signup-input-wrap">
                 <span className="signup-input-icon">🏛️</span>
@@ -709,7 +1062,7 @@ export default function SignupPage() {
                   id="su-siret"
                   type="text"
                   value={siret}
-                  placeholder={countryConfig.idPlaceholder}
+                  placeholder={d.countries[country].idPlaceholder}
                   inputMode={countryConfig.idAlphanumeric ? 'text' : 'numeric'}
                   className={siretStatus === 'available' ? 'valid' : ['format', 'checksum', 'not_found', 'closed', 'already_used', 'invalid'].includes(siretStatus) ? 'invalid' : ''}
                   onChange={(e) => {
@@ -726,13 +1079,13 @@ export default function SignupPage() {
                 {renderStatus(siretStatus)}
               </div>
               <div className={hintClass(siretHelper?.color)}>
-                {siretHelper ? siretHelper.text : `${countryConfig.idHelper} Un seul essai gratuit par numéro.`}
+                {siretHelper ? siretHelper.text : `${d.countries[country].idHelper} ${d.idOneTrial}`}
               </div>
               {/* Adresse récupérée de l'API officielle — affichée en lecture seule pour
                   confirmer visuellement la bonne entreprise. */}
               {siretStatus === 'available' && siretCompanyAddress && (
                 <div className="signup-address-box">
-                  <span className="signup-address-title">Adresse officielle</span>
+                  <span className="signup-address-title">{d.officialAddress}</span>
                   <div className="signup-address-value">{siretCompanyAddress}</div>
                 </div>
               )}
@@ -741,7 +1094,7 @@ export default function SignupPage() {
             {/* Email */}
             <div className="signup-field">
               <label className="signup-field-label" htmlFor="su-email">
-                Adresse email <span className="req">*</span>
+                {d.emailLabel} <span className="req">*</span>
               </label>
               <div className="signup-input-wrap">
                 <span className="signup-input-icon">✉️</span>
@@ -749,7 +1102,7 @@ export default function SignupPage() {
                   id="su-email"
                   type="email"
                   value={email}
-                  placeholder="vous@entreprise.com"
+                  placeholder={d.emailPlaceholder}
                   autoComplete="email"
                   className={emailStatus === 'available' ? 'valid' : (emailStatus === 'taken' || emailStatus === 'invalid') ? 'invalid' : ''}
                   onChange={(e) => setEmail(e.target.value)}
@@ -757,14 +1110,14 @@ export default function SignupPage() {
                 {renderStatus(emailStatus)}
               </div>
               <div className={hintClass(emailHelper?.color)}>
-                {emailHelper ? emailHelper.text : 'Un code à 6 chiffres vous sera envoyé pour confirmer votre inscription.'}
+                {emailHelper ? emailHelper.text : d.emailHelperDefault}
               </div>
             </div>
 
             {/* Nom entreprise */}
             <div className="signup-field">
               <label className="signup-field-label" htmlFor="su-company">
-                Nom de l'entreprise <span className="req">*</span>
+                {d.companyLabel} <span className="req">*</span>
               </label>
               <div className="signup-input-wrap">
                 <span className="signup-input-icon">🏢</span>
@@ -772,24 +1125,24 @@ export default function SignupPage() {
                   id="su-company"
                   type="text"
                   value={companyName}
-                  placeholder="Raison sociale"
+                  placeholder={d.companyPlaceholder}
                   autoComplete="organization"
                   onChange={(e) => setCompanyName(e.target.value)}
                 />
               </div>
-              <div className="signup-field-hint">Auto-rempli depuis l'API officielle quand l'identifiant est reconnu.</div>
+              <div className="signup-field-hint">{d.companyHelper}</div>
             </div>
 
             {/* Secteur */}
             <div className="signup-field">
-              <label className="signup-field-label" htmlFor="su-sector">Secteur d'activité</label>
+              <label className="signup-field-label" htmlFor="su-sector">{d.sectorLabel}</label>
               <div className="signup-input-wrap">
                 <span className="signup-input-icon">🏭</span>
                 <input
                   id="su-sector"
                   type="text"
                   value={activitySector}
-                  placeholder="Ex : Conseil en gestion, BTP, Restauration…"
+                  placeholder={d.sectorPlaceholder}
                   onChange={(e) => { setActivitySector(e.target.value); setActivitySectorAutofilled(true); }}
                 />
               </div>
@@ -798,7 +1151,7 @@ export default function SignupPage() {
             {/* Slug */}
             <div className="signup-field">
               <label className="signup-field-label" htmlFor="su-slug">
-                Adresse de votre espace <span className="req">*</span>
+                {d.slugLabel} <span className="req">*</span>
               </label>
               <div className="signup-input-wrap">
                 <span className="signup-input-icon">🔗</span>
@@ -806,57 +1159,57 @@ export default function SignupPage() {
                   id="su-slug"
                   type="text"
                   value={slug}
-                  placeholder="votre-slug"
+                  placeholder={d.slugPlaceholder}
                   autoComplete="off"
                   className={slugStatus === 'available' ? 'valid' : (slugStatus === 'taken' || slugStatus === 'reserved' || slugStatus === 'invalid') ? 'invalid' : ''}
                   onChange={(e) => { setSlugTouched(true); setSlug(slugify(e.target.value)); }}
                 />
                 {renderStatus(slugStatus)}
               </div>
-              <div className="signup-slug-preview">https://<span>{slug || 'votre-slug'}</span>.concorde.com</div>
+              <div className="signup-slug-preview">https://<span>{slug || d.slugFallback}</span>.concorde.com</div>
               {slugHelper && <div className={hintClass(slugHelper.color)}>{slugHelper.text}</div>}
             </div>
 
             <div className="signup-divider" style={{ margin: '8px 0' }} />
-            <div className="signup-section-label">Votre compte administrateur</div>
+            <div className="signup-section-label">{d.yourAdminAccount}</div>
 
             {/* Prénom / Nom */}
             <div className="signup-field-row">
               <div className="signup-field">
-                <label className="signup-field-label" htmlFor="su-firstname">Prénom <span className="req">*</span></label>
+                <label className="signup-field-label" htmlFor="su-firstname">{d.firstNameLabel} <span className="req">*</span></label>
                 <div className="signup-input-wrap">
                   <span className="signup-input-icon">👤</span>
-                  <input id="su-firstname" type="text" value={firstName} placeholder="Prénom" autoComplete="given-name" onChange={(e) => setFirstName(e.target.value)} />
+                  <input id="su-firstname" type="text" value={firstName} placeholder={d.firstNamePlaceholder} autoComplete="given-name" onChange={(e) => setFirstName(e.target.value)} />
                 </div>
               </div>
               <div className="signup-field">
-                <label className="signup-field-label" htmlFor="su-lastname">Nom <span className="req">*</span></label>
+                <label className="signup-field-label" htmlFor="su-lastname">{d.lastNameLabel} <span className="req">*</span></label>
                 <div className="signup-input-wrap">
                   <span className="signup-input-icon">👤</span>
-                  <input id="su-lastname" type="text" value={lastName} placeholder="Nom de famille" autoComplete="family-name" onChange={(e) => setLastName(e.target.value)} />
+                  <input id="su-lastname" type="text" value={lastName} placeholder={d.lastNamePlaceholder} autoComplete="family-name" onChange={(e) => setLastName(e.target.value)} />
                 </div>
               </div>
             </div>
 
             {/* Mot de passe */}
             <div className="signup-field">
-              <label className="signup-field-label" htmlFor="su-password">Mot de passe <span className="req">*</span></label>
+              <label className="signup-field-label" htmlFor="su-password">{d.passwordLabel} <span className="req">*</span></label>
               <div className="signup-input-wrap">
                 <span className="signup-input-icon">🔒</span>
                 <input
                   id="su-password"
                   type="password"
                   value={password}
-                  placeholder="8 caractères minimum"
+                  placeholder={d.passwordPlaceholder}
                   autoComplete="new-password"
                   className={password ? (pwOkLen ? 'valid' : 'invalid') : ''}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
               <ul className="signup-pw-criteria">
-                <li className={`signup-pw-rule ${pwOkLen ? 'valid' : ''}`}><span className="pw-rule-icon" /> 8 caractères minimum</li>
-                <li className={`signup-pw-rule ${pwOkUpper ? 'valid' : ''}`}><span className="pw-rule-icon" /> 1 majuscule (recommandé)</li>
-                <li className={`signup-pw-rule ${pwOkSpecial ? 'valid' : ''}`}><span className="pw-rule-icon" /> 1 caractère spécial (recommandé)</li>
+                <li className={`signup-pw-rule ${pwOkLen ? 'valid' : ''}`}><span className="pw-rule-icon" /> {d.pwRuleLen}</li>
+                <li className={`signup-pw-rule ${pwOkUpper ? 'valid' : ''}`}><span className="pw-rule-icon" /> {d.pwRuleUpper}</li>
+                <li className={`signup-pw-rule ${pwOkSpecial ? 'valid' : ''}`}><span className="pw-rule-icon" /> {d.pwRuleSpecial}</li>
               </ul>
             </div>
 
@@ -864,11 +1217,11 @@ export default function SignupPage() {
 
             {/* Captcha */}
             <div className="signup-field">
-              <label className="signup-field-label">Vérification anti-robot <span className="req">*</span></label>
+              <label className="signup-field-label">{d.captchaLabel} <span className="req">*</span></label>
               <div className="signup-captcha-wrap">
                 <div className="signup-captcha-box">
                   <div className="signup-captcha-eq">{captchaQuestion ? `${captchaQuestion} = ?` : '…'}</div>
-                  <div className="signup-captcha-sub">Anti-robot</div>
+                  <div className="signup-captcha-sub">{d.captchaSub}</div>
                 </div>
                 <div className="signup-captcha-input-wrap">
                   <div className="signup-input-wrap">
@@ -876,13 +1229,13 @@ export default function SignupPage() {
                     <input
                       type="number"
                       value={captchaAnswer}
-                      placeholder="Votre réponse"
+                      placeholder={d.captchaPlaceholder}
                       inputMode="numeric"
                       onChange={(e) => setCaptchaAnswer(e.target.value)}
                     />
                   </div>
                 </div>
-                <button type="button" className="signup-captcha-refresh" onClick={refreshCaptcha} title="Nouvelle question">↻</button>
+                <button type="button" className="signup-captcha-refresh" onClick={refreshCaptcha} title={d.captchaRefreshTitle}>↻</button>
               </div>
             </div>
 
@@ -897,11 +1250,11 @@ export default function SignupPage() {
             >
               <div className="signup-custom-check"><span className="signup-custom-check-icon">✓</span></div>
               <span className="signup-checkbox-label">
-                J'accepte les{' '}
-                <a href="/docs/cgu.pdf" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Conditions Générales d'Utilisation</a>
-                {' '}et la{' '}
-                <a href="/docs/politique-confidentialite.pdf" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Politique de Confidentialité</a>
-                {' '}de Concorde Workforce.
+                {d.termsAcceptPrefix}{' '}
+                <a href="/docs/cgu.pdf" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>{d.termsLinkCgu}</a>
+                {' '}{d.termsAnd}{' '}
+                <a href="/docs/politique-confidentialite.pdf" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>{d.termsLinkPrivacy}</a>
+                {' '}{d.termsOf}
               </span>
             </div>
 
@@ -912,26 +1265,26 @@ export default function SignupPage() {
               {submitting && <span className="signup-spinner" />}
               <span>
                 {submitting
-                  ? 'Création de votre espace…'
+                  ? d.submitCreating
                   : fromPricing
-                    ? 'Continuer vers le paiement →'
-                    : 'Démarrer mon essai gratuit →'}
+                    ? d.submitContinuePayment
+                    : d.submitStartTrial}
               </span>
             </button>
             <div className="signup-btn-submit-sub">
-              Aucune carte bancaire requise · La facturation démarre après l'essai
+              {d.submitSubNote}
             </div>
 
             {/* Login */}
             <div className="signup-login-link">
-              Vous avez déjà un compte ?{' '}
+              {d.alreadyHaveAccount}{' '}
               <a
                 role="link"
                 tabIndex={0}
                 onClick={() => navigate('/login')}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/login'); }}
               >
-                Se connecter
+                {d.loginCta}
               </a>
             </div>
           </form>
@@ -940,9 +1293,9 @@ export default function SignupPage() {
 
       {/* FOOTER */}
       <footer className="signup-footer">
-        <a href="/docs/cgu.pdf" target="_blank" rel="noopener noreferrer">Conditions Générales d'Utilisation</a>
-        <a href="/docs/politique-confidentialite.pdf" target="_blank" rel="noopener noreferrer">Politique de Confidentialité</a>
-        <a href="/docs/mentions-legales.pdf" target="_blank" rel="noopener noreferrer">Mentions Légales</a>
+        <a href="/docs/cgu.pdf" target="_blank" rel="noopener noreferrer">{d.footerCgu}</a>
+        <a href="/docs/politique-confidentialite.pdf" target="_blank" rel="noopener noreferrer">{d.footerPrivacy}</a>
+        <a href="/docs/mentions-legales.pdf" target="_blank" rel="noopener noreferrer">{d.footerLegal}</a>
       </footer>
     </div>
   );

@@ -774,7 +774,13 @@
     "codeSent": "If an account exists with this email, a code has been sent.",
     "codeSendError": "Error sending the code.",
     "passwordReset": "Password reset.",
-    "resetError": "Error during reset."
+    "resetError": "Error during reset.",
+    "setupTitle": "Activate your account",
+    "setupSubtitle": "Set your password to finalize your access to Concorde Workforce.",
+    "setupBannerTitle": "Welcome to Concorde Workforce",
+    "setupBannerBody": "Choose your password to activate your account ({{email}}). You will use it for all your future logins.",
+    "activateAccount": "Activate my account",
+    "paymentConfirmed": "Payment confirmed ✓ — sign in to finalize the reactivation of your workspace."
   },
   "weeklyHoursTable": {
     "dateStart": "Start date",

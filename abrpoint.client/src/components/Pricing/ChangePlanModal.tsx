@@ -91,7 +91,10 @@ interface ChangePlanModalProps {
   open: boolean;
   onClose: () => void;
   currentPlan: string | null;
-  onSuccess: (newPlan: string) => void;
+  // Legacy : appelé après l'ancien changement « en un clic » via l'API. Le changement de
+  // pack passe désormais par les Payment Links Stripe (le webhook met à jour le PlanCode),
+  // donc ce callback n'est plus déclenché. Conservé optionnel pour compat des appelants.
+  onSuccess?: (newPlan: string) => void;
   // Active la branche "changement en un clic" (preview prorata + bouton confirmation).
   // À mettre à false pour les tenants sans subscription Stripe (essais purs) : seul
   // le parcours « Voir le devis → DevisPackDialog → Stripe Checkout » est alors actif.
@@ -212,7 +215,7 @@ function formatDate(d: string | null | undefined): string {
   catch { return d; }
 }
 
-export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess, canChangeInPlace = true, onViewDevis, tenantSlug }: ChangePlanModalProps) {
+export default function ChangePlanModal({ open, onClose, currentPlan, canChangeInPlace = true, onViewDevis, tenantSlug }: ChangePlanModalProps) {
   const navigate = useNavigate();
   const normalizedCurrent = (currentPlan ?? '').trim();
   const currentKey: PlanKey | null = (['Starter', 'Standard', 'Premium'] as PlanKey[]).find(
@@ -226,7 +229,6 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   // Catalogue tarifaire chargé depuis le backend (PlanCatalog). On garde les
   // valeurs en dur (PLAN_META) en fallback pour ne pas casser l'affichage si
@@ -314,23 +316,13 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
     return computeLostFeatures(currentKey, selected);
   }, [selected, currentKey, isDowngrade]);
 
-  const handleConfirm = async () => {
+  const handleConfirm = () => {
     if (!selected) return;
-    setSubmitting(true);
-    setSubmitError(null);
-    try {
-      const res = await apiInstance.post('/billing/change-plan', {
-        planCode: selected,
-        billingCycle: cycle,
-        userCount: 1,
-      });
-      const newPlan = res.data?.newPlan ?? selected;
-      onSuccess(newPlan);
-    } catch (e: any) {
-      setSubmitError(e?.response?.data?.error || 'Échec du changement de plan. Réessayez plus tard.');
-    } finally {
-      setSubmitting(false);
-    }
+    // Le changement de pack passe désormais par le Payment Link Stripe hébergé (et non
+    // l'API /billing/change-plan) : le webhook checkout.session.completed bascule le PlanCode
+    // et remplace l'abonnement. On ouvre le lien puis on ferme la modale.
+    openPackStripeLink(selected);
+    onClose();
   };
 
   const goToDevis = (key: PlanKey) => {
@@ -361,7 +353,7 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
   return (
     <Dialog
       open={open}
-      onClose={() => !submitting && onClose()}
+      onClose={() => onClose()}
       maxWidth="lg"
       fullWidth
       PaperProps={{ sx: { borderRadius: '20px' } }}
@@ -388,19 +380,11 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
                   }}
                 >
                   {cy === 'monthly' ? 'Mensuel' : 'Annuel'}
-                  {cy === 'annual' && (
-                    <Box component="span" sx={{
-                      fontSize: 10, fontWeight: 800, color: '#fff', px: 0.7, py: '2px', borderRadius: '6px',
-                      bgcolor: active ? 'rgba(255,255,255,.22)' : '#16A34A',
-                    }}>
-                      −45%
-                    </Box>
-                  )}
                 </Box>
               );
             })}
           </Box>
-          <IconButton onClick={onClose} disabled={submitting} size="small" aria-label="Fermer">
+          <IconButton onClick={onClose} size="small" aria-label="Fermer">
             <CloseIcon />
           </IconButton>
         </Stack>
@@ -577,11 +561,15 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
                   </Button>
                 ) : (
                   <Stack spacing={1} sx={{ mb: 2.5 }}>
+                    {/* Action PRIMAIRE : souscription / changement de pack via le Payment Link
+                        Stripe hébergé (essai 30 j inclus). Rattaché au tenant via
+                        client_reference_id ; le webhook bascule le PlanCode et annule l'ancien
+                        abonnement pack. Remplace l'ancien parcours API /billing/checkout (502). */}
                     <Button
                       fullWidth
                       variant="contained"
-                      endIcon={<ArrowForwardIcon />}
-                      onClick={(e) => { e.stopPropagation(); goToDevis(key); }}
+                      startIcon={<RocketLaunchIcon />}
+                      onClick={(e) => { e.stopPropagation(); openPackStripeLink(key); }}
                       sx={{
                         bgcolor: isPremium ? goldAccent : '#0040a1',
                         background: isPremium
@@ -597,16 +585,14 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
                         boxShadow: isPremium ? '0 6px 18px rgba(184,134,11,0.32)' : 'none',
                       }}
                     >
-                      Voir le devis
+                      Souscrire via Stripe ({cycle === 'annual' ? 'annuel' : 'mensuel'})
                     </Button>
-                    {/* Souscription / changement de pack via le Payment Link Stripe hébergé
-                        (essai 30 j inclus). Rattaché au tenant via client_reference_id ; le
-                        webhook bascule le PlanCode et annule l'ancien abonnement pack. */}
+                    {/* Action SECONDAIRE : demander un devis personnalisé (équipe commerciale). */}
                     <Button
                       fullWidth
                       variant="outlined"
-                      startIcon={<RocketLaunchIcon />}
-                      onClick={(e) => { e.stopPropagation(); openPackStripeLink(key); }}
+                      endIcon={<ArrowForwardIcon />}
+                      onClick={(e) => { e.stopPropagation(); goToDevis(key); }}
                       sx={{
                         textTransform: 'none',
                         fontWeight: 700,
@@ -621,7 +607,7 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
                         },
                       }}
                     >
-                      Payer via Stripe ({cycle === 'annual' ? 'annuel' : 'mensuel'})
+                      Demander un devis
                     </Button>
                   </Stack>
                 )}
@@ -750,22 +736,21 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
         {submitError && <Alert severity="error" sx={{ mt: 2, borderRadius: '8px' }}>{submitError}</Alert>}
       </DialogContent>
       <DialogActions sx={{ p: 3, pt: 2 }}>
-        <Button onClick={onClose} disabled={submitting} sx={{ textTransform: 'none', fontWeight: 700 }}>
+        <Button onClick={onClose} sx={{ textTransform: 'none', fontWeight: 700 }}>
           Fermer
         </Button>
         {canChangeInPlace && selected && selected !== currentKey && (
           <Button
             variant="contained"
             onClick={handleConfirm}
-            disabled={submitting || previewing || !!previewError}
-            startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <RocketLaunchIcon />}
+            startIcon={<RocketLaunchIcon />}
             sx={{
               textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3,
               background: isDowngrade ? undefined : 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%)',
             }}
             color={isDowngrade ? 'warning' : 'primary'}
           >
-            {isDowngrade ? `Rétrograder vers ${selected}` : `Passer au pack ${selected} en un clic`}
+            {isDowngrade ? `Rétrograder vers ${selected} via Stripe →` : `Passer au pack ${selected} via Stripe →`}
           </Button>
         )}
       </DialogActions>

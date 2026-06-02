@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Box, Paper, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
   RadioGroup, FormControlLabel, Radio, TextField, Alert, CircularProgress, Stack, Divider,
@@ -13,13 +13,14 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import apiInstance from '../API/apiInstance';
 import { useAuth, type PlanFeatures } from '../helper/AuthProvider';
 import ChangePlanModal from './ChangePlanModal';
 import DevisPackDialog from './DevisPackDialog';
 import StorageUsageCard from './StorageUsageCard';
 import InvoiceReceipt, { type ReceiptSection } from './InvoiceReceipt';
-import { MODULE_CATALOG, ADDON_LABELS, type ModuleDef } from './moduleCatalog';
+import { MODULE_CATALOG, getAddonLabels, mLabel, mDesc, mNote, type ModuleDef } from './moduleCatalog';
 
 /**
  * Libellés user-friendly des feature flags PlanFeatures (cf. PlanCatalog côté backend).
@@ -29,29 +30,33 @@ import { MODULE_CATALOG, ADDON_LABELS, type ModuleDef } from './moduleCatalog';
  * actifs en arrière-plan sur Premium et n'apportent rien à les afficher comme
  * "modules débloqués".
  */
-const FEATURE_LABELS: Partial<Record<keyof PlanFeatures, { label: string; icon: string }>> = {
-  mobileApp: { label: 'Application mobile', icon: '📱' },
-  geolocation: { label: 'Géolocalisation des pointages', icon: '📍' },
-  digitalVault: { label: 'Coffre-fort numérique', icon: '🗄️' },
-  electronicSignature: { label: 'Signature électronique', icon: '✍️' },
-  multiSite: { label: 'Multi-site', icon: '🏢' },
-  multiSociete: { label: 'Multi-société', icon: '🏛️' },
-  advancedDashboards: { label: 'Tableaux de bord avancés', icon: '📊' },
-  ragAi: { label: 'Assistant IA RH', icon: '🤖' },
-  advancedAuditLogs: { label: 'Journaux d\'audit avancés', icon: '🔍' },
-  customBranding: { label: 'Personnalisation de marque', icon: '🎨' },
-  missions: { label: 'Gestion des missions', icon: '🗺️' },
-  compensationDays: { label: 'Jours de compensation', icon: '⏳' },
-  generalLeave: { label: 'Congés généraux', icon: '🏖️' },
-  generalExit: { label: 'Autorisations de sortie générales', icon: '🚪' },
-  leaveManagement: { label: 'Workflow congés', icon: '🌴' },
-  authorizationManagement: { label: 'Workflow autorisations', icon: '📋' },
-  expenseReports: { label: 'Notes de frais', icon: '🧾' },
-  breastfeedingManagement: { label: 'Gestion allaitement', icon: '🍼' },
-  contractManagement: { label: 'Gestion des contrats', icon: '📄' },
-  documentScanOcr: { label: 'Scan OCR pièces d\'identité', icon: '📷' },
-  bulkImport: { label: 'Import Excel en masse', icon: '⬆️' },
+// Icônes des feature flags (langue-agnostiques). Les libellés correspondants sont
+// dans le dict bilingue (d.featureLabels[key]). L'ensemble des clés de cette map
+// définit aussi les features rendues comme « modules débloqués » (cf. activeFeatureKeys).
+const FEATURE_ICONS: Partial<Record<keyof PlanFeatures, string>> = {
+  mobileApp: '📱',
+  geolocation: '📍',
+  digitalVault: '🗄️',
+  electronicSignature: '✍️',
+  multiSite: '🏢',
+  multiSociete: '🏛️',
+  advancedDashboards: '📊',
+  ragAi: '🤖',
+  advancedAuditLogs: '🔍',
+  customBranding: '🎨',
+  missions: '🗺️',
+  compensationDays: '⏳',
+  generalLeave: '🏖️',
+  generalExit: '🚪',
+  leaveManagement: '🌴',
+  authorizationManagement: '📋',
+  expenseReports: '🧾',
+  breastfeedingManagement: '🍼',
+  contractManagement: '📄',
+  documentScanOcr: '📷',
+  bulkImport: '⬆️',
 };
+type FeatureKey = keyof typeof FEATURE_ICONS;
 
 // Catalogue des modules optionnels + map dérivée des addons : source unique partagée
 // avec FacturesConcordePage (cf. moduleCatalog.ts).
@@ -108,35 +113,36 @@ interface PaymentMethodInfo {
   expYear?: number;
 }
 
-const brandLabel = (brand?: string) => {
+const brandLabel = (brand: string | undefined, fallback: string) => {
   switch ((brand ?? '').toLowerCase()) {
     case 'visa': return 'Visa';
     case 'mastercard': return 'Mastercard';
     case 'amex': return 'American Express';
     case 'cb': return 'CB';
     case 'discover': return 'Discover';
-    default: return brand ?? 'Carte';
+    default: return brand ?? fallback;
   }
 };
 
-const formatDate = (d: string | null) => {
+const formatDate = (d: string | null, locale: string) => {
   if (!d) return '—';
-  try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); }
+  try { return new Date(d).toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' }); }
   catch { return d; }
 };
 
 // Formatage monétaire FR aligné sur la maquette (« 249,00 € »). Centralisé ici
 // pour la carte « facture en direct » (variante A) et le récap modules (variante C).
-const eur = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+const eur = (n: number, locale: string) => n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 
-const statusLabel = (s: string): { label: string; color: 'success' | 'warning' | 'error' | 'info' | 'default' } => {
+type StatusColor = 'success' | 'warning' | 'error' | 'info' | 'default';
+const statusLabel = (s: string, d: Dict): { label: string; color: StatusColor } => {
   switch (s) {
-    case 'Active': return { label: 'Actif', color: 'success' };
-    case 'Trialing': return { label: 'Essai gratuit', color: 'info' };
-    case 'PastDue': return { label: 'Paiement en retard', color: 'warning' };
-    case 'PendingPayment': return { label: 'Paiement requis', color: 'warning' };
-    case 'Suspended': return { label: 'Suspendu', color: 'error' };
-    case 'Cancelled': return { label: 'Résilié', color: 'error' };
+    case 'Active': return { label: d.statusActive, color: 'success' };
+    case 'Trialing': return { label: d.statusTrialing, color: 'info' };
+    case 'PastDue': return { label: d.statusPastDue, color: 'warning' };
+    case 'PendingPayment': return { label: d.statusPendingPayment, color: 'warning' };
+    case 'Suspended': return { label: d.statusSuspended, color: 'error' };
+    case 'Cancelled': return { label: d.statusCancelled, color: 'error' };
     default: return { label: s, color: 'default' };
   }
 };
@@ -144,6 +150,515 @@ const statusLabel = (s: string): { label: string; color: 'success' | 'warning' |
 // Durée canonique de l'essai gratuit côté backend (TrialPolicy.TrialDurationDays).
 // Sert à calculer le pourcentage de progression du bandeau trial.
 const TRIAL_DURATION_DAYS = 30;
+
+// ── i18n : dictionnaire bilingue FR / EN (même pattern que ServicesPage / HomePage) ──
+type Lang = 'fr' | 'en';
+
+interface Dict {
+  locale: string;
+  // En-tête de page
+  pageTitle: string;
+  pageSubtitle: string;
+  // Statuts
+  statusActive: string;
+  statusTrialing: string;
+  statusPastDue: string;
+  statusPendingPayment: string;
+  statusSuspended: string;
+  statusCancelled: string;
+  // Libellés des features (modules débloqués)
+  featureLabels: Partial<Record<FeatureKey, string>>;
+  // Carte de paiement
+  cardFallback: string;
+  // Messages
+  addonsUpdatedBase: string;
+  addonsUpdatedStripe: string;
+  addonsUpdatedContact: string;
+  addonsNoChange: string;
+  addonsUpdateError: string;
+  loadSubscriptionError: string;
+  portalOpenFailGeneric: string;
+  portalOpenFailError: string;
+  paymentCancelled: string;
+  reactivationConfirmed: string;
+  noPreviousPlan: string;
+  checkoutInitError: string;
+  reactivateError: string;
+  resumeSuccess: string;
+  resumeError: string;
+  cancelError: string;
+  noSeatLink: string;
+  // Cancel result messages (interpolated)
+  refundLine: (amount: string, currency: string) => string;
+  cancelImmediate: (refundLine: string) => string;
+  cancelScheduled: (date: string) => string;
+  planChanged: (plan: string) => string;
+  // Polling overlay
+  pollingTitle: string;
+  pollingBody: string;
+  pollingTimeoutTitle: string;
+  pollingTimeoutBody: string;
+  // Bandeau trial
+  trialRemaining: (firstName: string | null, days: number) => ReactNode;
+  trialEnjoy: (days: number) => string;
+  seePricing: string;
+  // Carte formule actuelle
+  currentPlan: string;
+  noPlan: string;
+  currentPeriodEnd: string;
+  trialEnd: string;
+  cancellationRequestedOn: string;
+  // Carte « facture en direct »
+  highEnd: string;
+  yourPlanDetail: string;
+  packPrefix: string;
+  activeEmployees: (n: number) => string;
+  nextDueOn: (date: string) => string;
+  cycleMonthly: string;
+  cycleAnnual: string;
+  seatsOccupied: string;
+  includedSuffix: (n: number) => string;
+  includedMark: (n: number) => string;
+  overSeatsWarning: (n: number, rate: string) => ReactNode;
+  overageSynced: string;
+  prebuySeatsHint: string;
+  // Reçu (InvoiceReceipt sections)
+  receiptBaseTitle: string;
+  receiptPackLine: (name: string) => string;
+  receiptIncludedSub: (n: number) => string;
+  receiptExtraTitle: string;
+  receiptOverTag: string;
+  receiptSeatsBeyond: (n: number) => string;
+  receiptOverageRate: (rate: string) => string;
+  receiptOverageQty: (active: number, extra: number) => string;
+  receiptModulesTitle: string;
+  receiptModulesTag: (n: number) => string;
+  receiptCycleLabel: (name: string, annual: boolean) => string;
+  // Actions carte facture
+  addEmployee: string;
+  manageModules: string;
+  changePlan: string;
+  seatsNeedStripe: string;
+  contactAdminModules: string;
+  // Carte modules actifs
+  yourActiveModules: string;
+  featuresUnlocked: (n: number) => string;
+  additionalModulesInline: (n: number) => string;
+  includedInPack: (plan: string | null) => string;
+  noModuleYet: string;
+  additionalModulesSubscribed: string;
+  manageOptionalModules: string;
+  // Carte de paiement
+  paymentCard: string;
+  cardExpires: (mm: string, yyyy: number) => string;
+  loadingDots: string;
+  noCardSaved: string;
+  redirecting: string;
+  updateBtn: string;
+  // Bandeaux résiliation
+  scheduledCancelTitle: string;
+  scheduledCancelBody: (date: string) => ReactNode;
+  cancelledTitle: string;
+  cancelledBody: ReactNode;
+  // Carte Actions
+  actions: string;
+  seeOtherPacks: string;
+  reactivateMyPlan: string;
+  cancelTheCancellation: string;
+  cancelMyPlan: string;
+  onlyAdminsCanModify: (cancelled: boolean) => string;
+  // Dialog résiliation
+  cancelDialogIntro: string;
+  cancelAtPeriodEndTitle: string;
+  cancelAtPeriodEndBody: (date: string) => ReactNode;
+  cancelImmediateTitle: string;
+  cancelImmediateBody: string;
+  cancelReasonLabel: string;
+  cancelReasonPlaceholder: string;
+  cancel: string;
+  confirmCancelNow: string;
+  scheduleCancel: string;
+  // ChangePlanModal
+  // Dialog gérer modules
+  optionalModulesIntro: string;
+  includedInPackChip: string;
+  onQuote: string;
+  perMonth: string;
+  addViaStripe: string;
+  invoiceImpact: string;
+  perMonthHt: string;
+  modulesActiveCount: (n: number) => string;
+  save: string;
+  // Dialog ajouter sièges
+  addSeatsTitle: string;
+  addSeatsIntro: string;
+  overageRateForPack: (name: string) => string;
+  perMonthPerEmployee: string;
+  seatsToAdd: string;
+  estimatedMonthlyExtra: string;
+  addSeatsFootnote: string;
+  continueOnStripe: string;
+}
+
+const FR: Dict = {
+  locale: 'fr-FR',
+  pageTitle: 'Mon abonnement',
+  pageSubtitle: 'Gérez votre formule, suivez vos prochaines échéances et résiliez à tout moment.',
+  statusActive: 'Actif',
+  statusTrialing: 'Essai gratuit',
+  statusPastDue: 'Paiement en retard',
+  statusPendingPayment: 'Paiement requis',
+  statusSuspended: 'Suspendu',
+  statusCancelled: 'Résilié',
+  featureLabels: {
+    mobileApp: 'Application mobile',
+    geolocation: 'Géolocalisation des pointages',
+    digitalVault: 'Coffre-fort numérique',
+    electronicSignature: 'Signature électronique',
+    multiSite: 'Multi-site',
+    multiSociete: 'Multi-société',
+    advancedDashboards: 'Tableaux de bord avancés',
+    ragAi: 'Assistant IA RH',
+    advancedAuditLogs: 'Journaux d\'audit avancés',
+    customBranding: 'Personnalisation de marque',
+    missions: 'Gestion des missions',
+    compensationDays: 'Jours de compensation',
+    generalLeave: 'Congés généraux',
+    generalExit: 'Autorisations de sortie générales',
+    leaveManagement: 'Workflow congés',
+    authorizationManagement: 'Workflow autorisations',
+    expenseReports: 'Notes de frais',
+    breastfeedingManagement: 'Gestion allaitement',
+    contractManagement: 'Gestion des contrats',
+    documentScanOcr: 'Scan OCR pièces d\'identité',
+    bulkImport: 'Import Excel en masse',
+  },
+  cardFallback: 'Carte',
+  addonsUpdatedBase: 'Modules mis à jour. ',
+  addonsUpdatedStripe: 'La facturation sera ajustée à votre prochain cycle de facturation.',
+  addonsUpdatedContact: 'Contactez notre équipe commerciale pour activer la facturation.',
+  addonsNoChange: 'Aucun changement.',
+  addonsUpdateError: 'Impossible de mettre à jour les modules. Réessayez.',
+  loadSubscriptionError: 'Impossible de charger les informations d\'abonnement.',
+  portalOpenFailGeneric: "Impossible d'ouvrir le portail de facturation Stripe.",
+  portalOpenFailError: "Échec d'ouverture du portail de facturation.",
+  paymentCancelled: 'Paiement annulé. Aucun prélèvement n\'a été effectué. Vous pouvez relancer la souscription à tout moment.',
+  reactivationConfirmed: 'Réactivation confirmée. Redirection vers votre tableau de bord…',
+  noPreviousPlan: "Aucune formule précédente enregistrée. Contactez le support.",
+  checkoutInitError: "Impossible d'initialiser le paiement Stripe.",
+  reactivateError: "Échec de la réactivation. Réessayez plus tard.",
+  resumeSuccess: 'Résiliation annulée. Votre abonnement continuera normalement.',
+  resumeError: 'Impossible d\'annuler la résiliation.',
+  cancelError: 'Échec de la résiliation. Réessayez plus tard.',
+  noSeatLink: 'Aucun lien de paiement collaborateur pour ce pack.',
+  refundLine: (amount, currency) =>
+    ` Un remboursement prorata temporis de ${amount} ${currency} a été émis vers votre carte (délai bancaire 5–10 jours).`,
+  cancelImmediate: (refundLine) =>
+    `Votre abonnement a été résilié immédiatement.${refundLine} Vous allez être déconnecté.`,
+  cancelScheduled: (date) =>
+    `Votre résiliation a bien été enregistrée. Vous gardez l'accès jusqu'au ${date}.`,
+  planChanged: (plan) =>
+    `Votre formule a été changée pour ${plan}. Le différentiel est ajusté sur votre prochaine facture.`,
+  pollingTitle: 'Confirmation du paiement en cours…',
+  pollingBody: 'Nous attendons la confirmation Stripe (généralement 2-5 secondes). Ne fermez pas cette page.',
+  pollingTimeoutTitle: 'Confirmation retardée',
+  pollingTimeoutBody: 'Le paiement a bien été enregistré côté Stripe, mais le webhook de confirmation tarde à arriver. Rafraîchissez la page dans une minute, ou contactez le support si l\'état reste « Résilié ».',
+  trialRemaining: (firstName, days) => (
+    <>
+      {firstName ? `${firstName}, ` : ''}il vous reste <strong>{days}</strong> jour{days > 1 ? 's' : ''} sur votre période d'essai.
+    </>
+  ),
+  trialEnjoy: (days) =>
+    `Si vous aimez Concorde Workforce, vous pouvez activer votre abonnement dès maintenant et continuer à bénéficier de vos ${days} jours offerts.`,
+  seePricing: 'Voir les tarifs →',
+  currentPlan: 'Formule actuelle',
+  noPlan: 'Aucune formule',
+  currentPeriodEnd: 'Fin de la période en cours',
+  trialEnd: 'Fin de l\'essai gratuit',
+  cancellationRequestedOn: 'Résiliation demandée le',
+  highEnd: 'Haut de gamme',
+  yourPlanDetail: 'Votre formule en détail',
+  packPrefix: 'Pack',
+  activeEmployees: (n) => `${n} collaborateur${n > 1 ? 's' : ''} actif${n > 1 ? 's' : ''}`,
+  nextDueOn: (date) => ` · prochaine échéance le ${date}`,
+  cycleMonthly: 'Mensuel',
+  cycleAnnual: 'Annuel',
+  seatsOccupied: 'Sièges occupés',
+  includedSuffix: (n) => ` / ${n} inclus`,
+  includedMark: (n) => `${n} inclus`,
+  overSeatsWarning: (n, rate) => (
+    <>
+      <Box component="b" sx={{ color: '#7a4708' }}>{n} collaborateur{n > 1 ? 's' : ''}</Box>
+      {' '}au-delà du seuil · facturé{n > 1 ? 's' : ''} {rate} HT / mois chacun
+    </>
+  ),
+  overageSynced: 'Facturation Stripe déjà synchronisée — aucune action requise.',
+  prebuySeatsHint: 'Vous pouvez pré-acheter des sièges supplémentaires ci-dessous.',
+  receiptBaseTitle: 'Abonnement de base',
+  receiptPackLine: (name) => `Pack ${name}`,
+  receiptIncludedSub: (n) => `${n} collaborateurs inclus`,
+  receiptExtraTitle: 'Collaborateurs supplémentaires',
+  receiptOverTag: 'DÉPASSEMENT',
+  receiptSeatsBeyond: (n) => `Sièges au-delà de ${n}`,
+  receiptOverageRate: (rate) => `${rate} HT / mois par collaborateur`,
+  receiptOverageQty: (active, extra) => `${active} actifs → ${extra} supp.`,
+  receiptModulesTitle: 'Modules optionnels',
+  receiptModulesTag: (n) => `+${n} actif${n > 1 ? 's' : ''}`,
+  receiptCycleLabel: (name, annual) => `Pack ${name} · ${annual ? 'Engagement annuel' : 'Engagement mensuel'}`,
+  addEmployee: 'Ajouter un collaborateur',
+  manageModules: 'Gérer mes modules',
+  changePlan: 'Changer de pack →',
+  seatsNeedStripe: 'L\'ajout de sièges nécessite un abonnement Stripe actif. Activez d\'abord votre formule.',
+  contactAdminModules: 'Contactez un administrateur pour ajouter un collaborateur ou gérer les modules.',
+  yourActiveModules: 'Vos modules actifs',
+  featuresUnlocked: (n) => `${n} fonctionnalité${n > 1 ? 's' : ''} débloquée${n > 1 ? 's' : ''}`,
+  additionalModulesInline: (n) => ` · ${n} module${n > 1 ? 's' : ''} additionnel${n > 1 ? 's' : ''}`,
+  includedInPack: (plan) => `Inclus dans votre pack${plan ? ` ${plan}` : ''}`,
+  noModuleYet: 'Aucun module n\'est encore activé. Choisissez un pack pour débloquer les fonctionnalités.',
+  additionalModulesSubscribed: 'Modules additionnels souscrits à l\'inscription',
+  manageOptionalModules: 'Gérer mes modules optionnels',
+  paymentCard: 'Carte de paiement',
+  cardExpires: (mm, yyyy) => `Expire ${mm}/${yyyy}`,
+  loadingDots: 'Chargement…',
+  noCardSaved: 'Aucune carte enregistrée',
+  redirecting: 'Redirection…',
+  updateBtn: 'Mettre à jour',
+  scheduledCancelTitle: 'Résiliation programmée',
+  scheduledCancelBody: (date) => (
+    <>
+      Votre abonnement sera arrêté le <strong>{date}</strong>.
+      Vous conservez l'accès complet jusqu'à cette date.
+    </>
+  ),
+  cancelledTitle: 'Abonnement résilié',
+  cancelledBody: (
+    <>
+      Vos données sont conservées pendant <strong>90 jours</strong> à compter de la
+      résiliation. Vous pouvez réactiver votre abonnement à tout moment dans ce délai —
+      au-delà, un nouveau compte sera nécessaire (RGPD : conformité au droit à l'oubli).
+    </>
+  ),
+  actions: 'Actions',
+  seeOtherPacks: 'Voir les autres packs',
+  reactivateMyPlan: 'Réactiver mon abonnement',
+  cancelTheCancellation: 'Annuler la résiliation',
+  cancelMyPlan: 'Résilier mon abonnement',
+  onlyAdminsCanModify: (cancelled) =>
+    `Seuls les administrateurs et managers peuvent modifier ${cancelled ? 'ou réactiver' : 'ou résilier'} l'abonnement.`,
+  cancelDialogIntro: 'Choisissez le mode de résiliation. Vous pourrez annuler tant que la fin de période n\'est pas atteinte.',
+  cancelAtPeriodEndTitle: 'À la fin de la période en cours',
+  cancelAtPeriodEndBody: (date) => (
+    <>
+      Vous gardez l'accès jusqu'au {date}.
+      Aucun nouveau prélèvement ne sera effectué. <strong>Recommandé.</strong>
+    </>
+  ),
+  cancelImmediateTitle: 'Résiliation immédiate',
+  cancelImmediateBody: 'L\'accès est coupé tout de suite et vous serez déconnecté. Aucun remboursement de la période en cours n\'est effectué.',
+  cancelReasonLabel: 'Motif (optionnel)',
+  cancelReasonPlaceholder: 'Aide-nous à nous améliorer en partageant la raison de votre départ.',
+  cancel: 'Annuler',
+  confirmCancelNow: 'Résilier maintenant',
+  scheduleCancel: 'Programmer la résiliation',
+  optionalModulesIntro: 'Cochez les modules que vous souhaitez activer. Les fonctionnalités correspondantes apparaissent immédiatement dans la sidebar après validation. La facturation Stripe n\'est pas modifiée tant qu\'un SKU dédié n\'est pas configuré — vous activez d\'abord l\'accès, votre commercial peut ensuite ajuster votre facture si besoin.',
+  includedInPackChip: 'Inclus dans le pack',
+  onQuote: 'Sur devis',
+  perMonth: '/mois',
+  addViaStripe: 'Ajouter via Stripe →',
+  invoiceImpact: 'Impact sur votre facture',
+  perMonthHt: 'HT /mois',
+  modulesActiveCount: (n) => `${n} module${n > 1 ? 's' : ''} actif${n > 1 ? 's' : ''}`,
+  save: 'Enregistrer',
+  addSeatsTitle: 'Ajouter des collaborateurs',
+  addSeatsIntro: 'Augmentez votre quota de collaborateurs autorisés via un paiement Stripe sécurisé. Chaque siège supplémentaire est facturé au tarif d\'overage de votre pack. Une fois le paiement validé, les collaborateurs correspondants pourront être créés sans confirmation supplémentaire.',
+  overageRateForPack: (name) => `Tarif overage Pack ${name}`,
+  perMonthPerEmployee: '/ mois / collaborateur',
+  seatsToAdd: 'Sièges à ajouter',
+  estimatedMonthlyExtra: 'Surcoût mensuel estimé',
+  addSeatsFootnote: 'Vous finalisez le nombre de collaborateurs et le paiement sur la page Stripe sécurisée. Les sièges sont crédités à votre compte automatiquement, sans double-comptage.',
+  continueOnStripe: 'Continuer sur Stripe →',
+};
+
+const EN: Dict = {
+  locale: 'en-GB',
+  pageTitle: 'My subscription',
+  pageSubtitle: 'Manage your plan, track your upcoming due dates and cancel at any time.',
+  statusActive: 'Active',
+  statusTrialing: 'Free trial',
+  statusPastDue: 'Payment overdue',
+  statusPendingPayment: 'Payment required',
+  statusSuspended: 'Suspended',
+  statusCancelled: 'Cancelled',
+  featureLabels: {
+    mobileApp: 'Mobile app',
+    geolocation: 'Clock-in geolocation',
+    digitalVault: 'Digital vault',
+    electronicSignature: 'Electronic signature',
+    multiSite: 'Multi-site',
+    multiSociete: 'Multi-company',
+    advancedDashboards: 'Advanced dashboards',
+    ragAi: 'HR AI Assistant',
+    advancedAuditLogs: 'Advanced audit logs',
+    customBranding: 'Custom branding',
+    missions: 'Mission management',
+    compensationDays: 'Time-off-in-lieu days',
+    generalLeave: 'General leave',
+    generalExit: 'General exit authorizations',
+    leaveManagement: 'Leave workflow',
+    authorizationManagement: 'Authorization workflow',
+    expenseReports: 'Expense reports',
+    breastfeedingManagement: 'Breastfeeding management',
+    contractManagement: 'Contract management',
+    documentScanOcr: 'ID document OCR scan',
+    bulkImport: 'Bulk Excel import',
+  },
+  cardFallback: 'Card',
+  addonsUpdatedBase: 'Modules updated. ',
+  addonsUpdatedStripe: 'Billing will be adjusted on your next billing cycle.',
+  addonsUpdatedContact: 'Contact our sales team to activate billing.',
+  addonsNoChange: 'No change.',
+  addonsUpdateError: 'Unable to update modules. Please try again.',
+  loadSubscriptionError: 'Unable to load subscription information.',
+  portalOpenFailGeneric: 'Unable to open the Stripe billing portal.',
+  portalOpenFailError: 'Failed to open the billing portal.',
+  paymentCancelled: 'Payment cancelled. No charge was made. You can restart the subscription at any time.',
+  reactivationConfirmed: 'Reactivation confirmed. Redirecting to your dashboard…',
+  noPreviousPlan: 'No previous plan on record. Please contact support.',
+  checkoutInitError: 'Unable to initialize the Stripe payment.',
+  reactivateError: 'Reactivation failed. Please try again later.',
+  resumeSuccess: 'Cancellation reverted. Your subscription will continue normally.',
+  resumeError: 'Unable to revert the cancellation.',
+  cancelError: 'Cancellation failed. Please try again later.',
+  noSeatLink: 'No additional-seat payment link for this plan.',
+  refundLine: (amount, currency) =>
+    ` A pro-rata refund of ${amount} ${currency} has been issued to your card (5–10 business days for bank processing).`,
+  cancelImmediate: (refundLine) =>
+    `Your subscription has been cancelled immediately.${refundLine} You will be logged out.`,
+  cancelScheduled: (date) =>
+    `Your cancellation has been recorded. You keep access until ${date}.`,
+  planChanged: (plan) =>
+    `Your plan has been changed to ${plan}. The difference is adjusted on your next invoice.`,
+  pollingTitle: 'Confirming your payment…',
+  pollingBody: 'We are waiting for Stripe confirmation (usually 2-5 seconds). Please do not close this page.',
+  pollingTimeoutTitle: 'Confirmation delayed',
+  pollingTimeoutBody: 'The payment was recorded on Stripe\'s side, but the confirmation webhook is taking longer than usual. Refresh the page in a minute, or contact support if the status remains "Cancelled".',
+  trialRemaining: (firstName, days) => (
+    <>
+      {firstName ? `${firstName}, ` : ''}you have <strong>{days}</strong> day{days > 1 ? 's' : ''} left in your trial period.
+    </>
+  ),
+  trialEnjoy: (days) =>
+    `If you like Concorde Workforce, you can activate your subscription right now and keep enjoying your ${days} free days.`,
+  seePricing: 'View pricing →',
+  currentPlan: 'Current plan',
+  noPlan: 'No plan',
+  currentPeriodEnd: 'End of current period',
+  trialEnd: 'End of free trial',
+  cancellationRequestedOn: 'Cancellation requested on',
+  highEnd: 'Top tier',
+  yourPlanDetail: 'Your plan in detail',
+  packPrefix: 'Pack',
+  activeEmployees: (n) => `${n} active employee${n > 1 ? 's' : ''}`,
+  nextDueOn: (date) => ` · next due date ${date}`,
+  cycleMonthly: 'Monthly',
+  cycleAnnual: 'Annual',
+  seatsOccupied: 'Seats used',
+  includedSuffix: (n) => ` / ${n} included`,
+  includedMark: (n) => `${n} included`,
+  overSeatsWarning: (n, rate) => (
+    <>
+      <Box component="b" sx={{ color: '#7a4708' }}>{n} employee{n > 1 ? 's' : ''}</Box>
+      {' '}beyond the threshold · billed at {rate} excl. tax / month each
+    </>
+  ),
+  overageSynced: 'Stripe billing already synced — no action required.',
+  prebuySeatsHint: 'You can pre-purchase additional seats below.',
+  receiptBaseTitle: 'Base subscription',
+  receiptPackLine: (name) => `Pack ${name}`,
+  receiptIncludedSub: (n) => `${n} employees included`,
+  receiptExtraTitle: 'Additional employees',
+  receiptOverTag: 'OVERAGE',
+  receiptSeatsBeyond: (n) => `Seats beyond ${n}`,
+  receiptOverageRate: (rate) => `${rate} excl. tax / month per employee`,
+  receiptOverageQty: (active, extra) => `${active} active → ${extra} extra`,
+  receiptModulesTitle: 'Optional modules',
+  receiptModulesTag: (n) => `+${n} active`,
+  receiptCycleLabel: (name, annual) => `Pack ${name} · ${annual ? 'Annual commitment' : 'Monthly commitment'}`,
+  addEmployee: 'Add an employee',
+  manageModules: 'Manage my modules',
+  changePlan: 'Change plan →',
+  seatsNeedStripe: 'Adding seats requires an active Stripe subscription. Activate your plan first.',
+  contactAdminModules: 'Contact an administrator to add an employee or manage modules.',
+  yourActiveModules: 'Your active modules',
+  featuresUnlocked: (n) => `${n} feature${n > 1 ? 's' : ''} unlocked`,
+  additionalModulesInline: (n) => ` · ${n} additional module${n > 1 ? 's' : ''}`,
+  includedInPack: (plan) => `Included in your${plan ? ` ${plan}` : ''} plan`,
+  noModuleYet: 'No module is enabled yet. Choose a plan to unlock features.',
+  additionalModulesSubscribed: 'Additional modules subscribed at signup',
+  manageOptionalModules: 'Manage my optional modules',
+  paymentCard: 'Payment card',
+  cardExpires: (mm, yyyy) => `Expires ${mm}/${yyyy}`,
+  loadingDots: 'Loading…',
+  noCardSaved: 'No card saved',
+  redirecting: 'Redirecting…',
+  updateBtn: 'Update',
+  scheduledCancelTitle: 'Cancellation scheduled',
+  scheduledCancelBody: (date) => (
+    <>
+      Your subscription will end on <strong>{date}</strong>.
+      You keep full access until that date.
+    </>
+  ),
+  cancelledTitle: 'Subscription cancelled',
+  cancelledBody: (
+    <>
+      Your data is retained for <strong>90 days</strong> from the cancellation. You can
+      reactivate your subscription at any time within this window — afterwards, a new
+      account will be required (GDPR: compliance with the right to be forgotten).
+    </>
+  ),
+  actions: 'Actions',
+  seeOtherPacks: 'View other plans',
+  reactivateMyPlan: 'Reactivate my subscription',
+  cancelTheCancellation: 'Revert the cancellation',
+  cancelMyPlan: 'Cancel my subscription',
+  onlyAdminsCanModify: (cancelled) =>
+    `Only administrators and managers can ${cancelled ? 'modify or reactivate' : 'modify or cancel'} the subscription.`,
+  cancelDialogIntro: 'Choose how to cancel. You can revert as long as the period end has not been reached.',
+  cancelAtPeriodEndTitle: 'At the end of the current period',
+  cancelAtPeriodEndBody: (date) => (
+    <>
+      You keep access until {date}.
+      No further charge will be made. <strong>Recommended.</strong>
+    </>
+  ),
+  cancelImmediateTitle: 'Immediate cancellation',
+  cancelImmediateBody: 'Access is cut off right away and you will be logged out. No refund is issued for the current period.',
+  cancelReasonLabel: 'Reason (optional)',
+  cancelReasonPlaceholder: 'Help us improve by sharing the reason for your departure.',
+  cancel: 'Cancel',
+  confirmCancelNow: 'Cancel now',
+  scheduleCancel: 'Schedule cancellation',
+  optionalModulesIntro: 'Tick the modules you want to enable. The matching features appear in the sidebar immediately after saving. Stripe billing is not changed until a dedicated SKU is configured — you enable access first, then your sales contact can adjust your invoice if needed.',
+  includedInPackChip: 'Included in plan',
+  onQuote: 'On quote',
+  perMonth: '/mo',
+  addViaStripe: 'Add via Stripe →',
+  invoiceImpact: 'Impact on your invoice',
+  perMonthHt: 'excl. tax /mo',
+  modulesActiveCount: (n) => `${n} active module${n > 1 ? 's' : ''}`,
+  save: 'Save',
+  addSeatsTitle: 'Add employees',
+  addSeatsIntro: 'Increase your authorized employee quota via a secure Stripe payment. Each additional seat is billed at your plan\'s overage rate. Once the payment is validated, the matching employees can be created without further confirmation.',
+  overageRateForPack: (name) => `Overage rate · Pack ${name}`,
+  perMonthPerEmployee: '/ month / employee',
+  seatsToAdd: 'Seats to add',
+  estimatedMonthlyExtra: 'Estimated monthly extra cost',
+  addSeatsFootnote: 'You finalize the number of employees and the payment on the secure Stripe page. Seats are credited to your account automatically, with no double-counting.',
+  continueOnStripe: 'Continue on Stripe →',
+};
+
+const LANG: Record<Lang, Dict> = { fr: FR, en: EN };
 
 // Payment Links Stripe dédiés « Collaborateur supplémentaire pack {plan} » (mensuel : 4,90 /
 // 6,90 / 9,90 € selon le pack). Acheter via ce lien crée un abonnement Stripe distinct pour
@@ -162,16 +677,22 @@ export default function MonAbonnementPage() {
   // création employé puisque la demande utilisateur 2026-05-27 était explicitement
   // de NE PAS rediriger.
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
+  const lang: Lang = i18n.language === 'en' ? 'en' : 'fr';
+  const d = LANG[lang];
+  // Map addons localisée (clé backend → { label, description, priceMonthlyEur }) dans la
+  // langue courante. Remplace ADDON_LABELS (FR-only) pour tout libellé affiché.
+  const addonLabels = getAddonLabels(lang);
   const { isAdmin, isManager, refreshAuth, userName, isTrialing, trialDaysRemaining, planCode, planFeatures, addons } = useAuth();
   const canManage = isAdmin || isManager;
 
   // Liste des features TRUE à afficher comme "modules débloqués" dans la carte récap.
   // Filtrée sur FEATURE_LABELS pour exclure les flags techniques non user-facing
   // (deviceTrustEnforced & co.) et garantir un libellé propre pour chacune.
-  const activeFeatureKeys = (Object.keys(FEATURE_LABELS) as (keyof PlanFeatures)[])
+  const activeFeatureKeys = (Object.keys(FEATURE_ICONS) as (keyof PlanFeatures)[])
     .filter((k) => Boolean(planFeatures?.[k]));
   // Addons reconnus du catalogue (filtre défensif contre des valeurs serveur inattendues).
-  const subscribedAddons = (addons ?? []).filter((a) => ADDON_LABELS[a] != null);
+  const subscribedAddons = (addons ?? []).filter((a) => addonLabels[a] != null);
 
   // Un module est « inclus dans le pack » si sa feature est active dans planFeatures
   // SANS qu'un addon souscrit en soit la cause — donc fournie par le pack lui-même
@@ -225,36 +746,16 @@ export default function MonAbonnementPage() {
   // Cf. POST /billing/add-seats côté backend (BillingController.AddSeats).
   const [addSeatsDialogOpen, setAddSeatsDialogOpen] = useState(false);
   const [addSeatsCount, setAddSeatsCount] = useState<number>(1);
-  const [addSeatsSubmitting, setAddSeatsSubmitting] = useState(false);
   const [addSeatsError, setAddSeatsError] = useState<string | null>(null);
   const openAddSeatsDialog = () => {
     setAddSeatsCount(1);
     setAddSeatsError(null);
     setAddSeatsDialogOpen(true);
   };
-  const submitAddSeats = async () => {
-    if (addSeatsCount <= 0) { setAddSeatsError('Le nombre de sièges doit être supérieur à 0.'); return; }
-    setAddSeatsSubmitting(true);
-    setAddSeatsError(null);
-    try {
-      const { data } = await apiInstance.post<{
-        purchasedExtraSeats: number;
-        billedQuantity: number;
-        monthlyCostEur: number;
-        overageRatePerSeat: number;
-      }>('/billing/add-seats', { count: addSeatsCount });
-      setAddSeatsDialogOpen(false);
-      setSuccessMsg(
-        `${addSeatsCount} siège${addSeatsCount > 1 ? 's' : ''} ajouté${addSeatsCount > 1 ? 's' : ''} avec succès. ` +
-        `Votre prochaine facture inclura ${data.monthlyCostEur.toFixed(2)} € HT/mois pour les ${data.billedQuantity} collaborateur${data.billedQuantity > 1 ? 's' : ''} supplémentaire${data.billedQuantity > 1 ? 's' : ''}.`
-      );
-      await fetchInfo({ silent: true });
-    } catch (e: any) {
-      setAddSeatsError(e?.response?.data?.error || 'Impossible d\'ajouter des sièges. Réessayez plus tard.');
-    } finally {
-      setAddSeatsSubmitting(false);
-    }
-  };
+  // L'ajout de collaborateurs passe désormais par le Payment Link Stripe dédié
+  // (openSeatStripeLink), et non plus par l'API /billing/add-seats : le client choisit la
+  // quantité et paie sur la page Stripe hébergée ; le webhook crédite les sièges au tenant
+  // (LinkPurchasedSeats). Le curseur ci-dessous ne sert plus qu'à simuler le coût mensuel.
 
   // Dialog "Gérer mes modules optionnels" : ouvert depuis la carte "Vos modules actifs".
   // Le brouillon contient la sélection en cours avant validation — sans toucher au state
@@ -289,16 +790,16 @@ export default function MonAbonnementPage() {
       // Message de succès avec détail du changement
       if (addonsChanged) {
         setSuccessMsg(
-          'Modules mis à jour. ' +
-          (info?.hasActiveStripeSubscription 
-            ? 'La facturation sera ajustée à votre prochain cycle de facturation.' 
-            : 'Contactez notre équipe commerciale pour activer la facturation.')
+          d.addonsUpdatedBase +
+          (info?.hasActiveStripeSubscription
+            ? d.addonsUpdatedStripe
+            : d.addonsUpdatedContact)
         );
       } else {
-        setSuccessMsg('Aucun changement.');
+        setSuccessMsg(d.addonsNoChange);
       }
     } catch (e: any) {
-      setAddonsError(e?.response?.data?.error || 'Impossible de mettre à jour les modules. Réessayez.');
+      setAddonsError(e?.response?.data?.error || d.addonsUpdateError);
     } finally {
       setAddonsSubmitting(false);
     }
@@ -309,7 +810,7 @@ export default function MonAbonnementPage() {
   // billingCycle n'est pas exposé en /me — on tombe sur 'monthly' par défaut faute de mieux.
   // Pour ne pas bloquer ce fix sur une refacto plus large, on lit l'info via SubscriptionInfo
   // si elle est étendue plus tard ; pour l'instant on affiche les deux totaux côte à côte.
-  const draftMonthlyTotal = addonsDraft.reduce((sum, k) => sum + (ADDON_LABELS[k]?.priceMonthlyEur ?? 0), 0);
+  const draftMonthlyTotal = addonsDraft.reduce((sum, k) => sum + (addonLabels[k]?.priceMonthlyEur ?? 0), 0);
 
   // Ouvre le Payment Link Stripe d'un module en y injectant ?client_reference_id={slug}
   // pour que le webhook checkout.session.completed rattache l'achat au tenant courant.
@@ -324,7 +825,7 @@ export default function MonAbonnementPage() {
   // la quantité sur la page Stripe ; le webhook crédite les sièges au tenant (LinkPurchasedSeats).
   const seatLink = SEAT_PAYMENT_LINKS[info?.plan?.code || info?.planCode || ''];
   const openSeatStripeLink = () => {
-    if (!seatLink) { setAddSeatsError('Aucun lien de paiement collaborateur pour ce pack.'); return; }
+    if (!seatLink) { setAddSeatsError(d.noSeatLink); return; }
     openModuleStripeLink(seatLink);
   };
 
@@ -336,7 +837,7 @@ export default function MonAbonnementPage() {
       setInfo(res.data);
       return res.data;
     } catch (e: any) {
-      setError(e?.response?.data?.error || 'Impossible de charger les informations d\'abonnement.');
+      setError(e?.response?.data?.error || d.loadSubscriptionError);
       return null;
     } finally {
       if (!opts.silent) setLoading(false);
@@ -375,10 +876,10 @@ export default function MonAbonnementPage() {
       if (data?.url) {
         window.location.href = data.url;
       } else {
-        setError("Impossible d'ouvrir le portail de facturation Stripe.");
+        setError(d.portalOpenFailGeneric);
       }
     } catch (e: any) {
-      setError(e?.response?.data?.error || "Échec d'ouverture du portail de facturation.");
+      setError(e?.response?.data?.error || d.portalOpenFailError);
     } finally {
       setOpeningPortal(false);
     }
@@ -395,7 +896,7 @@ export default function MonAbonnementPage() {
     const params = new URLSearchParams(window.location.search);
     const cancelled = params.get('checkout') === 'cancelled' || params.get('reactivate') === 'cancelled';
     if (!cancelled) return;
-    setError('Paiement annulé. Aucun prélèvement n\'a été effectué. Vous pouvez relancer la souscription à tout moment.');
+    setError(d.paymentCancelled);
     // Nettoyage du query param pour éviter qu'un refresh ne réaffiche le message
     // et pour neutraliser toute logique conditionnée à ?checkout=cancelled.
     const url = new URL(window.location.href);
@@ -425,7 +926,7 @@ export default function MonAbonnementPage() {
     const finishSuccess = async () => {
       if (cancelled) return;
       setPollingReactivation(false);
-      setSuccessMsg('Réactivation confirmée. Redirection vers votre tableau de bord…');
+      setSuccessMsg(d.reactivationConfirmed);
       try { await refreshAuth(); } catch { /* best-effort */ }
       setTimeout(() => navigate('/dashboard', { replace: true }), 1200);
     };
@@ -495,12 +996,12 @@ export default function MonAbonnementPage() {
       setCancelOpen(false);
       setCancelReason('');
       const refundLine = prorated && refundedAmount != null && refundCurrency
-        ? ` Un remboursement prorata temporis de ${refundedAmount.toFixed(2)} ${refundCurrency.toUpperCase()} a été émis vers votre carte (délai bancaire 5–10 jours).`
+        ? d.refundLine(refundedAmount.toFixed(2), refundCurrency.toUpperCase())
         : '';
       setSuccessMsg(
         immediate
-          ? `Votre abonnement a été résilié immédiatement.${refundLine} Vous allez être déconnecté.`
-          : `Votre résiliation a bien été enregistrée. Vous gardez l'accès jusqu'au ${formatDate(effectiveAt)}.`
+          ? d.cancelImmediate(refundLine)
+          : d.cancelScheduled(formatDate(effectiveAt, d.locale))
       );
       await fetchInfo();
       if (immediate) {
@@ -509,7 +1010,7 @@ export default function MonAbonnementPage() {
         setTimeout(() => { window.location.href = '/login'; }, 3000);
       }
     } catch (e: any) {
-      setError(e?.response?.data?.error || 'Échec de la résiliation. Réessayez plus tard.');
+      setError(e?.response?.data?.error || d.cancelError);
     } finally {
       setSubmitting(false);
     }
@@ -520,10 +1021,10 @@ export default function MonAbonnementPage() {
     setError(null);
     try {
       await apiInstance.post('/billing/resume-subscription');
-      setSuccessMsg('Résiliation annulée. Votre abonnement continuera normalement.');
+      setSuccessMsg(d.resumeSuccess);
       await fetchInfo();
     } catch (e: any) {
-      setError(e?.response?.data?.error || 'Impossible d\'annuler la résiliation.');
+      setError(e?.response?.data?.error || d.resumeError);
     } finally {
       setSubmitting(false);
     }
@@ -534,7 +1035,7 @@ export default function MonAbonnementPage() {
   // et préserve toutes les données du tenant (employés, contrats, pointages…).
   const handleReactivate = async () => {
     if (!info?.planCode) {
-      setError("Aucune formule précédente enregistrée. Contactez le support.");
+      setError(d.noPreviousPlan);
       return;
     }
     setSubmitting(true);
@@ -556,10 +1057,10 @@ export default function MonAbonnementPage() {
       if (data?.url) {
         window.location.href = data.url;
       } else {
-        setError("Impossible d'initialiser le paiement Stripe.");
+        setError(d.checkoutInitError);
       }
     } catch (e: any) {
-      setError(e?.response?.data?.error || "Échec de la réactivation. Réessayez plus tard.");
+      setError(e?.response?.data?.error || d.reactivateError);
     } finally {
       setSubmitting(false);
     }
@@ -573,17 +1074,17 @@ export default function MonAbonnementPage() {
     );
   }
 
-  const st = info ? statusLabel(info.status) : null;
+  const st = info ? statusLabel(info.status, d) : null;
   const isCancelled = info?.status === 'Cancelled';
   const scheduledCancel = info?.cancelAtPeriodEnd === true;
 
   return (
     <Box sx={{ maxWidth: 980, mx: 'auto', p: { xs: 2, md: 4 } }}>
       <Typography variant="h4" sx={{ fontWeight: 800, color: '#0f172a', mb: 0.5 }}>
-        Mon abonnement
+        {d.pageTitle}
       </Typography>
       <Typography sx={{ color: '#64748b', mb: 4 }}>
-        Gérez votre formule, suivez vos prochaines échéances et résiliez à tout moment.
+        {d.pageSubtitle}
       </Typography>
 
       {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>{error}</Alert>}
@@ -591,19 +1092,17 @@ export default function MonAbonnementPage() {
       {pollingReactivation && (
         <Alert severity="info" sx={{ mb: 3, alignItems: 'center' }}
           icon={<CircularProgress size={20} />}>
-          <Typography sx={{ fontWeight: 700, mb: 0.5 }}>Confirmation du paiement en cours…</Typography>
+          <Typography sx={{ fontWeight: 700, mb: 0.5 }}>{d.pollingTitle}</Typography>
           <Typography sx={{ fontSize: 13 }}>
-            Nous attendons la confirmation Stripe (généralement 2-5 secondes). Ne fermez pas cette page.
+            {d.pollingBody}
           </Typography>
         </Alert>
       )}
       {pollingTimedOut && (
         <Alert severity="warning" sx={{ mb: 3 }} onClose={() => setPollingTimedOut(false)}>
-          <Typography sx={{ fontWeight: 700, mb: 0.5 }}>Confirmation retardée</Typography>
+          <Typography sx={{ fontWeight: 700, mb: 0.5 }}>{d.pollingTimeoutTitle}</Typography>
           <Typography sx={{ fontSize: 13 }}>
-            Le paiement a bien été enregistré côté Stripe, mais le webhook de confirmation
-            tarde à arriver. Rafraîchissez la page dans une minute, ou contactez le support
-            si l'état reste « Résilié ».
+            {d.pollingTimeoutBody}
           </Typography>
         </Alert>
       )}
@@ -631,11 +1130,10 @@ export default function MonAbonnementPage() {
               }}
             />
             <Typography sx={{ fontWeight: 800, color: '#0f172a', fontSize: 16, mb: 0.5 }}>
-              {firstName ? `${firstName}, ` : ''}il vous reste <strong>{daysLeft}</strong> jour{daysLeft > 1 ? 's' : ''} sur votre période d'essai.
+              {d.trialRemaining(firstName, daysLeft)}
             </Typography>
             <Typography sx={{ color: '#475569', fontSize: 14, mb: 2 }}>
-              Si vous aimez Concorde Workforce, vous pouvez activer votre abonnement dès
-              maintenant et continuer à bénéficier de vos {TRIAL_DURATION_DAYS} jours offerts.
+              {d.trialEnjoy(TRIAL_DURATION_DAYS)}
             </Typography>
             {canManage && (
               <Button
@@ -646,7 +1144,7 @@ export default function MonAbonnementPage() {
                   bgcolor: '#0040a1', '&:hover': { bgcolor: '#003080' },
                 }}
               >
-                Voir les tarifs →
+                {d.seePricing}
               </Button>
             )}
           </Paper>
@@ -657,10 +1155,10 @@ export default function MonAbonnementPage() {
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems={{ md: 'center' }} justifyContent="space-between">
           <Box>
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
-              Formule actuelle
+              {d.currentPlan}
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 800, color: '#0040a1' }}>
-              {info?.planCode || 'Aucune formule'}
+              {info?.planCode || d.noPlan}
             </Typography>
             <Typography sx={{ color: '#475569', fontSize: 14, mt: 0.5 }}>
               {info?.companyName}
@@ -680,29 +1178,29 @@ export default function MonAbonnementPage() {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
           <Box sx={{ flex: 1 }}>
             <Typography sx={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, mb: 0.5 }}>
-              Fin de la période en cours
+              {d.currentPeriodEnd}
             </Typography>
             <Typography sx={{ fontWeight: 700, color: '#0f172a' }}>
-              {formatDate(info?.currentPeriodEndsAt ?? null)}
+              {formatDate(info?.currentPeriodEndsAt ?? null, d.locale)}
             </Typography>
           </Box>
           {info?.status === 'Trialing' && (
             <Box sx={{ flex: 1 }}>
               <Typography sx={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, mb: 0.5 }}>
-                Fin de l'essai gratuit
+                {d.trialEnd}
               </Typography>
               <Typography sx={{ fontWeight: 700, color: '#0f172a' }}>
-                {formatDate(info?.trialEndsAt ?? null)}
+                {formatDate(info?.trialEndsAt ?? null, d.locale)}
               </Typography>
             </Box>
           )}
           {scheduledCancel && (
             <Box sx={{ flex: 1 }}>
               <Typography sx={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, mb: 0.5 }}>
-                Résiliation demandée le
+                {d.cancellationRequestedOn}
               </Typography>
               <Typography sx={{ fontWeight: 700, color: '#dc2626' }}>
-                {formatDate(info?.cancellationRequestedAt ?? null)}
+                {formatDate(info?.cancellationRequestedAt ?? null, d.locale)}
               </Typography>
             </Box>
           )}
@@ -737,18 +1235,15 @@ export default function MonAbonnementPage() {
         const scale = Math.max(plan.includedEmployees, usage.activeEmployees, 1);
         const usedPct = (Math.min(usage.activeEmployees, plan.includedEmployees) / scale) * 100;
         const overPct = (Math.max(0, usage.activeEmployees - plan.includedEmployees) / scale) * 100;
-        const annualSavePct = plan.flatPriceMonthlyEur > 0
-          ? Math.round((1 - plan.flatPriceAnnualMonthlyEur / plan.flatPriceMonthlyEur) * 100)
-          : 0;
 
         // Sections du reçu détaillé (variante B / image 1). Construites depuis les
         // données réelles : abonnement de base, dépassement de sièges, modules souscrits.
         const receiptSections: ReceiptSection[] = [
           {
-            title: 'Abonnement de base',
+            title: d.receiptBaseTitle,
             lines: [{
-              label: `Pack ${plan.displayName}`,
-              sublabel: `${plan.includedEmployees} collaborateurs inclus`,
+              label: d.receiptPackLine(plan.displayName),
+              sublabel: d.receiptIncludedSub(plan.includedEmployees),
               amountEur: base,
               kind: 'base',
             }],
@@ -756,12 +1251,12 @@ export default function MonAbonnementPage() {
         ];
         if (usage.extraEmployees > 0) {
           receiptSections.push({
-            title: 'Collaborateurs supplémentaires',
-            tag: { label: 'DÉPASSEMENT', kind: 'over' },
+            title: d.receiptExtraTitle,
+            tag: { label: d.receiptOverTag, kind: 'over' },
             lines: [{
-              label: `Sièges au-delà de ${plan.includedEmployees}`,
-              sublabel: `${eur(plan.overageRatePerEmployeeEur)} HT / mois par collaborateur`,
-              qty: `${usage.activeEmployees} actifs → ${usage.extraEmployees} supp.`,
+              label: d.receiptSeatsBeyond(plan.includedEmployees),
+              sublabel: d.receiptOverageRate(eur(plan.overageRatePerEmployeeEur, d.locale)),
+              qty: d.receiptOverageQty(usage.activeEmployees, usage.extraEmployees),
               amountEur: overageCost,
               kind: 'over',
             }],
@@ -769,17 +1264,17 @@ export default function MonAbonnementPage() {
         }
         if (subscribedAddons.length > 0) {
           receiptSections.push({
-            title: 'Modules optionnels',
-            tag: { label: `+${subscribedAddons.length} actif${subscribedAddons.length > 1 ? 's' : ''}`, kind: 'module' },
+            title: d.receiptModulesTitle,
+            tag: { label: d.receiptModulesTag(subscribedAddons.length), kind: 'module' },
             lines: subscribedAddons.map((a) => ({
-              label: ADDON_LABELS[a].label,
-              sublabel: ADDON_LABELS[a].description,
-              amountEur: ADDON_LABELS[a].priceMonthlyEur,
+              label: addonLabels[a].label,
+              sublabel: addonLabels[a].description,
+              amountEur: addonLabels[a].priceMonthlyEur,
               kind: 'module' as const,
             })),
           });
         }
-        const receiptCycleLabel = `Pack ${plan.displayName} · ${cycleA === 'annual' ? 'Engagement annuel' : 'Engagement mensuel'}`;
+        const receiptCycleLabel = d.receiptCycleLabel(plan.displayName, cycleA === 'annual');
 
         return (
           <Paper elevation={0} sx={{
@@ -799,11 +1294,11 @@ export default function MonAbonnementPage() {
                   </Box>
                   <Box>
                     <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#6A7691' }}>
-                      Votre formule en détail
+                      {d.yourPlanDetail}
                     </Typography>
                     <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mt: 0.4 }}>
                       <Typography sx={{ fontSize: 24, fontWeight: 800, letterSpacing: '-.01em', color: '#0F1B33' }}>
-                        Pack {plan.displayName}
+                        {d.packPrefix} {plan.displayName}
                       </Typography>
                       {isPremium && (
                         <Box component="span" sx={{
@@ -811,13 +1306,13 @@ export default function MonAbonnementPage() {
                           background: 'linear-gradient(180deg,#fbe7b3,#f3d488)', border: '1px solid #e7c97e',
                           px: 1.1, py: '3px', borderRadius: '999px', textTransform: 'uppercase',
                         }}>
-                          Haut de gamme
+                          {d.highEnd}
                         </Box>
                       )}
                     </Stack>
                     <Typography sx={{ fontSize: 13, color: '#6A7691', mt: 0.5 }}>
-                      {usage.activeEmployees} collaborateur{usage.activeEmployees > 1 ? 's' : ''} actif{usage.activeEmployees > 1 ? 's' : ''}
-                      {info.currentPeriodEndsAt ? ` · prochaine échéance le ${formatDate(info.currentPeriodEndsAt)}` : ''}
+                      {d.activeEmployees(usage.activeEmployees)}
+                      {info.currentPeriodEndsAt ? d.nextDueOn(formatDate(info.currentPeriodEndsAt, d.locale)) : ''}
                     </Typography>
                   </Box>
                 </Stack>
@@ -844,15 +1339,7 @@ export default function MonAbonnementPage() {
                           boxShadow: active ? '0 4px 12px -4px rgba(20,52,107,.5)' : 'none',
                         }}
                       >
-                        {cy === 'monthly' ? 'Mensuel' : 'Annuel'}
-                        {cy === 'annual' && annualSavePct > 0 && (
-                          <Box component="span" sx={{
-                            fontSize: 10, fontWeight: 800, color: '#fff', px: 0.75, py: '2px', borderRadius: '6px',
-                            bgcolor: active ? 'rgba(255,255,255,.22)' : '#16A34A',
-                          }}>
-                            −{annualSavePct}%
-                          </Box>
-                        )}
+                        {cy === 'monthly' ? d.cycleMonthly : d.cycleAnnual}
                       </Box>
                     );
                   })}
@@ -865,11 +1352,11 @@ export default function MonAbonnementPage() {
                 <Box sx={{ border: '1px solid #E4EAF3', borderRadius: '14px', p: 2.25 }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: '#6A7691' }}>
-                      Sièges occupés
+                      {d.seatsOccupied}
                     </Typography>
                     <Typography sx={{ fontSize: 22, fontWeight: 800, color: '#0F1B33', fontVariantNumeric: 'tabular-nums' }}>
                       {usage.activeEmployees}
-                      <Typography component="span" sx={{ fontSize: 14, color: '#6A7691', fontWeight: 600 }}> / {plan.includedEmployees} inclus</Typography>
+                      <Typography component="span" sx={{ fontSize: 14, color: '#6A7691', fontWeight: 600 }}>{d.includedSuffix(plan.includedEmployees)}</Typography>
                     </Typography>
                   </Stack>
                   <Box sx={{
@@ -881,7 +1368,7 @@ export default function MonAbonnementPage() {
                   </Box>
                   <Stack direction="row" justifyContent="space-between">
                     <Typography sx={{ fontSize: 12.5, color: '#6A7691' }}>0</Typography>
-                    <Typography sx={{ fontSize: 12.5, color: '#6A7691' }}>{plan.includedEmployees} inclus</Typography>
+                    <Typography sx={{ fontSize: 12.5, color: '#6A7691' }}>{d.includedMark(plan.includedEmployees)}</Typography>
                   </Stack>
                   {usage.isOverCapacity && (
                     <Stack direction="row" alignItems="center" spacing={1.1} sx={{
@@ -890,15 +1377,14 @@ export default function MonAbonnementPage() {
                     }}>
                       <WarningAmberRoundedIcon sx={{ fontSize: 18, color: '#8a5208' }} />
                       <Box component="span">
-                        <Box component="b" sx={{ color: '#7a4708' }}>{usage.extraEmployees} collaborateur{usage.extraEmployees > 1 ? 's' : ''}</Box>
-                        {' '}au-delà du seuil · facturé{usage.extraEmployees > 1 ? 's' : ''} {eur(plan.overageRatePerEmployeeEur)} HT / mois chacun
+                        {d.overSeatsWarning(usage.extraEmployees, eur(plan.overageRatePerEmployeeEur, d.locale))}
                       </Box>
                     </Stack>
                   )}
                   <Typography sx={{ fontSize: 11.5, color: '#94a3b8', mt: 1.5 }}>
                     {usage.isOverCapacity
-                      ? 'Facturation Stripe déjà synchronisée — aucune action requise.'
-                      : 'Vous pouvez pré-acheter des sièges supplémentaires ci-dessous.'}
+                      ? d.overageSynced
+                      : d.prebuySeatsHint}
                   </Typography>
                 </Box>
 
@@ -921,7 +1407,7 @@ export default function MonAbonnementPage() {
                       bgcolor: '#14346B', boxShadow: '0 8px 18px -8px rgba(20,52,107,.6)', '&:hover': { bgcolor: '#0f2c5c' },
                     }}
                   >
-                    Ajouter un collaborateur
+                    {d.addEmployee}
                   </Button>
                   <Button
                     variant="contained"
@@ -933,7 +1419,7 @@ export default function MonAbonnementPage() {
                       '&:hover': { background: 'linear-gradient(135deg,#7d3ae0,#5f23c2)' },
                     }}
                   >
-                    Gérer mes modules
+                    {d.manageModules}
                   </Button>
                   <Button
                     variant="outlined"
@@ -943,18 +1429,18 @@ export default function MonAbonnementPage() {
                       color: '#14346B', borderColor: '#E4EAF3', '&:hover': { borderColor: '#14346B' },
                     }}
                   >
-                    Changer de pack →
+                    {d.changePlan}
                   </Button>
                 </Stack>
               )}
               {canManage && !info?.hasActiveStripeSubscription && (
                 <Typography sx={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic', mt: 1 }}>
-                  L'ajout de sièges nécessite un abonnement Stripe actif. Activez d'abord votre formule.
+                  {d.seatsNeedStripe}
                 </Typography>
               )}
               {!canManage && (
                 <Typography sx={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic', mt: 2 }}>
-                  Contactez un administrateur pour ajouter un collaborateur ou gérer les modules.
+                  {d.contactAdminModules}
                 </Typography>
               )}
             </Box>
@@ -981,13 +1467,13 @@ export default function MonAbonnementPage() {
             </Box>
             <Box>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Vos modules actifs
+                {d.yourActiveModules}
               </Typography>
               <Typography sx={{ fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
-                {activeFeatureKeys.length} fonctionnalité{activeFeatureKeys.length > 1 ? 's' : ''} débloquée{activeFeatureKeys.length > 1 ? 's' : ''}
+                {d.featuresUnlocked(activeFeatureKeys.length)}
                 {subscribedAddons.length > 0 && (
                   <Typography component="span" sx={{ fontSize: 13, fontWeight: 600, color: '#7c3aed', ml: 1 }}>
-                    · {subscribedAddons.length} module{subscribedAddons.length > 1 ? 's' : ''} additionnel{subscribedAddons.length > 1 ? 's' : ''}
+                    {d.additionalModulesInline(subscribedAddons.length)}
                   </Typography>
                 )}
               </Typography>
@@ -999,25 +1485,26 @@ export default function MonAbonnementPage() {
               GetEffectiveFeatures). C'est la vue "ce à quoi j'ai accès aujourd'hui". */}
           <Box sx={{ mb: subscribedAddons.length > 0 ? 3 : 0 }}>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1.5 }}>
-              Inclus dans votre pack{planCode ? ` ${planCode}` : ''}
+              {d.includedInPack(planCode ?? null)}
             </Typography>
             {activeFeatureKeys.length === 0 ? (
               <Typography sx={{ fontSize: 13, color: '#94a3b8' }}>
-                Aucun module n'est encore activé. Choisissez un pack pour débloquer les fonctionnalités.
+                {d.noModuleYet}
               </Typography>
             ) : (
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 {activeFeatureKeys.map((k) => {
-                  const meta = FEATURE_LABELS[k];
+                  const icon = FEATURE_ICONS[k];
+                  const label = d.featureLabels[k as FeatureKey];
                   // Skip rendering if no label is defined (safety fallback)
-                  if (!meta) {
+                  if (!icon || !label) {
                     console.warn(`Missing label for feature: ${k}`);
                     return null;
                   }
                   return (
                     <Chip
                       key={k}
-                      label={`${meta.icon} ${meta.label}`}
+                      label={`${icon} ${label}`}
                       sx={{
                         bgcolor: '#eff6ff', color: '#1e40af', fontWeight: 600,
                         borderRadius: '10px', border: '1px solid #bfdbfe',
@@ -1039,12 +1526,12 @@ export default function MonAbonnementPage() {
               <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
                 <ExtensionIcon sx={{ fontSize: 18, color: '#7c3aed' }} />
                 <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#7c3aed' }}>
-                  Modules additionnels souscrits à l'inscription
+                  {d.additionalModulesSubscribed}
                 </Typography>
               </Stack>
               <Stack spacing={1.5}>
                 {subscribedAddons.map((a) => {
-                  const meta = ADDON_LABELS[a];
+                  const meta = addonLabels[a];
                   return (
                     <Box
                       key={a}
@@ -1074,14 +1561,14 @@ export default function MonAbonnementPage() {
                 startIcon={<ExtensionIcon />}
                 sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px', bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' } }}
               >
-                Gérer mes modules optionnels
+                {d.manageOptionalModules}
               </Button>
               <Button
                 variant="text"
                 onClick={() => setChangePlanOpen(true)}
                 sx={{ textTransform: 'none', fontWeight: 700, color: '#0040a1' }}
               >
-                Changer de pack →
+                {d.changePlan}
               </Button>
             </Box>
           )}
@@ -1102,24 +1589,24 @@ export default function MonAbonnementPage() {
             </Box>
             <Box>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>
-                Carte de paiement
+                {d.paymentCard}
               </Typography>
               {paymentMethod?.hasCard ? (
                 <>
                   <Typography sx={{ fontWeight: 800, color: '#0f172a' }}>
-                    {brandLabel(paymentMethod.brand)} •••• {paymentMethod.last4}
+                    {brandLabel(paymentMethod.brand, d.cardFallback)} •••• {paymentMethod.last4}
                   </Typography>
                   {paymentMethod.expMonth && paymentMethod.expYear && (
                     <Typography sx={{ color: '#64748b', fontSize: 13 }}>
-                      Expire {String(paymentMethod.expMonth).padStart(2, '0')}/{paymentMethod.expYear}
+                      {d.cardExpires(String(paymentMethod.expMonth).padStart(2, '0'), paymentMethod.expYear)}
                     </Typography>
                   )}
                 </>
               ) : paymentMethod === null ? (
-                <Typography sx={{ color: '#64748b', fontSize: 14 }}>Chargement…</Typography>
+                <Typography sx={{ color: '#64748b', fontSize: 14 }}>{d.loadingDots}</Typography>
               ) : (
                 <Typography sx={{ color: '#64748b', fontSize: 14 }}>
-                  Aucune carte enregistrée
+                  {d.noCardSaved}
                 </Typography>
               )}
             </Box>
@@ -1131,7 +1618,7 @@ export default function MonAbonnementPage() {
               disabled={openingPortal}
               sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3, alignSelf: { xs: 'flex-start', md: 'center' } }}
             >
-              {openingPortal ? 'Redirection…' : 'Mettre à jour'}
+              {openingPortal ? d.redirecting : d.updateBtn}
             </Button>
           )}
         </Stack>
@@ -1139,28 +1626,25 @@ export default function MonAbonnementPage() {
 
       {scheduledCancel && !isCancelled && (
         <Alert severity="warning" sx={{ mb: 3, borderRadius: '14px' }}>
-          <Typography sx={{ fontWeight: 700, mb: 0.5 }}>Résiliation programmée</Typography>
+          <Typography sx={{ fontWeight: 700, mb: 0.5 }}>{d.scheduledCancelTitle}</Typography>
           <Typography sx={{ fontSize: 14 }}>
-            Votre abonnement sera arrêté le <strong>{formatDate(info?.currentPeriodEndsAt ?? null)}</strong>.
-            Vous conservez l'accès complet jusqu'à cette date.
+            {d.scheduledCancelBody(formatDate(info?.currentPeriodEndsAt ?? null, d.locale))}
           </Typography>
         </Alert>
       )}
 
       {isCancelled && (
         <Alert severity="info" sx={{ mb: 3, borderRadius: '14px' }}>
-          <Typography sx={{ fontWeight: 700, mb: 0.5 }}>Abonnement résilié</Typography>
+          <Typography sx={{ fontWeight: 700, mb: 0.5 }}>{d.cancelledTitle}</Typography>
           <Typography sx={{ fontSize: 14 }}>
-            Vos données sont conservées pendant <strong>90 jours</strong> à compter de la
-            résiliation. Vous pouvez réactiver votre abonnement à tout moment dans ce délai —
-            au-delà, un nouveau compte sera nécessaire (RGPD : conformité au droit à l'oubli).
+            {d.cancelledBody}
           </Typography>
         </Alert>
       )}
 
       <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: '20px', border: '1px solid #e2e8f0' }}>
         <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a', mb: 2 }}>
-          Actions
+          {d.actions}
         </Typography>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} flexWrap="wrap">
           {!isCancelled && (
@@ -1170,7 +1654,7 @@ export default function MonAbonnementPage() {
               onClick={() => setChangePlanOpen(true)}
               sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3 }}
             >
-              Voir les autres packs
+              {d.seeOtherPacks}
             </Button>
           )}
           {isCancelled && canManage && (
@@ -1182,7 +1666,7 @@ export default function MonAbonnementPage() {
               onClick={handleReactivate}
               sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3 }}
             >
-              Réactiver mon abonnement
+              {d.reactivateMyPlan}
             </Button>
           )}
           {scheduledCancel && !isCancelled && canManage && (
@@ -1194,7 +1678,7 @@ export default function MonAbonnementPage() {
               onClick={handleResume}
               sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3 }}
             >
-              Annuler la résiliation
+              {d.cancelTheCancellation}
             </Button>
           )}
           {!isCancelled && !scheduledCancel && canManage && (
@@ -1205,22 +1689,22 @@ export default function MonAbonnementPage() {
               onClick={() => setCancelOpen(true)}
               sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 3 }}
             >
-              Résilier mon abonnement
+              {d.cancelMyPlan}
             </Button>
           )}
         </Stack>
         {!canManage && (
           <Typography sx={{ mt: 2, fontSize: 13, color: '#64748b' }}>
-            Seuls les administrateurs et managers peuvent modifier {isCancelled ? 'ou réactiver' : 'ou résilier'} l'abonnement.
+            {d.onlyAdminsCanModify(isCancelled)}
           </Typography>
         )}
       </Paper>
 
       <Dialog open={cancelOpen} onClose={() => !submitting && setCancelOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Résilier mon abonnement</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>{d.cancelMyPlan}</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2, color: '#475569', fontSize: 14 }}>
-            Choisissez le mode de résiliation. Vous pourrez annuler tant que la fin de période n'est pas atteinte.
+            {d.cancelDialogIntro}
           </Typography>
           <RadioGroup
             value={cancelMode}
@@ -1239,10 +1723,9 @@ export default function MonAbonnementPage() {
                 control={<Radio />}
                 label={
                   <Box>
-                    <Typography sx={{ fontWeight: 700 }}>À la fin de la période en cours</Typography>
+                    <Typography sx={{ fontWeight: 700 }}>{d.cancelAtPeriodEndTitle}</Typography>
                     <Typography sx={{ fontSize: 13, color: '#64748b' }}>
-                      Vous gardez l'accès jusqu'au {formatDate(info?.currentPeriodEndsAt ?? null)}.
-                      Aucun nouveau prélèvement ne sera effectué. <strong>Recommandé.</strong>
+                      {d.cancelAtPeriodEndBody(formatDate(info?.currentPeriodEndsAt ?? null, d.locale))}
                     </Typography>
                   </Box>
                 }
@@ -1261,10 +1744,9 @@ export default function MonAbonnementPage() {
                 control={<Radio />}
                 label={
                   <Box>
-                    <Typography sx={{ fontWeight: 700 }}>Résiliation immédiate</Typography>
+                    <Typography sx={{ fontWeight: 700 }}>{d.cancelImmediateTitle}</Typography>
                     <Typography sx={{ fontSize: 13, color: '#64748b' }}>
-                      L'accès est coupé tout de suite et vous serez déconnecté.
-                      Aucun remboursement de la période en cours n'est effectué.
+                      {d.cancelImmediateBody}
                     </Typography>
                   </Box>
                 }
@@ -1272,18 +1754,18 @@ export default function MonAbonnementPage() {
             </Paper>
           </RadioGroup>
           <TextField
-            label="Motif (optionnel)"
+            label={d.cancelReasonLabel}
             value={cancelReason}
             onChange={(e) => setCancelReason(e.target.value)}
             multiline
             minRows={2}
             fullWidth
             sx={{ mt: 3 }}
-            placeholder="Aide-nous à nous améliorer en partageant la raison de votre départ."
+            placeholder={d.cancelReasonPlaceholder}
           />
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button onClick={() => setCancelOpen(false)} disabled={submitting}>Annuler</Button>
+          <Button onClick={() => setCancelOpen(false)} disabled={submitting}>{d.cancel}</Button>
           <Button
             variant="contained"
             color="error"
@@ -1292,7 +1774,7 @@ export default function MonAbonnementPage() {
             startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
             sx={{ textTransform: 'none', fontWeight: 700 }}
           >
-            {cancelMode === 'immediate' ? 'Résilier maintenant' : 'Programmer la résiliation'}
+            {cancelMode === 'immediate' ? d.confirmCancelNow : d.scheduleCancel}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1313,7 +1795,7 @@ export default function MonAbonnementPage() {
         onViewDevis={(plan, cycle) => setDevisDialog({ plan, cycle })}
         onSuccess={async (newPlan) => {
           setChangePlanOpen(false);
-          setSuccessMsg(`Votre formule a été changée pour ${newPlan}. Le différentiel est ajusté sur votre prochaine facture.`);
+          setSuccessMsg(d.planChanged(newPlan));
           // refreshAuth → /me recharge planCode + planFeatures (flags fusionnés via
           // GetEffectiveFeatures). SANS ça, le contexte global useAuth restait sur
           // l'ancien pack : la sidebar, les gates de features et le badge « votre pack »
@@ -1348,7 +1830,7 @@ export default function MonAbonnementPage() {
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
           <ExtensionIcon sx={{ color: '#7c3aed' }} />
           <Typography component="span" sx={{ fontSize: 18, fontWeight: 800 }}>
-            Gérer mes modules optionnels
+            {d.manageOptionalModules}
           </Typography>
         </DialogTitle>
         <DialogContent dividers sx={{ p: 0 }}>
@@ -1358,10 +1840,7 @@ export default function MonAbonnementPage() {
             </Alert>
           )}
           <Typography sx={{ px: 3, pt: 2, pb: 1, fontSize: 13, color: '#64748b' }}>
-            Cochez les modules que vous souhaitez activer. Les fonctionnalités correspondantes
-            apparaissent immédiatement dans la sidebar après validation. La facturation Stripe
-            n'est pas modifiée tant qu'un SKU dédié n'est pas configuré — vous activez d'abord
-            l'accès, votre commercial peut ensuite ajuster votre facture si besoin.
+            {d.optionalModulesIntro}
           </Typography>
           <Stack divider={<Divider />}>
             {MODULE_CATALOG.map((m) => {
@@ -1371,6 +1850,7 @@ export default function MonAbonnementPage() {
               // « Sur devis » : non auto-souscrivable depuis l'UI (nécessite un devis commercial).
               const toggleable = !!m.addonKey && !included && !m.quoteOnly;
               const checked = included || (m.addonKey ? addonsDraft.includes(m.addonKey) : false);
+              const note = mNote(m, lang);
               return (
                 <Stack
                   key={m.label}
@@ -1398,18 +1878,18 @@ export default function MonAbonnementPage() {
                   <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                     <Stack direction="row" alignItems="center" spacing={1} sx={{ flexWrap: 'wrap' }}>
                       <Typography sx={{ fontWeight: 700, color: '#0F1B33', fontSize: 14 }}>
-                        {m.label}
+                        {mLabel(m, lang)}
                       </Typography>
                       {included && (
                         <Chip
                           size="small"
-                          label="Inclus dans le pack"
+                          label={d.includedInPackChip}
                           sx={{ height: 18, fontSize: 10.5, fontWeight: 700, bgcolor: '#E7F6ED', color: '#15803d' }}
                         />
                       )}
                     </Stack>
                     <Typography sx={{ fontSize: 12, color: '#6A7691', lineHeight: 1.45, mt: 0.25 }}>
-                      {m.description}{m.note ? ` · ${m.note}` : ''}
+                      {mDesc(m, lang)}{note ? ` · ${note}` : ''}
                     </Typography>
                   </Box>
                   {/* Prix MENSUEL uniquement. Barré si inclus (déjà couvert par le pack).
@@ -1417,7 +1897,7 @@ export default function MonAbonnementPage() {
                   <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
                     {m.quoteOnly && !included ? (
                       <Typography sx={{ fontWeight: 800, fontSize: 14, color: '#14346B' }}>
-                        Sur devis
+                        {d.onQuote}
                       </Typography>
                     ) : (
                       <Typography sx={{
@@ -1427,7 +1907,7 @@ export default function MonAbonnementPage() {
                       }}>
                         +{m.priceMonthlyEur}€
                         <Typography component="span" sx={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
-                          {' '}/mois
+                          {' '}{d.perMonth}
                         </Typography>
                       </Typography>
                     )}
@@ -1445,7 +1925,7 @@ export default function MonAbonnementPage() {
                           color: '#7C3AED', borderColor: '#d8b4fe', '&:hover': { borderColor: '#7C3AED', bgcolor: '#faf5ff' },
                         }}
                       >
-                        Ajouter via Stripe →
+                        {d.addViaStripe}
                       </Button>
                     )}
                   </Box>
@@ -1457,14 +1937,14 @@ export default function MonAbonnementPage() {
           <Box sx={{ px: 3, py: 2, bgcolor: '#EEF3FB', borderTop: '1px solid #DCE6F6' }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Typography sx={{ fontSize: 13, color: '#6A7691' }}>
-                Impact sur votre facture
+                {d.invoiceImpact}
               </Typography>
               <Box sx={{ textAlign: 'right' }}>
                 <Typography sx={{ fontWeight: 800, color: '#14346B', fontSize: 19, fontVariantNumeric: 'tabular-nums' }}>
-                  {draftMonthlyTotal > 0 ? '+' : ''}{eur(draftMonthlyTotal)} HT /mois
+                  {draftMonthlyTotal > 0 ? '+' : ''}{eur(draftMonthlyTotal, d.locale)} {d.perMonthHt}
                 </Typography>
                 <Typography sx={{ fontSize: 11.5, color: '#7C3AED', fontWeight: 700 }}>
-                  {addonsDraft.length} module{addonsDraft.length > 1 ? 's' : ''} actif{addonsDraft.length > 1 ? 's' : ''}
+                  {d.modulesActiveCount(addonsDraft.length)}
                 </Typography>
               </Box>
             </Stack>
@@ -1476,7 +1956,7 @@ export default function MonAbonnementPage() {
             disabled={addonsSubmitting}
             sx={{ textTransform: 'none', fontWeight: 700 }}
           >
-            Annuler
+            {d.cancel}
           </Button>
           <Button
             variant="contained"
@@ -1487,7 +1967,7 @@ export default function MonAbonnementPage() {
               bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' },
             }}
           >
-            {addonsSubmitting ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Enregistrer'}
+            {addonsSubmitting ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : d.save}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1502,14 +1982,14 @@ export default function MonAbonnementPage() {
       */}
       <Dialog
         open={addSeatsDialogOpen}
-        onClose={() => !addSeatsSubmitting && setAddSeatsDialogOpen(false)}
+        onClose={() => setAddSeatsDialogOpen(false)}
         maxWidth="xs"
         fullWidth
         PaperProps={{ sx: { borderRadius: '16px' } }}
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1, fontWeight: 800 }}>
           <GroupAddIcon sx={{ color: '#0040a1' }} />
-          Ajouter des collaborateurs
+          {d.addSeatsTitle}
         </DialogTitle>
         <DialogContent dividers>
           {addSeatsError && (
@@ -1518,21 +1998,18 @@ export default function MonAbonnementPage() {
             </Alert>
           )}
           <Typography sx={{ fontSize: 13, color: '#475569', mb: 2.5, lineHeight: 1.55 }}>
-            Augmentez immédiatement votre quota de collaborateurs autorisés. Chaque
-            siège supplémentaire est facturé à votre prochaine échéance Stripe au
-            tarif d'overage de votre pack. Les collaborateurs correspondants pourront
-            être créés ultérieurement sans confirmation supplémentaire.
+            {d.addSeatsIntro}
           </Typography>
 
           {info?.plan && (
             <Box sx={{ p: 2, mb: 2.5, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               <Typography sx={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', mb: 0.5 }}>
-                Tarif overage Pack {info.plan.displayName}
+                {d.overageRateForPack(info.plan.displayName)}
               </Typography>
               <Typography sx={{ fontSize: 16, fontWeight: 800, color: '#0040a1' }}>
                 {info.plan.overageRatePerEmployeeEur.toFixed(2)} € HT
                 <Typography component="span" sx={{ fontSize: 12, color: '#64748b', fontWeight: 600, ml: 0.5 }}>
-                  / mois / collaborateur
+                  {d.perMonthPerEmployee}
                 </Typography>
               </Typography>
             </Box>
@@ -1543,7 +2020,7 @@ export default function MonAbonnementPage() {
           <Box sx={{ my: 1.5 }}>
             <Box sx={{ textAlign: 'center', py: 1.25, bgcolor: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe', mb: 2 }}>
               <Typography sx={{ fontSize: 11, color: '#1e40af', fontWeight: 700, textTransform: 'uppercase' }}>
-                Sièges à ajouter
+                {d.seatsToAdd}
               </Typography>
               <Typography sx={{ fontSize: 32, fontWeight: 800, color: '#0040a1', lineHeight: 1 }}>
                 +{addSeatsCount}
@@ -1555,7 +2032,6 @@ export default function MonAbonnementPage() {
                 min={1}
                 max={50}
                 step={1}
-                disabled={addSeatsSubmitting}
                 valueLabelDisplay="auto"
                 marks={[{ value: 1, label: '1' }, { value: 25, label: '25' }, { value: 50, label: '50' }]}
                 onChange={(_, v) => setAddSeatsCount(Array.isArray(v) ? v[0] : v)}
@@ -1573,7 +2049,7 @@ export default function MonAbonnementPage() {
             <Box sx={{ mt: 2, p: 2, bgcolor: '#fffbeb', borderRadius: '12px', border: '1px solid #fde68a' }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography sx={{ fontSize: 13, color: '#92400e', fontWeight: 700 }}>
-                  Surcoût mensuel estimé
+                  {d.estimatedMonthlyExtra}
                 </Typography>
                 <Typography sx={{ fontSize: 20, fontWeight: 800, color: '#b45309' }}>
                   +{(addSeatsCount * info.plan.overageRatePerEmployeeEur).toFixed(2)} € HT
@@ -1582,51 +2058,30 @@ export default function MonAbonnementPage() {
             </Box>
           )}
 
-          {/* Alternative : achat via le Payment Link dédié « Collaborateur supplémentaire ».
-              La quantité se choisit sur la page Stripe ; l'achat est facturé par son propre
-              abonnement et crédité au tenant via le webhook (client_reference_id). */}
-          {seatLink && (
-            <>
-              <Divider sx={{ my: 2.5 }}>
-                <Typography sx={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>OU</Typography>
-              </Divider>
-              <Button
-                fullWidth
-                variant="outlined"
-                onClick={openSeatStripeLink}
-                sx={{
-                  textTransform: 'none', fontWeight: 700, borderRadius: '12px', py: 1.1,
-                  color: '#635BFF', borderColor: '#c7c4ff', '&:hover': { borderColor: '#635BFF', bgcolor: '#f5f4ff' },
-                }}
-              >
-                Ajouter via un lien de paiement Stripe →
-              </Button>
-              <Typography sx={{ fontSize: 11.5, color: '#94a3b8', mt: 1, textAlign: 'center', lineHeight: 1.5 }}>
-                Vous choisissez le nombre de collaborateurs sur la page Stripe sécurisée.
-                Facturé séparément du pack, sans double-comptage.
-              </Typography>
-            </>
-          )}
+          <Typography sx={{ fontSize: 11.5, color: '#94a3b8', mt: 2, textAlign: 'center', lineHeight: 1.5 }}>
+            {d.addSeatsFootnote}
+          </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button
             onClick={() => setAddSeatsDialogOpen(false)}
-            disabled={addSeatsSubmitting}
             sx={{ textTransform: 'none', fontWeight: 700 }}
           >
-            Annuler
+            {d.cancel}
           </Button>
+          {/* Le paiement passe par le Payment Link Stripe dédié (et non l'API /billing/add-seats) :
+              la quantité se choisit sur Stripe, le webhook crédite les sièges (LinkPurchasedSeats). */}
           <Button
             variant="contained"
-            onClick={submitAddSeats}
-            disabled={addSeatsSubmitting || addSeatsCount < 1}
-            startIcon={addSeatsSubmitting ? <CircularProgress size={16} color="inherit" /> : <GroupAddIcon />}
+            onClick={() => { openSeatStripeLink(); setAddSeatsDialogOpen(false); }}
+            disabled={!seatLink}
+            startIcon={<GroupAddIcon />}
             sx={{
               textTransform: 'none', fontWeight: 700, borderRadius: '10px',
-              bgcolor: '#0040a1', '&:hover': { bgcolor: '#003080' },
+              bgcolor: '#635BFF', '&:hover': { bgcolor: '#4f46e5' },
             }}
           >
-            {addSeatsSubmitting ? 'Validation…' : `Confirmer +${addSeatsCount} siège${addSeatsCount > 1 ? 's' : ''}`}
+            {d.continueOnStripe}
           </Button>
         </DialogActions>
       </Dialog>

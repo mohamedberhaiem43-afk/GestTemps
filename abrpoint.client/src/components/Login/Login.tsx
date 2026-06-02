@@ -113,7 +113,7 @@ export default function CredentialsSignInPage() {
     if (searchParams.get('reactivated') === '1') {
       const e = searchParams.get('email') ?? '';
       if (e) setUtimail(e);
-      setSuccess('Paiement confirmé ✓ — connectez-vous pour finaliser la réactivation de votre espace.');
+      setSuccess(t('login.paymentConfirmed'));
       const next = new URLSearchParams(searchParams);
       next.delete('reactivated'); next.delete('email'); next.delete('session_id');
       setSearchParams(next, { replace: true });
@@ -331,7 +331,7 @@ export default function CredentialsSignInPage() {
       <Box
         className="login-left"
         role="img"
-        aria-label="Concorde Workforce — L'excellence structurelle au service de votre capital humain."
+        aria-label={`Concorde Workforce — ${t('login.leftTitle')}`}
       >
         <Box className="login-left-bg">
           <img
@@ -368,11 +368,11 @@ export default function CredentialsSignInPage() {
               page Login standard à quelqu'un qui n'a jamais eu de compte actif. */}
           <Box className="login-form-header">
             <Typography className="login-form-title">
-              {setupMode ? 'Activez votre compte' : t('login.welcome')}
+              {setupMode ? t('login.setupTitle') : t('login.welcome')}
             </Typography>
             <Typography className="login-form-subtitle">
               {setupMode
-                ? 'Définissez votre mot de passe pour finaliser votre accès Concorde Workforce.'
+                ? t('login.setupSubtitle')
                 : t('login.subtitle')}
             </Typography>
           </Box>
@@ -530,11 +530,10 @@ export default function CredentialsSignInPage() {
                     p: 2, mb: 2,
                   }}>
                     <Typography sx={{ fontSize: 13, fontWeight: 800, color: '#0040a1', mb: 0.5 }}>
-                      Bienvenue sur Concorde Workforce
+                      {t('login.setupBannerTitle')}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: '#1e40af', lineHeight: 1.5 }}>
-                      Choisissez votre mot de passe pour activer votre compte
-                      ({forgotEmail}). Il vous servira à toutes vos prochaines connexions.
+                      {t('login.setupBannerBody', { email: forgotEmail })}
                     </Typography>
                   </Box>
                 )}
@@ -594,7 +593,7 @@ export default function CredentialsSignInPage() {
                         ? t('login.sendCode')
                         : forgotStep === 'code'
                           ? t('login.verifyCode')
-                          : (setupMode ? 'Activer mon compte' : t('login.reset'))}
+                          : (setupMode ? t('login.activateAccount') : t('login.reset'))}
                   </span>
                 </Button>
                 <Button
