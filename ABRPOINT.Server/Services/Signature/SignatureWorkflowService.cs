@@ -139,9 +139,10 @@ public sealed class SignatureWorkflowService : ISignatureWorkflowService
 
         // Circuit : employé (étape 1) puis approbateurs via l'organigramme (Empresp).
         var chain = await ResolveChainAsync(soccod, req.Empcod, req.ApproverLevels, ct);
+        var steps = new List<SignatureStep>();
         for (int i = 0; i < chain.Count; i++)
         {
-            _db.SignatureSteps.Add(new SignatureStep
+            var st = new SignatureStep
             {
                 RequestId = sr.Id,
                 StepOrder = i + 1,
@@ -149,14 +150,19 @@ public sealed class SignatureWorkflowService : ISignatureWorkflowService
                 SignerRole = chain[i].Role,
                 PlaceholderKey = chain[i].Placeholder,
                 Status = "pending",
-            });
+            };
+            steps.Add(st);
+            _db.SignatureSteps.Add(st);
         }
         await _db.SaveChangesAsync(ct);
 
-        // Notifie le 1er signataire (l'employé) qu'un document attend sa signature.
+        // Notifie le 1er signataire (l'employé) qu'un document attend sa signature. On inclut
+        // `stepId` (id de l'étape 1, généré au SaveChanges ci-dessus) pour que le clic sur la
+        // notification ouvre DIRECTEMENT la page de signature (requestId + stepId requis).
+        var firstStepId = steps.FirstOrDefault(s => s.StepOrder == 1)?.Id;
         await NotifyAsync(req.Empcod, "✍️ Document à signer",
             $"Le document « {doc.DocName} » attend votre signature.",
-            new { type = "signature_pending", requestId = sr.Id, documentVaultId = doc.Id });
+            new { type = "signature_pending", requestId = sr.Id, stepId = firstStepId, documentVaultId = doc.Id });
 
         _log.LogInformation("Signature workflow démarré (request={Req}, doc={Doc}, source={Src}/{Id}, étapes={N}).",
             sr.Id, doc.Id, req.SourceType, req.SourceId, chain.Count);

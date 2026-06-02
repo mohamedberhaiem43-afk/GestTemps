@@ -1103,7 +1103,9 @@ function DashboardLayoutAccount(_props: DemoProps) {
     } else if (pathname === '/signup') {
       document.title = `Concorde Workforce | ${t('navigation.signupTitle')}`;
     } else if (pathname === '/') {
-      document.title = `Concorde Workforce | ${t('navigation.pricingTitle')}`;
+      // Page d'accueil : marque seule, sans suffixe « | Tarifs » (l'accueil n'est pas
+      // la page Tarifs — elle ne fait qu'inclure une section tarifs).
+      document.title = `Concorde Workforce`;
     } else {
       document.title = `Concorde Workforce`;
     }

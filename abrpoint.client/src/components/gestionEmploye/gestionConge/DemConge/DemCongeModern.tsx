@@ -28,6 +28,7 @@ import useGetCongeAbsenceLibs from '../../../../hooks/absenceHooks/useGetCongeAb
 import useAddAbsence from '../../../../hooks/absenceHooks/useAddAbsence';
 import useGetEmployee from '../../../../hooks/employeHooks/useGetEmployee';
 import useGetDroitConge from '../../../../hooks/congeHooks/useGetDroitConge';
+import useGetSoldeByEmp from '../../../../hooks/soldeCongeHooks/useGetSoldeByEmp';
 import { useAuth } from '../../../helper/AuthProvider';
 import SuccessAnimation from '../../../helper/SuccessAnimation';
 import { Conge } from '../../../../models/Conge';
@@ -185,13 +186,31 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
   const yearStart = employeeHireDate && employeeHireDate.getFullYear() === currentYear && employeeHireDate > new Date(currentYear, 0, 1)
     ? employeeHireDate.toISOString().split('T')[0]
     : defaultYearStart;
-  const { data: droitCongeData } = useGetDroitConge(currentEmpcod, yearStart, yearEnd);
+  // Le solde affiché doit refléter la NATURE du congé choisi — chaque type a son propre
+  // compteur : CP (droit annuel acquis), RTT (crédit annuel dédié, Solde.RttJours), CET (jours
+  // épargnés, Solde.Cetjours). CSF/CSS ne sont pas décomptés d'un solde. On dérive l'imputation
+  // (Abscng) du type sélectionné pour choisir la source et l'affichage.
+  const selectedAbscng = ((Array.isArray(absences) ? absences : []).find((a) => a.abscod === abscod)?.abscng || '').toUpperCase();
+  const balanceKind: 'cp' | 'rtt' | 'cet' | 'none' =
+    selectedAbscng === 'R' ? 'rtt'
+      : selectedAbscng === 'E' ? 'cet'
+        : (selectedAbscng === '0' || selectedAbscng === '') ? 'cp'
+          : 'none';
+
+  // typeConge : le backend GetDroitCongeAsync ne distingue que "paye" (CP) et "rtt". Le CET
+  // et les types non décomptés retombent sur "paye" mais leur affichage est géré séparément.
+  const { data: droitCongeData } = useGetDroitConge(currentEmpcod, yearStart, yearEnd, balanceKind === 'rtt' ? 'rtt' : 'paye');
+  const { data: soldeData } = useGetSoldeByEmp(currentEmpcod);
   const droitConge = Array.isArray(droitCongeData) ? droitCongeData[0] : droitCongeData;
   const soldeAnterieur = (droitConge as any)?.soldeinit ?? (droitConge as any)?.Soldeinit ?? 0;
   const droitCongeTotal = (droitConge as any)?.droitconge ?? (droitConge as any)?.Droitconge ?? 0;
   const droitMensuel = Number((droitCongeTotal / 12).toFixed(2));
   const droitRestant = (droitConge as any)?.droitrestant ?? (droitConge as any)?.Droitrestant ?? 0;
-  const nouveauSolde = Math.max(0, droitRestant - connbjour);
+  // Solde CET disponible (jours épargnés), lu sur la ligne Solde de l'employé.
+  const cetDisponible = (soldeData as any)?.cetjours ?? (soldeData as any)?.Cetjours ?? 0;
+  // Solde « actuel » effectif selon la nature : CET → jours épargnés ; sinon → droit restant CP/RTT.
+  const soldeActuel = balanceKind === 'cet' ? cetDisponible : droitRestant;
+  const nouveauSolde = Math.max(0, soldeActuel - connbjour);
 
   // Auto-fill phone and hire date when employee changes.
   // In add mode, phone is always synced to selected employee (including empty value).
@@ -679,34 +698,59 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
           </Box>
         </Box>
 
-        {/* Leave Balance Info */}
-        {currentEmpcod && droitConge && (
+        {/* Leave Balance Info — affichage ADAPTÉ à la nature du congé choisi. */}
+        {currentEmpcod && abscod && (
           <Box sx={{ background: 'linear-gradient(135deg, #f0f5ff 0%, #e8f0fe 100%)', borderRadius: '12px', p: 2, border: '1px solid #bfdbfe' }}>
             <Typography sx={{ fontSize: '12px', fontWeight: 800, color: '#0040a1', mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              📊 {t('conge.demConge.form.balanceTitle')}
+              📊 {balanceKind === 'rtt'
+                ? t('conge.demConge.form.balanceTitleRtt')
+                : balanceKind === 'cet'
+                  ? t('conge.demConge.form.balanceTitleCet')
+                  : t('conge.demConge.form.balanceTitle')}
             </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
-              <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.demConge.form.previousBalance')}</Typography>
-                <Typography sx={{ fontSize: '20px', fontWeight: 800, color: '#0040a1' }}>{soldeAnterieur}</Typography>
-                <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>{t('conge.demConge.form.daysUnit')}</Typography>
+
+            {balanceKind === 'none' ? (
+              // CSF / CSS… : pas de compteur dédié — on évite d'afficher un solde CP trompeur.
+              <Typography sx={{ fontSize: '12px', color: '#475569', fontWeight: 600 }}>
+                {t('conge.demConge.form.noBalanceNote')}
+              </Typography>
+            ) : balanceKind === 'cet' ? (
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+                <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                  <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.demConge.form.cetAvailable')}</Typography>
+                  <Typography sx={{ fontSize: '20px', fontWeight: 800, color: '#7c3aed' }}>{cetDisponible}</Typography>
+                  <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>{t('conge.demConge.form.cetSavedUnit')}</Typography>
+                </Box>
+                <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: connbjour > 0 ? '2px solid #f59e0b' : 'none' }}>
+                  <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.demConge.form.newBalance')}</Typography>
+                  <Typography sx={{ fontSize: '20px', fontWeight: 800, color: nouveauSolde < 0 ? '#ba1a1a' : '#059669' }}>{nouveauSolde}</Typography>
+                  <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>{t('conge.demConge.form.afterLeave')}</Typography>
+                </Box>
               </Box>
-              <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.demConge.form.monthlyEntitlement')}</Typography>
-                <Typography sx={{ fontSize: '20px', fontWeight: 800, color: '#005136' }}>{droitMensuel}</Typography>
-                <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>{t('conge.demConge.form.daysPerMonth')}</Typography>
+            ) : (
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+                <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                  <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.demConge.form.previousBalance')}</Typography>
+                  <Typography sx={{ fontSize: '20px', fontWeight: 800, color: '#0040a1' }}>{soldeAnterieur}</Typography>
+                  <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>{t('conge.demConge.form.daysUnit')}</Typography>
+                </Box>
+                <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                  <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.demConge.form.monthlyEntitlement')}</Typography>
+                  <Typography sx={{ fontSize: '20px', fontWeight: 800, color: '#005136' }}>{droitMensuel}</Typography>
+                  <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>{t('conge.demConge.form.daysPerMonth')}</Typography>
+                </Box>
+                <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                  <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.demConge.form.currentBalance')}</Typography>
+                  <Typography sx={{ fontSize: '20px', fontWeight: 800, color: '#7c3aed' }}>{droitRestant}</Typography>
+                  <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>{t('conge.demConge.form.daysRemaining')}</Typography>
+                </Box>
+                <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: connbjour > 0 ? '2px solid #f59e0b' : 'none' }}>
+                  <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.demConge.form.newBalance')}</Typography>
+                  <Typography sx={{ fontSize: '20px', fontWeight: 800, color: nouveauSolde < 0 ? '#ba1a1a' : '#059669' }}>{nouveauSolde}</Typography>
+                  <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>{t('conge.demConge.form.afterLeave')}</Typography>
+                </Box>
               </Box>
-              <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.demConge.form.currentBalance')}</Typography>
-                <Typography sx={{ fontSize: '20px', fontWeight: 800, color: '#7c3aed' }}>{droitRestant}</Typography>
-                <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>{t('conge.demConge.form.daysRemaining')}</Typography>
-              </Box>
-              <Box sx={{ background: '#fff', borderRadius: '8px', p: 1.5, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: connbjour > 0 ? '2px solid #f59e0b' : 'none' }}>
-                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.demConge.form.newBalance')}</Typography>
-                <Typography sx={{ fontSize: '20px', fontWeight: 800, color: nouveauSolde < 0 ? '#ba1a1a' : '#059669' }}>{nouveauSolde}</Typography>
-                <Typography sx={{ fontSize: '9px', color: '#94a3b8' }}>{t('conge.demConge.form.afterLeave')}</Typography>
-              </Box>
-            </Box>
+            )}
           </Box>
         )}
 

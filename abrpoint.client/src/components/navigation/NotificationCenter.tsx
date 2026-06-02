@@ -32,6 +32,7 @@ import {
   DeleteOutline as DeleteIcon,
   Refresh as RefreshIcon,
   ChevronRight as ChevronRightIcon,
+  Draw as SignIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../helper/AuthProvider';
@@ -97,6 +98,12 @@ const CATEGORIES: Record<string, CategoryMeta> = {
   teletravail_request_cancelled:{ icon: <CancelIcon fontSize="small" />,        color: '#64748b', bg: '#f1f5f9', route: '/dashboard/demande-teletravail' },
   // Coffre numérique : signature de document publié pour le collaborateur.
   vault_document_uploaded:      { icon: <ValidIcon fontSize="small" />,         color: '#0056d2', bg: '#d5e3fc', route: '/dashboard/coffre-fort' },
+  // Workflow de signature électronique. `signature_pending` ouvre DIRECTEMENT la page de
+  // signature (deep-link dynamique via dataJson dans handleClick) ; le `route` ci-dessous
+  // sert de repli (anciennes notifs sans stepId). Les notifs de fin vont à la boîte de signature.
+  signature_pending:            { icon: <SignIcon fontSize="small" />,          color: '#0040a1', bg: '#dae2ff', route: '/dashboard/signature-inbox' },
+  signature_completed:          { icon: <ValidIcon fontSize="small" />,         color: '#005236', bg: '#8df7c2', route: '/dashboard/signature-inbox' },
+  signature_rejected:           { icon: <CancelIcon fontSize="small" />,        color: '#ba1a1a', bg: '#ffdad6', route: '/dashboard/signature-inbox' },
   // IA : lettres générées (courriers IA) et chat RH — l'utilisateur retombe sur la page outil.
   letter_gen:                   { icon: <ValidIcon fontSize="small" />,         color: '#7c3aed', bg: '#f5f3ff', route: '/dashboard/courriers' },
   chat:                         { icon: <NotificationsIcon fontSize="small" />, color: '#7c3aed', bg: '#f5f3ff', route: '/dashboard/chat-bot' },
@@ -120,6 +127,9 @@ const CATEGORY_LABEL: Record<string, string> = {
   teletravail_request_created: 'Télétravail à valider',
   teletravail_request_cancelled: 'Télétravail annulé',
   vault_document_uploaded: 'Document à signer',
+  signature_pending: 'Document à signer',
+  signature_completed: 'Document signé',
+  signature_rejected: 'Document rejeté',
   letter_gen: 'Lettre IA',
   chat: 'Assistant RH',
   test_push: 'Test',
@@ -213,6 +223,25 @@ function NotificationCenterInner() {
       } catch { /* noop */ }
     }
     // 2. Deep-link contextuel.
+    // Cas signature : on ouvre DIRECTEMENT la page de signature avec requestId + stepId
+    // extraits du payload (dataJson) — l'utilisateur signe sans passer par la boîte. Si le
+    // payload est incomplet (ancienne notif sans stepId), on retombe sur la boîte de signature.
+    if (n.category === 'signature_pending') {
+      handleClose();
+      try {
+        const data = n.dataJson ? JSON.parse(n.dataJson) : {};
+        const rid = data.requestId, sid = data.stepId, vid = data.documentVaultId;
+        if (rid && sid) {
+          const params = new URLSearchParams({ requestId: String(rid), stepId: String(sid) });
+          if (vid != null) params.set('id', String(vid));
+          navigate(`/dashboard/sign-document?${params.toString()}`);
+          return;
+        }
+      } catch { /* payload illisible → repli sur la boîte de signature */ }
+      navigate('/dashboard/signature-inbox');
+      return;
+    }
+
     const meta = (n.category && CATEGORIES[n.category]) || null;
     if (meta?.route) {
       handleClose();

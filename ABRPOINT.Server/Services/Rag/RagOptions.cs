@@ -45,7 +45,7 @@ public sealed class AnthropicOptions
     /// `:free` sont régulièrement rate-limited en amont par leurs providers — préférer
     /// un modèle payant léger pour la production.
     /// </summary>
-    public string OpenRouterModel { get; set; } = "google/gemini-2.0-flash-001";
+    public string OpenRouterModel { get; set; } = "google/gemini-3.5-flash";
 
     /// <summary>
     /// Endpoint Anthropic. Par défaut <c>https://api.anthropic.com</c>. Pour

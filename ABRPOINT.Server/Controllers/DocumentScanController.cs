@@ -53,7 +53,7 @@ namespace ABRPOINT.Server.Controllers
                 }
 
                 var apiKey = _config["OpenRouter:ApiKey"];
-                var model = _config["OpenRouter:VisionModel"] ?? "google/gemini-2.0-flash-001";
+                var model = _config["OpenRouter:VisionModel"] ?? "google/gemini-3.5-flash";
                 // Le placeholder de appsettings.json passe IsNullOrEmpty mais provoque
                 // un 401 trompeur côté OpenRouter ("Missing Authentication header"). On
                 // l'intercepte ici pour renvoyer un message actionnable côté UI.
@@ -329,7 +329,7 @@ Règles importantes:
                 }
 
                 var apiKey = _config["OpenRouter:ApiKey"];
-                var model = _config["OpenRouter:VisionModel"] ?? "google/gemini-2.0-flash-001";
+                var model = _config["OpenRouter:VisionModel"] ?? "google/gemini-3.5-flash";
                 if (string.IsNullOrWhiteSpace(apiKey) || apiKey.StartsWith("REPLACE_WITH_", StringComparison.OrdinalIgnoreCase))
                     return StatusCode(500, new { message = "Clé API OpenRouter non configurée." });
 
@@ -500,7 +500,7 @@ Règles importantes :
                 }
 
                 var apiKey = _config["OpenRouter:ApiKey"];
-                var model = _config["OpenRouter:VisionModel"] ?? "google/gemini-2.0-flash-001";
+                var model = _config["OpenRouter:VisionModel"] ?? "google/gemini-3.5-flash";
                 // Le placeholder de appsettings.json passe IsNullOrEmpty mais provoque
                 // un 401 trompeur côté OpenRouter ("Missing Authentication header"). On
                 // l'intercepte ici pour renvoyer un message actionnable côté UI.
@@ -647,7 +647,7 @@ Réponds UNIQUEMENT en JSON sans markdown:
                 }
 
                 var apiKey = _config["OpenRouter:ApiKey"];
-                var model = _config["OpenRouter:VisionModel"] ?? "google/gemini-2.0-flash-001";
+                var model = _config["OpenRouter:VisionModel"] ?? "google/gemini-3.5-flash";
                 if (string.IsNullOrWhiteSpace(apiKey) || apiKey.StartsWith("REPLACE_WITH_", StringComparison.OrdinalIgnoreCase))
                     return StatusCode(500, new { message = "Clé API OpenRouter non configurée." });
 

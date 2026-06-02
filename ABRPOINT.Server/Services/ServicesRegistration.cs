@@ -93,7 +93,7 @@ namespace ABRPOINT.Server.Services
                 var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
                 var config = sp.GetRequiredService<IConfiguration>();
                 var openRouterApiKey = config["OpenRouter:ApiKey"];
-                var openRouterModel = config["OpenRouter:ChatModel"] ?? "google/gemini-2.0-flash-001";
+                var openRouterModel = config["OpenRouter:ChatModel"] ?? "google/gemini-3.5-flash";
 
                 kernelBuilder.Plugins.AddFromObject(
                     new GeminiPlugin(httpClientFactory, openRouterApiKey, openRouterModel, tempKernel),

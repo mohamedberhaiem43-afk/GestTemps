@@ -18,7 +18,7 @@ namespace ABRPOINT.Server.Services
         {
             _httpClient = httpClient;
             _apiKey = config["OpenRouter:ApiKey"] ?? "";
-            _model = config["OpenRouter:ChatModel"] ?? "google/gemini-2.0-flash-001";
+            _model = config["OpenRouter:ChatModel"] ?? "google/gemini-3.5-flash";
         }
 
         public async Task<string> GenerateTemplateAsync(string prompt, string? contextText = null)
