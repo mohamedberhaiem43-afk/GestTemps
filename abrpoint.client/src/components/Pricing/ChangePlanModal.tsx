@@ -49,6 +49,26 @@ interface PreviewResponse {
   note?: string | null;
 }
 
+// Liens de paiement Stripe par pack × cycle (mêmes liens que la page d'accueil). Permettent
+// de souscrire / changer de pack via le Checkout hébergé Stripe (essai 30 j inclus), en
+// alternative au changement « en un clic » via l'API /billing/change-plan. Le webhook
+// checkout.session.completed reconnaît le pack (price de base) → bascule le PlanCode et
+// REMPLACE la subscription (l'ancien abonnement pack est annulé : pas de double-facturation).
+const PACK_PAYMENT_LINKS: Record<PlanKey, { monthly: string; annual: string }> = {
+  Starter: {
+    monthly: 'https://buy.stripe.com/9B6dR21dX83v9JBcZX00002',
+    annual: 'https://buy.stripe.com/aFa9AMcWFgA14ph2lj00003',
+  },
+  Standard: {
+    monthly: 'https://buy.stripe.com/9B628k09TbfHaNF2lj00004',
+    annual: 'https://buy.stripe.com/00w4gs2i197z7Bt1hf00005',
+  },
+  Premium: {
+    monthly: 'https://buy.stripe.com/8x24gs1dX83v8Fxgc900006',
+    annual: 'https://buy.stripe.com/4gMcMY4q91F7091cZX00007',
+  },
+};
+
 // Source de vérité côté serveur : PlanCatalog. Fetché à l'ouverture de la modale
 // pour ne plus dupliquer les tarifs en dur dans le frontend (toute mise à jour de
 // grille tarifaire ne nécessite ainsi qu'un déploiement backend).
@@ -80,6 +100,10 @@ interface ChangePlanModalProps {
   // modale retombe sur une navigation vers /dashboard/devis-pack (page legacy).
   // Le parent (MonAbonnementPage) l'utilise pour ouvrir DevisPackDialog par-dessus.
   onViewDevis?: (plan: 'Starter' | 'Standard' | 'Premium', cycle: 'monthly' | 'annual') => void;
+  // Slug du tenant courant (info.slug) — injecté en ?client_reference_id={slug} dans les
+  // Payment Links de pack pour que le webhook rattache le checkout au bon tenant. Repli
+  // sur localStorage('tenantSlug') si absent.
+  tenantSlug?: string | null;
 }
 
 // Aligné avec ABRPOINT.Server.Tenancy.PlanCatalog (source de vérité côté serveur).
@@ -188,7 +212,7 @@ function formatDate(d: string | null | undefined): string {
   catch { return d; }
 }
 
-export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess, canChangeInPlace = true, onViewDevis }: ChangePlanModalProps) {
+export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess, canChangeInPlace = true, onViewDevis, tenantSlug }: ChangePlanModalProps) {
   const navigate = useNavigate();
   const normalizedCurrent = (currentPlan ?? '').trim();
   const currentKey: PlanKey | null = (['Starter', 'Standard', 'Premium'] as PlanKey[]).find(
@@ -319,6 +343,19 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
     }
     onClose();
     navigate(`/dashboard/devis-pack?plan=${key}&cycle=${cycle}`);
+  };
+
+  // Ouvre le Payment Link Stripe du pack (cycle courant) en y injectant le slug du tenant
+  // (?client_reference_id={slug}) pour que le webhook bascule le PlanCode du bon tenant.
+  // Voie de paiement HÉBERGÉE Stripe — alternative fiable au changement « en un clic » API
+  // (ce dernier peut échouer si la subscription/customer/price n'existent pas dans le compte
+  // Stripe actif, cf. resource_missing). Le webhook annule l'ancien abonnement pack.
+  const openPackStripeLink = (key: PlanKey) => {
+    const base = PACK_PAYMENT_LINKS[key]?.[cycle];
+    if (!base) return;
+    const slug = tenantSlug || (typeof window !== 'undefined' ? window.localStorage.getItem('tenantSlug') : '') || '';
+    const url = slug ? `${base}?client_reference_id=${encodeURIComponent(slug)}` : base;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -539,29 +576,54 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
                     Pack choisi
                   </Button>
                 ) : (
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    endIcon={<ArrowForwardIcon />}
-                    onClick={(e) => { e.stopPropagation(); goToDevis(key); }}
-                    sx={{
-                      bgcolor: isPremium ? goldAccent : '#0040a1',
-                      background: isPremium
-                        ? `linear-gradient(135deg, ${goldBorder} 0%, ${goldAccent} 100%)`
-                        : undefined,
-                      '&:hover': isPremium
-                        ? { background: `linear-gradient(135deg, ${goldAccent} 0%, #8a6508 100%)` }
-                        : { bgcolor: '#003080' },
-                      textTransform: 'none',
-                      fontWeight: 700,
-                      borderRadius: '10px',
-                      py: 1.2,
-                      mb: 2.5,
-                      boxShadow: isPremium ? '0 6px 18px rgba(184,134,11,0.32)' : 'none',
-                    }}
-                  >
-                    Voir le devis
-                  </Button>
+                  <Stack spacing={1} sx={{ mb: 2.5 }}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      endIcon={<ArrowForwardIcon />}
+                      onClick={(e) => { e.stopPropagation(); goToDevis(key); }}
+                      sx={{
+                        bgcolor: isPremium ? goldAccent : '#0040a1',
+                        background: isPremium
+                          ? `linear-gradient(135deg, ${goldBorder} 0%, ${goldAccent} 100%)`
+                          : undefined,
+                        '&:hover': isPremium
+                          ? { background: `linear-gradient(135deg, ${goldAccent} 0%, #8a6508 100%)` }
+                          : { bgcolor: '#003080' },
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        borderRadius: '10px',
+                        py: 1.2,
+                        boxShadow: isPremium ? '0 6px 18px rgba(184,134,11,0.32)' : 'none',
+                      }}
+                    >
+                      Voir le devis
+                    </Button>
+                    {/* Souscription / changement de pack via le Payment Link Stripe hébergé
+                        (essai 30 j inclus). Rattaché au tenant via client_reference_id ; le
+                        webhook bascule le PlanCode et annule l'ancien abonnement pack. */}
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      startIcon={<RocketLaunchIcon />}
+                      onClick={(e) => { e.stopPropagation(); openPackStripeLink(key); }}
+                      sx={{
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        borderRadius: '10px',
+                        py: 0.9,
+                        fontSize: 13,
+                        color: isPremium ? goldAccent : '#0040a1',
+                        borderColor: isPremium ? goldBorder : '#9bbef0',
+                        '&:hover': {
+                          borderColor: isPremium ? goldAccent : '#0040a1',
+                          bgcolor: isPremium ? '#fffaf0' : '#f0f5ff',
+                        },
+                      }}
+                    >
+                      Payer via Stripe ({cycle === 'annual' ? 'annuel' : 'mensuel'})
+                    </Button>
+                  </Stack>
                 )}
 
                 <Divider sx={{ mb: 2 }} />

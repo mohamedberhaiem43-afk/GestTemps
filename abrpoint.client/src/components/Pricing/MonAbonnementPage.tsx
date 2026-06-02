@@ -1309,6 +1309,7 @@ export default function MonAbonnementPage() {
           info?.hasActiveStripeSubscription === true &&
           (info?.status === 'Active' || info?.status === 'Trialing')
         }
+        tenantSlug={info?.slug ?? null}
         onViewDevis={(plan, cycle) => setDevisDialog({ plan, cycle })}
         onSuccess={async (newPlan) => {
           setChangePlanOpen(false);
