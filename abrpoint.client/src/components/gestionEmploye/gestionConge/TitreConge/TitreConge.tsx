@@ -131,7 +131,10 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
   // typeConge ("rtt" si la nature porte Abscng="R", sinon "paye"/CP) à partir de
   // l'imputation choisie, pour que le backend renvoie le bon droit (CP vs RTT).
   const yearStart = `${new Date().getFullYear()}-01-01`;
-  const yearEnd = `${new Date().getFullYear()}-12-31`;
+  // Borné à AUJOURD'HUI (et non au 31/12) → on affiche le droit ACQUIS À DATE, pas le droit
+  // annuel complet. Aligne ce formulaire sur la demande de congé et la page « Solde de congé »
+  // (le 31/12 donnait p.ex. 20 j alors que l'acquis réel à date était bien moindre).
+  const yearEnd = new Date().toISOString().split('T')[0];
   const selectedAbs = (absences as any[]).find((a) => a.abscod === abscod);
   const typeConge = selectedAbs?.abscng === 'R' ? 'rtt' : 'paye';
   const { data: droitCongeData } = useGetDroitConge(empcod, yearStart, yearEnd, typeConge);
@@ -286,16 +289,16 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
             <TextField size="small" fullWidth type="date" value={condep} onChange={(e) => setCondep(e.target.value)} sx={fieldSx} />
           </Box>
           <Box sx={{ pb: 0.5 }}>
-            <Typography sx={{ fontSize: '10px', color: '#94a3b8', mb: 0.5 }}>{t('conge.titreConge.form.am')}</Typography>
-            <input type="checkbox" checked={conamdep} onChange={(e) => setConamdep(e.target.checked)} style={{ width: 16, height: 16 }} />
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.titreConge.form.am')}</Typography>
+            <input type="checkbox" checked={conamdep} onChange={(e) => setConamdep(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0040a1', cursor: 'pointer' }} />
           </Box>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.titreConge.form.returnDate')}</Typography>
             <TextField size="small" fullWidth type="date" value={conret} onChange={(e) => setConret(e.target.value)} sx={fieldSx} />
           </Box>
           <Box sx={{ pb: 0.5 }}>
-            <Typography sx={{ fontSize: '10px', color: '#94a3b8', mb: 0.5 }}>{t('conge.titreConge.form.am')}</Typography>
-            <input type="checkbox" checked={conamret} onChange={(e) => setConamret(e.target.checked)} style={{ width: 16, height: 16 }} />
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.titreConge.form.am')}</Typography>
+            <input type="checkbox" checked={conamret} onChange={(e) => setConamret(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0040a1', cursor: 'pointer' }} />
           </Box>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#0040a1', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.titreConge.form.days')}</Typography>

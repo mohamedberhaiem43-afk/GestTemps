@@ -17,7 +17,7 @@ public class GeminiPlugin
     {
         _httpClientFactory = httpClientFactory;
         _apiKey = apiKey;
-        _model = model ?? "google/gemma-4-31b-it:free";
+        _model = model ?? "openrouter/free";
         _kernel = kernel;
     }
 
