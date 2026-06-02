@@ -26,6 +26,10 @@ const useAcceptDemConge = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['demconges'] });
+            // Indispensable : sans ça, la demande ACCEPTÉE restait affichée dans la liste
+            // « à valider » du dashboard (alimentée par la query ['pending-demconges']).
+            // Le hook de refus invalidait déjà cette clé — on s'aligne.
+            queryClient.invalidateQueries({ queryKey: ['pending-demconges'] });
         },
     });
 };

@@ -1,5 +1,6 @@
 using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
+using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Services.Signature;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,13 +24,48 @@ public class SignaturesController : ControllerBase
     private readonly ISignatureOtpService _otp;
     private readonly ApplicationDbContext _db;
     private readonly ILogger<SignaturesController> _log;
+    private readonly Tenancy.ICurrentTenant _tenant;
+    private readonly IEmployeRepository _employes;
 
-    public SignaturesController(ISignatureWorkflowService workflow, ISignatureOtpService otp, ApplicationDbContext db, ILogger<SignaturesController> log)
+    public SignaturesController(ISignatureWorkflowService workflow, ISignatureOtpService otp, ApplicationDbContext db, ILogger<SignaturesController> log, Tenancy.ICurrentTenant tenant, IEmployeRepository employes)
     {
         _workflow = workflow;
         _otp = otp;
         _db = db;
         _log = log;
+        _tenant = tenant;
+        _employes = employes;
+    }
+
+    // Libellés FR des types de documents signables (clé = source_type configuré dans
+    // signature_template_map). Tout type non listé retombe sur son code brut.
+    private static readonly Dictionary<string, string> SourceTypeLabels = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["DemConge"] = "Demande de congé",
+        ["DemandeAutorisation"] = "Demande d'autorisation",
+        ["DemandeAbsence"] = "Absence / visite médicale",
+        ["Teletravail"] = "Télétravail",
+        ["Manual"] = "Document / contrat",
+    };
+
+    // GET api/Signatures/source-types — types de documents signables réellement configurés
+    // pour le tenant (liaison société + défauts globaux). Alimente le sélecteur du dialog
+    // « Nouvelle demande de signature » côté UI.
+    [HttpGet("source-types")]
+    public async Task<IActionResult> SourceTypes(CancellationToken ct)
+    {
+        var soccod = _tenant.Current?.LegacySoccod;
+        var types = await _db.SignatureTemplateMaps
+            .Where(m => m.Soccod == soccod || m.Soccod == null)
+            .Select(m => m.SourceType)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var result = types
+            .OrderBy(t => t)
+            .Select(t => new { sourceType = t, label = SourceTypeLabels.TryGetValue(t, out var l) ? l : t })
+            .ToList();
+        return Ok(result);
     }
 
     public sealed record StartBody(string SourceType, string? SourceId, string Empcod, string? DocName, Dictionary<string, string>? ExtraVars, int ApproverLevels = 1);
@@ -46,9 +82,13 @@ public class SignaturesController : ControllerBase
 
         var caller = Caller();
         if (string.IsNullOrEmpty(caller)) return Unauthorized();
-        // Lancement : le demandeur lui-même, ou un admin pour le compte d'un salarié.
-        // (Le lancement « manager pour son équipe » via l'organigramme arrive en Phase 2.)
-        if (!string.Equals(caller, body.Empcod, StringComparison.OrdinalIgnoreCase) && !await CallerIsAdminAsync())
+        // Phase 2 — Lancement autorisé pour : le demandeur lui-même ; un admin ; OU un
+        // responsable/manager qui a le droit « Gestion Employés » ET dont le périmètre couvre
+        // le salarié cible (mêmes sites Socuser ∩ service — exactement le périmètre du sélecteur
+        // d'employés du dialog). Empêche un salarié simple de lancer pour un collègue.
+        if (!string.Equals(caller, body.Empcod, StringComparison.OrdinalIgnoreCase)
+            && !await CallerIsAdminAsync()
+            && !await CallerCanManageEmployeeAsync(caller, body.Empcod, ct))
             return Forbid();
 
         try
@@ -221,5 +261,32 @@ public class SignaturesController : ControllerBase
             .Where(u => u.Uticod == caller)
             .Select(u => u.Utiadm == "1" || PermissionCatalog.IsAdminRole(u.Utirole))
             .FirstOrDefaultAsync();
+    }
+
+    // Phase 2 : un responsable/manager peut lancer une signature pour un salarié de son périmètre.
+    // Deux conditions cumulatives, pour ne pas ouvrir la porte à un salarié simple :
+    //   1. le rôle de l'appelant accorde « Gestion Employés » (en consultation au minimum) —
+    //      le rôle Employee a cette matrice à 0000, il est donc exclu ;
+    //   2. le salarié cible figure dans le périmètre EXACT du sélecteur d'employés du dialog
+    //      (GetEmpLibs : admin/RH = tous ; manager = ses sites Socuser ∩ son service).
+    private async Task<bool> CallerCanManageEmployeeAsync(string caller, string empcod, CancellationToken ct)
+    {
+        var soccod = _tenant.Current?.LegacySoccod;
+        if (string.IsNullOrEmpty(soccod)) return false;
+
+        var role = await _db.Utilisateurs.AsNoTracking()
+            .Where(u => u.Uticod == caller)
+            .Select(u => u.Utirole)
+            .FirstOrDefaultAsync(ct);
+        if (string.IsNullOrEmpty(role)) return false;
+
+        var canManage = await _db.RolePermissions.AsNoTracking()
+            .AnyAsync(rp => rp.Role!.RoleName == role
+                         && rp.RpModule == PermissionCatalog.Modules.GestionEmployes
+                         && rp.RpConsult == "1", ct);
+        if (!canManage) return false;
+
+        var scoped = await _employes.GetEmpLibs(soccod, caller);
+        return scoped.ContainsKey(empcod);
     }
 }

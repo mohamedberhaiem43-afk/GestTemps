@@ -304,15 +304,28 @@ namespace ABRPOINT.Server.Repository
                 // acceptée dès que les dates différaient (précision timestamp, dates éditées,
                 // doublon de dates) → elle réapparaissait « en attente » alors que refuse
                 // renvoyait 400 (« déjà accepté »). Aligné désormais sur Concod.
-                var result = await query
+                // On projette aussi Emplib (depuis l'Employe joint) pour que le dashboard
+                // affiche le NOM du demandeur plutôt que son code. Le dédoublonnage se fait
+                // par la clé primaire (Soccod+Concod) en mémoire : la jointure Socusers peut
+                // produire des doublons quand l'utilisateur a accès à plusieurs sites.
+                var rows = await query
                     .Where(x =>
                         !_dbContext.Conges.Any(c =>
                             c.Soccod == x.c.Soccod &&
                             c.Concod == x.c.Concod))
-                    .Select(x => x.c)
-                    .Distinct()
-                    .OrderByDescending(c => c.Condat)
+                    .Select(x => new { Conge = x.c, x.e.Emplib })
                     .ToListAsync();
+
+                var result = rows
+                    .GroupBy(r => new { r.Conge.Soccod, r.Conge.Concod })
+                    .Select(g =>
+                    {
+                        var first = g.First();
+                        first.Conge.Emplib = first.Emplib;
+                        return first.Conge;
+                    })
+                    .OrderByDescending(c => c.Condat)
+                    .ToList();
 
                 return result;
             }

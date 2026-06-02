@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Building2, Users, Phone, Mail, CheckCircle2, Loader2 } from 'lucide-react';
 import './PricingPage.css';
 import { sendSalesRequest } from '../../services/ContactService';
+import { useAuth } from '../helper/AuthProvider';
+import apiInstance from '../API/apiInstance';
 
 const ContactSalesPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { authReady, uticod, soclib, userName, utimail } = useAuth();
   const [company, setCompany] = useState('');
   const [contactName, setContactName] = useState('');
   const [email, setEmail] = useState('');
@@ -17,6 +20,25 @@ const ContactSalesPage: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+
+  // Pré-remplissage pour un utilisateur déjà connecté : on hydrate société / nom / email
+  // depuis le contexte d'auth (/me), et le téléphone en best-effort depuis sa fiche employé.
+  // On ne le fait qu'une fois (prefilledRef) et sans écraser une saisie déjà en cours.
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (!authReady || prefilledRef.current || !uticod) return;
+    prefilledRef.current = true;
+    if (soclib) setCompany((prev) => prev || soclib);
+    if (userName) setContactName((prev) => prev || userName);
+    if (utimail) setEmail((prev) => prev || utimail);
+    // Téléphone : la fiche employé peut ne pas exister (ex : admin sans fiche) → silencieux.
+    apiInstance.get(`/Employes/${uticod}`)
+      .then((res) => {
+        const tel = res.data?.emptel || res.data?.empmob || '';
+        if (tel) setPhone((prev) => prev || tel);
+      })
+      .catch(() => { /* pas de fiche employé : champ téléphone laissé vide */ });
+  }, [authReady, uticod, soclib, userName, utimail]);
 
   const handleSubmit = async () => {
     setError(null);
@@ -54,7 +76,6 @@ const ContactSalesPage: React.FC = () => {
             <ChevronLeft size={20} />
             Retour aux tarifs
           </button>
-          <div className="text-xl font-black tracking-tighter text-primary font-headline">CONCORDE</div>
         </div>
       </nav>
 
@@ -77,7 +98,7 @@ const ContactSalesPage: React.FC = () => {
                 <CheckCircle2 className="text-tertiary mx-auto mb-4" size={56} />
                 <h3 className="text-2xl font-black mb-3 font-headline">Demande envoyée</h3>
                 <p className="text-on-surface-variant mb-6 leading-relaxed">
-                  Merci, notre équipe commerciale a bien reçu votre demande et revient vers vous sous 24h ouvrées. Pour toute question complémentaire : <strong className="text-primary">ventes@concorde-tech.fr</strong>.
+                  Merci, notre équipe commerciale a bien reçu votre demande et revient vers vous sous 24h ouvrées. Pour toute question complémentaire : <strong className="text-primary">contact@concorde-tech.fr</strong>.
                 </p>
                 <button
                   onClick={() => navigate('/')}
@@ -202,7 +223,7 @@ const ContactSalesPage: React.FC = () => {
               <div className="pt-5 border-t border-outline-variant/30 space-y-3">
                 <div className="flex items-center gap-2.5 text-sm text-on-surface-variant">
                   <Mail size={16} className="text-primary" />
-                  <strong className="text-on-surface">ventes@concorde-tech.fr</strong>
+                  <strong className="text-on-surface">contact@concorde-tech.fr</strong>
                 </div>
                 <div className="flex items-center gap-2.5 text-sm text-on-surface-variant">
                   <Phone size={16} className="text-primary" />

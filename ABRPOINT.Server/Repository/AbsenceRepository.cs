@@ -576,7 +576,9 @@ namespace ABRPOINT.Server.Repository
             {
                 // 'R' = RTT (Réduction du Temps de Travail, loi française) ; tracé comme un
                 // congé classique côté UI mais avec un solde dédié (Solde.RttJours).
-                var congeTypes = new[] { "0", "1", "5", "R" };
+                // "E" = Compte Épargne Temps (CET) : le congé CET doit figurer dans les listes
+                // de types de congé (déroulante de demande) au même titre que CP/CSF/CSS/RTT.
+                var congeTypes = new[] { "0", "1", "5", "R", "E" };
                 return await _dbContext.Absences
                     .Where(a => a.Soccod == soccod && congeTypes.Contains(a.Abscng))
                     .ToDictionaryAsync(abs => abs.Abscod, abs => abs.Abslib);
@@ -599,7 +601,9 @@ namespace ABRPOINT.Server.Repository
 
             try
             {
-                var congeTypes = new[] { "0", "1", "5", "R" };
+                // "E" = Compte Épargne Temps (CET) : le congé CET doit figurer dans les listes
+                // de types de congé (déroulante de demande) au même titre que CP/CSF/CSS/RTT.
+                var congeTypes = new[] { "0", "1", "5", "R", "E" };
                 return await _dbContext.Absences
                     .Where(a => a.Soccod == soccod && congeTypes.Contains(a.Abscng))
                     .OrderBy(a => a.Abscod)

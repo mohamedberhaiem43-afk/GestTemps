@@ -490,6 +490,26 @@ namespace ABRPOINT.Server.Controllers
             }
         }
 
+        // Endpoint SELF (non gardé par [CanGetEmploye]) : permet à un salarié de connaître SA
+        // PROPRE méthode RTT. Indispensable au formulaire de demande de congé pour décider
+        // d'afficher ou non les types RTT. L'endpoint complet `get-employe` exige le droit de
+        // gestion — un salarié recevait donc un 403 → RTT masqué à tort + bandeau « non éligible ».
+        [HttpGet("get-my-rtt-methode/{soccod}/{empcod}")]
+        public async Task<IActionResult> GetMyRttMethode(string soccod, string empcod)
+        {
+            var caller = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(caller) || !string.Equals(caller, empcod, StringComparison.OrdinalIgnoreCase))
+                return Forbid();
+
+            var methode = await _db.Employes
+                .AsNoTracking()
+                .Where(e => e.Soccod == soccod && e.Empcod == empcod)
+                .Select(e => e.EmpRttMethode)
+                .FirstOrDefaultAsync();
+
+            return Ok(new { empRttMethode = methode });
+        }
+
         [HttpGet("get-emp-depass-max/{soccod}/{uticod}")]
         [CanGetEmploye]
         public async Task<List<EmpDepassMxHre>> GetEmpDepassMxHres(string soccod, string uticod)

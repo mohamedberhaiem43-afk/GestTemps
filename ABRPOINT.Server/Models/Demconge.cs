@@ -67,4 +67,10 @@ public partial class Demconge : BaseEntity
 
     [Column("consolde")]
     public float? Consolde { get; set; }
+
+    // Libellé de l'employé demandeur. NON mappé en base : peuplé par jointure dans les
+    // requêtes qui doivent afficher le nom (ex. liste des demandes en attente du dashboard),
+    // sinon le front retombe sur l'empcod brut ("000001") faute de nom.
+    [NotMapped]
+    public string? Emplib { get; set; }
 }

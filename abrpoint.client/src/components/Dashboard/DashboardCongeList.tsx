@@ -2,8 +2,8 @@ import { useState, useMemo } from 'react';
 import {
   Box, Typography, Button, CircularProgress, Avatar,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Snackbar, Alert,
 } from '@mui/material';
+import { useFeedbackSnackbar } from '../helper/FeedbackSnackbar';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
@@ -70,13 +70,9 @@ export default function DashboardCongeList({ data = [], isLoading }: DashboardCo
 
   const [congeToAccept, setCongeToAccept] = useState<Conge | null>(null);
   const [congeToRefuse, setCongeToRefuse] = useState<Conge | null>(null);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false, message: '', severity: 'success',
-  });
-
-  const showSnack = (message: string, severity: 'success' | 'error') => {
-    setSnackbar({ open: true, message, severity });
-  };
+  // Snackbar centralisé (top-center, z-index > sidebar/Dialog) : l'ancien Snackbar ad-hoc
+  // s'ancrait en bas-gauche et passait DERRIÈRE la sidebar. Le hook partagé règle ça.
+  const { showSuccess, showError, element: snackbarElement } = useFeedbackSnackbar();
 
   const handleAcceptClick = (conge: Conge) => {
     setCongeToAccept(conge);
@@ -92,11 +88,11 @@ export default function DashboardCongeList({ data = [], isLoading }: DashboardCo
       { concod: congeToAccept.concod, empcod: congeToAccept.empcod },
       {
         onSuccess: () => {
-          showSnack(`Demande de ${congeToAccept.emplib || congeToAccept.empcod} acceptée avec succès`, 'success');
+          showSuccess(`Demande de ${congeToAccept.emplib || congeToAccept.empcod} acceptée avec succès`);
           setCongeToAccept(null);
         },
         onError: () => {
-          showSnack("Erreur lors de l'acceptation de la demande", 'error');
+          showError("Erreur lors de l'acceptation de la demande");
           setCongeToAccept(null);
         },
       }
@@ -109,11 +105,11 @@ export default function DashboardCongeList({ data = [], isLoading }: DashboardCo
       { concod: congeToRefuse.concod, empcod: congeToRefuse.empcod },
       {
         onSuccess: () => {
-          showSnack(`Demande de ${congeToRefuse.emplib || congeToRefuse.empcod} refusée`, 'success');
+          showSuccess(`Demande de ${congeToRefuse.emplib || congeToRefuse.empcod} refusée`);
           setCongeToRefuse(null);
         },
         onError: () => {
-          showSnack('Erreur lors du refus de la demande', 'error');
+          showError('Erreur lors du refus de la demande');
           setCongeToRefuse(null);
         },
       }
@@ -423,20 +419,8 @@ export default function DashboardCongeList({ data = [], isLoading }: DashboardCo
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ borderRadius: '10px' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      {/* Snackbar centralisé (haut-centre, au-dessus de la sidebar et des Dialog) */}
+      {snackbarElement}
     </Box>
   );
 }

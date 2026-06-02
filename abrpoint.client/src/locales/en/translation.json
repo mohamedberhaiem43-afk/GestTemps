@@ -3277,7 +3277,8 @@
       "5": "Unpaid Leave (CSS)",
       "7": "Reprimand (B)",
       "V": "Warning (V)",
-      "R": "RTT (French statutory rest days)"
+      "R": "RTT (French statutory rest days)",
+      "E": "Time Savings Account (CET)"
     },
     "periodicite": {
       "A": "Calendar Year",

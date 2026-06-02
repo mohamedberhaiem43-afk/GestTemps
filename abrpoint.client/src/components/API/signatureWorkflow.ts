@@ -99,6 +99,11 @@ export interface StartResult {
   docName: string;
 }
 
+export interface SignatureSourceType {
+  sourceType: string;
+  label: string;
+}
+
 const base = '/Signatures';
 
 export const signatureWorkflowApi = {
@@ -109,6 +114,12 @@ export const signatureWorkflowApi = {
 
   async inbox(): Promise<SignatureInboxItem[]> {
     const res = await apiInstance.get(`${base}/inbox`);
+    return res.data ?? [];
+  },
+
+  /** Types de documents signables configurés pour le tenant (alimente le sélecteur d'envoi). */
+  async sourceTypes(): Promise<SignatureSourceType[]> {
+    const res = await apiInstance.get(`${base}/source-types`);
     return res.data ?? [];
   },
 

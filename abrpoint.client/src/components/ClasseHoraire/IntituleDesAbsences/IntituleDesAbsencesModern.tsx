@@ -27,7 +27,7 @@ import apiInstance from '../../API/apiInstance';
 // ── Type imputation values (labels resolved via i18n at render time) ──────────
 // 'R' = RTT (Réduction du Temps de Travail) — utilisé comme classifieur
 // pour reconnaître une absence comme un congé RTT (loi française).
-const IMPUTATION_VALUES = ['0', '8', '1', '2', '6', 'A', 'C', 'M', '3', '4', 'B', '5', '7', 'V', 'R'];
+const IMPUTATION_VALUES = ['0', '8', '1', '2', '6', 'A', 'C', 'M', '3', '4', 'B', '5', '7', 'V', 'R', 'E'];
 const SANCTION_VALUES = ['N', 'O', 'C', 'F'];
 
 // ── Toggle switch ─────────────────────────────────────────────────────────────

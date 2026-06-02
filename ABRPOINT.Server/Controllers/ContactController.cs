@@ -19,7 +19,7 @@ namespace ABRPOINT.Server.Controllers
     public class ContactController : ControllerBase
     {
         private const string SupportInbox = "contact@concorde-tech.fr";
-        private const string SalesInbox = "ventes@concorde-tech.fr";
+        private const string SalesInbox = "contact@concorde-tech.fr";
 
         private readonly IEmailService _emailService;
         private readonly ILogger<ContactController> _log;

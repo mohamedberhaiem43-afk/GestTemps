@@ -144,7 +144,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
   const [showAddType, setShowAddType] = useState(false);
   const [newAbscod, setNewAbscod] = useState('');
   const [newAbslib, setNewAbslib] = useState('');
-  const [newAbscng, setNewAbscng] = useState<'0' | '1' | '5' | 'R'>('0');
+  const [newAbscng, setNewAbscng] = useState<'0' | '1' | '5' | 'R' | 'E'>('0');
   const [formError, setFormError] = useState<string | null>(null);
   const [formSnack, setFormSnack] = useState<{ open: boolean; sev: 'success' | 'error'; msg: string }>({ open: false, sev: 'success', msg: '' });
 
@@ -227,7 +227,15 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
       setEmpRttMethode(null);
       return;
     }
-    apiInstance.get(`/Employes/get-employe/${soccod}/${targetEmpcod}`)
+    // Quand l'employé consulte SA PROPRE fiche (cas du salarié qui dépose sa demande), on
+    // passe par l'endpoint self `get-my-rtt-methode` : `get-employe` exige le droit de gestion
+    // et renverrait 403 → empRttMethode null → RTT masqué à tort. Un manager/admin qui
+    // sélectionne un AUTRE employé garde l'endpoint complet (il a la permission).
+    const isSelf = !!uticod && targetEmpcod === uticod;
+    const url = isSelf
+      ? `/Employes/get-my-rtt-methode/${soccod}/${targetEmpcod}`
+      : `/Employes/get-employe/${soccod}/${targetEmpcod}`;
+    apiInstance.get(url)
       .then((res) => setEmpRttMethode(res.data?.empRttMethode ?? null))
       .catch(() => setEmpRttMethode(null));
   }, [empcod, isEmp, uticod, soccod]);
@@ -536,7 +544,10 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
                 - éligible + type RTT dans le catalogue → chip vert
                 - éligible MAIS aucun type RTT défini → astuce orange "à créer"
                 - NON éligible alors qu'un type RTT existe → astuce bleue "à activer" */}
-          {isRttEligible && hasAnyRttType && (
+          {/* Ces astuces RTT sont des aides à la GESTION (elles parlent de « cet employé »,
+              « ouvrez sa fiche », « votre catalogue ») : on ne les montre jamais au salarié
+              qui dépose sa propre demande — elles n'auraient pour lui aucun sens / action. */}
+          {!isEmp && isRttEligible && hasAnyRttType && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75, px: 1, py: 0.5, borderRadius: '6px', background: '#dcfce7', border: '1px solid #86efac', width: 'fit-content' }}>
               <Box component="span" sx={{ fontSize: 12, fontWeight: 800, color: '#15803d' }}>✓ Éligible RTT</Box>
               <Box component="span" sx={{ fontSize: 11, color: '#166534' }}>
@@ -544,7 +555,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
               </Box>
             </Box>
           )}
-          {isRttEligible && !hasAnyRttType && (
+          {!isEmp && isRttEligible && !hasAnyRttType && (
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, mb: 0.75, p: 1, borderRadius: '6px', background: '#fef3c7', border: '1px solid #fde68a' }}>
               <Box component="span" sx={{ fontSize: 11, color: '#92400e', lineHeight: 1.4 }}>
                 Cet employé est éligible aux RTT, mais aucun type d'absence RTT n'est défini dans votre catalogue.
@@ -552,7 +563,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
               </Box>
             </Box>
           )}
-          {!isRttEligible && hasAnyRttType && (
+          {!isEmp && !isRttEligible && hasAnyRttType && (
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, mb: 0.75, p: 1, borderRadius: '6px', background: '#dbeafe', border: '1px solid #93c5fd' }}>
               <Box component="span" sx={{ fontSize: 11, color: '#1e40af', lineHeight: 1.4 }}>
                 Les types RTT sont masqués : cet employé n'a pas de méthode RTT activée.
@@ -617,11 +628,12 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
               <Box sx={{ mt: 1.25 }}>
                 <Typography sx={{ fontSize: '10px', fontWeight: 700, color: '#64748b', mb: 0.5 }}>{t('conge.demConge.form.addTypeImputation')}</Typography>
                 <FormControl fullWidth size="small">
-                  <Select value={newAbscng} onChange={(e) => setNewAbscng(e.target.value as '0' | '1' | '5' | 'R')} sx={{ borderRadius: '8px', backgroundColor: '#fff' }}>
+                  <Select value={newAbscng} onChange={(e) => setNewAbscng(e.target.value as '0' | '1' | '5' | 'R' | 'E')} sx={{ borderRadius: '8px', backgroundColor: '#fff' }}>
                     <MenuItem value="0">{t('intituleAbsences.imputationOptions.0')}</MenuItem>
                     <MenuItem value="1">{t('intituleAbsences.imputationOptions.1')}</MenuItem>
                     <MenuItem value="5">{t('intituleAbsences.imputationOptions.5')}</MenuItem>
                     <MenuItem value="R">{t('intituleAbsences.imputationOptions.R')}</MenuItem>
+                    <MenuItem value="E">{t('intituleAbsences.imputationOptions.E')}</MenuItem>
                   </Select>
                 </FormControl>
               </Box>
@@ -650,16 +662,16 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
             <TextField size="small" fullWidth type="date" value={condep} onChange={(e) => setCondep(e.target.value)} sx={fieldSx} />
           </Box>
           <Box sx={{ pb: 0.5 }}>
-            <Typography sx={{ fontSize: '10px', color: '#94a3b8', mb: 0.5 }}>{t('conge.demConge.form.amHalf')}</Typography>
-            <input type="checkbox" checked={conamdep} onChange={(e) => setConamdep(e.target.checked)} style={{ width: 16, height: 16 }} />
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.amHalf')}</Typography>
+            <input type="checkbox" checked={conamdep} onChange={(e) => setConamdep(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0040a1', cursor: 'pointer' }} />
           </Box>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.returnDate')}</Typography>
             <TextField size="small" fullWidth type="date" value={conret} onChange={(e) => setConret(e.target.value)} sx={fieldSx} />
           </Box>
           <Box sx={{ pb: 0.5 }}>
-            <Typography sx={{ fontSize: '10px', color: '#94a3b8', mb: 0.5 }}>{t('conge.demConge.form.amHalf')}</Typography>
-            <input type="checkbox" checked={conamret} onChange={(e) => setConamret(e.target.checked)} style={{ width: 16, height: 16 }} />
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.amHalf')}</Typography>
+            <input type="checkbox" checked={conamret} onChange={(e) => setConamret(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0040a1', cursor: 'pointer' }} />
           </Box>
           <Box sx={{ gridColumn: { xs: 'span 2', sm: 'auto' } }}>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#0040a1', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.days')}</Typography>

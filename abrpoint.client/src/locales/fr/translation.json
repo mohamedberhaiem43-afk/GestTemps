@@ -3276,7 +3276,8 @@
       "5": "Congé sans Solde (CSS)",
       "7": "Blame (B)",
       "V": "Avertissement (V)",
-      "R": "RTT (Réduction du Temps de Travail)"
+      "R": "RTT (Réduction du Temps de Travail)",
+      "E": "Compte Épargne Temps (CET)"
     },
     "periodicite": {
       "A": "Année civile",
