@@ -785,7 +785,12 @@ namespace ABRPOINT.Server.Controllers
                 var plan = PlanCatalog.GetPlan(tenant?.PlanCode) ?? PlanCatalog.Starter;
                 var activeCount = await _db.Employes.CountAsync(e => e.Actif == "A");
 
-                if (PlanCatalog.IsOverIncludedCapacity(plan, activeCount))
+                // Seuil avant confirmation d'overage = inclus du pack + sièges DÉJÀ achetés via
+                // Payment Link dédié (Tenant.LinkPurchasedSeats, facturés par leur propre abonnement).
+                // En-deçà, on ne redemande pas de confirmation : ces collaborateurs sont déjà payés.
+                var linkSeats = System.Math.Max(0, tenant?.LinkPurchasedSeats ?? 0);
+                var seatAllowance = plan.IncludedEmployees + linkSeats;
+                if (activeCount >= seatAllowance)
                 {
                     var isTrialing = ABRPOINT.Server.Tenancy.TrialPolicy.IsTrialing(tenant);
                     if (isTrialing)

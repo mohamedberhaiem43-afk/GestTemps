@@ -215,7 +215,7 @@ const FR: Dict = {
     { name: 'Accompagnement demi-journée', desc: "Accompagnement personnalisé dédié au déploiement, à l'organisation RH ou à l'optimisation de l'utilisation de la plateforme.", price: '490 €' },
     { name: "Journée complète d'accompagnement", desc: "Journée complète d'accompagnement opérationnel et stratégique : déploiement, structuration RH, formation avancée ou optimisation des processus internes.", price: '890 €' },
   ],
-  quoteTitle: 'Modules sur devis', quoteSub: 'Solutions avancées étudiées selon vos besoins — contactez-nous pour un devis personnalisé.',
+  quoteTitle: 'Modules et services sur devis', quoteSub: 'Solutions avancées étudiées selon vos besoins — contactez-nous pour un devis personnalisé.',
   quoteBtn: 'Demander un devis',
   quoteModules: [
     { name: 'Import de données assisté', desc: "Assistance technique et accompagnement pour l'import sécurisé des salariés, équipes, structures et données RH existantes vers Concorde Workforce." },
@@ -457,13 +457,13 @@ const STRIPE_LINKS: Record<PaidPack, Record<BillingCycle, string>> = {
 
 // Payment Links des modules optionnels (ordre = dict.optModules). Essai/abonnement Stripe.
 const OPTIONAL_MODULE_LINKS = [
-  'https://buy.stripe.com/5kQfZa4q9gA1bRJ1hf0000', // Assistant RH IA — 79 €/mois
+  'https://buy.stripe.com/5kQfZa4q9gA1bRJ1hf0000b', // Assistant RH IA — 79 €/mois
   'https://buy.stripe.com/cNi28k1dX3Nf6xpaRP0000a', // Signature électronique — 19 €/mois
   'https://buy.stripe.com/6oU8wI5ud1F79JBaRP00009', // Stockage supplémentaire 100 Go — 29 €/mois
 ];
 // Payment Links des services ponctuels (ordre = dict.serviceItems).
 const SERVICE_LINKS = [
-  'https://buy.stripe.com/3cI14g7CI4RjaNF9NL0000d', // Formation administrateurs (visio) — 290 €
+  'https://buy.stripe.com/3cI14g7Cl4RjaNF9NL0000d', // Formation administrateurs (visio) — 290 €
   'https://buy.stripe.com/aFa3coe0J97zcVN3pn0000e', // Accompagnement Expert (visio) — 190 €
   'https://buy.stripe.com/3cI00c6yhbfH8Fxgc90000f', // Accompagnement demi-journée — 490 €
   'https://buy.stripe.com/dRmcMY5udabDaNF1hf0000g', // Journée complète d'accompagnement — 890 €
@@ -576,7 +576,8 @@ export default function HomePage() {
     { type: 'section', label: d.csSecu },
     { type: 'feature', label: d.cfOvh, s: true, st: true, b: true },
     { type: 'feature', label: d.cfCrypto, s: true, st: true, b: true },
-    { type: 'feature', label: d.cfBrand, s: false, st: false, b: true },
+    // Branding personnalisé retiré du comparatif des packs (2026-06-02) : désormais
+    // « sur devis » (cf. section « Modules et services sur devis » ci-dessus).
     { type: 'section', label: d.csLimites },
     { type: 'feature', label: d.cfCollab, s: '10', st: '25', b: '50' },
     { type: 'feature', label: d.cfStockage, s: '10 Go', st: '50 Go', b: '200 Go' },
@@ -837,21 +838,22 @@ export default function HomePage() {
             <ul className="price-list">{d.standardFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
           </div>
 
-          {/* BUSINESS / PREMIUM */}
-          <div className="price-card" style={{ border: '2px solid #0040a1', background: 'linear-gradient(180deg,#f0f5ff,#fff)' }}>
-            <div style={{ position: 'absolute', top: -12, right: 20, background: 'linear-gradient(135deg,#0040a1,#0056d2)', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 999, letterSpacing: '.08em', textTransform: 'uppercase' }}>{d.premiumBadge}</div>
-            <div className="price-tier" style={{ color: '#0040a1' }}>Premium</div>
-            <div className="price-from" style={{ color: '#0040a1' }}>{d.from}</div>
-            <div className="price-amount" style={{ color: '#0040a1' }}><span className="cu">€</span>{fmt(prices.premium)}<span className="pe" style={{ color: '#0040a1' }}>{d.perMonth}</span></div>
-            {!monthly && <div className="price-commit" style={{ color: '#0040a1' }}>{d.commitAnnual}</div>}
-            {!monthly && <div className="price-cross" style={{ color: '#5a7da8' }}>{fmt(monthlyBase.premium)}{d.crossSuffix}</div>}
+          {/* BUSINESS / PREMIUM — couleur OR (2026-06) : aligné sur le ton doré du
+              comparatif (#b8860b). Dégradés gold : #b8860b (texte) → #d4af37 (accent). */}
+          <div className="price-card" style={{ border: '2px solid #b8860b', background: 'linear-gradient(180deg,#fdf8ec,#fff)' }}>
+            <div style={{ position: 'absolute', top: -12, right: 20, background: 'linear-gradient(135deg,#b8860b,#d4af37)', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 999, letterSpacing: '.08em', textTransform: 'uppercase' }}>{d.premiumBadge}</div>
+            <div className="price-tier" style={{ color: '#b8860b' }}>Premium</div>
+            <div className="price-from" style={{ color: '#b8860b' }}>{d.from}</div>
+            <div className="price-amount" style={{ color: '#b8860b' }}><span className="cu">€</span>{fmt(prices.premium)}<span className="pe" style={{ color: '#b8860b' }}>{d.perMonth}</span></div>
+            {!monthly && <div className="price-commit" style={{ color: '#b8860b' }}>{d.commitAnnual}</div>}
+            {!monthly && <div className="price-cross" style={{ color: '#b9a05f' }}>{fmt(monthlyBase.premium)}{d.crossSuffix}</div>}
             {!monthly && <div className="price-save">{d.savePrefix}{fmt(annualSavings.premium)}{d.saveSuffix}</div>}
-            <div className="price-incl" style={{ color: '#0040a1' }}>{d.pi3}</div>
-            <div className="price-extra" style={{ fontSize: 12.5, color: '#3b6bb5', margin: '4px 0 2px' }}>{d.extraCollab.replace('{price}', fmt(overageRates.premium))}</div>
+            <div className="price-incl" style={{ color: '#b8860b' }}>{d.pi3}</div>
+            <div className="price-extra" style={{ fontSize: 12.5, color: '#a67c00', margin: '4px 0 2px' }}>{d.extraCollab.replace('{price}', fmt(overageRates.premium))}</div>
             <div className="price-per">{d.annualBill}</div>
-            <button type="button" className="btn-trial" style={{ background: 'linear-gradient(135deg,#0040a1,#0056d2)', boxShadow: '0 6px 18px rgba(0,64,161,.32)' }} onClick={() => goToCheckout('premium')}>{d.trialBtn}</button>
+            <button type="button" className="btn-trial" style={{ background: 'linear-gradient(135deg,#b8860b,#d4af37)', boxShadow: '0 6px 18px rgba(184,134,11,.32)' }} onClick={() => goToCheckout('premium')}>{d.trialBtn}</button>
             <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--on-v)', margin: '10px 0', fontWeight: 500 }}>✓ {d.noCard}</div>
-            <button type="button" className="btn-demo-card" style={{ borderColor: '#0040a1', color: '#0040a1' }} onClick={() => scrollToId('contact')}>{d.demoCard}</button>
+            <button type="button" className="btn-demo-card" style={{ borderColor: '#b8860b', color: '#b8860b' }} onClick={() => scrollToId('contact')}>{d.demoCard}</button>
             <ul className="price-list">{d.businessFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
           </div>
 
@@ -899,6 +901,66 @@ export default function HomePage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* NOS SERVICES + MODULES SUR DEVIS — placés juste sous les modules optionnels.
+              Services : bouton « Ajouter » → Payment Link Stripe (prestation ponctuelle,
+              ouvert directement ; client_reference_id ajouté si un tenant est connu).
+              Sur devis : bouton « Demander un devis » → section contact (formulaire). */}
+          <div style={{ marginTop: 56 }}>
+            <h3 style={secHeading}>{d.svcTitle}</h3>
+            <p style={secSub}>{d.svcSub}</p>
+            <div style={tblWrap}>
+              <table style={tbl}>
+                <thead>
+                  <tr>
+                    <th style={thS}>{d.svcCol}</th>
+                    <th style={thS}>{d.descCol}</th>
+                    <th style={{ ...thS, whiteSpace: 'nowrap' }}>{d.tarifCol}</th>
+                    <th style={{ ...thS, textAlign: 'center' }} aria-label={d.addBtn} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {d.serviceItems.map((s, i) => (
+                    <tr key={s.name}>
+                      <td style={{ ...tdS, fontWeight: 700, color: '#0f172a' }}>{s.name}</td>
+                      <td style={tdS}>{s.desc}</td>
+                      <td style={{ ...tdS, fontWeight: 700, color: '#0040a1', whiteSpace: 'nowrap' }}>{s.price}</td>
+                      <td style={{ ...tdS, textAlign: 'center' }}>
+                        <button type="button" style={addBtnS} onClick={() => openStripeLink(SERVICE_LINKS[i], false)}>{d.addBtn}</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 56 }}>
+            <h3 style={secHeading}>{d.quoteTitle}</h3>
+            <p style={secSub}>{d.quoteSub}</p>
+            <div style={tblWrap}>
+              <table style={tbl}>
+                <thead>
+                  <tr>
+                    <th style={thS}>{d.modCol}</th>
+                    <th style={thS}>{d.descCol}</th>
+                    <th style={{ ...thS, textAlign: 'center' }} aria-label={d.quoteBtn} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {d.quoteModules.map((q) => (
+                    <tr key={q.name}>
+                      <td style={{ ...tdS, fontWeight: 700, color: '#0f172a' }}>{q.name}</td>
+                      <td style={tdS}>{q.desc}</td>
+                      <td style={{ ...tdS, textAlign: 'center' }}>
+                        <button type="button" style={quoteBtnS} onClick={() => scrollToId('contact')}>{d.quoteBtn}</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
@@ -960,70 +1022,6 @@ export default function HomePage() {
         <p>{d.infoP1}</p>
         <p>{d.infoP2}</p>
         <p style={{ marginBottom: 0 }}>{d.infoP3}</p>
-      </section>
-
-      {/* SERVICES (Payment Links Stripe) + SERVICES SUR DEVIS */}
-      <section className="services">
-        <div className="services-inner" style={{ display: 'flex', flexDirection: 'column', gap: 56 }}>
-          {/* Nos services — bouton « Ajouter » → Payment Link Stripe (service ponctuel,
-              ouvert directement ; client_reference_id ajouté si un tenant est connu). */}
-          <div>
-            <h3 style={secHeading}>{d.svcTitle}</h3>
-            <p style={secSub}>{d.svcSub}</p>
-            <div style={tblWrap}>
-              <table style={tbl}>
-                <thead>
-                  <tr>
-                    <th style={thS}>{d.svcCol}</th>
-                    <th style={thS}>{d.descCol}</th>
-                    <th style={{ ...thS, whiteSpace: 'nowrap' }}>{d.tarifCol}</th>
-                    <th style={{ ...thS, textAlign: 'center' }} aria-label={d.addBtn} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.serviceItems.map((s, i) => (
-                    <tr key={s.name}>
-                      <td style={{ ...tdS, fontWeight: 700, color: '#0f172a' }}>{s.name}</td>
-                      <td style={tdS}>{s.desc}</td>
-                      <td style={{ ...tdS, fontWeight: 700, color: '#0040a1', whiteSpace: 'nowrap' }}>{s.price}</td>
-                      <td style={{ ...tdS, textAlign: 'center' }}>
-                        <button type="button" style={addBtnS} onClick={() => openStripeLink(SERVICE_LINKS[i], false)}>{d.addBtn}</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Modules sur devis — bouton « Demander un devis » → section contact (formulaire). */}
-          <div>
-            <h3 style={secHeading}>{d.quoteTitle}</h3>
-            <p style={secSub}>{d.quoteSub}</p>
-            <div style={tblWrap}>
-              <table style={tbl}>
-                <thead>
-                  <tr>
-                    <th style={thS}>{d.modCol}</th>
-                    <th style={thS}>{d.descCol}</th>
-                    <th style={{ ...thS, textAlign: 'center' }} aria-label={d.quoteBtn} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.quoteModules.map((q) => (
-                    <tr key={q.name}>
-                      <td style={{ ...tdS, fontWeight: 700, color: '#0f172a' }}>{q.name}</td>
-                      <td style={tdS}>{q.desc}</td>
-                      <td style={{ ...tdS, textAlign: 'center' }}>
-                        <button type="button" style={quoteBtnS} onClick={() => scrollToId('contact')}>{d.quoteBtn}</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* PROMO CTA */}

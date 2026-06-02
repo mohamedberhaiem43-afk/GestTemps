@@ -670,6 +670,16 @@ CREATE INDEX IF NOT EXISTS ""IX_StripeWebhookSeen_ProcessedAt"" ON ""StripeWebho
                 await masterDb.Database.ExecuteSqlRawAsync(@"
 ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""StorageUsedMb""        BIGINT    NOT NULL DEFAULT 0;
 ALTER TABLE ""Tenants"" ADD COLUMN IF NOT EXISTS ""StorageUsageCheckedAt"" TIMESTAMP NULL;");
+                // Blocs de stockage supplémentaires achetés (2026-06) : 1 bloc = 100 Go.
+                // Incrémenté par le webhook quand le module « Stockage 100 Go » est payé via
+                // son Payment Link. Quota effectif = quota pack + blocs × 100 Go. Idempotent.
+                await masterDb.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE \"Tenants\" ADD COLUMN IF NOT EXISTS \"ExtraStorageBlocks\" INTEGER NOT NULL DEFAULT 0;");
+                // Sièges collaborateurs achetés via Payment Link dédié (2026-06) : facturés par
+                // leur propre abonnement Stripe → retirés de l'overage du pack pour éviter le
+                // double-paiement (cf. SyncSupplementaryEmployeesAsync). Idempotent.
+                await masterDb.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE \"Tenants\" ADD COLUMN IF NOT EXISTS \"LinkPurchasedSeats\" INTEGER NOT NULL DEFAULT 0;");
                 // Addons souscrits (CSV) + anti-dup rappel renouvellement J-7 (2026-05).
                 // Idempotents — safe à déployer sur master existante.
                 await masterDb.Database.ExecuteSqlRawAsync(@"

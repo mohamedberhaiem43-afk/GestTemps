@@ -33,7 +33,9 @@ const MINIMUM_PLAN_FOR_FEATURE: Record<keyof PlanFeatures, PlanKey | null> = {
   ragAi: 'Premium',
   // Audit logs : ouverts dès Standard depuis 2026-05-23 (cf. PlanCatalog).
   advancedAuditLogs: 'Standard',
-  customBranding: 'Premium',
+  // 2026-06-02 : retiré du pack Premium → « sur devis » (addon négocié customBranding),
+  // aucun pack ne l'inclut. null = pas de prompt « upgrade vers un pack » (cf. apiAccess).
+  customBranding: null,
   deviceTrustEnforced: 'Premium',
   screenshotProtection: 'Premium',
   certificatePinning: 'Premium',

@@ -474,6 +474,8 @@ public class BillingController : ControllerBase
             nextInvoiceTotal = preview.NextInvoiceTotal,
             billedSeats,
             activeEmployees,
+            estimated = preview.Estimated,
+            note = preview.Note,
         });
     }
 
@@ -576,14 +578,22 @@ public class BillingController : ControllerBase
                 storageQuotaMb = plan.StorageQuotaMb,
                 maxStorageMb = plan.MaxStorageMb,
                 storageSupplementBlockEur = plan.StorageSupplementBlockEur,
+                // Blocs de stockage supplémentaires achetés (module Stockage 100 Go) + quota
+                // effectif = quota pack + blocs × 100 Go. La jauge /billing/storage-usage reflète
+                // déjà ce quota effectif (calculé par StorageQuotaGuard).
+                extraStorageBlocks = tenant.ExtraStorageBlocks,
+                effectiveStorageQuotaMb = PlanCatalog.GetStorageQuotaMb(tenant.PlanCode, tenant.ExtraStorageBlocks),
             };
             usagePayload = new
             {
                 activeEmployees,
                 includedEmployees = plan.IncludedEmployees,
-                extraEmployees,                                 // # employés > seuil inclus
+                extraEmployees,                                 // # employés > seuil inclus (overage total)
                 extraCostMonthlyEur = extraEmployees * plan.OverageRatePerEmployeeEur,
                 isOverCapacity = extraEmployees > 0,
+                // Sièges pré-achetés via Payment Link dédié (facturés séparément). Relèvent le
+                // seuil avant overage et sont retirés du user_supp du pack (anti double-paiement).
+                linkPurchasedSeats = tenant.LinkPurchasedSeats,
             };
         }
         else
@@ -926,6 +936,17 @@ public class BillingController : ControllerBase
         }
         catch (StripeException ex)
         {
+            // resource_missing = le customer/subscription/PM stocké n'existe pas dans le compte
+            // Stripe actif (souvent un décalage clé test/live, ou un ID hérité d'un autre compte).
+            // Ce n'est pas une panne serveur : on dégrade proprement en « aucune carte enregistrée »
+            // (hasCard:false) plutôt qu'un 502 qui casse l'affichage de la page d'abonnement.
+            if (string.Equals(ex.StripeError?.Code, "resource_missing", StringComparison.OrdinalIgnoreCase))
+            {
+                _log.LogWarning(ex,
+                    "PaymentMethod : ressource Stripe introuvable pour {Slug} (décalage test/live ?). Dégradé en hasCard=false.",
+                    slug);
+                return Ok(new { hasCard = false });
+            }
             _log.LogError(ex, "Lecture du PaymentMethod échouée pour tenant {Slug}.", slug);
             return StatusCode(502, new { error = "Impossible de lire la carte de paiement." });
         }

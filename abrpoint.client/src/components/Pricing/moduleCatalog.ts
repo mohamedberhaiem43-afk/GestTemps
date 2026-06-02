@@ -36,7 +36,7 @@ export const MODULE_CATALOG: ModuleDef[] = [
   { label: 'Assistant RH IA',                description: 'Aide à la rédaction, recherche multi-sources, automatisations RH.',           priceMonthlyEur: 79,  feature: 'ragAi',               addonKey: 'aiAssistantRh',        stripeLink: 'https://buy.stripe.com/5kQfZa4q9gA1bRJ1hf0000' },
   { label: 'Signature électronique',         description: 'Parapheur multi-signataires, archivage légal eIDAS.',                        priceMonthlyEur: 19,  feature: 'electronicSignature', addonKey: 'signatureElectronique', stripeLink: 'https://buy.stripe.com/cNi28k1dX3Nf6xpaRP0000a' },
   { label: 'Stockage supplémentaire 100 Go', description: '100 Go d\'espace sécurisé en plus.',                                          priceMonthlyEur: 29,  feature: null,                  addonKey: null,                    stripeLink: 'https://buy.stripe.com/6oU8wI5ud1F79JBaRP00009', note: 'Se gère depuis la carte « Stockage » plus bas.' },
-  { label: 'Branding personnalisé',           description: 'Personnalisation de marque.',        priceMonthlyEur: 19,  feature: 'customBranding',      addonKey: null, note: 'Inclus dans le pack Premium.' },
+  { label: 'Branding personnalisé',           description: 'Personnalisation de marque (logo, couleurs).', priceMonthlyEur: 0, feature: 'customBranding', addonKey: null, quoteOnly: true, note: 'Sur devis — déploiement par nos équipes.' },
 ];
 
 // Map dérivée (clé addon backend → meta) pour les écrans qui raisonnent en clés

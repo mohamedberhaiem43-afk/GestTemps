@@ -145,6 +145,16 @@ const statusLabel = (s: string): { label: string; color: 'success' | 'warning' |
 // Sert à calculer le pourcentage de progression du bandeau trial.
 const TRIAL_DURATION_DAYS = 30;
 
+// Payment Links Stripe dédiés « Collaborateur supplémentaire pack {plan} » (mensuel : 4,90 /
+// 6,90 / 9,90 € selon le pack). Acheter via ce lien crée un abonnement Stripe distinct pour
+// les sièges, rattaché au tenant via ?client_reference_id={slug} → le webhook incrémente
+// Tenant.LinkPurchasedSeats (relève le seuil d'overage, facturation séparée du user_supp du pack).
+const SEAT_PAYMENT_LINKS: Record<string, string> = {
+  Starter: 'https://buy.stripe.com/4gMeV67Cl2JbaNFgc90000h',
+  Standard: 'https://buy.stripe.com/9B6dR2aOx0B31d5gc90000j',
+  Premium: 'https://buy.stripe.com/14A6oAf4N97zaNF3pn0000i',
+};
+
 export default function MonAbonnementPage() {
   // navigate sert encore au redirect post-réactivation (finishSuccess → /dashboard).
   // Le bouton « Ajouter un collaborateur » a basculé sur un dialog inline (cf.
@@ -308,6 +318,14 @@ export default function MonAbonnementPage() {
     const slug = info?.slug || (typeof window !== 'undefined' ? window.localStorage.getItem('tenantSlug') : '') || '';
     const url = slug ? `${link}?client_reference_id=${encodeURIComponent(slug)}` : link;
     window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  // Ouvre le Payment Link « Collaborateur supplémentaire » du pack courant. Le client choisit
+  // la quantité sur la page Stripe ; le webhook crédite les sièges au tenant (LinkPurchasedSeats).
+  const seatLink = SEAT_PAYMENT_LINKS[info?.plan?.code || info?.planCode || ''];
+  const openSeatStripeLink = () => {
+    if (!seatLink) { setAddSeatsError('Aucun lien de paiement collaborateur pour ce pack.'); return; }
+    openModuleStripeLink(seatLink);
   };
 
   const fetchInfo = async (opts: { silent?: boolean } = {}): Promise<SubscriptionInfo | null> => {
@@ -1561,6 +1579,32 @@ export default function MonAbonnementPage() {
                 </Typography>
               </Stack>
             </Box>
+          )}
+
+          {/* Alternative : achat via le Payment Link dédié « Collaborateur supplémentaire ».
+              La quantité se choisit sur la page Stripe ; l'achat est facturé par son propre
+              abonnement et crédité au tenant via le webhook (client_reference_id). */}
+          {seatLink && (
+            <>
+              <Divider sx={{ my: 2.5 }}>
+                <Typography sx={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>OU</Typography>
+              </Divider>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={openSeatStripeLink}
+                sx={{
+                  textTransform: 'none', fontWeight: 700, borderRadius: '12px', py: 1.1,
+                  color: '#635BFF', borderColor: '#c7c4ff', '&:hover': { borderColor: '#635BFF', bgcolor: '#f5f4ff' },
+                }}
+              >
+                Ajouter via un lien de paiement Stripe →
+              </Button>
+              <Typography sx={{ fontSize: 11.5, color: '#94a3b8', mt: 1, textAlign: 'center', lineHeight: 1.5 }}>
+                Vous choisissez le nombre de collaborateurs sur la page Stripe sécurisée.
+                Facturé séparément du pack, sans double-comptage.
+              </Typography>
+            </>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>

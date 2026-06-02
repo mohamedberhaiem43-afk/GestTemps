@@ -710,9 +710,38 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
         }
         catch (StripeException ex)
         {
-            _log.LogWarning(ex, "Preview plan change failed pour tenant {Slug}. Code={Code}", tenant.Slug, ex.StripeError?.Code);
-            return new PlanChangePreview(false, tenant.PlanCode ?? "", canonicalNew,
-                null, null, null, null, "Stripe a refusé la simulation : " + (ex.StripeError?.Code ?? "erreur inconnue"));
+            _log.LogWarning(ex,
+                "Preview plan change : simulation Stripe indisponible pour {Slug}. Code={Code} → estimation locale.",
+                tenant.Slug, ex.StripeError?.Code);
+
+            // `resource_missing` (et toute autre erreur Stripe) = la subscription/customer/price
+            // référencés n'existent pas dans le compte Stripe actif — typiquement un décalage
+            // test/live ou des price_id hérités d'un autre compte. Plutôt qu'un échec rouge dans
+            // l'UI, on renvoie une ESTIMATION LOCALE depuis PlanCatalog : la variation MENSUELLE
+            // récurrente entre l'ancien et le nouveau pack pour le cycle choisi (incluant l'overage
+            // sièges). Le différentiel proraté EXACT reste calculé par Stripe à la validation.
+            var curPlan = ABRPOINT.Server.Tenancy.PlanCatalog.GetPlan(
+                ABRPOINT.Server.Tenancy.PlanCatalog.Normalize(tenant.PlanCode));
+            var isAnnual = string.Equals(billingCycle, "annual", StringComparison.OrdinalIgnoreCase);
+            decimal PlanMonthly(ABRPOINT.Server.Tenancy.PlanDefinition? p)
+                => p == null ? 0m : (isAnnual ? p.FlatPriceAnnualMonthlyEur : p.FlatPriceMonthlyEur);
+
+            var newSeatsOver = System.Math.Max(0, billedSeats - newPlan.IncludedEmployees);
+            var newMonthly = PlanMonthly(newPlan) + newSeatsOver * newPlan.OverageRatePerEmployeeEur;
+            var curSeatsOver = curPlan == null ? 0 : System.Math.Max(0, billedSeats - curPlan.IncludedEmployees);
+            var curMonthly = PlanMonthly(curPlan) + (curPlan?.OverageRatePerEmployeeEur ?? 0m) * curSeatsOver;
+
+            return new PlanChangePreview(
+                Available: true,
+                CurrentPlan: ABRPOINT.Server.Tenancy.PlanCatalog.Normalize(tenant.PlanCode),
+                NewPlan: canonicalNew,
+                ProrationAmount: newMonthly - curMonthly,
+                Currency: "eur",
+                NextInvoiceAt: null,
+                NextInvoiceTotal: newMonthly,
+                UnavailableReason: null,
+                Estimated: true,
+                Note: "Estimation indicative (variation mensuelle). Le montant proraté exact sera confirmé par Stripe à la validation.");
         }
     }
 
@@ -1207,11 +1236,17 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
             return null;
         }
 
-        // Respect du floor de sièges pré-achetés : si l'admin a payé pour 5 collabs supp.
-        // mais n'a créé que 0 employé au-delà du seuil inclus, on garde la quantité à 5
-        // (sinon le sync remettrait à 0 et la facture pré-payée serait remboursée).
+        // Sièges achetés via Payment Link dédié (« Collaborateur supplémentaire pack {plan} ») :
+        // facturés par LEUR PROPRE abonnement Stripe. On les retire de l'overage facturé ici
+        // (item user_supp du pack) pour ne JAMAIS les facturer deux fois.
+        var linkSeats = System.Math.Max(0, tenant.LinkPurchasedSeats);
+        var billableHere = System.Math.Max(0, activeOverage - linkSeats);
+
+        // Respect du floor de sièges pré-achetés EN APP (/billing/add-seats, facturés sur le pack) :
+        // si l'admin a payé pour 5 collabs supp. mais n'a créé que 0 employé au-delà du seuil inclus,
+        // on garde la quantité à 5 (sinon le sync remettrait à 0 et la facture pré-payée serait créditée).
         var purchased = ReadPurchasedExtras(sub);
-        var supplementary = System.Math.Max(activeOverage, purchased);
+        var supplementary = System.Math.Max(billableHere, purchased);
 
         var cycle = DetectBillingCycle(sub);
         var userSuppPriceId = ResolveUserSuppPriceId(tenant.PlanCode, cycle);
@@ -1368,6 +1403,11 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
                 // (les addonKeys sont camelCase, ex. aiAssistantRh) : pas de Normalize ici.
                 if (!map.ContainsKey(pid)) map[pid] = (seg[1], seg[2].ToLowerInvariant(), "addon");
             }
+            else if (seg.Length == 3 && string.Equals(seg[0], "Storage", System.StringComparison.OrdinalIgnoreCase))
+            {
+                // Storage:block100Go:{cycle} — bloc de stockage supplémentaire (100 Go / unité).
+                if (!map.ContainsKey(pid)) map[pid] = (seg[1], seg[2].ToLowerInvariant(), "storage");
+            }
             else if (seg.Length == 3 && string.Equals(seg[1], "base", System.StringComparison.OrdinalIgnoreCase))
             {
                 if (!map.ContainsKey(pid)) map[pid] = (PlanCatalog.Normalize(seg[0]), seg[2].ToLowerInvariant(), "base");
@@ -1411,6 +1451,7 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
         string? derivedPlan = null;
         string? derivedCycle = null;
         var extraSeats = 0;
+        var extraStorageBlocks = 0;
         var addonKeys = new List<string>();
 
         foreach (var item in sub.Items.Data)
@@ -1438,13 +1479,20 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
                     // filtrera sur ValidAddonKeys avant de l'ajouter à Tenant.Addons.
                     if (!addonKeys.Contains(info.Plan)) addonKeys.Add(info.Plan);
                 }
+                else if (info.Kind == "storage")
+                {
+                    // 1 unité = 1 bloc de 100 Go. La quantité de l'item = nombre de blocs achetés.
+                    extraStorageBlocks += (int)(item.Quantity);
+                }
             }
         }
 
-        // Pose le floor de sièges pré-achetés sur la subscription Payment Link, sans jamais
-        // le réduire (idempotence des replays webhook). SyncSupplementaryEmployeesAsync lira
-        // ce floor via ReadPurchasedExtras et le respectera au true-up quotidien.
-        if (extraSeats > 0)
+        // Pose le floor de sièges pré-achetés UNIQUEMENT sur un abonnement de PACK (derivedPlan
+        // non null) : c'est l'abonnement que SyncSupplementaryEmployeesAsync lit via ReadPurchasedExtras.
+        // Un abonnement « collaborateur seul » (Payment Link dédié, derivedPlan null) ne reçoit PAS
+        // de floor — il est facturé par lui-même et comptabilisé côté tenant via LinkPurchasedSeats
+        // (cf. webhook), donc retiré de l'overage du pack pour éviter le double-paiement.
+        if (extraSeats > 0 && derivedPlan != null)
         {
             var prev = ReadPurchasedExtras(sub);
             var floor = System.Math.Max(prev, extraSeats);
@@ -1469,10 +1517,10 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
         }
 
         _log.LogInformation(
-            "ApplyCheckoutSubscription : tenant {Slug} ← Payment Link sub {Sub} (plan={Plan}, cycle={Cycle}, collab_supp={Extra}, addons=[{Addons}]).",
-            tenant.Slug, subscriptionId, derivedPlan ?? "?", derivedCycle ?? "?", extraSeats, string.Join(",", addonKeys));
+            "ApplyCheckoutSubscription : tenant {Slug} ← Payment Link sub {Sub} (plan={Plan}, cycle={Cycle}, collab_supp={Extra}, addons=[{Addons}], storage_blocs={Storage}).",
+            tenant.Slug, subscriptionId, derivedPlan ?? "?", derivedCycle ?? "?", extraSeats, string.Join(",", addonKeys), extraStorageBlocks);
 
-        return new CheckoutProvisionResult(derivedPlan, derivedCycle, extraSeats, addonKeys);
+        return new CheckoutProvisionResult(derivedPlan, derivedCycle, extraSeats, addonKeys, extraStorageBlocks);
     }
 }
 

@@ -172,7 +172,8 @@ public sealed record CheckoutProvisionResult(
     string? PlanCode,
     string? Cycle,
     int ExtraSeatsPurchased,
-    IReadOnlyList<string> AddonKeys);
+    IReadOnlyList<string> AddonKeys,
+    int ExtraStorageBlocks);
 
 /// <summary>
 /// Résultat d'un achat de sièges supplémentaires (cf. <see cref="IBillingService.PurchaseExtraSeatsAsync"/>).
@@ -226,4 +227,9 @@ public sealed record PlanChangePreview(
     string? Currency,
     DateTime? NextInvoiceAt,
     decimal? NextInvoiceTotal,
-    string? UnavailableReason);
+    string? UnavailableReason,
+    // true = chiffrage calculé LOCALEMENT (PlanCatalog) car la simulation Stripe était
+    // indisponible (ex. resource_missing : sub/customer/price absents du compte actif).
+    // Le montant exact proraté reste confirmé par Stripe au moment de la validation.
+    bool Estimated = false,
+    string? Note = null);

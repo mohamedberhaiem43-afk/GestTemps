@@ -246,6 +246,18 @@ public class StripeWebhookController : ControllerBase
                             : string.Join(",", merged.OrderBy(a => a, StringComparer.OrdinalIgnoreCase));
                     }
 
+                    // Auto-augmentation du quota de stockage : payer le module « Stockage 100 Go »
+                    // (price Storage:block100Go) incrémente le nombre de blocs du tenant. Le quota
+                    // effectif = quota pack + blocs × 100 Go (StorageQuotaGuard). Idempotent par
+                    // événement (dédup StripeWebhookSeen) : chaque achat compte une fois.
+                    if (provision is { ExtraStorageBlocks: > 0 } sp)
+                    {
+                        tenant.ExtraStorageBlocks += sp.ExtraStorageBlocks;
+                        _log.LogInformation(
+                            "Tenant {Slug} : +{Blocks} bloc(s) de stockage (100 Go) via Payment Link → total {Total} bloc(s).",
+                            tenant.Slug, sp.ExtraStorageBlocks, tenant.ExtraStorageBlocks);
+                    }
+
                     if (!string.IsNullOrWhiteSpace(planForCheckout))
                     {
                         // ── Checkout de PACK : la nouvelle subscription remplace l'abonnement
@@ -266,16 +278,27 @@ public class StripeWebhookController : ControllerBase
                     }
                     else
                     {
-                        // ── Checkout de MODULE / add-on (Payment Link dédié : Assistant RH IA,
-                        // signature, stockage…). C'est ADDITIF : on ne remplace PAS l'abonnement
-                        // de pack et on n'annule rien, sous peine de résilier le pack du client.
-                        // On se contente de rattacher le customer Stripe. Le déblocage fonctionnel
-                        // de l'add-on (Tenant.Addons) nécessitera le mapping price_id → clé addon
-                        // quand les SKU modules seront renseignés dans Stripe:Prices.
+                        // ── Checkout ADDITIF (Payment Link dédié, sans price de base de pack) :
+                        // module (Assistant RH IA, signature, stockage) OU collaborateurs supp.
+                        // On ne remplace PAS l'abonnement de pack et on n'annule rien.
+                        //
+                        // Collaborateurs supp. via lien dédié : la subscription ne porte qu'un item
+                        // user_supp → provision.ExtraSeatsPurchased = quantité. Ces sièges sont
+                        // facturés par CETTE subscription, donc on les enregistre dans
+                        // LinkPurchasedSeats (relève le seuil d'overage + retiré du user_supp du pack
+                        // pour éviter le double-paiement). Idempotent par événement (dédup).
+                        if (provision is { ExtraSeatsPurchased: > 0 } seatProv)
+                        {
+                            tenant.LinkPurchasedSeats += seatProv.ExtraSeatsPurchased;
+                            _log.LogInformation(
+                                "Tenant {Slug} : +{Seats} collaborateur(s) supp. via Payment Link dédié → total {Total}.",
+                                tenant.Slug, seatProv.ExtraSeatsPurchased, tenant.LinkPurchasedSeats);
+                        }
+
                         await master.SaveChangesAsync(ct);
                         _tenantStore.Invalidate(tenant.Slug);
                         _log.LogInformation(
-                            "checkout.session.completed additif (module/service) pour {Slug} (sub={Sub}) — abonnement de pack inchangé.",
+                            "checkout.session.completed additif pour {Slug} (sub={Sub}) — abonnement de pack inchangé.",
                             tenant.Slug, session.SubscriptionId);
                     }
                     break;

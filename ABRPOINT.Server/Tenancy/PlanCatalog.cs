@@ -290,7 +290,11 @@ public static class PlanCatalog
             AdvancedDashboards: true,
             RagAi: true,
             AdvancedAuditLogs: true,
-            CustomBranding: true,
+            // 2026-06-02 : Branding personnalisé RETIRÉ du pack Premium → désormais
+            // commercialisé « sur devis » (déploiement par nos équipes). Accordé via
+            // l'addon négocié `customBranding` (cf. ValidAddonKeys / GetEffectiveFeatures),
+            // sur le même modèle que le RAG (iaDocumentaireAvancee).
+            CustomBranding: false,
             DeviceTrustEnforced: true,
             ScreenshotProtection: true,
             CertificatePinning: true,
@@ -352,6 +356,23 @@ public static class PlanCatalog
         return plan.StorageQuotaMb;
     }
 
+    /// <summary>Taille (Mo) d'un bloc de stockage supplémentaire achetable. 100 Go binaires.</summary>
+    public const long ExtraStorageBlockMb = 100L * 1024;
+
+    /// <summary>
+    /// Quota de stockage EFFECTIF (Mo) = quota du pack + blocs supplémentaires achetés
+    /// (<paramref name="extraStorageBlocks"/> × <see cref="ExtraStorageBlockMb"/>). C'est la
+    /// valeur que <c>StorageQuotaGuard</c> compare à l'usage réel pour autoriser/refuser un
+    /// upload, et celle affichée dans la jauge « X Go / Y Go ». Les blocs négatifs sont
+    /// clampés à 0 (robustesse).
+    /// </summary>
+    public static long GetStorageQuotaMb(string? planCode, int extraStorageBlocks)
+    {
+        var baseMb = GetStorageQuotaMb(planCode);
+        var extra = (long)System.Math.Max(0, extraStorageBlocks) * ExtraStorageBlockMb;
+        return baseMb + extra;
+    }
+
     /// <summary>
     /// Vrai si l'effectif actuel est strictement supérieur au nombre de salariés
     /// inclus dans le pack. Sert de gate à la création d'un nouveau collaborateur :
@@ -398,6 +419,9 @@ public static class PlanCatalog
         "signatureElectronique",
         "apiAvancee",
         "supportPrioritaire",
+        // Branding personnalisé « sur devis » (2026-06-02) : retiré du pack Premium,
+        // accordé manuellement après devis en ajoutant cette clé à Tenant.Addons.
+        "customBranding",
     };
 
     /// <summary>
@@ -464,6 +488,11 @@ public static class PlanCatalog
         bool apiAccess = feat.ApiAccess || addons.Contains("apiAvancee");
         bool prioritySupport = feat.PrioritySupport || addons.Contains("supportPrioritaire");
 
+        // Branding personnalisé « sur devis » : plus inclus dans aucun pack (2026-06-02).
+        // Débloqué uniquement par l'addon négocié customBranding (équivalent du RAG via
+        // iaDocumentaireAvancee). OR-merge : on n'écrase jamais une feature plan existante.
+        bool customBranding = feat.CustomBranding || addons.Contains("customBranding");
+
         // Assistant IA conversationnel : débloqué par l'addon self-service aiAssistantRh.
         // Le RAG (sur devis) est un sur-ensemble fonctionnel → un tenant RAG a aussi le chatbot.
         bool aiChatbot = feat.AiChatbot || addons.Contains("aiAssistantRh") || ragAi;
@@ -476,6 +505,7 @@ public static class PlanCatalog
             ApiAccess = apiAccess,
             PrioritySupport = prioritySupport,
             AiChatbot = aiChatbot,
+            CustomBranding = customBranding,
         };
     }
 }

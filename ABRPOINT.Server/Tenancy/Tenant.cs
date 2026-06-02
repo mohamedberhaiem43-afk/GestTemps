@@ -134,6 +134,31 @@ public class Tenant
     public DateTime? StorageUsageCheckedAt { get; set; }
 
     /// <summary>
+    /// Nombre de blocs de stockage supplémentaires achetés (1 bloc = 100 Go, cf.
+    /// <see cref="PlanCatalog.ExtraStorageBlockMb"/>). Incrémenté par le webhook
+    /// <c>checkout.session.completed</c> quand le module « Stockage supplémentaire 100 Go »
+    /// est payé via son Payment Link (price <c>Storage:block100Go:monthly</c>). Le quota
+    /// effectif du tenant = quota du pack + <c>ExtraStorageBlocks × 100 Go</c>
+    /// (cf. <see cref="PlanCatalog.GetStorageQuotaMb(string?, int)"/> consommé par
+    /// <c>StorageQuotaGuard</c>). 0 par défaut.
+    /// </summary>
+    public int ExtraStorageBlocks { get; set; } = 0;
+
+    /// <summary>
+    /// Sièges (collaborateurs supplémentaires) pré-achetés via un <b>Payment Link dédié</b>
+    /// « Collaborateur supplémentaire pack {plan} » — chacun facturé par son PROPRE abonnement
+    /// Stripe (≠ l'item <c>user_supp</c> de l'abonnement de pack). Incrémenté par le webhook
+    /// <c>checkout.session.completed</c> quand un tel abonnement autonome est payé.
+    /// Conséquences :
+    ///   • le seuil d'overage de création d'employé est relevé de ce montant
+    ///     (cf. <c>EmployesController.Post</c>) ;
+    ///   • <c>StripeBillingService.SyncSupplementaryEmployeesAsync</c> RETIRE ce montant de
+    ///     l'overage facturé sur l'abonnement de pack → pas de double-facturation.
+    /// 0 par défaut.
+    /// </summary>
+    public int LinkPurchasedSeats { get; set; } = 0;
+
+    /// <summary>
     /// Modules optionnels souscrits (ajoutés au-delà des features incluses dans
     /// <see cref="PlanCode"/>). Liste de clés en CSV, ex.
     /// <c>"aiAssistantRh,signatureElectronique,apiAvancee"</c>.

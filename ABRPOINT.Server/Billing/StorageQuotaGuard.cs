@@ -42,10 +42,11 @@ public sealed class StorageQuotaGuard : IStorageQuotaGuard
         await using var master = await _masterFactory.CreateDbContextAsync(ct);
         var row = await master.Tenants
             .Where(t => t.Id == tenantId)
-            .Select(t => new { t.StorageUsedMb, t.StorageUsageCheckedAt, t.PlanCode })
+            .Select(t => new { t.StorageUsedMb, t.StorageUsageCheckedAt, t.PlanCode, t.ExtraStorageBlocks })
             .FirstOrDefaultAsync(ct);
         if (row is null) return (0, 0, null);
-        var quota = PlanCatalog.GetStorageQuotaMb(row.PlanCode);
+        // Quota effectif = quota du pack + blocs de 100 Go achetés via le module stockage.
+        var quota = PlanCatalog.GetStorageQuotaMb(row.PlanCode, row.ExtraStorageBlocks);
         return (row.StorageUsedMb, quota, row.StorageUsageCheckedAt);
     }
 

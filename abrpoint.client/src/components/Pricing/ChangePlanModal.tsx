@@ -42,6 +42,11 @@ interface PreviewResponse {
   nextInvoiceTotal: number | null;
   billedSeats: number;
   activeEmployees: number;
+  // estimated=true : chiffrage calculé localement côté serveur (simulation Stripe
+  // indisponible). On affiche alors une variation mensuelle indicative + une note,
+  // au lieu du prorata exact. Le montant définitif est confirmé à la validation.
+  estimated?: boolean;
+  note?: string | null;
 }
 
 // Source de vérité côté serveur : PlanCatalog. Fetché à l'ouverture de la modale
@@ -621,29 +626,41 @@ export default function ChangePlanModal({ open, onClose, currentPlan, onSuccess,
               <Stack spacing={1}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography sx={{ fontSize: 14, color: '#475569' }}>
-                    Différentiel ajouté à votre prochaine facture
+                    {preview.estimated
+                      ? 'Variation mensuelle estimée'
+                      : 'Différentiel ajouté à votre prochaine facture'}
                   </Typography>
                   <Typography sx={{ fontWeight: 800, fontSize: 16, color: (preview.prorationAmount ?? 0) >= 0 ? '#0040a1' : '#059669' }}>
                     {preview.prorationAmount != null
                       ? (preview.prorationAmount > 0
-                          ? `+ ${formatMoney(preview.prorationAmount, preview.currency)}`
-                          : `− ${formatMoney(Math.abs(preview.prorationAmount), preview.currency)}`)
+                          ? `+ ${formatMoney(preview.prorationAmount, preview.currency)}${preview.estimated ? ' / mois' : ''}`
+                          : `− ${formatMoney(Math.abs(preview.prorationAmount), preview.currency)}${preview.estimated ? ' / mois' : ''}`)
                       : '—'}
                   </Typography>
                 </Box>
-                <Divider />
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography sx={{ fontSize: 13, color: '#64748b' }}>
-                    Prochaine facture
+                {!preview.estimated && (
+                  <>
+                    <Divider />
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography sx={{ fontSize: 13, color: '#64748b' }}>
+                        Prochaine facture
+                      </Typography>
+                      <Typography sx={{ fontSize: 13, color: '#0f172a', fontWeight: 700 }}>
+                        {formatMoney(preview.nextInvoiceTotal, preview.currency)} · {formatDate(preview.nextInvoiceAt)}
+                      </Typography>
+                    </Box>
+                  </>
+                )}
+                {preview.estimated ? (
+                  <Typography sx={{ fontSize: 12, color: '#92400e', mt: 0.5, fontStyle: 'italic' }}>
+                    {preview.note ?? 'Estimation indicative — le montant proraté exact sera confirmé par Stripe à la validation.'}
                   </Typography>
-                  <Typography sx={{ fontSize: 13, color: '#0f172a', fontWeight: 700 }}>
-                    {formatMoney(preview.nextInvoiceTotal, preview.currency)} · {formatDate(preview.nextInvoiceAt)}
+                ) : (
+                  <Typography sx={{ fontSize: 12, color: '#64748b', mt: 0.5 }}>
+                    Calcul prorata-temporis basé sur {preview.activeEmployees} salarié(s) actif(s).
+                    {(preview.prorationAmount ?? 0) < 0 && ' Le crédit sera déduit automatiquement.'}
                   </Typography>
-                </Box>
-                <Typography sx={{ fontSize: 12, color: '#64748b', mt: 0.5 }}>
-                  Calcul prorata-temporis basé sur {preview.activeEmployees} salarié(s) actif(s).
-                  {(preview.prorationAmount ?? 0) < 0 && ' Le crédit sera déduit automatiquement.'}
-                </Typography>
+                )}
               </Stack>
             )}
           </Paper>
