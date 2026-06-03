@@ -83,6 +83,9 @@ public static class BaseDataSchemaMigrator
         //   - parttneutralisetr : "1" = ne pas compter le ticket-restaurant / panier les jours TT.
         await AddColumnIfMissingAsync(db, "parametre", "parttindemnite", "REAL NULL", ct);
         await AddColumnIfMissingAsync(db, "parametre", "parttneutralisetr", "VARCHAR(1) NULL", ct);
+        // Mode heures sup (2026-06) : "A" = calcul automatique ; null/"V" = sur demande
+        // + validation (défaut historique). Lu par HeuresSupplementaireHebdomadaireService.
+        await AddColumnIfMissingAsync(db, "parametre", "parhsupmode", "VARCHAR(1) NULL", ct);
         // Société : ville séparée du numéro de rue (champ socadr existant).
         // ⚠ La table société est mappée "Societe" (PascalCase) par EF Core
         // (ApplicationDbContext.ToTable("Societe")) — PG la stocke donc sensible

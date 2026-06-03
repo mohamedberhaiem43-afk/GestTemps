@@ -1946,6 +1946,10 @@
       "rep3": "3- Ne pas gérer Samedi-Dimanche Travaillés avec les heures normales"
     },
     "heuresSup": {
+      "modeTitle": "Mode de calcul des heures supplémentaires",
+      "modeHint": "Définit comment les heures sup sont comptabilisées dans le pointage du mois.",
+      "modeValidation": "Sur demande + validation (le salarié déclare ses heures sup, le manager valide — seules les heures validées comptent)",
+      "modeAuto": "Calcul automatique (l'excédent présence / contrat hebdomadaire est compté directement)",
       "cadre": "Cadre",
       "maitrise": "Maîtrise",
       "executant": "Exécutant",

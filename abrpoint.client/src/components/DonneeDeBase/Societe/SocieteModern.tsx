@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import * as XLSX from 'xlsx';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography, Button, Switch, FormControlLabel } from '@mui/material';
 import { useFeedbackSnackbar } from '../../helper/FeedbackSnackbar';
 import { useTranslation } from 'react-i18next';
 import SaveIcon from '@mui/icons-material/Save';
@@ -651,16 +651,32 @@ function SocieteModernContent() {
               </Box>
             </Box>
             {canGeofence && isEditMode && (
-              <Box className="soc-field soc-field--full" sx={{ mt: 1 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 600 }}>
-                  <input
-                    type="checkbox"
-                    checked={form.socgeohorszone === '1'}
-                    onChange={(e) => handleToggleGeofencePolicy(e.target.checked)}
-                  />
-                  {t('societe.geofence.acceptLabel')}
-                </label>
-                <Typography sx={{ fontSize: '12px', color: 'text.secondary', mt: 0.5 }}>
+              <Box
+                className="soc-field--full"
+                sx={{
+                  mt: 1.5, p: 1.5, borderRadius: 2,
+                  border: '1px solid', borderColor: 'divider', bgcolor: '#f8fafc',
+                }}
+              >
+                <FormControlLabel
+                  sx={{ m: 0, gap: 1, alignItems: 'center' }}
+                  control={
+                    <Switch
+                      color="primary"
+                      checked={form.socgeohorszone === '1'}
+                      onChange={(e) => handleToggleGeofencePolicy(e.target.checked)}
+                    />
+                  }
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <LocationOnIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+                      <Typography sx={{ fontWeight: 700, fontSize: '14px', color: 'text.primary' }}>
+                        {t('societe.geofence.acceptLabel')}
+                      </Typography>
+                    </Box>
+                  }
+                />
+                <Typography sx={{ fontSize: '12px', color: 'text.secondary', mt: 0.5, ml: 0.5 }}>
                   {t('societe.geofence.acceptHint')}
                 </Typography>
               </Box>

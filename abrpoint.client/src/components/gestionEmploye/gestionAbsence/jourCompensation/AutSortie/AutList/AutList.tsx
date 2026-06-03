@@ -20,21 +20,21 @@ import autoTable from 'jspdf-autotable';
 import { Autoriser } from '../../../../../../models/Autoriser';
 import AlertModal from '../../../../../AlertModal/AlertModal';
 import CustomizedSnackbars from '../../../../../Snackbar/Snackbar';
-import useGetSortie from '../../../../../../hooks/sortieHooks/useGetSortie';
+import useGetAllSorties from '../../../../../../hooks/sortieHooks/useGetAllSorties';
 import useDeleteSortie from '../../../../../../hooks/sortieHooks/useDeleteSortie';
 import { useSortieGeneralContext } from '../../../../../helper/SortieGeneralContext';
 import SortieService from '../../../../../../services/SortieService/SortieService';
 import SortieReportService from '../../../../../../services/SortieService/SortieReportService';
-import { useAuth } from '../../../../../helper/AuthProvider';
 
 const AutoriserList = () => {
   const { setSelectedSortieGeneral } = useSortieGeneralContext();
-  const { uticod } = useAuth();
 
   const [selectedAutoriser, setSelectedAutoriser] = useState<{ concod: string } | null>(null); // Track the selected Autoriser for deletion
   const [openModal, setOpenModal] = useState(false); // Track modal open state
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
-  const {data = [],refetch} = useGetSortie(uticod);
+  // Écran de gestion → liste TOUTE la société (et non le site du compte courant,
+  // ce que faisait useGetSortie(uticod) → liste vide à l'ouverture).
+  const {data = [],refetch} = useGetAllSorties();
   const {mutate:deleteSortie} = useDeleteSortie();
 
   const deleteAutoriser = (concod: string) => {

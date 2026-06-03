@@ -410,4 +410,17 @@ public partial class Parametre : BaseEntity
     [Column("parttneutralisetr")]
     [StringLength(1)]
     public string? Parttneutralisetr { get; set; }
+
+    /// <summary>
+    /// Mode de gestion des heures supplémentaires (pointage du mois) :
+    ///   "A" = calcul AUTOMATIQUE — l'excédent présence/contrat hebdomadaire compte
+    ///         directement comme heures sup.
+    ///   null/"V" = sur DEMANDE + VALIDATION — seules les demandes d'heures sup
+    ///         ([HEURES SUP]) approuvées par un manager comptent (défaut historique).
+    /// Lu par HeuresSupplementaireHebdomadaireService pour activer/non le filtrage
+    /// par approbation (ApplyApprovalFilterAsync).
+    /// </summary>
+    [Column("parhsupmode")]
+    [StringLength(1)]
+    public string? Parhsupmode { get; set; }
 }

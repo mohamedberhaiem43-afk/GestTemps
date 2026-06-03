@@ -385,9 +385,12 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                 heuresSupp -= result.HeuresSupTranche1;
                 result.HeuresSupTranche2 = Math.Min(heuresSupp ?? 0, tranche2 ?? 0);
 
-                // Filtrage par approbation — n'a aucun effet si aucune demande
-                // n'existe pour la semaine (cf. compat ascendante dans le helper).
-                await ApplyApprovalFilterAsync(result, soccod, empcod, tranche1, tranche2);
+                // Mode heures sup (parametre.parhsupmode) :
+                //   "A" = calcul AUTOMATIQUE → on garde l'excédent calculé tel quel.
+                //   null/"V" = sur DEMANDE + VALIDATION → seules les heures sup approuvées
+                //   comptent (filtrage par approbation). Défaut historique = validation.
+                if (!string.Equals(paramSupp.Hsupmode, "A", StringComparison.OrdinalIgnoreCase))
+                    await ApplyApprovalFilterAsync(result, soccod, empcod, tranche1, tranche2);
                 return result;
             }
             catch (Exception)
@@ -587,11 +590,11 @@ namespace ABRPOINT.Server.CalculService.HeureSupp
                         result.HeuresSupTranche2 = Math.Min(heuresSupp ?? 0, tranche2 ?? 0);
                     }
 
-                    // Filtrage approbation — applique le mode strict dès qu'au
-                    // moins une demande [HEURES SUP] existe pour cette semaine.
-                    // Idempotent côté legacy : sans demande, HreSupSemaine reste
-                    // égal au calcul (HreSupCalcule).
-                    await ApplyApprovalFilterAsync(result, soccod, empcod, tranche1, tranche2);
+                    // Mode heures sup (parametre.parhsupmode) : "A" = automatique (pas de
+                    // filtrage) ; null/"V" = validation requise (seules les demandes
+                    // [HEURES SUP] approuvées comptent). Défaut historique = validation.
+                    if (!string.Equals(paramSupp.Hsupmode, "A", StringComparison.OrdinalIgnoreCase))
+                        await ApplyApprovalFilterAsync(result, soccod, empcod, tranche1, tranche2);
 
                     results.Add(result);
                 }

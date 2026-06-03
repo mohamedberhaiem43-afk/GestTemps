@@ -19,7 +19,7 @@ import useGetAutorisationLibs from '../../../../../hooks/absenceHooks/useGetAuto
 import useGetAllAbsences from '../../../../../hooks/absenceHooks/useGetAllAbsence';
 import useGetEmployee from '../../../../../hooks/employeHooks/useGetEmployee';
 import useAddBulkSortie from '../../../../../hooks/sortieHooks/useAddBulkSortie';
-import useGetSortie from '../../../../../hooks/sortieHooks/useGetSortie';
+import useGetAllSorties from '../../../../../hooks/sortieHooks/useGetAllSorties';
 import { Autoriser } from '../../../../../models/Autoriser';
 import { useAuth } from '../../../../helper/AuthProvider';
 import BreadcrumbNavigation from "../../../../helper/BreadcrumbNavigation";
@@ -38,7 +38,7 @@ function formatDuration(hours: number): string {
 
 function AutSortieGeneraleContent() {
   const { t } = useTranslation();
-  const { soccod, uticod } = useAuth();
+  const { soccod } = useAuth();
 
   // Form state
   const [conmotif, setConmotif] = useState<string>('');
@@ -84,7 +84,7 @@ function AutSortieGeneraleContent() {
   }, [employesRaw]);
 
   const { mutate: addBulkSortie } = useAddBulkSortie();
-  const { refetch } = useGetSortie(uticod);
+  const { refetch } = useGetAllSorties();
 
   const hoursDiff = useMemo(() => {
     if (condat[0] && condat[1]) {

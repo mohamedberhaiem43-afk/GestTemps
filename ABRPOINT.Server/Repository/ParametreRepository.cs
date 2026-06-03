@@ -459,6 +459,7 @@ namespace ABRPOINT.Server.Repository
                     EliminerFerier = parametre.Parelimftrv,
                     Parreptrv = parametre.Parreptrv,
                     MajNuitNorm = parametre.Nbhtr4,
+                    Hsupmode = parametre.Parhsupmode,
                 };
             }
             catch (Exception)

@@ -1947,6 +1947,10 @@
       "rep3": "3- Do not handle Worked Saturday-Sunday with normal hours"
     },
     "heuresSup": {
+      "modeTitle": "Overtime calculation mode",
+      "modeHint": "Defines how overtime is counted in the monthly attendance.",
+      "modeValidation": "On request + approval (the employee declares overtime, the manager approves — only approved hours count)",
+      "modeAuto": "Automatic calculation (the attendance / weekly-contract excess is counted directly)",
       "cadre": "Manager",
       "maitrise": "Supervisor",
       "executant": "Operator",

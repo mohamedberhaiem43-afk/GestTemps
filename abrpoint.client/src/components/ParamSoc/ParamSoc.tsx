@@ -412,6 +412,23 @@ export default function ParamSocModern() {
       {activeTab === 1 && (
         <div className="ps-modern-grid">
           <div className="ps-modern-card ps-modern-card--large">
+            <h3 className="ps-modern-card-title">{t('paramSoc.heuresSup.modeTitle')}</h3>
+            <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2, mt: 1 }}>
+              {t('paramSoc.heuresSup.modeHint')}
+            </Typography>
+            <Select
+              value={formData.parhsupmode === 'A' ? 'A' : 'V'}
+              onChange={(e) => handleInputChange('parhsupmode', e.target.value)}
+              size="small"
+              fullWidth
+              sx={{ borderRadius: '8px', maxWidth: 460, mb: 1 }}
+            >
+              <MenuItem value="V">{t('paramSoc.heuresSup.modeValidation')}</MenuItem>
+              <MenuItem value="A">{t('paramSoc.heuresSup.modeAuto')}</MenuItem>
+            </Select>
+          </div>
+
+          <div className="ps-modern-card ps-modern-card--large">
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
               <h3 className="ps-modern-card-title">{t('paramSoc.tabsHeader.tranchesHsup')}</h3>
               <Box sx={{ display: 'flex', gap: 2 }}>

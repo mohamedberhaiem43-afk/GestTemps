@@ -98,4 +98,6 @@ export type Parametre = {
     nuitsdeb?: string | null;
     nuitsfin?: string | null;
     parretabs?: string | null;
+    // Mode heures sup : "A" = calcul automatique ; null/"V" = sur demande + validation.
+    parhsupmode?: string | null;
 }

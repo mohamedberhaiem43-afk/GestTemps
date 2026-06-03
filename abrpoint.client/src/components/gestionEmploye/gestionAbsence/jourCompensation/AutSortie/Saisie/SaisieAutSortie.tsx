@@ -37,7 +37,7 @@ import useAddSortie from "../../../../../../hooks/sortieHooks/useAddSortie";
 import { Autoriser } from "../../../../../../models/Autoriser";
 import useAddBulkSortie from "../../../../../../hooks/sortieHooks/useAddBulkSortie";
 import useUpdateSortie from "../../../../../../hooks/sortieHooks/useUpdateSortie";
-import useGetSortie from "../../../../../../hooks/sortieHooks/useGetSortie";
+import useGetAllSorties from "../../../../../../hooks/sortieHooks/useGetAllSorties";
 import generateNumeroOrdre from "../../../../../helper/GenerateNumOrdre";
 import { useAuth } from "../../../../../helper/AuthProvider";
 
@@ -48,8 +48,8 @@ interface SaisieAutSortieProps {
 export default function SaisieAutSortie({ type }: SaisieAutSortieProps) {
   const { t } = useTranslation();
   const { selectedSortieGeneral } = useSortieGeneralContext();
-  const { soccod, uticod } = useAuth();
-  
+  const { soccod } = useAuth();
+
   const [empcod, setEmpcod] = useState<string | null>("");
   const [concod, setConcod] = useState<string>(generateNumeroOrdre());
   const [conmotif, setConmotif] = useState<string | null>("");
@@ -70,7 +70,7 @@ export default function SaisieAutSortie({ type }: SaisieAutSortieProps) {
   const { mutate: addSortie } = useAddSortie();
   const { mutate: addBulkSortie } = useAddBulkSortie();
   const { mutate: updateSortie } = useUpdateSortie();
-  const { refetch } = useGetSortie(uticod);
+  const { refetch } = useGetAllSorties();
 
   const toggleExceptionList = () => {
     setShowExceptionList(prev => !prev);

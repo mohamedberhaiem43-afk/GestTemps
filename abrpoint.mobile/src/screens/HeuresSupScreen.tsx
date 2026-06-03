@@ -54,6 +54,14 @@ function trimTime(t?: string | null): string | undefined {
 }
 function pad2(n: number) { return n < 10 ? `0${n}` : `${n}`; }
 function formatHHMM(d: Date) { return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+// Sérialise l'heure MURALE locale (sans conversion UTC). toISOString() décale de
+// l'offset du fuseau (ex. 17:00 en UTC+1 → "16:00Z"), et comme la colonne SQL est
+// « timestamp without time zone », cette valeur décalée était figée puis réaffichée
+// telle quelle côté web → 17h saisi mais 16h affiché. On envoie donc le mur local.
+function toLocalIso(d: Date) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+    + `T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+}
 function formatDateLong(d: Date) {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
 }
@@ -224,9 +232,9 @@ export default function HeuresSupScreen({ navigation, route }: any) {
         concod: next.concod,
         soccod: user.soccod,
         empcod: user.uticod,
-        condat: new Date().toISOString(),
-        condep: condep.toISOString(),
-        conret: conret.toISOString(),
+        condat: toLocalIso(new Date()),
+        condep: toLocalIso(condep),
+        conret: toLocalIso(conret),
         conjour: '1',
         conmotif: `[HEURES SUP] ${notes || `${overtimeMinutes / 60}h`}`,
       });
