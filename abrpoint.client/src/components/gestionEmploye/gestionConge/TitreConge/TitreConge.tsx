@@ -4,7 +4,7 @@ import {
   Box, Typography, Paper, Button, CircularProgress,
   Avatar, IconButton, Dialog, DialogTitle,
   DialogContent, DialogActions, Snackbar, Alert, Divider,
-  TextField, FormControl, Select, MenuItem
+  TextField, FormControl, Select, MenuItem, Checkbox
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -28,6 +28,7 @@ import useGetEmployee from '../../../../hooks/employeHooks/useGetEmployee';
 import useAddConge from '../../../../hooks/congeHooks/useAddConge';
 import useUpdateTitreConge from '../../../../hooks/congeHooks/useUpdateTitreConge';
 import useGetDroitConge from '../../../../hooks/congeHooks/useGetDroitConge';
+import useGetSoldeByEmp from '../../../../hooks/soldeCongeHooks/useGetSoldeByEmp';
 import { getDatePartFromDate } from '../../../helper/TimeConverter/ExtractDateOnly';
 import apiInstance from '../../../API/apiInstance';
 
@@ -108,7 +109,7 @@ function MiniCalendar({ leaves }: { leaves: Conge[] }) {
 // ── Modern Form Dialog (from DemCongeModern) ──────────────────────────────────
 function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { open: boolean; onClose: () => void; editConge: Conge | null; onSuccess?: () => void; onError?: (err: any) => void }) {
   const { t } = useTranslation();
-  const { soccod } = useAuth();
+  const { soccod, uticod } = useAuth();
   const { data: absences = [] } = useGetCongeAbsenceLibs();
   const { data: employeOptions = [] } = useGetEmployee();
   const { mutate: addConge, isPending: adding } = useAddConge();
@@ -127,21 +128,56 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
   const [conref, setConref] = useState('');
   const [connbjour, setConnbjour] = useState(0);
 
-  // Balance logic — le solde dépend du TYPE de congé sélectionné : on dérive le
-  // typeConge ("rtt" si la nature porte Abscng="R", sinon "paye"/CP) à partir de
-  // l'imputation choisie, pour que le backend renvoie le bon droit (CP vs RTT).
+  // Méthode RTT de l'employé sélectionné → sert à MASQUER les types RTT (Abscng='R') aux
+  // employés non éligibles, et à afficher le bon solde. Endpoint self si on consulte sa propre
+  // fiche, sinon get-employe (contexte de gestion). Échec silencieux → non éligible (sûr).
+  const [empRttMethode, setEmpRttMethode] = useState<string | null>(null);
+  useEffect(() => {
+    if (!soccod || !empcod) { setEmpRttMethode(null); return; }
+    const isSelf = !!uticod && empcod === uticod;
+    const url = isSelf
+      ? `/Employes/get-my-rtt-methode/${soccod}/${empcod}`
+      : `/Employes/get-employe/${soccod}/${empcod}`;
+    apiInstance.get(url)
+      .then((r) => setEmpRttMethode(r.data?.empRttMethode ?? null))
+      .catch(() => setEmpRttMethode(null));
+  }, [soccod, empcod, uticod]);
+  const isRttEligible = useMemo(() => {
+    const m = (empRttMethode || '').trim().toUpperCase();
+    return m !== '' && m !== 'N';
+  }, [empRttMethode]);
+
+  // Liste des types affichés dans l'imputation : on retire les types RTT pour un employé
+  // non éligible (le backend renforce ce filtre au POST).
+  const visibleAbsences = useMemo(
+    () => (absences as any[]).filter((a) => isRttEligible || (a.abscng || '').toUpperCase() !== 'R'),
+    [absences, isRttEligible],
+  );
+
+  // Balance logic — le solde reflète la NATURE du type choisi (comme la demande de congé) :
+  //   CP (Abscng='0') → droit acquis à date ; RTT ('R') → crédit RTT ; CET ('E') → jours
+  //   épargnés (Solde.Cetjours) ; CSF/CSS → non décompté ; aucun type → invite à en choisir un.
+  // Borné à AUJOURD'HUI (pas au 31/12) pour montrer l'ACQUIS À DATE et non le droit annuel
+  // complet — c'est ce qui faisait afficher 30 (= Sitconge annuel) au lieu du solde réel.
   const yearStart = `${new Date().getFullYear()}-01-01`;
-  // Borné à AUJOURD'HUI (et non au 31/12) → on affiche le droit ACQUIS À DATE, pas le droit
-  // annuel complet. Aligne ce formulaire sur la demande de congé et la page « Solde de congé »
-  // (le 31/12 donnait p.ex. 20 j alors que l'acquis réel à date était bien moindre).
   const yearEnd = new Date().toISOString().split('T')[0];
   const selectedAbs = (absences as any[]).find((a) => a.abscod === abscod);
-  const typeConge = selectedAbs?.abscng === 'R' ? 'rtt' : 'paye';
+  const selectedAbscng = (selectedAbs?.abscng || '').toUpperCase();
+  const balanceKind: 'prompt' | 'cp' | 'rtt' | 'cet' | 'none' =
+    !abscod ? 'prompt'
+      : selectedAbscng === 'R' ? 'rtt'
+        : selectedAbscng === 'E' ? 'cet'
+          : selectedAbscng === '0' ? 'cp'
+            : 'none';
+  const typeConge = balanceKind === 'rtt' ? 'rtt' : 'paye';
   const { data: droitCongeData } = useGetDroitConge(empcod, yearStart, yearEnd, typeConge);
+  const { data: soldeData } = useGetSoldeByEmp(empcod);
   const droitConge = Array.isArray(droitCongeData) ? droitCongeData[0] : droitCongeData;
   const soldeAnterieur = (droitConge as any)?.soldeinit ?? (droitConge as any)?.Soldeinit ?? 0;
   const droitRestant = (droitConge as any)?.droitrestant ?? (droitConge as any)?.Droitrestant ?? 0;
-  const nouveauSolde = Math.max(0, droitRestant - connbjour);
+  const cetDisponible = (soldeData as any)?.cetjours ?? (soldeData as any)?.Cetjours ?? 0;
+  const soldeActuel = balanceKind === 'cet' ? cetDisponible : droitRestant;
+  const nouveauSolde = Math.max(0, soldeActuel - connbjour);
 
   // Auto-fill phone when employee is selected
   useEffect(() => {
@@ -158,14 +194,22 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
     }
   }, [empcod, employeOptions, editConge]);
 
-  // Set default type de congé when absences load
+  // Set default type de congé when absences load — on prend le 1er type VISIBLE (RTT exclu
+  // pour un non-éligible), pas la liste brute.
   useEffect(() => {
-    if (!editConge && open && absences.length > 0 && !abscod) {
-      // `absences` est un TABLEAU [{abscod, abslib, abscng}] (useGetCongeAbsenceLibs),
-      // pas un dictionnaire : on prend l'abscod du 1er élément, pas l'index "0".
-      setAbscod(absences[0]?.abscod ?? '');
+    if (!editConge && open && visibleAbsences.length > 0 && !abscod) {
+      setAbscod(visibleAbsences[0]?.abscod ?? '');
     }
-  }, [open, editConge, absences, abscod]);
+  }, [open, editConge, visibleAbsences, abscod]);
+
+  // Si le type sélectionné devient invalide (ex. RTT choisi puis bascule vers un employé
+  // non éligible), on réaligne sur le 1er type visible pour ne pas soumettre un type masqué.
+  useEffect(() => {
+    if (!abscod) return;
+    if (!visibleAbsences.some((a) => a.abscod === abscod)) {
+      setAbscod(visibleAbsences[0]?.abscod ?? '');
+    }
+  }, [visibleAbsences, abscod]);
 
   // Fetch next concod from database when form opens in add mode
   useEffect(() => {
@@ -275,10 +319,9 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
           <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.titreConge.form.imputation')}</Typography>
           <FormControl fullWidth size="small">
             <Select value={abscod} onChange={(e) => setAbscod(e.target.value)} sx={{ borderRadius: '8px', backgroundColor: '#f8fafc', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
-              {/* `absences` = tableau [{abscod, abslib}] → on mappe sur les objets,
-                  sinon Object.entries renvoyait (index, objet) → value=index et
-                  libellé "[object Object]". */}
-              {(absences as any[]).map((a) => <MenuItem key={a.abscod} value={a.abscod}>{a.abslib}</MenuItem>)}
+              {/* visibleAbsences = tableau [{abscod, abslib, abscng}] filtré (RTT masqué si
+                  l'employé n'est pas éligible). On mappe sur les objets. */}
+              {visibleAbsences.map((a) => <MenuItem key={a.abscod} value={a.abscod}>{a.abslib}</MenuItem>)}
             </Select>
           </FormControl>
         </Box>
@@ -290,7 +333,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
           </Box>
           <Box sx={{ pb: 0.5 }}>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.titreConge.form.am')}</Typography>
-            <input type="checkbox" checked={conamdep} onChange={(e) => setConamdep(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0040a1', cursor: 'pointer' }} />
+            <Checkbox checked={conamdep} onChange={(e) => setConamdep(e.target.checked)} sx={{ p: 0, color: '#94a3b8', '&.Mui-checked': { color: '#0040a1' }, '& .MuiSvgIcon-root': { fontSize: 26 } }} />
           </Box>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.titreConge.form.returnDate')}</Typography>
@@ -298,7 +341,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
           </Box>
           <Box sx={{ pb: 0.5 }}>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.titreConge.form.am')}</Typography>
-            <input type="checkbox" checked={conamret} onChange={(e) => setConamret(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0040a1', cursor: 'pointer' }} />
+            <Checkbox checked={conamret} onChange={(e) => setConamret(e.target.checked)} sx={{ p: 0, color: '#94a3b8', '&.Mui-checked': { color: '#0040a1' }, '& .MuiSvgIcon-root': { fontSize: 26 } }} />
           </Box>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#0040a1', textTransform: 'uppercase', mb: 0.5 }}>{t('conge.titreConge.form.days')}</Typography>
@@ -306,23 +349,51 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess, onError }: { ope
           </Box>
         </Box>
 
-        {empcod && droitConge && (
+        {empcod && (
             <Box sx={{ background: 'linear-gradient(135deg, #f0f5ff 0%, #e8f0fe 100%)', borderRadius: '12px', p: 2, border: '1px solid #bfdbfe' }}>
-              <Typography sx={{ fontSize: '12px', fontWeight: 800, color: '#0040a1', mb: 1.5, textTransform: 'uppercase' }}>{t('conge.titreConge.form.balanceTitle')}</Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-                <Box sx={{ background: '#fff', borderRadius: '8px', p: 1, textAlign: 'center' }}>
-                  <Typography sx={{ fontSize: '9px', fontWeight: 700, color: '#64748b' }}>{t('conge.titreConge.form.balancePrev')}</Typography>
-                  <Typography sx={{ fontSize: '16px', fontWeight: 800, color: '#0040a1' }}>{soldeAnterieur}</Typography>
+              <Typography sx={{ fontSize: '12px', fontWeight: 800, color: '#0040a1', mb: 1.5, textTransform: 'uppercase' }}>
+                {balanceKind === 'rtt'
+                  ? t('conge.demConge.form.balanceTitleRtt')
+                  : balanceKind === 'cet'
+                    ? t('conge.demConge.form.balanceTitleCet')
+                    : t('conge.titreConge.form.balanceTitle')}
+              </Typography>
+
+              {balanceKind === 'prompt' ? (
+                <Typography sx={{ fontSize: '12px', color: '#475569', fontWeight: 600 }}>
+                  {t('conge.titreConge.form.selectTypeForBalance')}
+                </Typography>
+              ) : balanceKind === 'none' ? (
+                <Typography sx={{ fontSize: '12px', color: '#475569', fontWeight: 600 }}>
+                  {t('conge.demConge.form.noBalanceNote')}
+                </Typography>
+              ) : balanceKind === 'cet' ? (
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                  <Box sx={{ background: '#fff', borderRadius: '8px', p: 1, textAlign: 'center' }}>
+                    <Typography sx={{ fontSize: '9px', fontWeight: 700, color: '#64748b' }}>{t('conge.demConge.form.cetAvailable')}</Typography>
+                    <Typography sx={{ fontSize: '16px', fontWeight: 800, color: '#7c3aed' }}>{cetDisponible}</Typography>
+                  </Box>
+                  <Box sx={{ background: '#fff', borderRadius: '8px', p: 1, textAlign: 'center', border: connbjour > 0 ? '1px dashed #059669' : 'none' }}>
+                    <Typography sx={{ fontSize: '9px', fontWeight: 700, color: '#64748b' }}>{t('conge.titreConge.form.balanceNew')}</Typography>
+                    <Typography sx={{ fontSize: '16px', fontWeight: 800, color: nouveauSolde < 0 ? '#ba1a1a' : '#059669' }}>{t('conge.titreConge.form.balanceNewDays', { count: nouveauSolde })}</Typography>
+                  </Box>
                 </Box>
-                <Box sx={{ background: '#fff', borderRadius: '8px', p: 1, textAlign: 'center' }}>
-                  <Typography sx={{ fontSize: '9px', fontWeight: 700, color: '#64748b' }}>{t('conge.titreConge.form.balanceCurrent')}</Typography>
-                  <Typography sx={{ fontSize: '16px', fontWeight: 800, color: '#7c3aed' }}>{droitRestant}</Typography>
+              ) : (
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                  <Box sx={{ background: '#fff', borderRadius: '8px', p: 1, textAlign: 'center' }}>
+                    <Typography sx={{ fontSize: '9px', fontWeight: 700, color: '#64748b' }}>{t('conge.titreConge.form.balancePrev')}</Typography>
+                    <Typography sx={{ fontSize: '16px', fontWeight: 800, color: '#0040a1' }}>{soldeAnterieur}</Typography>
+                  </Box>
+                  <Box sx={{ background: '#fff', borderRadius: '8px', p: 1, textAlign: 'center' }}>
+                    <Typography sx={{ fontSize: '9px', fontWeight: 700, color: '#64748b' }}>{t('conge.titreConge.form.balanceCurrent')}</Typography>
+                    <Typography sx={{ fontSize: '16px', fontWeight: 800, color: '#7c3aed' }}>{droitRestant}</Typography>
+                  </Box>
+                  <Box sx={{ background: '#fff', borderRadius: '8px', p: 1, textAlign: 'center', gridColumn: 'span 2', border: connbjour > 0 ? '1px dashed #059669' : 'none' }}>
+                    <Typography sx={{ fontSize: '9px', fontWeight: 700, color: '#64748b' }}>{t('conge.titreConge.form.balanceNew')}</Typography>
+                    <Typography sx={{ fontSize: '18px', fontWeight: 800, color: nouveauSolde < 0 ? '#ba1a1a' : '#059669' }}>{t('conge.titreConge.form.balanceNewDays', { count: nouveauSolde })}</Typography>
+                  </Box>
                 </Box>
-                <Box sx={{ background: '#fff', borderRadius: '8px', p: 1, textAlign: 'center', gridColumn: 'span 2', border: connbjour > 0 ? '1px dashed #059669' : 'none' }}>
-                  <Typography sx={{ fontSize: '9px', fontWeight: 700, color: '#64748b' }}>{t('conge.titreConge.form.balanceNew')}</Typography>
-                  <Typography sx={{ fontSize: '18px', fontWeight: 800, color: nouveauSolde < 0 ? '#ba1a1a' : '#059669' }}>{t('conge.titreConge.form.balanceNewDays', { count: nouveauSolde })}</Typography>
-                </Box>
-              </Box>
+              )}
             </Box>
         )}
 

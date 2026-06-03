@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace ABRPOINT.Server.Services;
@@ -29,6 +30,13 @@ public sealed class ExpoPushService : IExpoPushService
     private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<ExpoPushService> _log;
 
+    // Expo REJETTE les champs null (ex. "0.channelId": Expected string, received null).
+    // On omet donc toute propriété nulle à la sérialisation au lieu d'envoyer null.
+    private static readonly JsonSerializerOptions JsonOpts = new()
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
+
     public ExpoPushService(IHttpClientFactory httpFactory, ILogger<ExpoPushService> log)
     {
         _httpFactory = httpFactory;
@@ -57,7 +65,7 @@ public sealed class ExpoPushService : IExpoPushService
 
         try
         {
-            var response = await http.PostAsJsonAsync(Endpoint, payload, ct);
+            var response = await http.PostAsJsonAsync(Endpoint, payload, JsonOpts, ct);
             if (!response.IsSuccessStatusCode)
             {
                 var raw = await response.Content.ReadAsStringAsync(ct);

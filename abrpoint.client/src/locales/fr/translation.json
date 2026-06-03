@@ -1572,6 +1572,7 @@
         "balanceCurrent": "ACTUEL",
         "balanceNew": "NOUVEAU SOLDE ESTIMÉ",
         "balanceNewDays": "{{count}} jours",
+        "selectTypeForBalance": "Sélectionnez un type d'imputation pour afficher le solde.",
         "ref": "Référence / Commentaire",
         "submit": "Émettre",
         "save": "Enregistrer",

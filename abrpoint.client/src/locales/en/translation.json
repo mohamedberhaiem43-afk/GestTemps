@@ -1572,6 +1572,7 @@
         "balanceCurrent": "CURRENT",
         "balanceNew": "ESTIMATED NEW BALANCE",
         "balanceNewDays": "{{count}} days",
+        "selectTypeForBalance": "Select an imputation type to display the balance.",
         "ref": "Reference / Comment",
         "submit": "Issue",
         "save": "Save",
