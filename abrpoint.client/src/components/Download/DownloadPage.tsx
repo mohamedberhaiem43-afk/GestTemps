@@ -106,7 +106,7 @@ export default function DownloadPage() {
 
       <header className="dl-header">
         <a className="dl-brand" href="/">
-          <img src="/concorde-workly-light.svg" alt="Concorde Workforce" style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 8 }} />
+          <img src="/concorde-workly-light.jpg" alt="Concorde Workforce" style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 8 }} />
           <span className="dl-brand-name">Concorde Workforce</span>
         </a>
         <a className="dl-back" href="/">← Retour au site</a>

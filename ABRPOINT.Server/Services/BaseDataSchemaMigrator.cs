@@ -22,6 +22,27 @@ public static class BaseDataSchemaMigrator
 {
     public sealed record MigrationReport(bool VilcodExpanded, bool VillibExpanded, bool ParmodempAdded, bool CetColumnsAdded, bool SocvilleAdded, bool VilcodFkExpanded, bool MissionTableCreated, bool NoteDeFraisMissionIdAdded, bool RttColumnsAdded, bool RagTablesCreated, bool MissionDeviseAdded, bool NoteDeFraisDeviseAdded, bool SiteGeofenceAdded, bool RefreshTokenColumnsAdded);
 
+    /// <summary>
+    /// Isolation par étape. Une étape qui jette (FK legacy, lock, type incompatible
+    /// propre à UN tenant) NE DOIT PAS interrompre les étapes idempotentes suivantes :
+    /// sinon une seule DDL en échec laissait des colonnes ultérieures (ex.
+    /// presence.preacc) absentes définitivement sur ce tenant → 42703 « column does not
+    /// exist » à chaque requête. On logge et on continue.
+    /// </summary>
+    private static async Task<T> SafeStepAsync<T>(Func<Task<T>> step, T fallback, string label)
+    {
+        try { return await step(); }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(
+                $"[BaseDataSchemaMigrator] étape « {label} » ignorée (échec non bloquant) : {ex.Message}");
+            return fallback;
+        }
+    }
+
+    private static Task SafeStepAsync(Func<Task> step, string label) =>
+        SafeStepAsync<bool>(async () => { await step(); return true; }, false, label);
+
     public static async Task<MigrationReport> MigrateAsync(ApplicationDbContext db, CancellationToken ct = default)
     {
         // Toutes les définitions de colonnes sont en syntaxe PostgreSQL :
@@ -96,7 +117,7 @@ public static class BaseDataSchemaMigrator
         // legacy de conge) → on la remplace par la vraie table métier. Détection par la
         // présence de la colonne 'id' qui n'existe pas dans le legacy. Sans clients en prod,
         // on peut DROP+CREATE sans perte de données.
-        var missionTable = await EnsureMissionTableAsync(db, ct);
+        var missionTable = await SafeStepAsync(() => EnsureMissionTableAsync(db, ct), false, "mission table");
         // NoteDeFrais.MissionId : ajouté en NULL pour ne pas casser les lignes existantes ;
         // côté contrôleur, on exige la valeur sur les nouvelles saisies. La migration ne
         // peut pas remplir rétroactivement les missions des notes déjà saisies.
@@ -140,9 +161,9 @@ public static class BaseDataSchemaMigrator
         var rttColumnsAdded = rttMethode || rttJoursA || rttHeuresC || rttForfait || rttSoldeJ || rttSoldeU;
 
         // RAG (Retrieval-Augmented Generation) : 3 tables de métadonnées.
-        var ragDocsCreated = await EnsureRagDocumentTableAsync(db, ct);
-        var ragLettersCreated = await EnsureRagLetterTemplateTableAsync(db, ct);
-        var ragLogsCreated = await EnsureRagChatLogTableAsync(db, ct);
+        var ragDocsCreated = await SafeStepAsync(() => EnsureRagDocumentTableAsync(db, ct), false, "rag_document");
+        var ragLettersCreated = await SafeStepAsync(() => EnsureRagLetterTemplateTableAsync(db, ct), false, "rag_letter_template");
+        var ragLogsCreated = await SafeStepAsync(() => EnsureRagChatLogTableAsync(db, ct), false, "rag_chat_log");
         var ragTablesCreated = ragDocsCreated || ragLettersCreated || ragLogsCreated;
 
         // Devise pour les missions et notes de frais (ISO 4217 — 3 caractères).
@@ -204,13 +225,13 @@ public static class BaseDataSchemaMigrator
         // par tenant. L'admin DPO la modifie depuis l'UI (cf. RetentionPolicyController) ;
         // les hosted services lisent les valeurs au lieu d'utiliser les défauts de
         // appsettings.json. La ligne id=1 est seedée si absente.
-        await EnsureRetentionPolicyTableAsync(db, ct);
+        await SafeStepAsync(() => EnsureRetentionPolicyTableAsync(db, ct), "retention_policy");
 
         // Live tracking (2026-05-26) : table volatile contenant la dernière position
         // GPS connue de chaque salarié (heartbeat mobile toutes les 60s). Distincte de
         // presence.prelat/prelon qui n'a qu'un point par pointage. La table est purgée
         // par LivePositionRetentionHostedService au-delà de 30 min d'inactivité.
-        await EnsureLivePositionTableAsync(db, ct);
+        await SafeStepAsync(() => EnsureLivePositionTableAsync(db, ct), "live_position");
 
         // Validation des heures supplémentaires (2026-05) : les demandes d'heures sup
         // créées depuis le mobile passent par /Autorisers/my-auth (table autoriser).
@@ -228,23 +249,23 @@ public static class BaseDataSchemaMigrator
         // cf. Models/Teletravail.cs. Tables indépendantes de demconge pour pouvoir
         // gérer ses propres règles métier (pas de solde à décrémenter, pas
         // d'absence type, plage en jours pleins simples).
-        await EnsureTeletravailTableAsync(db, ct);
+        await SafeStepAsync(() => EnsureTeletravailTableAsync(db, ct), "teletravail");
 
         // Demande d'absence avec justificatif (2026-05-23) : workflow ponctuel,
         // distinct de Demconge (qui planifie + décrémente un solde). Le collaborateur
         // upload un certificat médical / convocation et le manager valide. Cf.
         // Models/DemandeAbsence.cs + DemandeAbsenceController.cs.
-        await EnsureDemandeAbsenceTableAsync(db, ct);
+        await SafeStepAsync(() => EnsureDemandeAbsenceTableAsync(db, ct), "demande_absence");
 
         // Alimentation du CET par le salarié (2026-05-30) : demandes de transfert de
         // jours (RTT, CP…) vers le CET, avec workflow de validation optionnel (cf.
         // parametre.parcetvalidation). Table dédiée, distincte de demconge : pas de
         // dates de congé, juste un nombre de jours + un type source. Cf. CetController.
-        await EnsureDemAlimentationCetTableAsync(db, ct);
+        await SafeStepAsync(() => EnsureDemAlimentationCetTableAsync(db, ct), "dem_alimentation_cet");
 
         // Seed CET (2026-05-30) — tenants existants : aligne la config CET sur le seed
         // de provisioning (cf. ProvisioningService.SeedInitialAsync).
-        await SeedCetAbsencesAsync(db, ct);
+        await SafeStepAsync(() => SeedCetAbsencesAsync(db, ct), "seed_cet_absences");
 
         // Signature électronique — workflow (2026-06, Phase 0) : 5 tables d'orchestration
         // (request/step/action/seal_log/template_map) + 3 colonnes sur documentvault pour
@@ -252,25 +273,25 @@ public static class BaseDataSchemaMigrator
         await AddColumnIfMissingAsync(db, "documentvault", "workflow_status", "VARCHAR(30) NULL", ct);
         await AddColumnIfMissingAsync(db, "documentvault", "seal_hash", "VARCHAR(64) NULL", ct);
         await AddColumnIfMissingAsync(db, "documentvault", "sealed_at", "TIMESTAMP NULL", ct);
-        await EnsureSignatureWorkflowTablesAsync(db, ct);
+        await SafeStepAsync(() => EnsureSignatureWorkflowTablesAsync(db, ct), "signature_workflow_tables");
 
         // Modèles de documents par défaut (contrat, titre/demande de congé, autorisation de
         // sortie, certificat/attestation de travail, visite médicale, attestation de salaire)
         // + liaisons signature_template_map. Seedés par société, idempotent. Permet aux tenants
         // EXISTANTS de les obtenir automatiquement au premier accès (sans appeler manuellement
         // POST /api/Roles/seed-system). Évite « parcours de signature bloqué faute de modèle ».
-        await SeedDefaultLetterTemplatesAsync(db, ct);
+        await SafeStepAsync(() => SeedDefaultLetterTemplatesAsync(db, ct), "seed_default_letter_templates");
 
         // Tables mobiles + notifications + known_devices : on délègue à MobileTablesInstaller
         // qui sait déjà créer push_tokens, notifications, notification_preferences,
         // notification_user_settings, known_devices.
-        await MobileTablesInstaller.InstallAsync(db, ct);
+        await SafeStepAsync(() => MobileTablesInstaller.InstallAsync(db, ct), "mobile_tables");
 
         // Seed nations : sans données, le sélecteur "Nationalité" / "Pays" reste vide.
-        await SeedNationsIfEmptyAsync(db, ct);
+        await SafeStepAsync(() => SeedNationsIfEmptyAsync(db, ct), "seed_nations");
 
         // PERF — Indexes critiques sur les hot-paths.
-        await EnsurePerformanceIndexesAsync(db, ct);
+        await SafeStepAsync(() => EnsurePerformanceIndexesAsync(db, ct), "performance_indexes");
 
         return new MigrationReport(vilcod, villib, parmodemp, cetAdded, socville, vilFkExpanded, missionTable, nfMission, rttColumnsAdded, ragTablesCreated, missionDevise, nfDevise, siteGeofenceAdded, refreshTokenColumnsAdded);
     }
@@ -832,8 +853,17 @@ CREATE INDEX ix_mission_soccod_empcod ON mission(soccod, empcod);", ct);
         // dit pas si quelque chose a été ajouté, seulement qu'il n'a pas crashé).
         if (await ColumnExistsAsync(db, table, column, ct)) return false;
         var quotedTable = table.Any(char.IsUpper) ? $"\"{table}\"" : table;
-        await db.Database.ExecuteSqlRawAsync($"ALTER TABLE {quotedTable} ADD COLUMN IF NOT EXISTS {column} {columnDef};", ct);
-        return true;
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync($"ALTER TABLE {quotedTable} ADD COLUMN IF NOT EXISTS {column} {columnDef};", ct);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            // Best-effort : un échec isolé (lock, droits) ne doit pas avorter les colonnes suivantes.
+            Console.Error.WriteLine($"[BaseDataSchemaMigrator] ADD COLUMN {table}.{column} ignoré : {ex.Message}");
+            return false;
+        }
     }
 
     /// <summary>
@@ -854,18 +884,26 @@ CREATE INDEX ix_mission_soccod_empcod ON mission(soccod, empcod);", ct);
         // 2. Une colonne lowercase rescapée d'une migration antérieure sans quotes ?
         //    Si oui, on la renomme — le data déjà capturé est préservé.
         var lower = column.ToLowerInvariant();
-        if (!string.Equals(lower, column, StringComparison.Ordinal)
-            && await ColumnExistsExactAsync(db, table, lower, ct))
+        try
         {
+            if (!string.Equals(lower, column, StringComparison.Ordinal)
+                && await ColumnExistsExactAsync(db, table, lower, ct))
+            {
+                await db.Database.ExecuteSqlRawAsync(
+                    $"ALTER TABLE {quotedTable} RENAME COLUMN {lower} TO \"{column}\";", ct);
+                return true;
+            }
+
+            // 3. Création propre avec identifiant quoté pour préserver la casse.
             await db.Database.ExecuteSqlRawAsync(
-                $"ALTER TABLE {quotedTable} RENAME COLUMN {lower} TO \"{column}\";", ct);
+                $"ALTER TABLE {quotedTable} ADD COLUMN IF NOT EXISTS \"{column}\" {columnDef};", ct);
             return true;
         }
-
-        // 3. Création propre avec identifiant quoté pour préserver la casse.
-        await db.Database.ExecuteSqlRawAsync(
-            $"ALTER TABLE {quotedTable} ADD COLUMN IF NOT EXISTS \"{column}\" {columnDef};", ct);
-        return true;
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[BaseDataSchemaMigrator] colonne quotée {table}.\"{column}\" ignorée : {ex.Message}");
+            return false;
+        }
     }
 
     /// <summary>
@@ -932,7 +970,19 @@ CREATE INDEX ix_mission_soccod_empcod ON mission(soccod, empcod);", ct);
         if (actualChars >= targetMaxLen) return false;
 
         // PG : ALTER COLUMN col TYPE x ; pas de USING nécessaire pour un VARCHAR plus long.
-        await db.Database.ExecuteSqlRawAsync($"ALTER TABLE {table} ALTER COLUMN {column} TYPE {newType};", ct);
+        // ⚠ Cet ALTER « dur » peut jeter (FK dépendante, vue matérialisée, lock) sur certains
+        // tenants. On l'isole pour ne pas avorter le reste de la migration (ex. presence.preacc
+        // plus loin). Sans ce try/catch, un échec ville/employe.vilcod laissait des colonnes
+        // ultérieures non créées → 42703 récurrent.
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync($"ALTER TABLE {table} ALTER COLUMN {column} TYPE {newType};", ct);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[BaseDataSchemaMigrator] ALTER COLUMN TYPE {table}.{column} ignoré : {ex.Message}");
+            return false;
+        }
         // NOT NULL est géré séparément si demandé. PG : SET NOT NULL / DROP NOT NULL.
         if (makeNotNull)
         {

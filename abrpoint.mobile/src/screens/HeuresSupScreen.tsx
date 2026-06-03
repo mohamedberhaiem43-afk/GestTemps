@@ -63,6 +63,39 @@ function parseHHMM(s: string): { h: number; m: number } | null {
   return { h: Number(m[1]), m: Number(m[2]) };
 }
 
+// Statuts des demandes d'heures sup. (Conetat côté serveur). NULL = en attente.
+const OT_STATE: Record<string, { bg: string; fg: string; label: string }> = {
+  Pending:  { bg: '#fef3c7', fg: '#92400e', label: 'En attente' },
+  Approved: { bg: '#d1fae5', fg: '#047857', label: 'Validée' },
+  Refused:  { bg: '#fee2e2', fg: '#b91c1c', label: 'Refusée' },
+  Rejected: { bg: '#fee2e2', fg: '#b91c1c', label: 'Refusée' },
+};
+function otStatus(conetat?: string | null) {
+  if (!conetat) return OT_STATE.Pending;
+  return OT_STATE[conetat] || { bg: '#f1f5f9', fg: '#475569', label: conetat };
+}
+const isPendingReq = (conetat?: string | null) =>
+  !conetat || conetat.toLowerCase() === 'pending';
+function fmtReqDate(d?: string | null) {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }); } catch { return '—'; }
+}
+function fmtReqRange(dep?: string | null, ret?: string | null) {
+  try {
+    if (!dep || !ret) return '';
+    const a = new Date(dep), b = new Date(ret);
+    const mins = Math.round((b.getTime() - a.getTime()) / 60000);
+    if (!Number.isFinite(mins) || mins <= 0) return `${formatHHMM(a)}`;
+    const h = Math.floor(mins / 60), m = mins % 60;
+    const dur = h > 0 ? (m > 0 ? `${h}h${pad2(m)}` : `${h}h`) : `${m} min`;
+    return `${formatHHMM(a)} → ${formatHHMM(b)} · ${dur}`;
+  } catch { return ''; }
+}
+function cleanMotif(motif?: string | null) {
+  if (!motif) return '';
+  return motif.replace(/\[HEURES SUP\]/i, '').trim();
+}
+
 export default function HeuresSupScreen({ navigation, route }: any) {
   const { user } = useAuth();
   const presetDate = route?.params?.presetDate ? new Date(route.params.presetDate) : new Date();
@@ -77,6 +110,10 @@ export default function HeuresSupScreen({ navigation, route }: any) {
   const [horaireRow, setHoraireRow] = useState<any | null>(null);
   const [overtimeStartTouched, setOvertimeStartTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Mes demandes d'heures sup. déjà transmises (pour consultation + suppression).
+  const [myRequests, setMyRequests] = useState<any[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
@@ -122,6 +159,52 @@ export default function HeuresSupScreen({ navigation, route }: any) {
     setStartTime(d);
   }, [overtimeStartFromSchedule, day, overtimeStartTouched]);
 
+  // Charge les autorisations du salarié et ne garde que les heures sup. (motif
+  // préfixé « [HEURES SUP] ») — les autorisations de sortie classiques sont exclues.
+  const loadMyRequests = async () => {
+    if (!user?.soccod || !user?.uticod) { setLoadingList(false); return; }
+    try {
+      const res = await apiService.getMyAuthorizations(user.soccod, user.uticod);
+      const list = Array.isArray(res) ? res : [];
+      const overtime = list.filter((a: any) =>
+        typeof a?.conmotif === 'string' && a.conmotif.toUpperCase().includes('[HEURES SUP]'));
+      // Tri du plus récent au plus ancien (par date de la période déclarée).
+      overtime.sort((a: any, b: any) =>
+        new Date(b?.condep || b?.condat || 0).getTime() - new Date(a?.condep || a?.condat || 0).getTime());
+      setMyRequests(overtime);
+    } catch {
+      // best-effort : on n'empêche pas la saisie si la liste ne charge pas.
+    } finally {
+      setLoadingList(false);
+    }
+  };
+
+  useEffect(() => { loadMyRequests(); }, [user?.soccod, user?.uticod]);
+
+  const confirmDeleteRequest = (req: any) => {
+    if (!user?.soccod || !req?.concod) return;
+    Alert.alert(
+      'Supprimer la demande',
+      'Voulez-vous vraiment supprimer cette demande d\'heures supplémentaires ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiService.deleteMyAuthorization(user.soccod!, req.concod);
+              loadMyRequests();
+            } catch (e: any) {
+              const msg = e?.response?.data?.message || 'Impossible de supprimer la demande.';
+              Alert.alert('Erreur', msg);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const handleSubmit = async () => {
     if (!user?.soccod || !user?.uticod) {
       Alert.alert('Session expirée', 'Veuillez vous reconnecter.');
@@ -147,9 +230,9 @@ export default function HeuresSupScreen({ navigation, route }: any) {
         conjour: '1',
         conmotif: `[HEURES SUP] ${notes || `${overtimeMinutes / 60}h`}`,
       });
-      Alert.alert('Demande envoyée', 'Votre déclaration d\'heures supplémentaires a été transmise au manager.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      setNotes('');
+      loadMyRequests();
+      Alert.alert('Demande envoyée', 'Votre déclaration d\'heures supplémentaires a été transmise au manager.');
     } catch (e: any) {
       const msg = e?.response?.data?.message
         ?? e?.response?.data?.error
@@ -243,6 +326,52 @@ export default function HeuresSupScreen({ navigation, route }: any) {
           >
             <Text style={styles.submitText}>{submitting ? 'Envoi…' : 'Envoyer la demande'}</Text>
           </TouchableOpacity>
+
+          {/* Liste de mes demandes d'heures sup. — consultation + suppression. */}
+          <View style={styles.listHeader}>
+            <Text style={styles.listTitle}>Mes demandes</Text>
+            {myRequests.length > 0 && (
+              <View style={styles.countBadge}><Text style={styles.countBadgeText}>{myRequests.length}</Text></View>
+            )}
+          </View>
+
+          {loadingList ? (
+            <Text style={styles.listEmpty}>Chargement…</Text>
+          ) : myRequests.length === 0 ? (
+            <Text style={styles.listEmpty}>Aucune demande d'heures supplémentaires pour le moment.</Text>
+          ) : (
+            myRequests.map((req: any) => {
+              const st = otStatus(req.conetat);
+              const pending = isPendingReq(req.conetat);
+              const motif = cleanMotif(req.conmotif);
+              return (
+                <View key={`${req.soccod}-${req.concod}`} style={styles.reqCard}>
+                  <View style={styles.reqMain}>
+                    <View style={styles.reqRow}>
+                      <MaterialCommunityIcons name="calendar-outline" size={14} color={COLORS.outline} />
+                      <Text style={styles.reqDate}>{fmtReqDate(req.condep || req.condat)}</Text>
+                      <View style={[styles.reqChip, { backgroundColor: st.bg }]}>
+                        <Text style={[styles.reqChipText, { color: st.fg }]}>{st.label}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.reqRow}>
+                      <MaterialCommunityIcons name="clock-outline" size={14} color={COLORS.outline} />
+                      <Text style={styles.reqRange}>{fmtReqRange(req.condep, req.conret)}</Text>
+                    </View>
+                    {!!motif && <Text style={styles.reqMotif} numberOfLines={2}>{motif}</Text>}
+                  </View>
+                  {pending ? (
+                    <TouchableOpacity onPress={() => confirmDeleteRequest(req)} style={styles.reqDeleteBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <MaterialCommunityIcons name="trash-can-outline" size={20} color="#b91c1c" />
+                    </TouchableOpacity>
+                  ) : (
+                    <MaterialCommunityIcons name="lock-outline" size={18} color="#cbd5e1" />
+                  )}
+                </View>
+              );
+            })
+          )}
+
           <View style={{ height: 40 }} />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -334,4 +463,23 @@ const styles = StyleSheet.create({
   modalItemActive: {},
   modalItemText: { fontSize: 15, color: COLORS.onSurface },
   modalItemTextActive: { color: COLORS.primary, fontWeight: '700' },
+  // Liste « Mes demandes »
+  listHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 28, marginBottom: 12 },
+  listTitle: { fontSize: 15, fontWeight: '800', color: COLORS.onSurface, fontFamily: 'Manrope' },
+  countBadge: { backgroundColor: COLORS.surfaceContainerLow, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+  countBadgeText: { fontSize: 12, fontWeight: '700', color: COLORS.onSurfaceVariant },
+  listEmpty: { fontSize: 13, color: COLORS.outline, fontStyle: 'italic', paddingVertical: 8 },
+  reqCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10,
+    borderWidth: 1, borderColor: COLORS.surfaceContainerLow,
+  },
+  reqMain: { flex: 1, gap: 6 },
+  reqRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  reqDate: { fontSize: 13, fontWeight: '700', color: COLORS.onSurface },
+  reqChip: { marginLeft: 'auto', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 8 },
+  reqChipText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
+  reqRange: { fontSize: 12, color: COLORS.onSurfaceVariant, fontWeight: '500' },
+  reqMotif: { fontSize: 12, color: COLORS.onSurfaceVariant, fontStyle: 'italic', marginTop: 2 },
+  reqDeleteBtn: { padding: 4 },
 });

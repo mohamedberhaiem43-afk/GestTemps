@@ -602,10 +602,26 @@ namespace ABRPOINT.Server.Controllers
                                     && t.StartDate.Date <= pointageDate
                                     && t.EndDate.Date >= pointageDate);
 
-                    if (hasApprovedTeletravail)
+                    // ─── Bypass mission validée ───
+                    // Symétrique au télétravail : un salarié en mission / formation terrain
+                    // (Misetat validé : "Approved" ou "InProgress") dont la période couvre la
+                    // date du pointage doit pouvoir pointer depuis n'importe quelle position
+                    // (locaux client, ville distante, centre de formation…). On saute donc le
+                    // contrôle GPS, mais on log les coordonnées si fournies pour conserver une
+                    // trace anti-fraude. Les statuts Pending / Cancelled / Completed n'ouvrent
+                    // PAS le bypass (mission non validée ou déjà close).
+                    var hasActiveMission = await _db.Missions.AsNoTracking()
+                        .AnyAsync(m => m.Soccod == soccod
+                                    && m.Empcod == empcod
+                                    && (m.Misetat == "Approved" || m.Misetat == "InProgress")
+                                    && m.Misdatedeb.Date <= pointageDate
+                                    && m.Misdatefin.Date >= pointageDate);
+
+                    if (hasApprovedTeletravail || hasActiveMission)
                     {
                         _logger?.LogInformation(
-                            "Pointage GPS bypass (télétravail approuvé) — empcod={Empcod} soccod={Soccod} date={Date:yyyy-MM-dd} site={Sitcod} lat={Lat} lon={Lon} acc={Acc}m",
+                            "Pointage GPS bypass ({Reason}) — empcod={Empcod} soccod={Soccod} date={Date:yyyy-MM-dd} site={Sitcod} lat={Lat} lon={Lon} acc={Acc}m",
+                            hasApprovedTeletravail ? "télétravail approuvé" : "mission validée",
                             empcod, soccod, pointageDate, empSitcod, lat, lon, acc);
                         // Pas de check geofence — on tombe dans la suite du flux
                         // (skew, dates contrat, AddPresence). Le pointage est

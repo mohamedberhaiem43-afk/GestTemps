@@ -431,7 +431,7 @@ function renderComparisonCell(value: CompCell): React.ReactNode {
 }
 
 // Logo embarqué en base64 dans la maquette → on réutilise l'asset public existant.
-const LOGO_SRC = '/concorde-workly-light.svg';
+const LOGO_SRC = '/concorde-workly-light.jpg';
 const DOWNLOAD_URL = 'https://concorde-work-force.com/download';
 
 // ── Liens de paiement Stripe (Checkout hébergé) ─────────────────────────────

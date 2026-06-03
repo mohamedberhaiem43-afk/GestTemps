@@ -372,6 +372,33 @@ namespace ABRPOINT.Server.Controllers
             return NoContent();
         }
 
+        // DELETE api/Autorisers/my-auth/{soccod}/{concod} — self-service : l'employé supprime
+        // SA propre demande (typiquement une demande d'heures sup. créée depuis le mobile),
+        // sans la permission « CanDeleteAutSortie » réservée aux gestionnaires. Garde-fous :
+        //   - ownership (l'appelant doit être le propriétaire, ou un admin/manager) ;
+        //   - on ne supprime QU'une demande encore en attente : une fois validée/refusée
+        //     (Conetat ≠ Pending), elle est figée pour préserver la traçabilité paie.
+        [HttpDelete("my-auth/{soccod}/{concod}")]
+        public async Task<IActionResult> DeleteMyAuthorization(string soccod, string concod)
+        {
+            if (string.IsNullOrWhiteSpace(soccod) || string.IsNullOrWhiteSpace(concod))
+                return BadRequest("Veuillez remplir les champs obligatoires");
+
+            var autoriser = await _autoriserRepository.GetByConcodAsync(soccod, concod);
+            if (autoriser == null) return NotFound();
+
+            if (!await CallerOwnsOrCanManageAsync(autoriser.Empcod ?? string.Empty)) return Forbid();
+
+            if (!string.IsNullOrEmpty(autoriser.Conetat)
+                && !string.Equals(autoriser.Conetat, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                return Conflict(new { message = "Cette demande a déjà été traitée : elle ne peut plus être supprimée." });
+            }
+
+            await _autoriserRepository.DeleteAsync(autoriser);
+            return NoContent();
+        }
+
         // ───────────────────────────────────────────────────────────────────────
         // Validation des demandes d'heures supplémentaires (web admin/manager)
         // ───────────────────────────────────────────────────────────────────────

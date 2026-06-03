@@ -125,6 +125,18 @@ namespace ABRPOINT.Server.Controllers
             // sinon un user pouvait passer son propre empcod dans le body pour valider le check.
             if (!await CallerOwnsOrCanManageAsync(existing.Empcod ?? string.Empty)) return Forbid();
 
+            // Self-service : un salarié (non manager) ne peut modifier QUE sa mission encore
+            // « Pending ». Une fois Approved/InProgress/Completed, seule la hiérarchie peut la
+            // changer — important car une mission validée ouvre le bypass geofence du pointage
+            // (cf. PresencesController). On empêche donc le salarié d'éditer dates/objet a posteriori.
+            if (!await CallerIsAdminOrManagerAsync())
+            {
+                if (!string.Equals(existing.Misetat, "Pending", StringComparison.OrdinalIgnoreCase))
+                    return Conflict(new { message = "Cette mission a déjà été traitée : elle ne peut plus être modifiée." });
+                // L'employé ne décide pas de l'état : on conserve « Pending » quoi qu'il envoie.
+                req.Misetat = "Pending";
+            }
+
             existing.Soccod = req.Soccod!;
             existing.Empcod = req.Empcod!;
             existing.Misobj = req.Misobj!;
@@ -147,6 +159,11 @@ namespace ABRPOINT.Server.Controllers
             var existing = await _repository.GetByIdAsync(id);
             if (existing == null) return NotFound();
             if (!await CallerOwnsOrCanManageAsync(existing.Empcod ?? string.Empty)) return Forbid();
+            // Self-service : un salarié non manager ne supprime que sa mission encore « Pending »
+            // (une mission validée a pu ouvrir le bypass geofence / générer des absences paie).
+            if (!await CallerIsAdminOrManagerAsync()
+                && !string.Equals(existing.Misetat, "Pending", StringComparison.OrdinalIgnoreCase))
+                return Conflict(new { message = "Cette mission a déjà été traitée : elle ne peut plus être supprimée." });
             await _repository.DeleteAsync(id);
             return NoContent();
         }

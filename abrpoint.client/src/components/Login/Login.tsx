@@ -345,7 +345,7 @@ export default function CredentialsSignInPage() {
             sombre assure la lisibilité du texte blanc par-dessus l'image. */}
         <Box className="login-left-overlay">
           <Box className="login-left-logo-frame">
-            <img src="/concorde-workly-light.svg" alt="Concorde Workforce" className="login-left-logo" />
+            <img src="/concorde-workly-light.jpg" alt="Concorde Workforce" className="login-left-logo" />
           </Box>
           <Box className="login-left-copy">
             <Typography className="login-left-title">{t('login.leftTitle')}</Typography>
@@ -359,7 +359,7 @@ export default function CredentialsSignInPage() {
         <Box className="login-form-container">
           {/* Mobile Logo */}
           <Box className="login-mobile-logo">
-            <img src="/concorde-workly-light.svg" alt="Concorde Logo" style={{ width: 88, height: 'auto', objectFit: 'contain' }} />
+            <img src="/concorde-workly-light.jpg" alt="Concorde Logo" style={{ width: 88, height: 'auto', objectFit: 'contain' }} />
           </Box>
 
           {/* Header — adapté au contexte : en mode setup (lien d'invitation salarié)

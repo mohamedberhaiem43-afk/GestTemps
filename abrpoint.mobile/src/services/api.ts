@@ -561,6 +561,14 @@ class ApiService {
     return response.data;
   }
 
+  // Self-service : l'employé supprime SA propre demande (heures sup.) tant qu'elle
+  // est en attente. Endpoint dédié non gardé par la permission gestionnaire
+  // (cf. AutorisersController.DeleteMyAuthorization).
+  async deleteMyAuthorization(soccod: string, concod: string) {
+    const response = await this.client.delete(`/Autorisers/my-auth/${soccod}/${concod}`);
+    return response.data;
+  }
+
   // Employee endpoints
   async getEmployees(soccod: string, uticod: string) {
     const response = await this.client.get(`/Employes/${soccod}/${uticod}`);
@@ -997,6 +1005,21 @@ class ApiService {
     misetat: string; misbudget?: number | null; misdevise?: string | null; abscod: string;
   }) {
     const response = await this.client.put(`/Missions/${id}`, data);
+    return response.data;
+  }
+  // Self-service employé : modifier SA mission encore « Pending » (le serveur force
+  // le maintien de l'état Pending et refuse l'édition d'une mission déjà traitée).
+  async updateMission(id: number, data: {
+    soccod: string; empcod: string; misobj: string; misdest?: string | null;
+    misdatedeb: string; misdatefin: string; misnote?: string | null;
+    misetat?: string; misbudget?: number | null; misdevise?: string | null; abscod: string;
+  }) {
+    const response = await this.client.put(`/Missions/${id}`, data);
+    return response.data;
+  }
+  // Self-service employé : supprimer SA mission encore « Pending ».
+  async deleteMission(id: number) {
+    const response = await this.client.delete(`/Missions/${id}`);
     return response.data;
   }
 

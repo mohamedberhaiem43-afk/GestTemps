@@ -85,6 +85,9 @@ export default function MissionsScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  // id de la mission en cours d'édition (null = création). Seules les missions
+  // « Pending » sont éditables/supprimables côté salarié (le serveur le re-vérifie).
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const defaultForm = {
     misobj: '',
@@ -139,6 +142,73 @@ export default function MissionsScreen({ navigation }: any) {
     setRefreshing(false);
   };
 
+  const openCreateForm = () => {
+    setEditingId(null);
+    setForm({ ...defaultForm, abscod: missionAbscod });
+    setShowForm(true);
+  };
+
+  // Pré-remplit le formulaire avec une mission existante pour édition. Réservé aux
+  // missions « Pending » (cf. onMissionPress) — les autres sont figées côté salarié.
+  const openEditForm = (m: Mission) => {
+    setEditingId(m.id);
+    setForm({
+      misobj: m.misobj || '',
+      misdest: m.misdest || '',
+      misdatedeb: m.misdatedeb ? new Date(m.misdatedeb) : new Date(),
+      misdatefin: m.misdatefin ? new Date(m.misdatefin) : new Date(Date.now() + 24 * 3600 * 1000),
+      misnote: m.misnote || '',
+      misbudget: m.misbudget != null ? String(m.misbudget) : '',
+      misdevise: m.misdevise || 'EUR',
+      abscod: m.abscod || missionAbscod,
+    });
+    setShowForm(true);
+  };
+
+  const closeForm = () => { setShowForm(false); setEditingId(null); setForm({ ...defaultForm, abscod: missionAbscod }); };
+
+  const confirmDelete = (m: Mission) => {
+    Alert.alert(
+      'Supprimer la mission',
+      `Voulez-vous vraiment supprimer « ${m.misobj} » ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await apiService.deleteMission(m.id);
+              Alert.alert('✅ Succès', 'Mission supprimée.');
+              loadAll();
+            } catch (e: any) {
+              const msg = e?.response?.data?.message || 'Impossible de supprimer la mission.';
+              Alert.alert('Erreur', msg);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // Tap sur une carte : si la mission est encore « Pending », on propose modifier /
+  // supprimer ; sinon on explique qu'une mission traitée n'est plus modifiable.
+  const onMissionPress = (m: Mission) => {
+    if (m.misetat !== 'Pending') {
+      Alert.alert('Mission traitée', "Cette mission a déjà été traitée par votre responsable : elle ne peut plus être modifiée ni supprimée.");
+      return;
+    }
+    Alert.alert(
+      m.misobj,
+      'Que souhaitez-vous faire ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Modifier', onPress: () => openEditForm(m) },
+        { text: 'Supprimer', style: 'destructive', onPress: () => confirmDelete(m) },
+      ],
+    );
+  };
+
   const handleSubmit = async () => {
     if (!user?.soccod || !user?.uticod) return;
     if (!form.misobj.trim()) { Alert.alert('Erreur', "L'objet de la mission est requis."); return; }
@@ -153,7 +223,7 @@ export default function MissionsScreen({ navigation }: any) {
       const budget = form.misbudget.trim() === ''
         ? null
         : Number(form.misbudget.replace(',', '.'));
-      await apiService.createMission({
+      const payload = {
         soccod: user.soccod,
         empcod: user.uticod,
         misobj: form.misobj.trim(),
@@ -167,13 +237,19 @@ export default function MissionsScreen({ navigation }: any) {
         // (devise sans montant n'a pas de sens et pollue le suivi comptable).
         misdevise: Number.isFinite(budget!) ? form.misdevise : null,
         abscod: form.abscod,
-      });
-      Alert.alert('✅ Succès', 'Mission créée avec succès.');
-      setShowForm(false);
-      setForm({ ...defaultForm, abscod: missionAbscod });
+      };
+      if (editingId != null) {
+        await apiService.updateMission(editingId, payload);
+        Alert.alert('✅ Succès', 'Mission modifiée avec succès.');
+      } else {
+        await apiService.createMission(payload);
+        Alert.alert('✅ Succès', 'Mission créée avec succès.');
+      }
+      closeForm();
       loadAll();
     } catch (e: any) {
-      const msg = e?.response?.data?.message || 'Impossible de créer la mission.';
+      const msg = e?.response?.data?.message
+        || (editingId != null ? 'Impossible de modifier la mission.' : 'Impossible de créer la mission.');
       Alert.alert('Erreur', msg);
     } finally {
       setSubmitting(false);
@@ -196,7 +272,7 @@ export default function MissionsScreen({ navigation }: any) {
           <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.onSurface} />
         </TouchableOpacity>
         <Text style={styles.topTitle}>Mes missions</Text>
-        <TouchableOpacity onPress={() => setShowForm(true)} style={styles.iconBtn}>
+        <TouchableOpacity onPress={openCreateForm} style={styles.iconBtn}>
           <MaterialCommunityIcons name="plus" size={26} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
@@ -213,7 +289,7 @@ export default function MissionsScreen({ navigation }: any) {
             <Text style={styles.emptyText}>
               Créez un ordre de mission pour vos déplacements, formations ou événements.
             </Text>
-            <TouchableOpacity style={styles.emptyCta} onPress={() => setShowForm(true)}>
+            <TouchableOpacity style={styles.emptyCta} onPress={openCreateForm}>
               <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.emptyCtaGradient}>
                 <MaterialCommunityIcons name="plus" size={18} color="#fff" />
                 <Text style={styles.emptyCtaText}>Nouvelle mission</Text>
@@ -223,8 +299,9 @@ export default function MissionsScreen({ navigation }: any) {
         ) : (
           missions.map(m => {
             const sc = STATE_COLORS[m.misetat] || { bg: '#f1f5f9', fg: '#475569', label: m.misetat };
+            const editable = m.misetat === 'Pending';
             return (
-              <View key={m.id} style={styles.card}>
+              <TouchableOpacity key={m.id} style={styles.card} onPress={() => onMissionPress(m)} activeOpacity={0.7}>
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardTitle} numberOfLines={2}>{m.misobj}</Text>
                   <View style={[styles.stateChip, { backgroundColor: sc.bg }]}>
@@ -252,7 +329,13 @@ export default function MissionsScreen({ navigation }: any) {
                 {!!m.misnote && (
                   <Text style={styles.cardNote}>{m.misnote}</Text>
                 )}
-              </View>
+                {editable && (
+                  <View style={styles.cardActionsHint}>
+                    <MaterialCommunityIcons name="gesture-tap" size={13} color={COLORS.outline} />
+                    <Text style={styles.cardActionsHintText}>Touchez pour modifier ou supprimer</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
             );
           })
         )}
@@ -264,8 +347,8 @@ export default function MissionsScreen({ navigation }: any) {
           <View style={styles.formSheet}>
             <View style={styles.formHandle} />
             <View style={styles.formHeader}>
-              <Text style={styles.formTitle}>Nouvelle mission</Text>
-              <TouchableOpacity onPress={() => { setShowForm(false); setForm(defaultForm); }}>
+              <Text style={styles.formTitle}>{editingId != null ? 'Modifier la mission' : 'Nouvelle mission'}</Text>
+              <TouchableOpacity onPress={closeForm}>
                 <MaterialCommunityIcons name="close" size={24} color={COLORS.outline} />
               </TouchableOpacity>
             </View>
@@ -343,7 +426,7 @@ export default function MissionsScreen({ navigation }: any) {
                 <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.submitGradient}>
                   {submitting
                     ? <ActivityIndicator size="small" color="#fff" />
-                    : <Text style={styles.submitText}>CRÉER LA MISSION</Text>}
+                    : <Text style={styles.submitText}>{editingId != null ? 'ENREGISTRER' : 'CRÉER LA MISSION'}</Text>}
                 </LinearGradient>
               </TouchableOpacity>
               <View style={{ height: 40 }} />
@@ -434,6 +517,11 @@ const styles = StyleSheet.create({
     marginTop: 8, padding: 10, backgroundColor: COLORS.surfaceContainerLow,
     borderRadius: 8, fontSize: 12, color: COLORS.onSurfaceVariant, fontStyle: 'italic',
   },
+  cardActionsHint: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 10,
+    paddingTop: 8, borderTopWidth: 1, borderTopColor: COLORS.surfaceContainerLow,
+  },
+  cardActionsHintText: { fontSize: 11, color: COLORS.outline, fontWeight: '600' },
   // elevation: 30 → modal au-dessus du BottomTabBar (elevation: 8) sur Android,
   // sinon le bouton "Envoyer" est masqué/intaproachable sous la barre persistante.
   formOverlay: {
