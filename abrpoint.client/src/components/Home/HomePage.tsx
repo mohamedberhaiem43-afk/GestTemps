@@ -9,6 +9,7 @@ import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 import InlineAuthCard from './InlineAuthCard';
 import PageSeo from '../helper/PageSeo';
 import { trackEvent } from '../../analytics/ga';
+import { sendSupportMessage } from '../../services/ContactService';
 import './HomePage.css';   // styles de la carte d'auth réutilisés par la popup d'inscription
 import './HomePage2.css';  // nouveau design landing « Aperçu v2 » (scopé sous .hp2)
 
@@ -484,6 +485,10 @@ export default function HomePage() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('annual');
   const [activeStep, setActiveStep] = useState<StepIndex>(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Formulaire de contact (section CONTACT) — envoi direct via /contact/support.
+  const [contactSending, setContactSending] = useState(false);
+  const [contactSent, setContactSent] = useState(false);
+  const [contactError, setContactError] = useState<string | null>(null);
 
   const countdown = useFounderCountdown();
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -556,11 +561,51 @@ export default function HomePage() {
     const full = slug ? `${url}?client_reference_id=${encodeURIComponent(slug)}` : url;
     window.open(full, '_blank', 'noopener,noreferrer');
   };
-  // Le formulaire de contact n'a pas encore d'endpoint dédié : on redirige vers
-  // la page contact-sales existante (graceful fallback, pas de perte de prospect).
-  const handleContactSubmit = (e: React.FormEvent) => {
+  // Envoi DIRECT du formulaire de contact via /contact/support (plus de redirection
+  // vers /contact-sales). On lit les champs via FormData (name=...). Entreprise et
+  // effectif sont repliés dans le corps du message pour garder le contexte côté support.
+  const handleContactSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    navigate('/contact-sales');
+    setContactError(null);
+    const fd = new FormData(e.currentTarget);
+    const prenom = String(fd.get('prenom') ?? '').trim();
+    const nom = String(fd.get('nom') ?? '').trim();
+    const email = String(fd.get('email') ?? '').trim();
+    const entreprise = String(fd.get('entreprise') ?? '').trim();
+    const effectif = String(fd.get('effectif') ?? '').trim();
+    const objet = String(fd.get('objet') ?? '').trim();
+    const message = String(fd.get('message') ?? '').trim();
+
+    if (!prenom || !nom || !email || !objet || !message) {
+      setContactError(lang === 'fr'
+        ? 'Prénom, nom, email, objet et message sont obligatoires.'
+        : 'First name, last name, email, subject and message are required.');
+      return;
+    }
+
+    setContactSending(true);
+    try {
+      const context = [
+        entreprise ? `Entreprise : ${entreprise}` : null,
+        effectif ? `Effectif : ${effectif}` : null,
+      ].filter(Boolean).join('\n');
+      await sendSupportMessage({
+        name: `${prenom} ${nom}`,
+        email,
+        subject: objet,
+        message: context ? `${message}\n\n— ${context}` : message,
+      });
+      setContactSent(true);
+      // Conversion : message de contact envoyé depuis la landing.
+      trackEvent('generate_lead', { form: 'home-contact', subject: objet });
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setContactError(msg ?? (lang === 'fr'
+        ? "Échec de l'envoi. Réessayez plus tard."
+        : 'Sending failed. Please try again later.'));
+    } finally {
+      setContactSending(false);
+    }
   };
 
   // ── Comparatif : lignes (labels suivent la langue) ──────────────────────────
@@ -1071,22 +1116,37 @@ export default function HomePage() {
           <div>
             <div className="form-card">
               <h3 className="form-title">{d.formTitle}</h3>
+              {contactSent ? (
+                <p style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', borderRadius: 12, padding: '16px 18px', lineHeight: 1.6, fontWeight: 600, margin: 0 }}>
+                  {lang === 'fr'
+                    ? 'Merci ! Votre message a bien été envoyé. Notre équipe vous répond sous 24h ouvrées.'
+                    : 'Thank you! Your message has been sent. Our team will reply within 24 business hours.'}
+                </p>
+              ) : (
               <form className="contact-form" onSubmit={handleContactSubmit}>
+                {contactError && (
+                  <div style={{ background: '#fff1f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 10, padding: '10px 14px', fontSize: 14, fontWeight: 600 }}>
+                    {contactError}
+                  </div>
+                )}
                 <div className="form-row">
-                  <div className="form-field"><label>{d.flPrenom}</label><input type="text" placeholder="Marie" /></div>
-                  <div className="form-field"><label>{d.flNom}</label><input type="text" placeholder="Dupont" /></div>
+                  <div className="form-field"><label>{d.flPrenom}</label><input name="prenom" type="text" placeholder="Marie" /></div>
+                  <div className="form-field"><label>{d.flNom}</label><input name="nom" type="text" placeholder="Dupont" /></div>
                 </div>
-                <div className="form-field"><label>{d.flEmail}</label><input type="email" placeholder="marie.dupont@entreprise.fr" /></div>
-                <div className="form-field"><label>{d.flEnt}</label><input type="text" placeholder={d.flEnt} /></div>
+                <div className="form-field"><label>{d.flEmail}</label><input name="email" type="email" placeholder="marie.dupont@entreprise.fr" /></div>
+                <div className="form-field"><label>{d.flEnt}</label><input name="entreprise" type="text" placeholder={d.flEnt} /></div>
                 <div className="form-field"><label>{d.flEmp}</label>
-                  <select defaultValue=""><option value="" disabled>{d.flEmpSel}</option><option>1 – 10</option><option>11 – 50</option><option>51 – 200</option></select>
+                  <select name="effectif" defaultValue=""><option value="" disabled>{d.flEmpSel}</option><option>1 – 10</option><option>11 – 50</option><option>51 – 200</option></select>
                 </div>
                 <div className="form-field"><label>{d.flObj}</label>
-                  <select defaultValue=""><option value="" disabled>{d.flObjSel}</option><option>{d.flObjDemo}</option><option>{d.flObjEnt}</option><option>{d.flObjRec}</option><option>{d.flObjAut}</option></select>
+                  <select name="objet" defaultValue=""><option value="" disabled>{d.flObjSel}</option><option>{d.flObjDemo}</option><option>{d.flObjEnt}</option><option>{d.flObjRec}</option><option>{d.flObjAut}</option></select>
                 </div>
-                <div className="form-field"><label>{d.flMsg}</label><textarea rows={4} placeholder={d.flMsgPh} /></div>
-                <button type="submit" className="form-submit">{d.formSubmit}</button>
+                <div className="form-field"><label>{d.flMsg}</label><textarea name="message" rows={4} placeholder={d.flMsgPh} /></div>
+                <button type="submit" className="form-submit" disabled={contactSending}>
+                  {contactSending ? (lang === 'fr' ? 'Envoi…' : 'Sending…') : d.formSubmit}
+                </button>
               </form>
+              )}
             </div>
           </div>
         </div>
