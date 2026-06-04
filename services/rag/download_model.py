@@ -1,4 +1,4 @@
-"""Pré-téléchargement résilient du modèle d'embeddings au build Docker.
+"""Pré-téléchargement résilient du modèle d'embeddings au démarrage du conteneur.
 
 Pourquoi : `SentenceTransformer('intfloat/multilingual-e5-large')` déclenche le
 téléchargement de ~2,2 Go répartis sur plusieurs fichiers. Le Hugging Face Hub
@@ -21,7 +21,13 @@ import os
 import sys
 import time
 
-MODEL_ID = os.environ.get("MODEL_ID", "intfloat/multilingual-e5-large")
+# S'aligne sur EMBED_MODEL (utilisé par l'app au runtime) pour garantir que le modèle
+# pré-téléchargé est exactement celui que l'app chargera.
+MODEL_ID = (
+    os.environ.get("MODEL_ID")
+    or os.environ.get("EMBED_MODEL")
+    or "intfloat/multilingual-e5-large"
+)
 MAX_ATTEMPTS = int(os.environ.get("MODEL_DL_MAX_ATTEMPTS", "8"))
 BASE_DELAY = float(os.environ.get("MODEL_DL_BASE_DELAY", "15"))  # secondes
 MAX_DELAY = float(os.environ.get("MODEL_DL_MAX_DELAY", "300"))   # plafond du backoff
@@ -50,8 +56,15 @@ def main() -> int:
             snapshot_download(
                 repo_id=MODEL_ID,
                 token=TOKEN,
-                # Inutile de tirer les variantes non utilisées (onnx, openvino, tf…).
-                ignore_patterns=["*.onnx", "*.ot", "*.h5", "*.tflite", "openvino/*"],
+                # On ne tire QUE les poids safetensors : sans ça snapshot_download
+                # récupère AUSSI pytorch_model.bin (~2,2 Go) → quasi le double de disque
+                # pour rien (sentence-transformers utilise les safetensors). On exclut
+                # aussi les variantes inutilisées (onnx, openvino, tf, flax…).
+                ignore_patterns=[
+                    "pytorch_model.bin",
+                    "*.onnx", "*.ot", "*.h5", "*.tflite", "*.msgpack",
+                    "openvino/*", "onnx/*",
+                ],
             )
             # Charge le modèle pour valider l'intégrité du cache (chemin du runtime).
             SentenceTransformer(MODEL_ID)

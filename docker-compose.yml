@@ -17,6 +17,9 @@ volumes:
   crowdsec_data:
   crowdsec_config:
   nginx_logs:
+  # Cache du modèle d'embeddings e5-large (~2,2 Go), téléchargé au 1er démarrage de
+  # rag-svc. Volume nommé → téléchargé UNE fois, conservé entre redémarrages/recréations.
+  rag_models:
 
 networks:
   app-network:
@@ -181,7 +184,7 @@ services:
       abrpoint.database:
         condition: service_healthy
       rag-svc:
-        condition: service_started
+        condition: service_healthy
     networks:
       - app-network
     expose:
@@ -221,5 +224,18 @@ services:
       - qdrant
     expose:
       - "8080"
+    volumes:
+      # Cache du modèle e5-large : téléchargé au 1er démarrage, conservé ensuite.
+      - rag_models:/models
+    healthcheck:
+      # Sain UNIQUEMENT quand le modèle e5-large est chargé en RAM : le handler /health
+      # appelle get_embeddings(). On utilise python (curl absent de l'image slim).
+      test: ["CMD", "python", "-c", "import urllib.request,json,sys; r=json.load(urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=30)); sys.exit(0 if r.get('model_loaded') else 1)"]
+      interval: 30s
+      timeout: 40s
+      retries: 5
+      # Large : couvre le téléchargement du modèle au 1er démarrage (~1-2 min) + le
+      # chargement en RAM (~20 s). Pendant cette fenêtre, les échecs ne comptent pas.
+      start_period: 300s
     networks:
       - app-network
