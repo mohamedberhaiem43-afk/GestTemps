@@ -1,4 +1,8 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../helper/AuthProvider';
+import apiInstance from '../API/apiInstance';
 
 /**
  * Page publique « Suppression de compte et des données » (route `/suppression-compte`).
@@ -8,29 +12,38 @@ import { useTranslation } from 'react-i18next';
  * sans authentification :
  *   • référencer le nom de l'appli / éditeur (Concorde Workly) ;
  *   • décrire clairement la procédure de demande de suppression ;
- *   • préciser les données supprimées vs conservées et les durées de conservation.
+ *   • inclure un moyen de demander la suppression ;
+ *   • préciser les données supprimées vs conservées (renvoi à la politique de
+ *     confidentialité pour le détail des durées).
  *
- * Doit donc rester PUBLIQUE (cf. PUBLIC_PATHS dans RouteGuards) et accessible aux
- * reviewers anonymes. Bilingue FR/EN via i18n.language (même pattern que les autres
- * pages marketing : dictionnaire local, pas de dépendance au fichier de traduction).
+ * Bouton intégré : flux en 2 étapes (code email → confirmation), identique à celui du
+ * profil. Si l'utilisateur n'est pas connecté, on le redirige vers /login (la demande
+ * exige une session ; un secours par e-mail reste documenté plus bas).
+ *
+ * Doit rester PUBLIQUE (cf. PUBLIC_PATHS dans RouteGuards). Bilingue FR/EN.
  */
 
 const SUPPORT_EMAIL = 'contact@concorde-tech.fr';
+const PRIVACY_URL = '/docs/politique-confidentialite.pdf';
 
 type Lang = 'fr' | 'en';
 
-interface RetRow { data: string; keep: string; why: string }
 interface Dict {
   title: string;
   intro: string;
   howTitle: string;
+  // Bloc bouton
+  ctaTitle: string; ctaIntro: string;
+  btnRequest: string; btnLogin: string;
+  codeLabel: string; btnConfirm: string; btnResend: string;
+  sending: string; confirming: string;
+  okRequest: string; okConfirm: string; errGeneric: string; errCode: string;
+  // Procédures alternatives
   inAppTitle: string; inAppSteps: string[];
   emailTitle: string; emailLead: string; emailSubject: string; emailFields: string;
   delay: string;
   deletedTitle: string; deletedLead: string; deletedItems: string[];
-  keptTitle: string; keptLead: string;
-  colData: string; colKeep: string; colWhy: string;
-  keptRows: RetRow[];
+  keptTitle: string; keptLead: string; keptPolicy: string; policyLinkLabel: string;
   b2bTitle: string; b2bBody: string;
   contactTitle: string; contactBody: string;
   updated: string;
@@ -39,14 +52,29 @@ interface Dict {
 const FR: Dict = {
   title: 'Suppression de compte et des données — Concorde Workly',
   intro:
-    "Cette page explique comment demander la suppression de votre compte Concorde Workly (édité par Concorde Tech) et des données personnelles associées, et précise les données supprimées, celles conservées et leur durée de conservation.",
+    "Cette page explique comment demander la suppression de votre compte Concorde Workly (édité par Concorde Tech) et des données personnelles associées, et précise les données supprimées et celles conservées.",
   howTitle: 'Comment demander la suppression',
-  inAppTitle: 'Depuis l’application (recommandé)',
+  ctaTitle: 'Demander la suppression maintenant',
+  ctaIntro:
+    'Si vous êtes connecté, lancez la demande directement ici : un code de confirmation vous sera envoyé par e-mail, puis votre demande sera transmise à notre support et à l’administrateur de votre entreprise.',
+  btnRequest: 'Demander la suppression de mon compte',
+  btnLogin: 'Se connecter pour supprimer mon compte',
+  codeLabel: 'Saisissez le code à 6 chiffres envoyé à {email}.',
+  btnConfirm: 'Confirmer la suppression',
+  btnResend: 'Renvoyer un code',
+  sending: 'Envoi…',
+  confirming: 'Confirmation…',
+  okRequest: 'Un code de confirmation a été envoyé à votre adresse e-mail.',
+  okConfirm:
+    'Votre demande de suppression a été confirmée. Elle sera traitée sous 30 jours et vous recevrez une confirmation par e-mail.',
+  errGeneric: `Échec de l’envoi. Écrivez à ${SUPPORT_EMAIL} (objet : « Suppression de compte »).`,
+  errCode: 'Code invalide ou expiré.',
+  inAppTitle: 'Depuis l’application',
   inAppSteps: [
     'Ouvrez l’application Concorde Workly (mobile) ou le tableau de bord web.',
     'Allez dans « Profil ».',
     'Appuyez sur « Supprimer mon compte » en bas de la page.',
-    'Confirmez la demande : votre accès est suspendu immédiatement et la suppression est traitée par nos équipes.',
+    'Confirmez avec le code reçu par e-mail : votre accès est suspendu et la suppression est traitée par nos équipes.',
   ],
   emailTitle: 'Par e-mail',
   emailLead: `Si vous n’avez plus accès à l’application, envoyez votre demande à ${SUPPORT_EMAIL}.`,
@@ -67,14 +95,10 @@ const FR: Dict = {
   ],
   keptTitle: 'Données conservées et durées',
   keptLead:
-    'Concorde Workly est un service RH professionnel (B2B). Certaines données constituent des registres légaux de votre employeur et doivent être conservées pour répondre à des obligations légales, même après la suppression de votre compte. Elles sont alors anonymisées ou conservées de façon restreinte :',
-  colData: 'Donnée', colKeep: 'Durée de conservation', colWhy: 'Raison',
-  keptRows: [
-    { data: 'Relevés de pointage / présence', keep: 'Anonymisés puis supprimés selon la politique de rétention de l’employeur (par défaut ~1 an, puis suppression)', why: 'Obligation de preuve du temps de travail' },
-    { data: 'Bulletins de paie et données associées', keep: 'Jusqu’à 5 ans', why: 'Obligation légale (Code du travail)' },
-    { data: 'Contrats et documents RH', keep: 'Selon obligations légales applicables', why: 'Conformité sociale et légale' },
-    { data: 'Factures et données comptables', keep: 'Jusqu’à 10 ans', why: 'Obligation comptable et fiscale' },
-  ],
+    'Concorde Workly est un service RH professionnel (B2B). Certaines données constituent des registres légaux de votre employeur et doivent être conservées pour répondre à des obligations légales (paie, temps de travail, contrats, comptabilité), même après la suppression de votre compte. Elles sont alors anonymisées ou conservées de façon restreinte.',
+  keptPolicy:
+    'Le détail des catégories de données conservées et de leurs durées de conservation figure dans notre politique de confidentialité :',
+  policyLinkLabel: 'Consulter la politique de confidentialité',
   b2bTitle: 'Important : comptes professionnels',
   b2bBody:
     'Si votre compte a été créé par votre employeur, la suppression concerne vos données personnelles d’usage. Les enregistrements requis par la loi (paie, temps de travail, contrats) restent sous la responsabilité de votre employeur, responsable de traitement, pour la durée légale applicable.',
@@ -86,14 +110,29 @@ const FR: Dict = {
 const EN: Dict = {
   title: 'Account & data deletion — Concorde Workly',
   intro:
-    'This page explains how to request the deletion of your Concorde Workly account (published by Concorde Tech) and the associated personal data, and specifies which data is deleted, which is retained, and for how long.',
+    'This page explains how to request the deletion of your Concorde Workly account (published by Concorde Tech) and the associated personal data, and specifies which data is deleted and which is retained.',
   howTitle: 'How to request deletion',
-  inAppTitle: 'From the app (recommended)',
+  ctaTitle: 'Request deletion now',
+  ctaIntro:
+    'If you are logged in, start the request right here: a confirmation code will be emailed to you, then your request is sent to our support and your company administrator.',
+  btnRequest: 'Request deletion of my account',
+  btnLogin: 'Log in to delete my account',
+  codeLabel: 'Enter the 6-digit code sent to {email}.',
+  btnConfirm: 'Confirm deletion',
+  btnResend: 'Resend code',
+  sending: 'Sending…',
+  confirming: 'Confirming…',
+  okRequest: 'A confirmation code has been sent to your email address.',
+  okConfirm:
+    'Your deletion request has been confirmed. It will be processed within 30 days and you will receive an email confirmation.',
+  errGeneric: `Sending failed. Email ${SUPPORT_EMAIL} (subject: “Account deletion”).`,
+  errCode: 'Invalid or expired code.',
+  inAppTitle: 'From the app',
   inAppSteps: [
     'Open the Concorde Workly app (mobile) or the web dashboard.',
     'Go to “Profile”.',
     'Tap “Delete my account” at the bottom of the page.',
-    'Confirm the request: your access is suspended immediately and the deletion is processed by our team.',
+    'Confirm with the code received by email: your access is suspended and the deletion is processed by our team.',
   ],
   emailTitle: 'By email',
   emailLead: `If you no longer have access to the app, send your request to ${SUPPORT_EMAIL}.`,
@@ -114,14 +153,10 @@ const EN: Dict = {
   ],
   keptTitle: 'Data retained and durations',
   keptLead:
-    'Concorde Workly is a professional HR service (B2B). Some data constitutes your employer’s legal records and must be retained to meet legal obligations, even after your account is deleted. Such data is anonymized or kept on a restricted basis:',
-  colData: 'Data', colKeep: 'Retention period', colWhy: 'Reason',
-  keptRows: [
-    { data: 'Time / attendance records', keep: 'Anonymized then deleted per the employer’s retention policy (default ~1 year, then deletion)', why: 'Proof of working time' },
-    { data: 'Payslips and related data', keep: 'Up to 5 years', why: 'Legal obligation (labor law)' },
-    { data: 'Contracts and HR documents', keep: 'As required by applicable law', why: 'Labor & legal compliance' },
-    { data: 'Invoices and accounting data', keep: 'Up to 10 years', why: 'Accounting & tax obligation' },
-  ],
+    'Concorde Workly is a professional HR service (B2B). Some data constitutes your employer’s legal records and must be retained to meet legal obligations (payroll, working time, contracts, accounting), even after your account is deleted. Such data is anonymized or kept on a restricted basis.',
+  keptPolicy:
+    'The detailed categories of retained data and their retention periods are described in our privacy policy:',
+  policyLinkLabel: 'Read the privacy policy',
   b2bTitle: 'Important: business accounts',
   b2bBody:
     'If your account was created by your employer, deletion covers your personal usage data. Records required by law (payroll, working time, contracts) remain under your employer’s responsibility, as data controller, for the applicable legal period.',
@@ -134,8 +169,58 @@ const LANG: Record<Lang, Dict> = { fr: FR, en: EN };
 
 export default function AccountDeletionPage() {
   const { i18n } = useTranslation();
+  const navigate = useNavigate();
+  const { uticod } = useAuth();
+  const isAuthenticated = Boolean(uticod);
   const lang: Lang = i18n.language === 'en' ? 'en' : 'fr';
   const d = LANG[lang];
+
+  // Flux de demande : 'idle' (bouton) → 'code' (saisie du code).
+  const [step, setStep] = useState<'idle' | 'code'>('idle');
+  const [loading, setLoading] = useState(false);
+  const [code, setCode] = useState('');
+  const [maskedEmail, setMaskedEmail] = useState('');
+  const [notice, setNotice] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  const requestCode = async () => {
+    if (!isAuthenticated) { navigate('/login'); return; }
+    setLoading(true);
+    setNotice(null);
+    try {
+      const res = await apiInstance.post('/account/request-deletion', {});
+      setMaskedEmail(res?.data?.email ?? '');
+      setStep('code');
+      setNotice({ type: 'ok', text: res?.data?.message ?? d.okRequest });
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setNotice({ type: 'err', text: msg ?? d.errGeneric });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmDeletion = async () => {
+    if (code.trim().length < 4) { setNotice({ type: 'err', text: d.errCode }); return; }
+    setLoading(true);
+    setNotice(null);
+    try {
+      const res = await apiInstance.post('/account/confirm-deletion', { code: code.trim() });
+      setStep('idle');
+      setCode('');
+      setNotice({ type: 'ok', text: res?.data?.message ?? d.okConfirm });
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setNotice({ type: 'err', text: msg ?? d.errCode });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const dangerBtn: React.CSSProperties = {
+    background: '#dc2626', color: '#fff', border: 'none', borderRadius: 10,
+    padding: '12px 20px', fontWeight: 700, fontSize: 14, cursor: loading ? 'wait' : 'pointer',
+    opacity: loading ? 0.7 : 1,
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#f7f9fb', padding: '48px 20px', color: '#191c1e', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -143,6 +228,51 @@ export default function AccountDeletionPage() {
         <a href="/" style={{ color: '#0040a1', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>← Concorde Workly</a>
         <h1 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, margin: '16px 0 8px', lineHeight: 1.2 }}>{d.title}</h1>
         <p style={{ color: '#424654', lineHeight: 1.7 }}>{d.intro}</p>
+
+        {/* ── Bouton de demande (flux code email → confirmation) ── */}
+        <div style={{ border: '1px solid #fecaca', background: '#fef2f2', borderRadius: 14, padding: '20px 24px', marginTop: 24 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#b91c1c', margin: '0 0 6px' }}>{d.ctaTitle}</h2>
+          <p style={{ color: '#7f1d1d', fontSize: 14, lineHeight: 1.6, margin: '0 0 14px' }}>{d.ctaIntro}</p>
+
+          {notice && (
+            <p style={{
+              borderRadius: 10, padding: '10px 14px', margin: '0 0 14px', fontSize: 14, lineHeight: 1.5,
+              background: notice.type === 'ok' ? '#ecfdf5' : '#fff1f2',
+              border: `1px solid ${notice.type === 'ok' ? '#a7f3d0' : '#fecaca'}`,
+              color: notice.type === 'ok' ? '#065f46' : '#b91c1c',
+            }}>{notice.text}</p>
+          )}
+
+          {step === 'idle' ? (
+            <button type="button" style={dangerBtn} onClick={requestCode} disabled={loading}>
+              {loading ? d.sending : (isAuthenticated ? d.btnRequest : d.btnLogin)}
+            </button>
+          ) : (
+            <div>
+              <p style={{ color: '#7f1d1d', fontSize: 14, margin: '0 0 10px' }}>
+                {d.codeLabel.replace('{email}', maskedEmail || (lang === 'fr' ? 'votre adresse e-mail' : 'your email address'))}
+              </p>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="------"
+                style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #fca5a5', borderRadius: 10, padding: '12px 14px', fontSize: 22, letterSpacing: 8, textAlign: 'center', marginBottom: 14 }}
+              />
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                <button type="button" style={dangerBtn} onClick={confirmDeletion} disabled={loading}>
+                  {loading ? d.confirming : d.btnConfirm}
+                </button>
+                <button type="button" onClick={requestCode} disabled={loading}
+                  style={{ background: 'transparent', color: '#0040a1', border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                  {d.btnResend}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <h2 style={{ fontSize: 20, fontWeight: 800, marginTop: 32 }}>{d.howTitle}</h2>
 
@@ -168,26 +298,12 @@ export default function AccountDeletionPage() {
 
         <h2 style={{ fontSize: 20, fontWeight: 800, marginTop: 32 }}>{d.keptTitle}</h2>
         <p style={{ color: '#424654', lineHeight: 1.7 }}>{d.keptLead}</p>
-        <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: 12, marginTop: 12 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-            <thead>
-              <tr style={{ background: '#f7f9fb' }}>
-                <th style={{ textAlign: 'left', padding: '12px 14px', fontWeight: 700, borderBottom: '2px solid #e5e7eb' }}>{d.colData}</th>
-                <th style={{ textAlign: 'left', padding: '12px 14px', fontWeight: 700, borderBottom: '2px solid #e5e7eb' }}>{d.colKeep}</th>
-                <th style={{ textAlign: 'left', padding: '12px 14px', fontWeight: 700, borderBottom: '2px solid #e5e7eb' }}>{d.colWhy}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.keptRows.map((r, i) => (
-                <tr key={i}>
-                  <td style={{ padding: '12px 14px', borderBottom: '1px solid #e5e7eb', color: '#0f172a', fontWeight: 600, verticalAlign: 'top' }}>{r.data}</td>
-                  <td style={{ padding: '12px 14px', borderBottom: '1px solid #e5e7eb', color: '#334155', verticalAlign: 'top' }}>{r.keep}</td>
-                  <td style={{ padding: '12px 14px', borderBottom: '1px solid #e5e7eb', color: '#334155', verticalAlign: 'top' }}>{r.why}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <p style={{ color: '#424654', lineHeight: 1.7 }}>
+          {d.keptPolicy}{' '}
+          <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer" style={{ color: '#0040a1', fontWeight: 600 }}>
+            {d.policyLinkLabel}
+          </a>.
+        </p>
 
         <h2 style={{ fontSize: 20, fontWeight: 800, marginTop: 32 }}>{d.b2bTitle}</h2>
         <p style={{ color: '#424654', lineHeight: 1.7 }}>{d.b2bBody}</p>
