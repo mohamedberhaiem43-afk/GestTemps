@@ -72,6 +72,7 @@ const ContactSalesPage: React.FC = () => {
   return (
     <div className="pricing-container min-h-screen bg-surface font-body selection:bg-primary-fixed">
       <PageSeo
+        bilingual={false}
         title="Demander une démo – Concorde Workforce | Logiciel RH"
         description="Contactez l'équipe Concorde Workforce pour une démo gratuite de notre logiciel RH et découvrez comment digitaliser la gestion de votre PME. 1 mois offert."
       />

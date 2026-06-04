@@ -9,8 +9,8 @@ import './DownloadPage.css';
 //
 // La page :
 //  - détecte l'OS via navigator.userAgent
-//  - propose le bon CTA en haut (Play Store + APK direct pour Android, App Store
-//    pour iOS, QR code pour desktop)
+//  - propose le bon CTA en haut (Play Store + APK direct pour Android, version
+//    web sur iPhone — l'app n'est pas publiée sur iOS —, QR code pour desktop)
 //  - propose un QR code généré côté client (Google Charts API, gratuit, sans
 //    dépendance npm) qui pointe vers cette même page → un visiteur desktop le
 //    scanne avec son téléphone et arrive sur la bonne version
@@ -23,7 +23,6 @@ type DetectedOs = 'android' | 'ios' | 'desktop';
 
 const STORE_LINKS = {
   android: 'https://play.google.com/store/apps/details?id=com.concorde.workforce',
-  ios: 'https://apps.apple.com/app/concorde-workforce/id000000000',
 };
 
 const APK_DIRECT_URL = '/api/download/android';
@@ -105,8 +104,9 @@ export default function DownloadPage() {
   return (
     <div className="dl-page">
       <PageSeo
+        bilingual={false}
         title="Télécharger Concorde Workly – App pointage mobile RH"
-        description="Téléchargez l'application Concorde Workly sur iOS et Android : pointage géolocalisé, gestion des congés et suivi des équipes terrain, où que vous soyez."
+        description="Téléchargez l'application Concorde Workly sur Android : pointage géolocalisé, gestion des congés et suivi des équipes terrain, où que vous soyez."
       />
       <div className="dl-bg" />
 
@@ -136,7 +136,7 @@ export default function DownloadPage() {
           <section className="dl-cta-card">
             <div className="dl-os-badge">
               {os === 'android' && '🤖 Android détecté'}
-              {os === 'ios' && '🍎 iOS détecté'}
+              {os === 'ios' && '🌐 Version web recommandée'}
               {os === 'desktop' && '💻 Ordinateur — scannez le QR code'}
             </div>
 
@@ -200,17 +200,16 @@ export default function DownloadPage() {
 
             {os === 'ios' && (
               <>
-                <a className="dl-btn dl-btn-primary" href={STORE_LINKS.ios} target="_blank" rel="noreferrer" onClick={() => trackEvent('app_download_click', { platform: 'ios', method: 'app_store' })}>
-                  <span className="dl-btn-icon"></span>
+                <a className="dl-btn dl-btn-primary" href="/" onClick={() => trackEvent('app_download_click', { platform: 'web' })}>
+                  <span className="dl-btn-icon">🌐</span>
                   <span className="dl-btn-content">
-                    <span className="dl-btn-small">Télécharger sur</span>
-                    <span className="dl-btn-large">App Store</span>
+                    <span className="dl-btn-small">Accéder à</span>
+                    <span className="dl-btn-large">L'application web</span>
                   </span>
                 </a>
                 <p className="dl-note">
-                  iOS n'autorise pas l'installation directe d'IPA hors App Store ou
-                  TestFlight. Si l'app n'est pas encore publiée, contactez-nous pour
-                  recevoir une invitation TestFlight.
+                  L'application mobile est disponible sur Android. Sur cet appareil,
+                  accédez à Concorde Workforce directement depuis votre navigateur.
                 </p>
               </>
             )}

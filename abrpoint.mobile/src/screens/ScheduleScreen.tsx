@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
+import { useT } from '../i18n';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
@@ -28,14 +29,14 @@ interface HoraireRow {
   [k: string]: any;
 }
 
-const DAY_DEFS: { key: DayKey; label: string; short: string }[] = [
-  { key: 'lun', label: 'Lundi', short: 'L' },
-  { key: 'mar', label: 'Mardi', short: 'M' },
-  { key: 'mer', label: 'Mercredi', short: 'M' },
-  { key: 'jeu', label: 'Jeudi', short: 'J' },
-  { key: 'ven', label: 'Vendredi', short: 'V' },
-  { key: 'sam', label: 'Samedi', short: 'S' },
-  { key: 'dim', label: 'Dimanche', short: 'D' },
+const DAY_DEFS: { key: DayKey; labelKey: string; shortKey: string }[] = [
+  { key: 'lun', labelKey: 'schedule.dayMon', shortKey: 'schedule.dayMonShort' },
+  { key: 'mar', labelKey: 'schedule.dayTue', shortKey: 'schedule.dayTueShort' },
+  { key: 'mer', labelKey: 'schedule.dayWed', shortKey: 'schedule.dayWedShort' },
+  { key: 'jeu', labelKey: 'schedule.dayThu', shortKey: 'schedule.dayThuShort' },
+  { key: 'ven', labelKey: 'schedule.dayFri', shortKey: 'schedule.dayFriShort' },
+  { key: 'sam', labelKey: 'schedule.daySat', shortKey: 'schedule.daySatShort' },
+  { key: 'dim', labelKey: 'schedule.daySun', shortKey: 'schedule.daySunShort' },
 ];
 
 // JS getDay() : 0 = dimanche … 6 = samedi
@@ -93,6 +94,7 @@ function dayTotalMinutes(slot: DaySlots): number {
 
 export default function ScheduleScreen({ navigation }: any) {
   const { user } = useAuth();
+  const t = useT();
   const tabBarPadding = useTabBarPadding();
   const [rows, setRows] = useState<HoraireRow[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -115,13 +117,13 @@ export default function ScheduleScreen({ navigation }: any) {
       setRows(Array.isArray(data) ? data : []);
     } catch (e: any) {
       console.log('Failed to load schedule:', e?.message);
-      setError("Impossible de charger l'emploi du temps. Réessayez plus tard.");
+      setError(t('schedule.loadError'));
       setRows([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.soccod, user?.uticod]);
+  }, [user?.soccod, user?.uticod, t]);
 
   useEffect(() => {
     setLoading(true);
@@ -154,7 +156,7 @@ export default function ScheduleScreen({ navigation }: any) {
         >
           <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.onSurface} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mon emploi du temps</Text>
+        <Text style={styles.headerTitle}>{t('schedule.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -166,7 +168,7 @@ export default function ScheduleScreen({ navigation }: any) {
         {offline && (
           <View style={styles.offlineBanner}>
             <MaterialCommunityIcons name="cloud-off-outline" size={16} color={COLORS.warning} />
-            <Text style={styles.offlineText}>Mode hors-ligne — données mises en cache</Text>
+            <Text style={styles.offlineText}>{t('schedule.offlineCached')}</Text>
           </View>
         )}
 
@@ -186,9 +188,9 @@ export default function ScheduleScreen({ navigation }: any) {
         {!loading && !error && !rows.length && (
           <View style={styles.emptyBox}>
             <MaterialCommunityIcons name="calendar-clock-outline" size={48} color="#cbd5e1" />
-            <Text style={styles.emptyTitle}>Aucun horaire configuré</Text>
+            <Text style={styles.emptyTitle}>{t('schedule.emptyTitle')}</Text>
             <Text style={styles.emptySub}>
-              Votre poste n'est pas associé à un emploi du temps. Contactez votre manager.
+              {t('schedule.emptySub')}
             </Text>
           </View>
         )}
@@ -226,8 +228,8 @@ export default function ScheduleScreen({ navigation }: any) {
                 <MaterialCommunityIcons name="briefcase-clock-outline" size={26} color="#fff" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.posteLabel}>POSTE</Text>
-                <Text style={styles.posteName} numberOfLines={2}>{activeRow.libposte || activeRow.codposte || 'Sans nom'}</Text>
+                <Text style={styles.posteLabel}>{t('schedule.posteLabel')}</Text>
+                <Text style={styles.posteName} numberOfLines={2}>{activeRow.libposte || activeRow.codposte || t('schedule.unnamed')}</Text>
                 <Text style={styles.posteCode}>{activeRow.codposte}</Text>
               </View>
             </View>
@@ -236,17 +238,17 @@ export default function ScheduleScreen({ navigation }: any) {
               <View style={styles.statCard}>
                 <MaterialCommunityIcons name="clock-outline" size={20} color={COLORS.primary} />
                 <Text style={styles.statValue}>{formatHm(weekTotal)}</Text>
-                <Text style={styles.statLabel}>SEMAINE</Text>
+                <Text style={styles.statLabel}>{t('schedule.statWeek')}</Text>
               </View>
               <View style={styles.statCard}>
                 <MaterialCommunityIcons name="sleep" size={20} color="#94a3b8" />
                 <Text style={styles.statValue}>{reposCount}</Text>
-                <Text style={styles.statLabel}>JOUR{reposCount > 1 ? 'S' : ''} REPOS</Text>
+                <Text style={styles.statLabel}>{reposCount > 1 ? t('schedule.statRestDaysPlural') : t('schedule.statRestDays')}</Text>
               </View>
             </View>
 
             {/* Liste des jours */}
-            <Text style={styles.sectionTitle}>Détail par jour</Text>
+            <Text style={styles.sectionTitle}>{t('schedule.dailyDetail')}</Text>
             {DAY_DEFS.map(d => {
               const slot = extractDay(activeRow, d.key);
               const isToday = todayKey === d.key;
@@ -255,17 +257,17 @@ export default function ScheduleScreen({ navigation }: any) {
                 <View key={d.key} style={[styles.dayCard, isToday && styles.dayCardToday]}>
                   <View style={styles.dayHeader}>
                     <View style={[styles.dayBadge, isToday && styles.dayBadgeToday]}>
-                      <Text style={[styles.dayShort, isToday && styles.dayShortToday]}>{d.short}</Text>
+                      <Text style={[styles.dayShort, isToday && styles.dayShortToday]}>{t(d.shortKey)}</Text>
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.dayLabel}>
-                        {d.label}
-                        {isToday && <Text style={styles.todayTag}>  · AUJOURD'HUI</Text>}
+                        {t(d.labelKey)}
+                        {isToday && <Text style={styles.todayTag}>  · {t('schedule.todayTag')}</Text>}
                       </Text>
                       {!slot.repos ? (
                         <Text style={styles.dayTotal}>{formatHm(total)}</Text>
                       ) : (
-                        <Text style={styles.dayReposLabel}>Repos hebdomadaire</Text>
+                        <Text style={styles.dayReposLabel}>{t('schedule.weeklyRest')}</Text>
                       )}
                     </View>
                     {slot.repos && (
@@ -292,7 +294,7 @@ export default function ScheduleScreen({ navigation }: any) {
                         </View>
                       ) : null}
                       {!slot.matStart && !slot.matEnd && !slot.amStart && !slot.amEnd && (
-                        <Text style={styles.dayUnplanned}>Aucun horaire défini</Text>
+                        <Text style={styles.dayUnplanned}>{t('schedule.noScheduleDefined')}</Text>
                       )}
                     </View>
                   )}
@@ -305,9 +307,9 @@ export default function ScheduleScreen({ navigation }: any) {
               <View style={styles.toleranceCard}>
                 <MaterialCommunityIcons name="information-outline" size={18} color={COLORS.primary} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.toleranceTitle}>Tolérances</Text>
+                  <Text style={styles.toleranceTitle}>{t('schedule.tolerancesTitle')}</Text>
                   <Text style={styles.toleranceText}>
-                    Avant entrée : <Text style={styles.toleranceVal}>{activeRow.avantEnt ?? 0} min</Text> · Avant sortie : <Text style={styles.toleranceVal}>{activeRow.avantSort ?? 0} min</Text>
+                    {t('schedule.toleranceBefore')} <Text style={styles.toleranceVal}>{t('schedule.minutes', { count: activeRow.avantEnt ?? 0 })}</Text> · {t('schedule.toleranceAfter')} <Text style={styles.toleranceVal}>{t('schedule.minutes', { count: activeRow.avantSort ?? 0 })}</Text>
                   </Text>
                 </View>
               </View>

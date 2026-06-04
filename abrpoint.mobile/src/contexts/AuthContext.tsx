@@ -222,13 +222,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isManager = !isAdmin && (role === 'manager' || role === 'rh' || role === 'superviseur');
   const isEmployee = user?.isEmp === true;
 
+  // Features « sur devis » / addon-only : JAMAIS incluses dans un pack (même
+  // Premium). Débloquées uniquement par un addon négocié côté backend
+  // (cf. PlanCatalog.GetEffectiveFeatures). Contrairement aux features de pack,
+  // on échoue FERMÉ quand planFeatures n'est pas encore chargé — sinon le
+  // chatbot RAG (ragAi) s'afficherait par défaut alors qu'il doit rester gaté.
+  const SUR_DEVIS_FEATURES: ReadonlyArray<keyof PlanFeatures> = [
+    'ragAi', 'customBranding', 'apiAccess', 'prioritySupport',
+  ];
+
   // Convention identique au web : si planFeatures n'est pas chargé (premier
-  // render avant /me, ou tenant legacy sans pack défini), on AUTORISE la
-  // feature pour ne pas casser l'UX. Le backend reste l'autorité finale —
-  // un endpoint protégé répondra 402 et l'écran affichera le message d'upgrade.
+  // render avant /me, ou tenant legacy sans pack défini), on AUTORISE les
+  // features de pack pour ne pas casser l'UX (le backend reste l'autorité
+  // finale — un endpoint protégé répondra 402). EXCEPTION : les features sur
+  // devis échouent fermé (cf. SUR_DEVIS_FEATURES) pour ne pas exposer un
+  // module payant non souscrit avant le chargement des flags.
   const planAllows = (feature: keyof PlanFeatures): boolean => {
     const features = user?.planFeatures;
-    if (!features) return true;
+    if (!features) return !SUR_DEVIS_FEATURES.includes(feature);
     return Boolean(features[feature]);
   };
 

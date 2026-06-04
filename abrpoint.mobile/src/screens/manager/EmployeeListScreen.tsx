@@ -5,9 +5,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import apiService from '../../services/api';
 import { COLORS } from '../../config/env';
 import { resolveAssetUrl } from '../../config/assetUrl';
+import { useT } from '../../i18n';
 
 export default function EmployeeListScreen({ navigation }: any) {
   const { user } = useAuth();
+  const t = useT();
   const [employees, setEmployees] = useState<any[]>([]);
   const [filtered, setFiltered] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -39,15 +41,15 @@ export default function EmployeeListScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.backBtn}>← Retour</Text></TouchableOpacity>
-        <Text style={styles.title}>Employés</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.backBtn}>← {t('common.back')}</Text></TouchableOpacity>
+        <Text style={styles.title}>{t('mgrEmployees.title')}</Text>
         <TouchableOpacity onPress={() => navigation.navigate('AddEmployee')}>
-          <Text style={styles.addBtn}>+ Ajouter</Text>
+          <Text style={styles.addBtn}>+ {t('common.add')}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.searchBar}>
-        <TextInput style={styles.searchInput} placeholder="🔍 Rechercher un employé..."
+        <TextInput style={styles.searchInput} placeholder={t('mgrEmployees.searchPlaceholder')}
           value={search} onChangeText={setSearch} />
       </View>
 
@@ -57,7 +59,7 @@ export default function EmployeeListScreen({ navigation }: any) {
         ) : filtered.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>👥</Text>
-            <Text style={styles.emptyText}>Aucun employé trouvé</Text>
+            <Text style={styles.emptyText}>{t('mgrEmployees.emptyState')}</Text>
           </View>
         ) : (
           filtered.map((emp: any, i: number) => {

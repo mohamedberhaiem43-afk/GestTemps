@@ -11,7 +11,9 @@ import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import { resolveAssetUrl } from '../config/assetUrl';
 import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 import { useSecureScreen } from '../hooks/useSecureScreen';
+import { useI18n } from '../i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -19,6 +21,8 @@ export default function ProfileScreen({ navigation, route }: any) {
   // SEC-G4 : profil employé contient mot de passe / 2FA / IBAN / téléphone perso.
   useSecureScreen();
   const { user, logout, refreshUser, isAdmin, isManager } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const tabBarPadding = useTabBarPadding();
   // Padding bas dynamique pour les modales : sur Android avec barre de
   // navigation système (3 boutons ou pill gesture), un paddingBottom statique
@@ -104,9 +108,9 @@ export default function ProfileScreen({ navigation, route }: any) {
   };
 
   const handleLogout = () => {
-    Alert.alert('🔐 Déconnexion', 'Voulez-vous vous déconnecter en toute sécurité ?', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Déconnexion', style: 'destructive', onPress: logout },
+    Alert.alert(`🔐 ${t('logout.title')}`, t('profile.logoutConfirmSecure'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('logout.title'), style: 'destructive', onPress: logout },
     ]);
   };
 
@@ -114,16 +118,12 @@ export default function ProfileScreen({ navigation, route }: any) {
   // Étape 1 : confirmation, puis envoi d'un code par email à l'utilisateur.
   const handleRequestDeletion = () => {
     Alert.alert(
-      'Supprimer mon compte',
-      "Un code de confirmation va être envoyé à votre adresse email. " +
-        "Après confirmation, votre demande sera transmise au support et à l'administrateur de " +
-        "votre entreprise ; l'accès sera suspendu et vos données personnelles supprimées / " +
-        "anonymisées sous 30 jours (certaines données restent conservées si la loi l'exige : " +
-        "paie, pointage, contrats).\n\nEnvoyer le code de confirmation ?",
+      t('profile.deleteTitle'),
+      t('profile.deleteBody'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Envoyer le code',
+          text: t('profile.sendCode'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -132,9 +132,8 @@ export default function ProfileScreen({ navigation, route }: any) {
               setDelCode('');
               setDelModal(true);
             } catch (e: any) {
-              const msg = e?.response?.data?.message
-                ?? "Échec de l'envoi. Merci d'écrire à contact@concorde-tech.fr (objet : « Suppression de compte »).";
-              Alert.alert('Erreur', msg);
+              const msg = e?.response?.data?.message ?? t('profile.sendFail');
+              Alert.alert(t('common.error'), msg);
             }
           },
         },
@@ -145,7 +144,7 @@ export default function ProfileScreen({ navigation, route }: any) {
   // Étape 2 : l'utilisateur saisit le code reçu → confirmation effective.
   const handleConfirmDeletion = async () => {
     if (delCode.trim().length < 4) {
-      Alert.alert('Code requis', 'Saisissez le code reçu par email.');
+      Alert.alert(t('profile.codeRequired'), t('profile.enterCodeEmail'));
       return;
     }
     setDelLoading(true);
@@ -153,10 +152,10 @@ export default function ProfileScreen({ navigation, route }: any) {
       const res = await apiService.confirmAccountDeletion(delCode.trim());
       setDelModal(false);
       setDelCode('');
-      Alert.alert('Demande confirmée', res?.message ?? 'Votre demande de suppression a été confirmée.');
+      Alert.alert(t('profile.deletionConfirmed'), res?.message ?? t('profile.deletionConfirmedMsg'));
     } catch (e: any) {
-      const msg = e?.response?.data?.message ?? 'Code invalide ou expiré.';
-      Alert.alert('Erreur', msg);
+      const msg = e?.response?.data?.message ?? t('profile.codeInvalid');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setDelLoading(false);
     }
@@ -177,7 +176,7 @@ export default function ProfileScreen({ navigation, route }: any) {
       setLocalPhotoUri(null); // on retombe sur user.utiimg via resolveAssetUrl
     } catch (e) {
       setLocalPhotoUri(null); // rollback affichage
-      Alert.alert('Erreur', "Le téléchargement de la photo a échoué. Réessayez plus tard.");
+      Alert.alert(t('common.error'), t('profile.photoUploadError'));
     } finally {
       setUploadingPhoto(false);
     }
@@ -186,7 +185,7 @@ export default function ProfileScreen({ navigation, route }: any) {
   const handleTakePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Accès caméra', "L'autorisation est requise pour prendre une photo.");
+      Alert.alert(t('profile.cameraAccess'), t('profile.cameraPermNeeded'));
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -252,15 +251,15 @@ export default function ProfileScreen({ navigation, route }: any) {
       });
       setContactEdit(false);
       await loadAll();
-      Alert.alert('✅ Mis à jour', 'Vos coordonnées ont été enregistrées.');
+      Alert.alert(t('profile.updated'), t('profile.contactSaved'));
     } catch (e: any) {
       const status = e?.response?.status;
       const serverMsg = e?.response?.data?.message;
       Alert.alert(
-        'Erreur',
+        t('common.error'),
         serverMsg ?? (status === 409
-          ? 'Cet email est déjà utilisé par un autre compte.'
-          : "Impossible d'enregistrer les modifications.")
+          ? t('profile.emailConflict')
+          : t('profile.saveFailed'))
       );
     } finally {
       setSavingContact(false);
@@ -270,15 +269,15 @@ export default function ProfileScreen({ navigation, route }: any) {
   const submitPasswordChange = async () => {
     if (!user?.uticod) return;
     if (!pwdForm.current.trim() || !pwdForm.next.trim()) {
-      Alert.alert('Erreur', 'Renseignez votre mot de passe actuel et le nouveau mot de passe.');
+      Alert.alert(t('common.error'), t('profile.pwdFillCurrentNew'));
       return;
     }
     if (pwdForm.next.length < 8) {
-      Alert.alert('Erreur', 'Le nouveau mot de passe doit contenir au moins 8 caractères.');
+      Alert.alert(t('common.error'), t('profile.pwdTooShort'));
       return;
     }
     if (pwdForm.next !== pwdForm.confirm) {
-      Alert.alert('Erreur', 'La confirmation ne correspond pas au nouveau mot de passe.');
+      Alert.alert(t('common.error'), t('profile.pwdMismatch'));
       return;
     }
     setSavingPwd(true);
@@ -289,16 +288,16 @@ export default function ProfileScreen({ navigation, route }: any) {
         newPassword: pwdForm.next,
       });
       if (ok) {
-        Alert.alert('✅ Mot de passe modifié', 'Votre nouveau mot de passe est actif.');
+        Alert.alert(t('profile.pwdChanged'), t('profile.pwdChangedMsg'));
         setPwdModal(false);
         setPwdForm({ current: '', next: '', confirm: '' });
       } else {
         // Le backend renvoie `false` quand le mot de passe actuel est incorrect.
-        Alert.alert('Erreur', 'Le mot de passe actuel est incorrect.');
+        Alert.alert(t('common.error'), t('profile.pwdCurrentWrong'));
       }
     } catch (e: any) {
-      const msg = e?.response?.data?.message || "Impossible de changer le mot de passe.";
-      Alert.alert('Erreur', msg);
+      const msg = e?.response?.data?.message || t('profile.pwdChangeFailed');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setSavingPwd(false);
     }
@@ -316,27 +315,27 @@ export default function ProfileScreen({ navigation, route }: any) {
           setTwoFACode('');
           setTwoFAState('qr');
         } catch {
-          Alert.alert('Erreur', "Impossible d'initialiser la 2FA.");
+          Alert.alert(t('common.error'), t('profile.init2FAError'));
         }
       })();
     } else {
       // Désactivation : confirmation explicite (dégrade la sécurité du compte).
       Alert.alert(
-        'Désactiver la 2FA ?',
-        "Votre compte sera moins sécurisé. Confirmez-vous la désactivation ?",
+        t('profile.disable2FATitle'),
+        t('profile.disable2FABody'),
         [
-          { text: 'Annuler', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Désactiver',
+            text: t('profile.disable'),
             style: 'destructive',
             onPress: async () => {
               setTwoFAState('disabling');
               try {
                 await apiService.disable2FA(user.uticod!);
                 setIs2FAEnabled(false);
-                Alert.alert('2FA désactivée', 'La double authentification a été retirée.');
+                Alert.alert(t('profile.twoFADisabled'), t('profile.twoFADisabledMsg'));
               } catch {
-                Alert.alert('Erreur', 'Impossible de désactiver la 2FA.');
+                Alert.alert(t('common.error'), t('profile.twoFADisableError'));
               } finally {
                 setTwoFAState('idle');
               }
@@ -349,7 +348,7 @@ export default function ProfileScreen({ navigation, route }: any) {
 
   const verify2FACode = async () => {
     if (!user?.uticod || twoFACode.length !== 6) {
-      Alert.alert('Erreur', 'Saisissez le code à 6 chiffres affiché par votre application d\'authentification.');
+      Alert.alert(t('common.error'), t('profile.enter6Auth'));
       return;
     }
     setTwoFAState('verifying');
@@ -359,10 +358,10 @@ export default function ProfileScreen({ navigation, route }: any) {
       setTwoFAState('idle');
       setTwoFAQr(null);
       setTwoFACode('');
-      Alert.alert('✅ 2FA activée', 'La double authentification est maintenant active sur votre compte.');
+      Alert.alert(t('profile.twoFAEnabled'), t('profile.twoFAEnabledMsg'));
     } catch (e: any) {
-      const msg = e?.response?.data?.Message || e?.response?.data?.message || 'Code invalide. Réessayez.';
-      Alert.alert('Erreur', msg);
+      const msg = e?.response?.data?.Message || e?.response?.data?.message || t('profile.codeInvalidRetry');
+      Alert.alert(t('common.error'), msg);
       setTwoFAState('qr');
     }
   };
@@ -373,12 +372,12 @@ export default function ProfileScreen({ navigation, route }: any) {
     // pas pouvoir lui uploader une photo en tap involontaire.
     if (!isOwnProfile) return;
     Alert.alert(
-      'Photo de profil',
-      'Choisissez une option',
+      t('profile.photoTitle'),
+      t('profile.photoChoose'),
       [
-        { text: 'Prendre une photo', onPress: handleTakePhoto },
-        { text: 'Choisir depuis la galerie', onPress: handlePickPhoto },
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('profile.takePhoto'), onPress: handleTakePhoto },
+        { text: t('profile.pickGallery'), onPress: handlePickPhoto },
+        { text: t('common.cancel'), style: 'cancel' },
       ]
     );
   };
@@ -393,7 +392,7 @@ export default function ProfileScreen({ navigation, route }: any) {
 
   const d = profile || user;
   const emp = profile?.employee || profile?.Employee || {};
-  const fullName = emp?.emplib || d?.utilib || 'Collaborateur';
+  const fullName = emp?.emplib || d?.utilib || t('profile.employeeFallback');
   const names = fullName.split(' ');
   const firstName = names[0];
   const lastName = names.slice(1).join(' ');
@@ -403,12 +402,12 @@ export default function ProfileScreen({ navigation, route }: any) {
     try {
       const d = new Date(val);
       if (isNaN(d.getTime())) return String(val);
-      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+      return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
     } catch { return '—'; }
   };
 
-  const sexeLabel = emp?.empsexe === 'F' ? 'Féminin' : emp?.empsexe === 'M' ? 'Masculin' : '—';
-  const sitFam: Record<string, string> = { 'C': 'Célibataire', 'M': 'Marié(e)', 'D': 'Divorcé(e)', 'V': 'Veuf/Veuve' };
+  const sexeLabel = emp?.empsexe === 'F' ? t('profile.female') : emp?.empsexe === 'M' ? t('profile.male') : '—';
+  const sitFam: Record<string, string> = { 'C': t('profile.single'), 'M': t('profile.married'), 'D': t('profile.divorced'), 'V': t('profile.widowed') };
   const sitFamLabel = emp?.empsitfam ? (sitFam[emp.empsitfam] || emp.empsitfam) : '—';
   const hireYear = emp?.empemb ? new Date(emp.empemb).getFullYear() : null;
 
@@ -438,12 +437,12 @@ export default function ProfileScreen({ navigation, route }: any) {
                 </View>
               )}
             </View>
-            <Text style={styles.logoText}>Concorde Workly</Text>
+            <Text style={styles.logoText}>{t('profile.brand')}</Text>
           </View>
         ) : (
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.topAppLeft} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.primary} />
-            <Text style={styles.logoText}>Retour</Text>
+            <Text style={styles.logoText}>{t('profile.back')}</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Notifications')}>
@@ -485,7 +484,7 @@ export default function ProfileScreen({ navigation, route }: any) {
               </View>
             )}
           </TouchableOpacity>
-          <Text style={styles.heroSubLabel}>PROFIL COLLABORATEUR</Text>
+          <Text style={styles.heroSubLabel}>{t('profile.heroSubLabel')}</Text>
           <Text style={styles.heroName}>{firstName}{lastName ? `\n${lastName}` : ''}</Text>
           <View style={styles.heroBadges}>
             {!!emp?.empfonc && (
@@ -495,7 +494,7 @@ export default function ProfileScreen({ navigation, route }: any) {
             )}
             {hireYear && <>
               <View style={styles.statusDot} />
-              <Text style={styles.activeSince}>Actif depuis {hireYear}</Text>
+              <Text style={styles.activeSince}>{t('profile.activeSince', { year: hireYear })}</Text>
             </>}
           </View>
         </View>
@@ -503,39 +502,39 @@ export default function ProfileScreen({ navigation, route }: any) {
         {/* Section 01: Informations Personnelles */}
         <View style={styles.infoLedger}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Informations Personnelles</Text>
-            <Text style={styles.sectionStep}>SECTION 01</Text>
+            <Text style={styles.sectionTitle}>{t('profile.personalInfo')}</Text>
+            <Text style={styles.sectionStep}>{t('profile.section', { n: '01' })}</Text>
           </View>
 
           <View style={styles.bentoGrid}>
             <View style={styles.bentoCard}>
-              <Text style={styles.bentoLabel}>MATRICULE</Text>
+              <Text style={styles.bentoLabel}>{t('profile.matricule')}</Text>
               <Text style={styles.bentoValue}>{emp?.empmat || emp?.empcod || '—'}</Text>
             </View>
             <View style={styles.bentoCard}>
-              <Text style={styles.bentoLabel}>SEXE</Text>
+              <Text style={styles.bentoLabel}>{t('profile.sex')}</Text>
               <Text style={styles.bentoValue}>{sexeLabel}</Text>
             </View>
             <View style={styles.bentoCard}>
-              <Text style={styles.bentoLabel}>DATE DE NAISSANCE</Text>
+              <Text style={styles.bentoLabel}>{t('profile.birthDate')}</Text>
               <Text style={styles.bentoValue}>{fmtDate(emp?.empdnais)}</Text>
             </View>
             <View style={styles.bentoCard}>
-              <Text style={styles.bentoLabel}>LIEU DE NAISSANCE</Text>
+              <Text style={styles.bentoLabel}>{t('profile.birthPlace')}</Text>
               <Text style={styles.bentoValue}>{emp?.emplnais || '—'}</Text>
             </View>
             <View style={styles.bentoCard}>
-              <Text style={styles.bentoLabel}>SITUATION FAMILIALE</Text>
+              <Text style={styles.bentoLabel}>{t('profile.familyStatus')}</Text>
               <Text style={styles.bentoValue}>{sitFamLabel}</Text>
             </View>
             <View style={styles.bentoCard}>
-              <Text style={styles.bentoLabel}>PERS. À CHARGE</Text>
+              <Text style={styles.bentoLabel}>{t('profile.dependents')}</Text>
               <Text style={styles.bentoValue}>{emp?.empnbp ?? '—'}</Text>
             </View>
             {!!emp?.empcin && (
               <View style={[styles.bentoCard, styles.fullWidthCard]}>
                 <View>
-                  <Text style={styles.bentoLabel}>CIN</Text>
+                  <Text style={styles.bentoLabel}>{t('profile.cin')}</Text>
                   <Text style={[styles.bentoValue, styles.trackingWider]}>{emp.empcin}</Text>
                 </View>
                 <MaterialCommunityIcons name="card-account-details-outline" size={20} color={COLORS.outline} />
@@ -547,15 +546,15 @@ export default function ProfileScreen({ navigation, route }: any) {
         {/* Section 02: Coordonnées */}
         <View style={styles.infoLedger}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Coordonnées</Text>
+            <Text style={styles.sectionTitle}>{t('profile.contactInfo')}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               {isOwnProfile && (
                 <TouchableOpacity onPress={openContactEdit} style={styles.editChip} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <MaterialCommunityIcons name="pencil-outline" size={14} color={COLORS.primary} />
-                  <Text style={styles.editChipText}>Modifier</Text>
+                  <Text style={styles.editChipText}>{t('profile.edit')}</Text>
                 </TouchableOpacity>
               )}
-              <Text style={styles.sectionStep}>SECTION 02</Text>
+              <Text style={styles.sectionStep}>{t('profile.section', { n: '02' })}</Text>
             </View>
           </View>
 
@@ -565,7 +564,7 @@ export default function ProfileScreen({ navigation, route }: any) {
                 <MaterialCommunityIcons name="email-outline" size={20} color={COLORS.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.contactLabel}>EMAIL PROFESSIONNEL</Text>
+                <Text style={styles.contactLabel}>{t('profile.proEmail')}</Text>
                 <Text style={styles.contactValue}>{emp?.empemail || d?.utimail || '—'}</Text>
               </View>
             </View>
@@ -574,7 +573,7 @@ export default function ProfileScreen({ navigation, route }: any) {
                 <MaterialCommunityIcons name="phone-outline" size={20} color={COLORS.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.contactLabel}>TÉLÉPHONE FIXE</Text>
+                <Text style={styles.contactLabel}>{t('profile.landline')}</Text>
                 <Text style={styles.contactValue}>{emp?.emptel || '—'}</Text>
               </View>
             </View>
@@ -583,7 +582,7 @@ export default function ProfileScreen({ navigation, route }: any) {
                 <MaterialCommunityIcons name="cellphone" size={20} color={COLORS.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.contactLabel}>MOBILE</Text>
+                <Text style={styles.contactLabel}>{t('profile.mobile')}</Text>
                 <Text style={styles.contactValue}>{emp?.empmob || '—'}</Text>
               </View>
             </View>
@@ -592,7 +591,7 @@ export default function ProfileScreen({ navigation, route }: any) {
                 <MaterialCommunityIcons name="map-marker-outline" size={20} color={COLORS.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.contactLabel}>ADRESSE</Text>
+                <Text style={styles.contactLabel}>{t('profile.address')}</Text>
                 <Text style={styles.contactValue}>{emp?.empadr || '—'}</Text>
               </View>
             </View>
@@ -602,36 +601,36 @@ export default function ProfileScreen({ navigation, route }: any) {
         {/* Section: Informations professionnelles */}
         <View style={styles.infoLedger}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Informations Professionnelles</Text>
-            <Text style={styles.sectionStep}>SECTION 03</Text>
+            <Text style={styles.sectionTitle}>{t('profile.proInfo')}</Text>
+            <Text style={styles.sectionStep}>{t('profile.section', { n: '03' })}</Text>
           </View>
 
           <View style={styles.bentoGrid}>
             <View style={styles.bentoCard}>
-              <Text style={styles.bentoLabel}>DATE D'EMBAUCHE</Text>
+              <Text style={styles.bentoLabel}>{t('profile.hireDate')}</Text>
               <Text style={styles.bentoValue}>{fmtDate(emp?.empemb)}</Text>
             </View>
             <View style={styles.bentoCard}>
-              <Text style={styles.bentoLabel}>FONCTION</Text>
+              <Text style={styles.bentoLabel}>{t('profile.role')}</Text>
               <Text style={styles.bentoValue}>{emp?.empfonc || '—'}</Text>
             </View>
             <View style={styles.bentoCard}>
-              <Text style={styles.bentoLabel}>SOCIÉTÉ</Text>
+              <Text style={styles.bentoLabel}>{t('profile.company')}</Text>
               <Text style={styles.bentoValue}>{d?.soclib || emp?.soccod || '—'}</Text>
             </View>
             <View style={styles.bentoCard}>
-              <Text style={styles.bentoLabel}>SITE</Text>
+              <Text style={styles.bentoLabel}>{t('profile.site')}</Text>
               <Text style={styles.bentoValue}>{emp?.sitcod || '—'}</Text>
             </View>
             {!!emp?.sercod && (
               <View style={styles.bentoCard}>
-                <Text style={styles.bentoLabel}>SERVICE</Text>
+                <Text style={styles.bentoLabel}>{t('profile.department')}</Text>
                 <Text style={styles.bentoValue}>{emp.sercod}</Text>
               </View>
             )}
             {!!emp?.utirole && (
               <View style={styles.bentoCard}>
-                <Text style={styles.bentoLabel}>RÔLE</Text>
+                <Text style={styles.bentoLabel}>{t('profile.accessRole')}</Text>
                 <Text style={styles.bentoValue}>{emp.utirole}</Text>
               </View>
             )}
@@ -655,8 +654,8 @@ export default function ProfileScreen({ navigation, route }: any) {
               <MaterialCommunityIcons name="folder-lock" size={22} color={COLORS.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.prefTitle}>Coffre-fort du collaborateur</Text>
-              <Text style={styles.prefSub}>Consulter et ajouter des documents</Text>
+              <Text style={styles.prefTitle}>{t('profile.employeeVault')}</Text>
+              <Text style={styles.prefSub}>{t('profile.employeeVaultSub')}</Text>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.outline} />
           </TouchableOpacity>
@@ -667,15 +666,15 @@ export default function ProfileScreen({ navigation, route }: any) {
         <>
         <View style={styles.infoLedger}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Sécurité & Accès</Text>
-            <Text style={styles.sectionStep}>SECTION 04</Text>
+            <Text style={styles.sectionTitle}>{t('profile.securityAccess')}</Text>
+            <Text style={styles.sectionStep}>{t('profile.section', { n: '04' })}</Text>
           </View>
 
           <View style={styles.securityStack}>
             <TouchableOpacity style={styles.securityBtn} onPress={() => setPwdModal(true)} activeOpacity={0.7}>
               <View style={styles.securityLeft}>
                 <MaterialCommunityIcons name="lock-reset" size={24} color={COLORS.primary} />
-                <Text style={styles.securityText}>Changer le mot de passe</Text>
+                <Text style={styles.securityText}>{t('profile.changePassword')}</Text>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={24} color={COLORS.outline} />
             </TouchableOpacity>
@@ -684,8 +683,8 @@ export default function ProfileScreen({ navigation, route }: any) {
               <View style={styles.securityLeft}>
                 <MaterialCommunityIcons name="shield-check" size={24} color={COLORS.tertiaryContainer} />
                 <View>
-                  <Text style={styles.securityText}>Double authentification (2FA)</Text>
-                  <Text style={styles.securitySubText}>{is2FAEnabled ? 'ACTIVÉ' : 'DÉSACTIVÉ'}</Text>
+                  <Text style={styles.securityText}>{t('profile.twoFA')}</Text>
+                  <Text style={styles.securitySubText}>{is2FAEnabled ? t('profile.enabled') : t('profile.disabled')}</Text>
                 </View>
               </View>
               <Switch
@@ -709,8 +708,8 @@ export default function ProfileScreen({ navigation, route }: any) {
             <MaterialCommunityIcons name="calendar-clock" size={22} color={COLORS.primary} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.prefTitle}>Mon emploi du temps</Text>
-            <Text style={styles.prefSub}>Horaires de travail selon votre poste</Text>
+            <Text style={styles.prefTitle}>{t('profile.mySchedule')}</Text>
+            <Text style={styles.prefSub}>{t('profile.myScheduleSub')}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.outline} />
         </TouchableOpacity>
@@ -725,25 +724,30 @@ export default function ProfileScreen({ navigation, route }: any) {
             <MaterialCommunityIcons name="bell-cog-outline" size={22} color={COLORS.primary} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.prefTitle}>Préférences de notification</Text>
-            <Text style={styles.prefSub}>Choisir les types de rappels et alertes</Text>
+            <Text style={styles.prefTitle}>{t('profile.notifPrefs')}</Text>
+            <Text style={styles.prefSub}>{t('profile.notifPrefsSub')}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.outline} />
         </TouchableOpacity>
+
+        {/* Sélecteur de langue (FR / EN) */}
+        <View style={{ marginTop: 8, marginBottom: 4, paddingHorizontal: 4 }}>
+          <LanguageSwitcher />
+        </View>
 
         {/* Liens légaux — requis par Apple Guideline 5.1.1(i) et Google Play
             Data Safety (accessibles depuis l'app, pas seulement depuis la fiche store). */}
         <View style={styles.legalLinks}>
           <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/docs/politique-confidentialite.pdf')}>
-            <Text style={styles.legalLink}>Politique de confidentialité</Text>
+            <Text style={styles.legalLink}>{t('profile.privacyPolicy')}</Text>
           </TouchableOpacity>
           <Text style={styles.legalSep}>·</Text>
           <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/docs/cgu.pdf')}>
-            <Text style={styles.legalLink}>CGU</Text>
+            <Text style={styles.legalLink}>{t('profile.terms')}</Text>
           </TouchableOpacity>
           <Text style={styles.legalSep}>·</Text>
           <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/suppression-compte')}>
-            <Text style={styles.legalLink}>Suppression de compte</Text>
+            <Text style={styles.legalLink}>{t('profile.accountDeletion')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -752,7 +756,7 @@ export default function ProfileScreen({ navigation, route }: any) {
             anonymisées/supprimées sous 30 j. */}
         <TouchableOpacity style={styles.deleteAccountButton} onPress={handleRequestDeletion} activeOpacity={0.7}>
           <MaterialCommunityIcons name="account-remove-outline" size={20} color="#dc2626" />
-          <Text style={styles.deleteAccountText}>Supprimer mon compte</Text>
+          <Text style={styles.deleteAccountText}>{t('profile.deleteTitle')}</Text>
         </TouchableOpacity>
 
         {/* Logout Button */}
@@ -764,7 +768,7 @@ export default function ProfileScreen({ navigation, route }: any) {
             end={{ x: 1, y: 1 }}
           >
             <MaterialCommunityIcons name="logout" size={20} color="#fff" />
-            <Text style={styles.logoutText}>DÉCONNEXION SÉCURISÉE</Text>
+            <Text style={styles.logoutText}>{t('profile.logoutSecure')}</Text>
           </LinearGradient>
         </TouchableOpacity>
         </>
@@ -781,15 +785,15 @@ export default function ProfileScreen({ navigation, route }: any) {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.contactModalOverlay}>
           <View style={[styles.contactModalCard, { paddingBottom: modalCardPaddingBottom }]}>
             <View style={styles.contactModalHeader}>
-              <Text style={[styles.contactModalTitle, { color: '#dc2626' }]}>Confirmer la suppression</Text>
+              <Text style={[styles.contactModalTitle, { color: '#dc2626' }]}>{t('profile.confirmDeletion')}</Text>
               <TouchableOpacity onPress={() => !delLoading && setDelModal(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <MaterialCommunityIcons name="close" size={24} color={COLORS.outline} />
               </TouchableOpacity>
             </View>
             <Text style={{ color: '#475569', fontSize: 14, lineHeight: 20, marginBottom: 16 }}>
               {delEmail
-                ? `Saisissez le code à 6 chiffres envoyé à ${delEmail}.`
-                : 'Saisissez le code à 6 chiffres reçu par email.'}
+                ? t('profile.enterCodeTo', { email: delEmail })
+                : t('profile.enterCode6')}
             </Text>
             <TextInput
               value={delCode}
@@ -807,10 +811,10 @@ export default function ProfileScreen({ navigation, route }: any) {
             >
               {delLoading
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Confirmer la suppression</Text>}
+                : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>{t('profile.confirmDeletion')}</Text>}
             </TouchableOpacity>
             <TouchableOpacity onPress={handleRequestDeletion} disabled={delLoading} style={{ marginTop: 14, alignItems: 'center' }}>
-              <Text style={{ color: COLORS.primary, fontSize: 13, fontWeight: '600' }}>Renvoyer un code</Text>
+              <Text style={{ color: COLORS.primary, fontSize: 13, fontWeight: '600' }}>{t('profile.resendCode')}</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -821,13 +825,13 @@ export default function ProfileScreen({ navigation, route }: any) {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.contactModalOverlay}>
           <View style={[styles.contactModalCard, { paddingBottom: modalCardPaddingBottom }]}>
             <View style={styles.contactModalHeader}>
-              <Text style={styles.contactModalTitle}>Changer le mot de passe</Text>
+              <Text style={styles.contactModalTitle}>{t('profile.changePassword')}</Text>
               <TouchableOpacity onPress={() => setPwdModal(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <MaterialCommunityIcons name="close" size={24} color={COLORS.outline} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.fieldLabel}>MOT DE PASSE ACTUEL</Text>
+              <Text style={styles.fieldLabel}>{t('profile.pwdCurrent')}</Text>
               <TextInput
                 style={styles.contactInput}
                 placeholder="••••••••"
@@ -838,43 +842,40 @@ export default function ProfileScreen({ navigation, route }: any) {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              <Text style={styles.fieldLabel}>NOUVEAU MOT DE PASSE</Text>
+              <Text style={styles.fieldLabel}>{t('profile.pwdNew')}</Text>
               <TextInput
                 style={styles.contactInput}
-                placeholder="Au moins 8 caractères"
+                placeholder={t('profile.pwdNewPlaceholder')}
                 placeholderTextColor={COLORS.outline}
                 value={pwdForm.next}
-                onChangeText={(t) => setPwdForm({ ...pwdForm, next: t })}
+                onChangeText={(v) => setPwdForm({ ...pwdForm, next: v })}
                 secureTextEntry
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              <Text style={styles.fieldLabel}>CONFIRMATION</Text>
+              <Text style={styles.fieldLabel}>{t('profile.pwdConfirm')}</Text>
               <TextInput
                 style={styles.contactInput}
-                placeholder="Répétez le nouveau mot de passe"
+                placeholder={t('profile.pwdConfirmPlaceholder')}
                 placeholderTextColor={COLORS.outline}
                 value={pwdForm.confirm}
-                onChangeText={(t) => setPwdForm({ ...pwdForm, confirm: t })}
+                onChangeText={(v) => setPwdForm({ ...pwdForm, confirm: v })}
                 secureTextEntry
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              <Text style={styles.contactHint}>
-                Pour votre sécurité, choisissez un mot de passe long et unique.
-                Évitez les informations personnelles (nom, date de naissance, etc.).
-              </Text>
+              <Text style={styles.contactHint}>{t('profile.pwdHint')}</Text>
             </ScrollView>
             <View style={styles.contactModalFooter}>
               <TouchableOpacity style={styles.contactCancelBtn} onPress={() => setPwdModal(false)}>
-                <Text style={styles.contactCancelText}>Annuler</Text>
+                <Text style={styles.contactCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.contactSaveBtn, savingPwd && { opacity: 0.5 }]}
                 onPress={submitPasswordChange}
                 disabled={savingPwd}
               >
-                {savingPwd ? <ActivityIndicator color="#fff" /> : <Text style={styles.contactSaveText}>Mettre à jour</Text>}
+                {savingPwd ? <ActivityIndicator color="#fff" /> : <Text style={styles.contactSaveText}>{t('profile.update')}</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -892,7 +893,7 @@ export default function ProfileScreen({ navigation, route }: any) {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.contactModalOverlay}>
           <View style={[styles.contactModalCard, { paddingBottom: modalCardPaddingBottom }]}>
             <View style={styles.contactModalHeader}>
-              <Text style={styles.contactModalTitle}>Activer la double authentification</Text>
+              <Text style={styles.contactModalTitle}>{t('profile.enable2FA')}</Text>
               <TouchableOpacity
                 onPress={() => { setTwoFAState('idle'); setTwoFAQr(null); }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -901,11 +902,7 @@ export default function ProfileScreen({ navigation, route }: any) {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.contactHint}>
-                1. Ouvrez votre app d'authentification (Google Authenticator, Microsoft Authenticator, 1Password…).{"\n"}
-                2. Scannez le QR code ci-dessous (ou saisissez la clé manuellement).{"\n"}
-                3. Tapez le code à 6 chiffres affiché.
-              </Text>
+              <Text style={styles.contactHint}>{t('profile.twoFASteps')}</Text>
               {twoFAQr?.qrCodeBase64 ? (
                 <View style={styles.qrWrap}>
                   <Image source={{ uri: twoFAQr.qrCodeBase64 }} style={styles.qrImg} resizeMode="contain" />
@@ -913,11 +910,11 @@ export default function ProfileScreen({ navigation, route }: any) {
               ) : null}
               {twoFAQr?.manualEntryKey ? (
                 <>
-                  <Text style={styles.fieldLabel}>CLÉ MANUELLE</Text>
+                  <Text style={styles.fieldLabel}>{t('profile.manualKey')}</Text>
                   <Text selectable style={styles.manualKey}>{twoFAQr.manualEntryKey}</Text>
                 </>
               ) : null}
-              <Text style={styles.fieldLabel}>CODE À 6 CHIFFRES</Text>
+              <Text style={styles.fieldLabel}>{t('profile.code6')}</Text>
               <TextInput
                 style={[styles.contactInput, { letterSpacing: 4, textAlign: 'center', fontSize: 18, fontWeight: '700' }]}
                 placeholder="------"
@@ -933,14 +930,14 @@ export default function ProfileScreen({ navigation, route }: any) {
                 style={styles.contactCancelBtn}
                 onPress={() => { setTwoFAState('idle'); setTwoFAQr(null); }}
               >
-                <Text style={styles.contactCancelText}>Annuler</Text>
+                <Text style={styles.contactCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.contactSaveBtn, twoFAState === 'verifying' && { opacity: 0.5 }]}
                 onPress={verify2FACode}
                 disabled={twoFAState === 'verifying'}
               >
-                {twoFAState === 'verifying' ? <ActivityIndicator color="#fff" /> : <Text style={styles.contactSaveText}>Vérifier</Text>}
+                {twoFAState === 'verifying' ? <ActivityIndicator color="#fff" /> : <Text style={styles.contactSaveText}>{t('profile.verify')}</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -957,19 +954,19 @@ export default function ProfileScreen({ navigation, route }: any) {
         >
           <View style={[styles.contactModalCard, { paddingBottom: modalCardPaddingBottom }]}>
             <View style={styles.contactModalHeader}>
-              <Text style={styles.contactModalTitle}>Mon profil</Text>
+              <Text style={styles.contactModalTitle}>{t('profile.myProfile')}</Text>
               <TouchableOpacity onPress={() => setContactEdit(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <MaterialCommunityIcons name="close" size={24} color={COLORS.outline} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* ─── COORDONNÉES ─── */}
-              <Text style={styles.modalSectionHeader}>Coordonnées</Text>
+              <Text style={styles.modalSectionHeader}>{t('profile.contactInfo')}</Text>
 
-              <Text style={styles.fieldLabel}>EMAIL</Text>
+              <Text style={styles.fieldLabel}>{t('profile.email')}</Text>
               <TextInput
                 style={styles.contactInput}
-                placeholder="prenom.nom@entreprise.com"
+                placeholder={t('profile.emailPlaceholder')}
                 placeholderTextColor={COLORS.outline}
                 value={contactForm.empemail}
                 onChangeText={(t) => setContactForm({ ...contactForm, empemail: t })}
@@ -978,54 +975,54 @@ export default function ProfileScreen({ navigation, route }: any) {
                 autoCorrect={false}
               />
 
-              <Text style={styles.fieldLabel}>TÉLÉPHONE FIXE</Text>
+              <Text style={styles.fieldLabel}>{t('profile.landline')}</Text>
               <TextInput
                 style={styles.contactInput}
-                placeholder="+XX XXX XXX XXX"
+                placeholder={t('profile.phonePlaceholder')}
                 placeholderTextColor={COLORS.outline}
                 value={contactForm.emptel}
-                onChangeText={(t) => setContactForm({ ...contactForm, emptel: t })}
+                onChangeText={(v) => setContactForm({ ...contactForm, emptel: v })}
                 keyboardType="phone-pad"
               />
 
-              <Text style={styles.fieldLabel}>MOBILE</Text>
+              <Text style={styles.fieldLabel}>{t('profile.mobile')}</Text>
               <TextInput
                 style={styles.contactInput}
-                placeholder="+XX XXX XXX XXX"
+                placeholder={t('profile.phonePlaceholder')}
                 placeholderTextColor={COLORS.outline}
                 value={contactForm.empmob}
-                onChangeText={(t) => setContactForm({ ...contactForm, empmob: t })}
+                onChangeText={(v) => setContactForm({ ...contactForm, empmob: v })}
                 keyboardType="phone-pad"
               />
 
-              <Text style={styles.fieldLabel}>ADRESSE</Text>
+              <Text style={styles.fieldLabel}>{t('profile.address')}</Text>
               <TextInput
                 style={[styles.contactInput, { minHeight: 80, textAlignVertical: 'top' }]}
-                placeholder="N°, rue, complément…"
+                placeholder={t('profile.addressPlaceholder')}
                 placeholderTextColor={COLORS.outline}
                 value={contactForm.empadr}
-                onChangeText={(t) => setContactForm({ ...contactForm, empadr: t })}
+                onChangeText={(v) => setContactForm({ ...contactForm, empadr: v })}
                 multiline
               />
 
-              <Text style={styles.fieldLabel}>CODE VILLE</Text>
+              <Text style={styles.fieldLabel}>{t('profile.cityCode')}</Text>
               <TextInput
                 style={styles.contactInput}
-                placeholder="Ex. 75001"
+                placeholder={t('profile.cityCodePlaceholder')}
                 placeholderTextColor={COLORS.outline}
                 value={contactForm.vilcod}
-                onChangeText={(t) => setContactForm({ ...contactForm, vilcod: t })}
+                onChangeText={(v) => setContactForm({ ...contactForm, vilcod: v })}
                 keyboardType="numeric"
               />
 
               {/* ─── ÉTAT CIVIL ─── */}
-              <Text style={styles.modalSectionHeader}>État civil</Text>
+              <Text style={styles.modalSectionHeader}>{t('profile.civilStatus')}</Text>
 
-              <Text style={styles.fieldLabel}>SEXE</Text>
+              <Text style={styles.fieldLabel}>{t('profile.sex')}</Text>
               <View style={styles.chipRow}>
                 {[
-                  { code: 'M', label: 'Homme' },
-                  { code: 'F', label: 'Femme' },
+                  { code: 'M', label: t('profile.man') },
+                  { code: 'F', label: t('profile.woman') },
                 ].map((opt) => (
                   <TouchableOpacity
                     key={opt.code}
@@ -1037,13 +1034,13 @@ export default function ProfileScreen({ navigation, route }: any) {
                 ))}
               </View>
 
-              <Text style={styles.fieldLabel}>SITUATION FAMILIALE</Text>
+              <Text style={styles.fieldLabel}>{t('profile.familyStatus')}</Text>
               <View style={styles.chipRow}>
                 {[
-                  { code: 'C', label: 'Célibataire' },
-                  { code: 'M', label: 'Marié(e)' },
-                  { code: 'D', label: 'Divorcé(e)' },
-                  { code: 'V', label: 'Veuf/ve' },
+                  { code: 'C', label: t('profile.single') },
+                  { code: 'M', label: t('profile.married') },
+                  { code: 'D', label: t('profile.divorced') },
+                  { code: 'V', label: t('profile.widowedShort') },
                 ].map((opt) => (
                   <TouchableOpacity
                     key={opt.code}
@@ -1055,73 +1052,70 @@ export default function ProfileScreen({ navigation, route }: any) {
                 ))}
               </View>
 
-              <Text style={styles.fieldLabel}>NOMBRE D'ENFANTS À CHARGE</Text>
+              <Text style={styles.fieldLabel}>{t('profile.childrenCount')}</Text>
               <TextInput
                 style={styles.contactInput}
                 placeholder="0"
                 placeholderTextColor={COLORS.outline}
                 value={contactForm.empnbp}
-                onChangeText={(t) => setContactForm({ ...contactForm, empnbp: t.replace(/\D+/g, '').slice(0, 2) })}
+                onChangeText={(v) => setContactForm({ ...contactForm, empnbp: v.replace(/\D+/g, '').slice(0, 2) })}
                 keyboardType="number-pad"
               />
 
-              <Text style={styles.fieldLabel}>DATE DE NAISSANCE</Text>
+              <Text style={styles.fieldLabel}>{t('profile.birthDate')}</Text>
               <TextInput
                 style={styles.contactInput}
-                placeholder="JJ/MM/AAAA"
+                placeholder={t('profile.birthDatePlaceholder')}
                 placeholderTextColor={COLORS.outline}
                 value={contactForm.empdnais}
-                onChangeText={(t) => setContactForm({ ...contactForm, empdnais: t })}
+                onChangeText={(v) => setContactForm({ ...contactForm, empdnais: v })}
               />
 
-              <Text style={styles.fieldLabel}>LIEU DE NAISSANCE</Text>
+              <Text style={styles.fieldLabel}>{t('profile.birthPlace')}</Text>
               <TextInput
                 style={styles.contactInput}
-                placeholder="Ville, pays"
+                placeholder={t('profile.birthPlacePlaceholder')}
                 placeholderTextColor={COLORS.outline}
                 value={contactForm.emplnais}
                 onChangeText={(t) => setContactForm({ ...contactForm, emplnais: t })}
               />
 
-              <Text style={styles.fieldLabel}>CODE NATIONALITÉ</Text>
+              <Text style={styles.fieldLabel}>{t('profile.nationalityCode')}</Text>
               <TextInput
                 style={styles.contactInput}
-                placeholder="Ex. FR, MA, TN…"
+                placeholder={t('profile.nationalityPlaceholder')}
                 placeholderTextColor={COLORS.outline}
                 value={contactForm.natcod}
-                onChangeText={(t) => setContactForm({ ...contactForm, natcod: t.toUpperCase().slice(0, 4) })}
+                onChangeText={(v) => setContactForm({ ...contactForm, natcod: v.toUpperCase().slice(0, 4) })}
                 autoCapitalize="characters"
               />
 
               {/* ─── IDENTITÉ MULTILINGUE (optionnelle) ─── */}
-              <Text style={styles.modalSectionHeader}>Identité (arabe)</Text>
+              <Text style={styles.modalSectionHeader}>{t('profile.arabicIdentity')}</Text>
 
-              <Text style={styles.fieldLabel}>NOM EN ARABE</Text>
+              <Text style={styles.fieldLabel}>{t('profile.arabicName')}</Text>
               <TextInput
                 style={[styles.contactInput, { textAlign: 'right' }]}
                 placeholderTextColor={COLORS.outline}
                 value={contactForm.emplibar}
-                onChangeText={(t) => setContactForm({ ...contactForm, emplibar: t })}
+                onChangeText={(v) => setContactForm({ ...contactForm, emplibar: v })}
               />
 
-              <Text style={styles.fieldLabel}>ADRESSE EN ARABE</Text>
+              <Text style={styles.fieldLabel}>{t('profile.arabicAddress')}</Text>
               <TextInput
                 style={[styles.contactInput, { minHeight: 60, textAlignVertical: 'top', textAlign: 'right' }]}
                 placeholderTextColor={COLORS.outline}
                 value={contactForm.empadrar}
-                onChangeText={(t) => setContactForm({ ...contactForm, empadrar: t })}
+                onChangeText={(v) => setContactForm({ ...contactForm, empadrar: v })}
                 multiline
               />
 
-              <Text style={styles.contactHint}>
-                Vous pouvez modifier vos informations personnelles. La fonction, le service,
-                le site, la société et la date d'embauche restent sous le contrôle des RH.
-              </Text>
+              <Text style={styles.contactHint}>{t('profile.editHint')}</Text>
             </ScrollView>
 
             <View style={styles.contactModalFooter}>
               <TouchableOpacity style={styles.contactCancelBtn} onPress={() => setContactEdit(false)}>
-                <Text style={styles.contactCancelText}>Annuler</Text>
+                <Text style={styles.contactCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.contactSaveBtn, savingContact && { opacity: 0.5 }]}
@@ -1131,7 +1125,7 @@ export default function ProfileScreen({ navigation, route }: any) {
                 {savingContact ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.contactSaveText}>Enregistrer</Text>
+                  <Text style={styles.contactSaveText}>{t('common.save')}</Text>
                 )}
               </TouchableOpacity>
             </View>

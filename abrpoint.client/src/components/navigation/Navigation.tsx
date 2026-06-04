@@ -91,7 +91,6 @@ const LetterTemplatesModern = React.lazy(() => import('../Rag/Letters/LetterTemp
 const SignaturePage = React.lazy(() => import('../gestionEmploye/Vault/SignaturePage'));
 const SignatureInbox = React.lazy(() => import('../gestionEmploye/Vault/SignatureInbox'));
 const PlanUpgradePage = React.lazy(() => import('../Pricing/PlanUpgradePage'));
-const AboutPage = React.lazy(() => import('../About/AboutPage'));
 const PlanConfigurationPage = React.lazy(() => import('../Pricing/PlanConfigurationPage'));
 const MonAbonnementPage = React.lazy(() => import('../Pricing/MonAbonnementPage'));
 const FacturesConcordePage = React.lazy(() => import('../Pricing/FacturesConcordePage'));
@@ -592,7 +591,6 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     // accessible via /dashboard/pricing pour les utilisateurs authentifiés qui veulent
     // changer de plan, mais la racine '/' sert désormais la maquette commerciale.
     case '/': content = <HomePage />; break;
-    case '/about': content = <AboutPage />; break;
     case '/login': content = <CredentialsSignInPage />; break;
     case '/signup': content = <SignupPage />; break;
     case '/verify-email': content = <VerifyEmailPage />; break;
@@ -1057,13 +1055,34 @@ function DashboardLayoutAccount(_props: DemoProps) {
   // rendu, donnant l'impression que la vérification email était "court-circuitée").
   // Maintenir cette liste synchronisée avec les `case '/...'` racine du switch ci-dessus.
   const PUBLIC_PATHS = [
-    '/', '/about', '/login', '/signup', '/verify-email',
+    '/', '/login', '/signup', '/verify-email',
     '/plan-configuration', '/payment', '/contact-sales', '/download',
     '/confidentialite', '/cgu', '/mentions-legales', '/suppression-compte',
+    // Versions anglaises (pages réellement bilingues uniquement).
+    '/en', '/en/suppression-compte',
   ];
   const canonicalPathname = (pathname === '/dashboard' || pathname.startsWith('/dashboard/') || PUBLIC_PATHS.includes(pathname))
     ? pathname
     : `/dashboard${pathname}`;
+
+  // Routes anglaises sous /en : on rend la MÊME page que la version FR (le préfixe
+  // /en est purement une variante de langue pour le SEO/hreflang). On dérive donc
+  // un `contentPathname` sans /en, qui alimente le switch de DemoPageContent.
+  const isEnRoute = pathname === '/en' || pathname.startsWith('/en/');
+  const contentPathname = isEnRoute
+    ? (pathname === '/en' ? '/' : pathname.slice(3))
+    : canonicalPathname;
+
+  // L'URL impose la langue sur les pages marketing bilingues : /en* → anglais,
+  // / et /suppression-compte → français (déterminisme SEO ; le crawler obtient
+  // toujours la bonne langue). Les autres routes gardent la langue persistée.
+  React.useEffect(() => {
+    if (isEnRoute) {
+      if (i18n.language !== 'en') i18n.changeLanguage('en');
+    } else if (pathname === '/' || pathname === '/suppression-compte') {
+      if (i18n.language !== 'fr') i18n.changeLanguage('fr');
+    }
+  }, [pathname, isEnRoute, i18n]);
 
   const [societeImage, setSocieteImage] = React.useState<string>(() => {
     const stored = localStorage.getItem('societeImage');
@@ -1142,7 +1161,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // Track navigation to add tabs (cap MAX_OPEN_TABS, FIFO eviction).
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download' || pathname === '/suppression-compte') return;
+    if (pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download' || pathname === '/suppression-compte') return;
     // Le dashboard est la page d'accueil par défaut, pas un onglet : on ne le
     // crée pas dans la barre d'onglets pour ne pas l'encombrer dès le login.
     if (canonicalPathname === '/dashboard' || pathname === '/dashboard') return;
@@ -1171,7 +1190,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // ── Recent Pages Tracking ──
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download' || pathname === '/suppression-compte' || canonicalPathname === '/dashboard') return;
+    if (pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download' || pathname === '/suppression-compte' || canonicalPathname === '/dashboard') return;
 
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
     const navItems = flatten(NAVIGATION);
@@ -1256,7 +1275,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   ];
 
   // Pages publiques (rendues sans la barre latérale) : landing pricing + login.
-  const isPublicPage = pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download' || pathname === '/suppression-compte';
+  const isPublicPage = pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download' || pathname === '/suppression-compte' || isEnRoute;
   const isProfilePage = canonicalPathname === '/dashboard/profil-employe';
 
   if (!authReady) {
@@ -1273,7 +1292,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
     return (
       <>
         <PageFade routeKey={canonicalPathname}>
-          <DemoPageContent pathname={canonicalPathname} />
+          <DemoPageContent pathname={contentPathname} />
         </PageFade>
         {/* Assistant IA : réservé aux utilisateurs connectés ET au plan Premium
             (feature `RagAi` côté backend). Avant, on l'exposait sur la landing
@@ -1448,7 +1467,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
         </Box>
 
         <PageFade routeKey={canonicalPathname}>
-          <DemoPageContent pathname={canonicalPathname} />
+          <DemoPageContent pathname={contentPathname} />
         </PageFade>
       </SidebarNavigationDualTier>
 

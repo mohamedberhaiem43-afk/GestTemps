@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../contexts/AuthContext';
+import { useT } from '../../i18n';
 import apiService from '../../services/api';
 import { COLORS } from '../../config/env';
 
@@ -66,6 +67,7 @@ function useCountUp(target: number, durationMs = 700): number {
 
 export default function ManagerDashboardScreen({ navigation }: any) {
   const { user } = useAuth();
+  const t = useT();
   const [summary, setSummary] = useState<ManagerSummary>({
     pendingLeaves: 0,
     pendingAuth: 0,
@@ -105,10 +107,10 @@ export default function ManagerDashboardScreen({ navigation }: any) {
   // Détail "ce qui compose le total à valider" : utilisé dans le sous-texte
   // de la première carte et lors de la navigation vers les écrans dédiés.
   const breakdown = [
-    { label: 'congés', count: summary.pendingLeaves },
-    { label: 'autorisations', count: summary.pendingAuth },
-    { label: 'frais', count: summary.pendingExpenses },
-    { label: 'missions', count: summary.pendingMissions },
+    { label: t('mgrDashboard.breakdownLeaves'), count: summary.pendingLeaves },
+    { label: t('mgrDashboard.breakdownAuth'), count: summary.pendingAuth },
+    { label: t('mgrDashboard.breakdownExpenses'), count: summary.pendingExpenses },
+    { label: t('mgrDashboard.breakdownMissions'), count: summary.pendingMissions },
   ].filter(b => b.count > 0);
 
   if (loading) {
@@ -121,11 +123,11 @@ export default function ManagerDashboardScreen({ navigation }: any) {
 
   const greeting = (() => {
     const h = new Date().getHours();
-    if (h < 12) return 'Bonjour';
-    if (h < 18) return 'Bon après-midi';
-    return 'Bonsoir';
+    if (h < 12) return t('mgrDashboard.greetMorning');
+    if (h < 18) return t('mgrDashboard.greetAfternoon');
+    return t('mgrDashboard.greetEvening');
   })();
-  const firstName = (user?.utilib || '').split(' ')[0] || 'Manager';
+  const firstName = (user?.utilib || '').split(' ')[0] || t('mgrDashboard.defaultName');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -133,7 +135,7 @@ export default function ManagerDashboardScreen({ navigation }: any) {
       <View style={styles.topBar}>
         <View>
           <Text style={styles.greeting}>{greeting}, {firstName}</Text>
-          <Text style={styles.subgreet}>Voici ce qui demande votre attention.</Text>
+          <Text style={styles.subgreet}>{t('mgrDashboard.subgreeting')}</Text>
         </View>
         <TouchableOpacity
           style={styles.profileBtn}
@@ -173,11 +175,11 @@ export default function ManagerDashboardScreen({ navigation }: any) {
             <View style={styles.heroIconWrap}>
               <MaterialCommunityIcons name="clipboard-check-multiple-outline" size={26} color="#fff" />
             </View>
-            <Text style={styles.heroLabel}>À VALIDER</Text>
+            <Text style={styles.heroLabel}>{t('mgrDashboard.heroLabel')}</Text>
             <Text style={styles.heroNumber}>{animatedTotal}</Text>
             <Text style={styles.heroSubtext}>
               {breakdown.length === 0
-                ? 'Tout est à jour, bon travail !'
+                ? t('mgrDashboard.heroAllDone')
                 : breakdown.map(b => `${b.count} ${b.label}`).join(' · ')}
             </Text>
           </LinearGradient>
@@ -192,7 +194,7 @@ export default function ManagerDashboardScreen({ navigation }: any) {
           >
             <MaterialCommunityIcons name="calendar-check-outline" size={22} color="#92400e" />
             <Text style={styles.gridCount}>{summary.pendingLeaves}</Text>
-            <Text style={styles.gridLabel}>Congés en attente</Text>
+            <Text style={styles.gridLabel}>{t('mgrDashboard.cardLeaves')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -202,7 +204,7 @@ export default function ManagerDashboardScreen({ navigation }: any) {
           >
             <MaterialCommunityIcons name="briefcase-outline" size={22} color="#6d28d9" />
             <Text style={styles.gridCount}>{summary.pendingMissions}</Text>
-            <Text style={styles.gridLabel}>Missions en attente</Text>
+            <Text style={styles.gridLabel}>{t('mgrDashboard.cardMissions')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -214,7 +216,7 @@ export default function ManagerDashboardScreen({ navigation }: any) {
           >
             <MaterialCommunityIcons name="receipt" size={22} color="#047857" />
             <Text style={styles.gridCount}>{summary.pendingExpenses}</Text>
-            <Text style={styles.gridLabel}>Frais à valider</Text>
+            <Text style={styles.gridLabel}>{t('mgrDashboard.cardExpenses')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -224,7 +226,7 @@ export default function ManagerDashboardScreen({ navigation }: any) {
           >
             <MaterialCommunityIcons name="exit-run" size={22} color="#0e7490" />
             <Text style={styles.gridCount}>{summary.pendingAuth}</Text>
-            <Text style={styles.gridLabel}>Autorisations à valider</Text>
+            <Text style={styles.gridLabel}>{t('mgrDashboard.cardAuth')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -237,7 +239,7 @@ export default function ManagerDashboardScreen({ navigation }: any) {
             <MaterialCommunityIcons name="account-clock-outline" size={22} color={COLORS.primary} />
             <View style={{ flex: 1 }}>
               <Text style={styles.gridCount}>{animatedAbsent}</Text>
-              <Text style={styles.gridLabel}>Absents aujourd'hui</Text>
+              <Text style={styles.gridLabel}>{t('mgrDashboard.cardAbsent')}</Text>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.primary} />
           </View>
@@ -255,16 +257,18 @@ export default function ManagerDashboardScreen({ navigation }: any) {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.alertTitle}>
-                {animatedExpiring} contrat{summary.contractsExpiring > 1 ? 's' : ''} à renouveler
+                {summary.contractsExpiring > 1
+                  ? t('mgrDashboard.contractsToRenewPlural', { count: animatedExpiring })
+                  : t('mgrDashboard.contractsToRenewSingular', { count: animatedExpiring })}
               </Text>
-              <Text style={styles.alertSubtitle}>Échéance dans les 30 prochains jours</Text>
+              <Text style={styles.alertSubtitle}>{t('mgrDashboard.contractsDeadline')}</Text>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={22} color="#b91c1c" />
           </TouchableOpacity>
         )}
 
         {/* Sections secondaires : raccourcis vers les écrans manager */}
-        <Text style={styles.sectionTitle}>Gestion d'équipe</Text>
+        <Text style={styles.sectionTitle}>{t('mgrDashboard.sectionTeam')}</Text>
 
         <TouchableOpacity
           style={styles.menuItem}
@@ -275,8 +279,8 @@ export default function ManagerDashboardScreen({ navigation }: any) {
             <MaterialCommunityIcons name="account-group-outline" size={22} color={COLORS.primary} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.menuTitle}>Mes collaborateurs</Text>
-            <Text style={styles.menuSub}>Liste, recherche, ajout</Text>
+            <Text style={styles.menuTitle}>{t('mgrDashboard.menuTeamTitle')}</Text>
+            <Text style={styles.menuSub}>{t('mgrDashboard.menuTeamSub')}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.outline} />
         </TouchableOpacity>
@@ -290,8 +294,8 @@ export default function ManagerDashboardScreen({ navigation }: any) {
             <MaterialCommunityIcons name="calendar-today" size={22} color={COLORS.primary} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.menuTitle}>Pointage du jour</Text>
-            <Text style={styles.menuSub}>Présences, retards, absences</Text>
+            <Text style={styles.menuTitle}>{t('mgrDashboard.menuPointageTitle')}</Text>
+            <Text style={styles.menuSub}>{t('mgrDashboard.menuPointageSub')}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.outline} />
         </TouchableOpacity>
@@ -305,8 +309,8 @@ export default function ManagerDashboardScreen({ navigation }: any) {
             <MaterialCommunityIcons name="view-dashboard-outline" size={22} color={COLORS.primary} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.menuTitle}>Mon espace personnel</Text>
-            <Text style={styles.menuSub}>Mon pointage, mes demandes</Text>
+            <Text style={styles.menuTitle}>{t('mgrDashboard.menuPersonalTitle')}</Text>
+            <Text style={styles.menuSub}>{t('mgrDashboard.menuPersonalSub')}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={22} color={COLORS.outline} />
         </TouchableOpacity>

@@ -248,7 +248,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // (cf. cycle redondant observé après logout : /parametres → /me 401 → /refresh
   // 401 → redirect /login → /me 401 + /refresh 401 à nouveau). On court-circuite
   // donc refreshAuth() en posant immédiatement l'état "logged-out".
-  // NB : /, /about, /download, /contact-sales restent intacts — sur ces landing
+  // NB : /, /download, /contact-sales restent intacts — sur ces landing
   // pages publiques, savoir si le visiteur est déjà connecté reste utile (lien
   // « Dashboard » dans la nav vs « Connexion »).
   const AUTH_FREE_PATHS = new Set(['/login', '/signup', '/reset-password', '/forgot-password']);

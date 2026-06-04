@@ -288,7 +288,11 @@ public static class PlanCatalog
             MultiSite: true,
             MultiSociete: true,
             AdvancedDashboards: true,
-            RagAi: true,
+            // 2026-06-05 : RAG documentaire RETIRÉ du pack Premium → désormais
+            // commercialisé « sur devis » uniquement (addon négocié `iaDocumentaireAvancee`,
+            // cf. GetEffectiveFeatures). Même modèle que CustomBranding. Premium conserve
+            // l'assistant IA conversationnel (AiChatbot ci-dessous), DISTINCT du RAG.
+            RagAi: false,
             AdvancedAuditLogs: true,
             // 2026-06-02 : Branding personnalisé RETIRÉ du pack Premium → désormais
             // commercialisé « sur devis » (déploiement par nos équipes). Accordé via

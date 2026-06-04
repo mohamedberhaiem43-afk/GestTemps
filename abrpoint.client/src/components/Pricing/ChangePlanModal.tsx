@@ -130,7 +130,7 @@ const PLAN_META: Record<PlanKey, {
     rank: 1,
     intro: 'Ce pack comprend les avantages :',
     features: [
-      'Pointage web & mobile (iOS / Android)',
+      'Pointage web & mobile (Android)',
       'Gestion RH essentielle (fiches, contrats)',
       'Gestion congés, RTT, absences',
       'Tableau de bord simplifié · exports PDF / Excel',

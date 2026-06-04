@@ -3,7 +3,7 @@
 # Les pages non publiques (login, signup, verify-email, plan-configuration) restent
 # explorables mais portent un en-tête HTTP « X-Robots-Tag: noindex, nofollow »
 # (cf. nginx.conf) : Google les lit puis les exclut proprement de l'index.
-# Les pages publiques (/, /about, /download, /contact-sales) sont indexables.
+# Les pages publiques (/, /download, /contact-sales) sont indexables.
 
 User-agent: *
 Disallow: /dashboard/

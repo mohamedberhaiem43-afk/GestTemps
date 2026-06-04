@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../i18n';
 import apiService from '../../services/api';
 import { COLORS } from '../../config/env';
 
@@ -12,15 +13,15 @@ import { COLORS } from '../../config/env';
 // On s'aligne sur le helper utilisé dans DemandeAutorisationScreen côté employé.
 type StatusKey = 'pending' | 'approved' | 'refused';
 
-const fmtDate = (d: string | null | undefined) => {
+const fmtDate = (d: string | null | undefined, locale: string) => {
   if (!d) return '-';
-  try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
+  try { return new Date(d).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }); }
   catch { return d; }
 };
 
-const fmtTime = (d: string | null | undefined) => {
+const fmtTime = (d: string | null | undefined, locale: string) => {
   if (!d) return '';
-  try { return new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
+  try { return new Date(d).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }); }
   catch { return ''; }
 };
 
@@ -33,6 +34,8 @@ const getStatus = (statut: string | null | undefined): 'Approuvé' | 'Refusé' |
 
 export default function AuthorizationApprovalScreen({ navigation }: any) {
   const { user } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const [requests, setRequests] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -66,7 +69,7 @@ export default function AuthorizationApprovalScreen({ navigation }: any) {
     if (!actionModal || !user?.uticod) return;
     const { kind, req } = actionModal;
     if (kind === 'refuse' && commentaire.trim().length === 0) {
-      Alert.alert('Motif requis', 'Merci de préciser un motif pour le refus.');
+      Alert.alert(t('mgrAuth.reasonRequiredTitle'), t('mgrAuth.reasonRequiredMsg'));
       return;
     }
     setSubmitting(true);
@@ -79,9 +82,15 @@ export default function AuthorizationApprovalScreen({ navigation }: any) {
       setActionModal(null);
       setCommentaire('');
       await loadRequests();
-      Alert.alert(kind === 'approve' ? '✅ Approuvée' : 'Refusée', kind === 'approve' ? 'Demande approuvée' : 'Demande refusée');
+      Alert.alert(
+        kind === 'approve' ? t('mgrAuth.approvedTitle') : t('mgrAuth.refusedTitle'),
+        kind === 'approve' ? t('mgrAuth.approvedMsg') : t('mgrAuth.refusedMsg'),
+      );
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message || `Impossible de ${kind === 'approve' ? 'approuver' : 'refuser'} la demande.`);
+      Alert.alert(
+        t('common.error'),
+        e?.response?.data?.message || (kind === 'approve' ? t('mgrAuth.approveFailed') : t('mgrAuth.refuseFailed')),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -104,24 +113,24 @@ export default function AuthorizationApprovalScreen({ navigation }: any) {
 
   const statusBadge = (statut: string | null | undefined) => {
     const s = getStatus(statut);
-    if (s === 'Approuvé') return { label: '✅ Approuvée', color: COLORS.success };
-    if (s === 'Refusé') return { label: '❌ Refusée', color: COLORS.error };
-    return { label: '⏳ En attente', color: COLORS.warning };
+    if (s === 'Approuvé') return { label: t('mgrAuth.badgeApproved'), color: COLORS.success };
+    if (s === 'Refusé') return { label: t('mgrAuth.badgeRefused'), color: COLORS.error };
+    return { label: t('mgrAuth.badgePending'), color: COLORS.warning };
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.backBtn}>← Retour</Text></TouchableOpacity>
-        <Text style={styles.title}>Demandes d'autorisation</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.backBtn}>← {t('common.back')}</Text></TouchableOpacity>
+        <Text style={styles.title}>{t('mgrAuth.title')}</Text>
       </View>
 
       <View style={styles.statusFilterRow}>
         {([
-          { key: 'pending', label: `⏳ Attente (${pendingCount})` },
-          { key: 'all', label: `📋 Toutes (${requests.length})` },
-          { key: 'approved', label: `✅ Approuvées (${approvedCount})` },
-          { key: 'refused', label: `❌ Refusées (${refusedCount})` },
+          { key: 'pending', label: t('mgrAuth.filterPending', { count: pendingCount }) },
+          { key: 'all', label: t('mgrAuth.filterAll', { count: requests.length }) },
+          { key: 'approved', label: t('mgrAuth.filterApproved', { count: approvedCount }) },
+          { key: 'refused', label: t('mgrAuth.filterRefused', { count: refusedCount }) },
         ] as const).map(f => (
           <TouchableOpacity key={f.key}
             style={[styles.filterBtn, filter === f.key && styles.filterBtnActive]}
@@ -139,7 +148,7 @@ export default function AuthorizationApprovalScreen({ navigation }: any) {
         ) : filtered.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>✅</Text>
-            <Text style={styles.emptyText}>Aucune demande à afficher</Text>
+            <Text style={styles.emptyText}>{t('mgrAuth.emptyState')}</Text>
           </View>
         ) : (
           filtered.map(req => {
@@ -148,8 +157,8 @@ export default function AuthorizationApprovalScreen({ navigation }: any) {
               <View key={req.id} style={styles.requestCard}>
                 <View style={styles.requestHeader}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.empName}>{req.emplib || req.empcod || 'Employé'}</Text>
-                    <Text style={styles.requestType}>{req.abslib || req.abscod || 'Sortie'}</Text>
+                    <Text style={styles.empName}>{req.emplib || req.empcod || t('mgrAuth.employeeFallback')}</Text>
+                    <Text style={styles.requestType}>{req.abslib || req.abscod || t('mgrAuth.outingFallback')}</Text>
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: badge.color }]}>
                     <Text style={styles.statusText}>{badge.label}</Text>
@@ -158,19 +167,19 @@ export default function AuthorizationApprovalScreen({ navigation }: any) {
 
                 <View style={styles.requestDetails}>
                   <Text style={styles.detailMain}>
-                    🛫 {fmtDate(req.condep)} {fmtTime(req.condep)}
+                    🛫 {fmtDate(req.condep, locale)} {fmtTime(req.condep, locale)}
                     {'  →  '}
-                    🛬 {fmtDate(req.conret)} {fmtTime(req.conret)}
+                    🛬 {fmtDate(req.conret, locale)} {fmtTime(req.conret, locale)}
                   </Text>
-                  {req.connbjour ? <Text style={styles.detailText}>⏱️ Durée : {req.connbjour} h</Text> : null}
+                  {req.connbjour ? <Text style={styles.detailText}>{t('mgrAuth.duration', { hours: req.connbjour })}</Text> : null}
                   {req.conmotif ? <Text style={styles.detailText}>📝 {req.conmotif}</Text> : null}
                 </View>
 
                 <View style={styles.requestFooter}>
-                  <Text style={styles.requestSysDate}>Demandée le : {fmtDate(req.dateDemande || req.condat)}</Text>
+                  <Text style={styles.requestSysDate}>{t('mgrAuth.requestedOn', { date: fmtDate(req.dateDemande || req.condat, locale) })}</Text>
                   {!isPending(req) && req.traitePar ? (
                     <Text style={styles.requestSysDate}>
-                      Traitée par {req.traitePar}{req.dateTraitement ? ` · ${fmtDate(req.dateTraitement)}` : ''}
+                      {t('mgrAuth.processedBy', { name: req.traitePar })}{req.dateTraitement ? ` · ${fmtDate(req.dateTraitement, locale)}` : ''}
                     </Text>
                   ) : null}
                   {!isPending(req) && req.commentaire ? (
@@ -180,10 +189,10 @@ export default function AuthorizationApprovalScreen({ navigation }: any) {
                   {isPending(req) && (
                     <View style={styles.actionRow}>
                       <TouchableOpacity style={styles.approveBtn} onPress={() => openApprove(req)}>
-                        <Text style={styles.actionBtnText}>✅ Approuver</Text>
+                        <Text style={styles.actionBtnText}>{t('mgrAuth.approveBtn')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.rejectBtn} onPress={() => openRefuse(req)}>
-                        <Text style={styles.actionBtnText}>❌ Refuser</Text>
+                        <Text style={styles.actionBtnText}>{t('mgrAuth.refuseBtn')}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -205,16 +214,16 @@ export default function AuthorizationApprovalScreen({ navigation }: any) {
           style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
-              {actionModal?.kind === 'approve' ? 'Approuver la demande' : 'Refuser la demande'}
+              {actionModal?.kind === 'approve' ? t('mgrAuth.modalApproveTitle') : t('mgrAuth.modalRefuseTitle')}
             </Text>
             <Text style={styles.modalSub}>
               {actionModal?.kind === 'approve'
-                ? 'Vous pouvez ajouter un commentaire (optionnel).'
-                : 'Merci d\'indiquer le motif du refus.'}
+                ? t('mgrAuth.modalApproveSub')
+                : t('mgrAuth.modalRefuseSub')}
             </Text>
             <TextInput
               style={styles.modalInput}
-              placeholder={actionModal?.kind === 'approve' ? 'Commentaire (optionnel)' : 'Motif du refus *'}
+              placeholder={actionModal?.kind === 'approve' ? t('mgrAuth.commentPlaceholder') : t('mgrAuth.reasonPlaceholder')}
               placeholderTextColor={COLORS.outline}
               value={commentaire}
               onChangeText={setCommentaire}
@@ -227,7 +236,7 @@ export default function AuthorizationApprovalScreen({ navigation }: any) {
                 style={[styles.modalBtn, styles.modalCancel]}
                 disabled={submitting}
                 onPress={() => { setActionModal(null); setCommentaire(''); }}>
-                <Text style={styles.modalCancelText}>Annuler</Text>
+                <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, actionModal?.kind === 'approve' ? styles.modalApprove : styles.modalRefuse, submitting && { opacity: 0.6 }]}
@@ -235,7 +244,7 @@ export default function AuthorizationApprovalScreen({ navigation }: any) {
                 onPress={submitAction}>
                 {submitting
                   ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.modalSubmitText}>{actionModal?.kind === 'approve' ? 'Approuver' : 'Refuser'}</Text>}
+                  : <Text style={styles.modalSubmitText}>{actionModal?.kind === 'approve' ? t('mgrAuth.modalApproveSubmit') : t('mgrAuth.modalRefuseSubmit')}</Text>}
               </TouchableOpacity>
             </View>
           </View>

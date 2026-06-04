@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../helper/AuthProvider';
 import apiInstance from '../API/apiInstance';
+import PageSeo from '../helper/PageSeo';
 
 /**
  * Page publique « Suppression de compte et des données » (route `/suppression-compte`).
@@ -224,6 +225,14 @@ export default function AccountDeletionPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f7f9fb', padding: '48px 20px', color: '#191c1e', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <PageSeo
+        title={lang === 'en'
+          ? 'Account & data deletion – Concorde Workforce'
+          : 'Suppression de compte et des données – Concorde Workforce'}
+        description={lang === 'en'
+          ? 'Request the deletion of your Concorde Workforce account and personal data. Process, retention periods and dedicated contact.'
+          : 'Demandez la suppression de votre compte Concorde Workforce et de vos données personnelles. Procédure, délais de conservation et contact dédié.'}
+      />
       <div style={{ maxWidth: 820, margin: '0 auto', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 'clamp(24px, 5vw, 48px)', boxShadow: '0 4px 16px rgba(15,23,42,.06)' }}>
         <a href="/" style={{ color: '#0040a1', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>← Concorde Workly</a>
         <h1 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, margin: '16px 0 8px', lineHeight: 1.2 }}>{d.title}</h1>

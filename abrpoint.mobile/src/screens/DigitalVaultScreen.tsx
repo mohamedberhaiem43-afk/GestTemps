@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS, THEME, API_BASE_URL } from '../config/env';
 import { useSecureScreen } from '../hooks/useSecureScreen';
+import { useI18n } from '../i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -29,9 +30,9 @@ interface VaultDocument {
 }
 
 const CATEGORIES = [
-  { id: 'all', label: 'Tous', icon: 'infinity' },
-  { id: 'bulletin', label: 'Bulletins', icon: 'cash-multiple' },
-  { id: 'contrat', label: 'Contrats', icon: 'file-document-outline' },
+  { id: 'all', labelKey: 'vault.categoryAll', icon: 'infinity' },
+  { id: 'bulletin', labelKey: 'vault.categoryPayslips', icon: 'cash-multiple' },
+  { id: 'contrat', labelKey: 'vault.categoryContracts', icon: 'file-document-outline' },
 ];
 
 export default function DigitalVaultScreen({ navigation, route }: any) {
@@ -39,6 +40,8 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
   // bloqué (Android FLAG_SECURE) ou alerté (iOS).
   useSecureScreen();
   const { user, isAdmin, isManager } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const [documents, setDocuments] = useState<VaultDocument[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -83,13 +86,13 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
   // médical), galerie (photo déjà prise), ou fichier (PDF, scan).
   const handleUpload = () => {
     Alert.alert(
-      'Ajouter un document',
-      'Comment souhaitez-vous l\'importer ?',
+      t('vault.addDocument'),
+      t('vault.howToImport'),
       [
-        { text: 'Prendre une photo', onPress: pickFromCamera },
-        { text: 'Choisir depuis la galerie', onPress: pickFromGallery },
-        { text: 'Choisir un fichier', onPress: pickFromFiles },
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('vault.takePhoto'), onPress: pickFromCamera },
+        { text: t('vault.chooseFromGallery'), onPress: pickFromGallery },
+        { text: t('vault.chooseFile'), onPress: pickFromFiles },
+        { text: t('common.cancel'), style: 'cancel' },
       ]
     );
   };
@@ -97,7 +100,7 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
   const pickFromCamera = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Accès caméra', "L'autorisation est requise pour prendre une photo.");
+      Alert.alert(t('vault.cameraAccess'), t('vault.cameraPermissionRequired'));
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -126,7 +129,7 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
       if (result.canceled || !result.assets?.length) return;
       askDocumentType(result.assets[0].uri);
     } catch (e) {
-      Alert.alert('Erreur', 'Impossible de sélectionner le fichier');
+      Alert.alert(t('common.error'), t('vault.cannotSelectFile'));
     }
   };
 
@@ -134,12 +137,12 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
   // (Contrat, Bulletin de paie, Attestation, Autre, plus deux types employé
   // typiques : Certificat médical et Pièce d'identité, utiles depuis mobile).
   const askDocumentType = (uri: string) => {
-    Alert.alert('Type de document', 'Sélectionnez le type :', [
-      { text: 'Certificat médical', onPress: () => doUpload(uri, 'Certificat médical') },
-      { text: 'Pièce d\'identité', onPress: () => doUpload(uri, 'Pièce d\'identité') },
-      { text: 'Attestation', onPress: () => doUpload(uri, 'Attestation') },
-      { text: 'Autre', onPress: () => doUpload(uri, 'Autre') },
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('vault.documentType'), t('vault.selectType'), [
+      { text: t('vault.medicalCertificate'), onPress: () => doUpload(uri, 'Certificat médical') },
+      { text: t('vault.idDocument'), onPress: () => doUpload(uri, 'Pièce d\'identité') },
+      { text: t('vault.attestation'), onPress: () => doUpload(uri, 'Attestation') },
+      { text: t('vault.other'), onPress: () => doUpload(uri, 'Autre') },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
@@ -148,10 +151,10 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
     setUploading(true);
     try {
       await apiService.uploadVaultDocument(fileUri, targetSoccod, targetEmpcod, docType);
-      Alert.alert('✅ Succès', 'Document uploadé avec succès');
+      Alert.alert(t('vault.successTitle'), t('vault.uploadSuccess'));
       loadDocuments();
     } catch (e) {
-      Alert.alert('Erreur', 'Impossible d\'uploader le document');
+      Alert.alert(t('common.error'), t('vault.uploadError'));
     } finally { setUploading(false); }
   };
 
@@ -171,24 +174,24 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
   const handleDelete = (doc: VaultDocument) => {
     if (!doc.id) return;
     if (doc.isSigned) {
-      Alert.alert('Suppression impossible', 'Un document signé ne peut pas être supprimé depuis le mobile.');
+      Alert.alert(t('vault.deletionImpossible'), t('vault.signedCannotDelete'));
       return;
     }
     Alert.alert(
-      'Supprimer le document',
-      `« ${doc.docName || 'Document'} » sera définitivement supprimé. Cette action est irréversible.`,
+      t('vault.deleteDocument'),
+      t('vault.deleteConfirm', { name: doc.docName || t('vault.documentFallback') }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await apiService.deleteVaultDocument(doc.id!);
-              Alert.alert('✅ Supprimé', 'Le document a été retiré du coffre-fort.');
+              Alert.alert(t('vault.deletedTitle'), t('vault.deletedMessage'));
               loadDocuments();
             } catch {
-              Alert.alert('Erreur', 'Impossible de supprimer le document.');
+              Alert.alert(t('common.error'), t('vault.deleteError'));
             }
           },
         },
@@ -215,33 +218,33 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
   const handleViewDoc = async (doc: VaultDocument) => {
     const url = buildDocUrl(doc);
     if (!url) {
-      Alert.alert('Document indisponible', "Le chemin du fichier n'est pas renseigné.");
+      Alert.alert(t('vault.documentUnavailable'), t('vault.filePathMissing'));
       return;
     }
     try {
       const supported = await Linking.canOpenURL(url);
       if (!supported) {
-        Alert.alert('Impossible d\'ouvrir', "Aucune application ne peut ouvrir ce type de fichier.");
+        Alert.alert(t('vault.cannotOpen'), t('vault.noAppForFile'));
         return;
       }
       await Linking.openURL(url);
     } catch (e) {
-      Alert.alert('Erreur', 'Impossible d\'ouvrir le document.');
+      Alert.alert(t('common.error'), t('vault.openError'));
     }
   };
 
   const handleSign = (doc: VaultDocument) => {
     if (!doc.id) return;
     const signerName = user?.utilib || 'Admin';
-    Alert.alert('✍️ Signature électronique', 'Voulez-vous signer ce document électroniquement ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('vault.eSignatureTitle'), t('vault.eSignatureConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: '✍️ Signer', onPress: async () => {
+        text: t('vault.signAction'), onPress: async () => {
           try {
             await apiService.signVaultDocument(doc.id!, `sig_${user?.uticod}`, signerName);
-            Alert.alert('✅ Succès', 'Document signé');
+            Alert.alert(t('vault.successTitle'), t('vault.signSuccess'));
             loadDocuments();
-          } catch { Alert.alert('Erreur', 'Impossible de signer'); }
+          } catch { Alert.alert(t('common.error'), t('vault.signError')); }
         }
       },
     ]);
@@ -249,9 +252,9 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return '';
-    if (bytes < 1024) return `${bytes} o`;
-    if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} Ko`;
-    return `${(bytes / 1048576).toFixed(1)} Mo`;
+    if (bytes < 1024) return `${bytes} ${t('vault.unitByte')}`;
+    if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} ${t('vault.unitKilobyte')}`;
+    return `${(bytes / 1048576).toFixed(1)} ${t('vault.unitMegabyte')}`;
   };
 
   const filteredDocuments = useMemo(() => {
@@ -268,7 +271,7 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
     const groups: Record<string, VaultDocument[]> = {};
     filteredDocuments.forEach(doc => {
       const date = doc.docDate ? new Date(doc.docDate) : new Date();
-      const monthYear = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      const monthYear = date.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
       const key = monthYear.charAt(0).toUpperCase() + monthYear.slice(1);
       if (!groups[key]) groups[key] = [];
       groups[key].push(doc);
@@ -276,7 +279,7 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
     return Object.entries(groups).sort((a, b) => {
       return b[0].localeCompare(a[0]);
     });
-  }, [filteredDocuments]);
+  }, [filteredDocuments, locale]);
 
   if (loading) {
     return (
@@ -313,13 +316,13 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
         {/* Editorial Header */}
         <View style={styles.editorialHeader}>
           <Text style={styles.mainTitle}>Vault</Text>
-          <Text style={styles.subTitle}>DIGITAL SECURE STORAGE</Text>
-          
+          <Text style={styles.subTitle}>{t('vault.tagline')}</Text>
+
           <View style={styles.searchContainer}>
             <MaterialCommunityIcons name="magnify" size={20} color="#94a3b8" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Rechercher un document..."
+              placeholder={t('vault.searchPlaceholder')}
               placeholderTextColor="#94a3b8"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -337,7 +340,7 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
             >
               <MaterialCommunityIcons name={cat.icon as any} size={16} color={activeCategory === cat.id ? '#fff' : '#424654'} />
               <Text style={[styles.categoryLabel, activeCategory === cat.id && styles.categoryLabelActive]}>
-                {cat.label.toUpperCase()}
+                {t(cat.labelKey).toUpperCase()}
               </Text>
             </TouchableOpacity>
           ))}
@@ -381,17 +384,17 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
                           <Text style={styles.docTitle}>{doc.docName}</Text>
                           <View style={styles.docMeta}>
                             <Text style={styles.docSubMeta}>
-                              {doc.docDate ? new Date(doc.docDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                              {doc.docDate ? new Date(doc.docDate).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                               {doc.docSize ? ` • ${formatFileSize(doc.docSize)}` : ''}
                             </Text>
                             {doc.isSigned && (
                               <View style={styles.signedBadge}>
-                                <Text style={styles.signedText}>SIGNÉ</Text>
+                                <Text style={styles.signedText}>{t('vault.signedBadge')}</Text>
                               </View>
                             )}
                             {isPending && (
                               <View style={styles.pendingBadge}>
-                                <Text style={styles.pendingText}>EN ATTENTE</Text>
+                                <Text style={styles.pendingText}>{t('vault.pendingBadge')}</Text>
                               </View>
                             )}
                           </View>
@@ -400,7 +403,7 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
 
                       {isPending ? (
                         <TouchableOpacity style={styles.signButton} onPress={() => handleSign(doc)}>
-                          <Text style={styles.signButtonText}>SIGNER</Text>
+                          <Text style={styles.signButtonText}>{t('vault.signButton')}</Text>
                         </TouchableOpacity>
                       ) : (
                         <View style={styles.actionGroup}>
@@ -435,7 +438,7 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
           {filteredDocuments.length === 0 && (
             <View style={styles.emptyState}>
               <MaterialCommunityIcons name="folder-open-outline" size={64} color="#e2e8f0" />
-              <Text style={styles.emptyText}>Aucun document trouvé</Text>
+              <Text style={styles.emptyText}>{t('vault.emptyState')}</Text>
             </View>
           )}
         </View>
@@ -455,19 +458,19 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
           <MaterialCommunityIcons name="view-dashboard-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>DASHBOARD</Text>
+          <Text style={styles.navLabel}>{t('vault.navDashboard')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('LeaveRequest')}>
           <MaterialCommunityIcons name="calendar-month-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>LEAVES</Text>
+          <Text style={styles.navLabel}>{t('vault.navLeaves')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => {}}>
           <MaterialCommunityIcons name="folder-account" size={24} color={COLORS.primaryContainer} />
-          <Text style={[styles.navLabel, { color: COLORS.primaryContainer }]}>VAULT</Text>
+          <Text style={[styles.navLabel, { color: COLORS.primaryContainer }]}>{t('vault.navVault')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Authorization')}>
           <MaterialCommunityIcons name="draw-pen" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>SIGN</Text>
+          <Text style={styles.navLabel}>{t('vault.navSign')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

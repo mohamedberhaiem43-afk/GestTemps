@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import apiService from '../../services/api';
 import { COLORS } from '../../config/env';
 import DatePickerModal from '../../components/DatePickerModal';
+import { useI18n } from '../../i18n';
 
 /**
  * ContractRenewalScreen — version manager.
@@ -35,10 +36,10 @@ interface Contract {
   empmotif?: string | null;
 }
 
-const fmtDate = (d: any) => {
+const fmtDate = (d: any, locale: string) => {
   if (!d) return '—';
   try {
-    return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+    return new Date(d).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
   } catch { return '—'; }
 };
 
@@ -54,6 +55,8 @@ const CONTRACT_TYPES = ['CDI', 'CDD', 'STAGE', 'FREELANCE'] as const;
 
 export default function ContractRenewalScreen({ navigation, route }: any) {
   const { user } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -127,7 +130,7 @@ export default function ContractRenewalScreen({ navigation, route }: any) {
   const handleSubmit = async () => {
     if (!target || !user?.soccod) return;
     if (!form.asCdi && form.endDate <= form.startDate) {
-      Alert.alert('Erreur', 'La date de fin doit être postérieure à la date de début.');
+      Alert.alert(t('common.error'), t('mgrContract.endAfterStart'));
       return;
     }
     setSubmitting(true);
@@ -151,12 +154,12 @@ export default function ContractRenewalScreen({ navigation, route }: any) {
         empcontrat: finalContractType,
         empmotif: form.empmotif.trim() || null,
       });
-      Alert.alert('✅ Succès', `Contrat renouvelé pour ${target.emplib || target.empcod}.`);
+      Alert.alert('✅ ' + t('common.success'), t('mgrContract.renewedFor', { name: target.emplib || target.empcod }));
       closeForm();
       load();
     } catch (e: any) {
-      const msg = e?.response?.data?.message || 'Renouvellement impossible.';
-      Alert.alert('Erreur', msg);
+      const msg = e?.response?.data?.message || t('mgrContract.renewFailed');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setSubmitting(false);
     }
@@ -185,9 +188,9 @@ export default function ContractRenewalScreen({ navigation, route }: any) {
 
   const renderCard = (c: Contract, urgent: boolean) => {
     const d = daysUntil(c.empsort);
-    let chipBg = '#dbeafe', chipFg = '#1d4ed8', chipLabel = `J-${d}`;
-    if (d < 0) { chipBg = '#fee2e2'; chipFg = '#b91c1c'; chipLabel = `Expiré J+${Math.abs(d)}`; }
-    else if (d <= 7) { chipBg = '#fef3c7'; chipFg = '#92400e'; chipLabel = d === 0 ? 'Aujourd\'hui' : `Dans ${d}j`; }
+    let chipBg = '#dbeafe', chipFg = '#1d4ed8', chipLabel = t('mgrContract.chipDays', { days: d });
+    if (d < 0) { chipBg = '#fee2e2'; chipFg = '#b91c1c'; chipLabel = t('mgrContract.chipExpired', { days: Math.abs(d) }); }
+    else if (d <= 7) { chipBg = '#fef3c7'; chipFg = '#92400e'; chipLabel = d === 0 ? t('common.today') : t('mgrContract.chipInDays', { days: d }); }
 
     return (
       <View key={c.concod} style={[styles.card, urgent && styles.cardUrgent]}>
@@ -195,7 +198,7 @@ export default function ContractRenewalScreen({ navigation, route }: any) {
           <View style={{ flex: 1 }}>
             <Text style={styles.empName}>{c.emplib || c.empcod}</Text>
             <Text style={styles.cardTitle}>
-              {c.empcontrat || 'Contrat'} · {c.concod}
+              {c.empcontrat || t('mgrContract.contract')} · {c.concod}
             </Text>
           </View>
           <View style={[styles.stateChip, { backgroundColor: chipBg }]}>
@@ -204,12 +207,12 @@ export default function ContractRenewalScreen({ navigation, route }: any) {
         </View>
         <View style={styles.cardRow}>
           <MaterialCommunityIcons name="calendar-end" size={14} color={COLORS.outline} />
-          <Text style={styles.cardRowText}>Fin : {fmtDate(c.empsort)}</Text>
+          <Text style={styles.cardRowText}>{t('mgrContract.endLabel')} {fmtDate(c.empsort, locale)}</Text>
         </View>
         {!!c.empemb && (
           <View style={styles.cardRow}>
             <MaterialCommunityIcons name="calendar-start" size={14} color={COLORS.outline} />
-            <Text style={styles.cardRowText}>Embauche : {fmtDate(c.empemb)}</Text>
+            <Text style={styles.cardRowText}>{t('mgrContract.hireLabel')} {fmtDate(c.empemb, locale)}</Text>
           </View>
         )}
         <TouchableOpacity
@@ -218,7 +221,7 @@ export default function ContractRenewalScreen({ navigation, route }: any) {
           onPress={() => openRenewalForm(c)}
         >
           <MaterialCommunityIcons name="autorenew" size={16} color="#fff" />
-          <Text style={styles.renewBtnText}>Renouveler</Text>
+          <Text style={styles.renewBtnText}>{t('mgrContract.renew')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -230,7 +233,7 @@ export default function ContractRenewalScreen({ navigation, route }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.onSurface} />
         </TouchableOpacity>
-        <Text style={styles.topTitle}>Contrats à renouveler</Text>
+        <Text style={styles.topTitle}>{t('mgrContract.title')}</Text>
         <View style={styles.iconBtn} />
       </View>
 
@@ -241,28 +244,28 @@ export default function ContractRenewalScreen({ navigation, route }: any) {
         {contracts.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="check-circle-outline" size={64} color="#10b981" />
-            <Text style={styles.emptyTitle}>Tout est à jour</Text>
+            <Text style={styles.emptyTitle}>{t('mgrContract.emptyTitle')}</Text>
             <Text style={styles.emptyText}>
-              Aucun contrat n'arrive à échéance dans les 30 prochains jours.
+              {t('mgrContract.emptyText')}
             </Text>
           </View>
         ) : (
           <>
             {grouped.overdue.length > 0 && (
               <>
-                <Text style={styles.sectionTitle}>⚠ Expirés à régulariser ({grouped.overdue.length})</Text>
+                <Text style={styles.sectionTitle}>⚠ {t('mgrContract.sectionOverdue', { count: grouped.overdue.length })}</Text>
                 {grouped.overdue.map(c => renderCard(c, true))}
               </>
             )}
             {grouped.week.length > 0 && (
               <>
-                <Text style={styles.sectionTitle}>Cette semaine ({grouped.week.length})</Text>
+                <Text style={styles.sectionTitle}>{t('mgrContract.sectionWeek', { count: grouped.week.length })}</Text>
                 {grouped.week.map(c => renderCard(c, true))}
               </>
             )}
             {grouped.month.length > 0 && (
               <>
-                <Text style={styles.sectionTitle}>Dans le mois ({grouped.month.length})</Text>
+                <Text style={styles.sectionTitle}>{t('mgrContract.sectionMonth', { count: grouped.month.length })}</Text>
                 {grouped.month.map(c => renderCard(c, false))}
               </>
             )}
@@ -277,7 +280,7 @@ export default function ContractRenewalScreen({ navigation, route }: any) {
             <View style={styles.formHandle} />
             <View style={styles.formHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.formTitle}>Renouveler le contrat</Text>
+                <Text style={styles.formTitle}>{t('mgrContract.formTitle')}</Text>
                 <Text style={styles.formSubtitle}>{target.emplib || target.empcod}</Text>
               </View>
               <TouchableOpacity onPress={closeForm}>
@@ -300,23 +303,23 @@ export default function ContractRenewalScreen({ navigation, route }: any) {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.toggleTitle}>Convertir en CDI</Text>
-                  <Text style={styles.toggleSub}>Sans date de fin contractuelle</Text>
+                  <Text style={styles.toggleTitle}>{t('mgrContract.convertCdi')}</Text>
+                  <Text style={styles.toggleSub}>{t('mgrContract.convertCdiSub')}</Text>
                 </View>
               </TouchableOpacity>
 
               {!form.asCdi && (
                 <>
-                  <Text style={styles.fieldLabel}>TYPE DE CONTRAT</Text>
+                  <Text style={styles.fieldLabel}>{t('mgrContract.contractType')}</Text>
                   <View style={styles.typeRow}>
-                    {CONTRACT_TYPES.map(t => (
+                    {CONTRACT_TYPES.map(v => (
                       <TouchableOpacity
-                        key={t}
-                        style={[styles.typeChip, form.empcontrat === t && styles.typeChipActive]}
-                        onPress={() => setForm({ ...form, empcontrat: t })}
+                        key={v}
+                        style={[styles.typeChip, form.empcontrat === v && styles.typeChipActive]}
+                        onPress={() => setForm({ ...form, empcontrat: v })}
                       >
-                        <Text style={[styles.typeChipText, form.empcontrat === t && styles.typeChipTextActive]}>
-                          {t}
+                        <Text style={[styles.typeChipText, form.empcontrat === v && styles.typeChipTextActive]}>
+                          {v}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -326,27 +329,27 @@ export default function ContractRenewalScreen({ navigation, route }: any) {
 
               <View style={styles.row2}>
                 <View style={styles.col2}>
-                  <Text style={styles.fieldLabel}>DÉBUT *</Text>
+                  <Text style={styles.fieldLabel}>{t('mgrContract.startField')}</Text>
                   <TouchableOpacity style={styles.input} onPress={() => setShowStartPicker(true)}>
-                    <Text style={styles.inputText}>{fmtDate(form.startDate)}</Text>
+                    <Text style={styles.inputText}>{fmtDate(form.startDate, locale)}</Text>
                   </TouchableOpacity>
                 </View>
                 {!form.asCdi && (
                   <View style={styles.col2}>
-                    <Text style={styles.fieldLabel}>FIN *</Text>
+                    <Text style={styles.fieldLabel}>{t('mgrContract.endField')}</Text>
                     <TouchableOpacity style={styles.input} onPress={() => setShowEndPicker(true)}>
-                      <Text style={styles.inputText}>{fmtDate(form.endDate)}</Text>
+                      <Text style={styles.inputText}>{fmtDate(form.endDate, locale)}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
               </View>
 
-              <Text style={styles.fieldLabel}>MOTIF</Text>
+              <Text style={styles.fieldLabel}>{t('mgrContract.reason')}</Text>
               <TextInput
                 style={[styles.input, styles.textarea]}
                 value={form.empmotif}
-                onChangeText={t => setForm({ ...form, empmotif: t })}
-                placeholder="Ex : continuité, projet en cours…"
+                onChangeText={v => setForm({ ...form, empmotif: v })}
+                placeholder={t('mgrContract.reasonPlaceholder')}
                 placeholderTextColor="#94a3b8"
                 multiline
                 numberOfLines={3}
@@ -361,7 +364,7 @@ export default function ContractRenewalScreen({ navigation, route }: any) {
                 <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.submitGradient}>
                   {submitting
                     ? <ActivityIndicator size="small" color="#fff" />
-                    : <Text style={styles.submitText}>VALIDER LE RENOUVELLEMENT</Text>}
+                    : <Text style={styles.submitText}>{t('mgrContract.submit')}</Text>}
                 </LinearGradient>
               </TouchableOpacity>
               <View style={{ height: 40 }} />

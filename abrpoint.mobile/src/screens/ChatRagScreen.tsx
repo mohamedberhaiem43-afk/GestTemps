@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../config/env';
 import apiService from '../services/api';
+import { useT } from '../i18n';
 
 interface Source {
   documentId: number;
@@ -27,14 +28,15 @@ interface Message {
   error?: boolean;
 }
 
-const SUGGESTIONS = [
-  'Quelle est la durée de la période d\'essai pour un cadre ?',
-  'Combien de jours de congé annuel ai-je droit ?',
-  'Quelles sont les règles pour un congé maternité ?',
-  'Quelle est la procédure de démission ?',
+const SUGGESTION_KEYS = [
+  'chatRag.suggestion1',
+  'chatRag.suggestion2',
+  'chatRag.suggestion3',
+  'chatRag.suggestion4',
 ];
 
 export default function ChatRagScreen({ navigation }: any) {
+  const t = useT();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -62,7 +64,7 @@ export default function ChatRagScreen({ navigation }: any) {
           msg.id === pendingId
             ? {
                 ...msg,
-                text: res.answer || 'Aucune réponse.',
+                text: res.answer || t('chatRag.noAnswer'),
                 sources: res.sources,
                 logId: res.logId,
                 pending: false,
@@ -72,15 +74,15 @@ export default function ChatRagScreen({ navigation }: any) {
       );
     } catch (err: any) {
       const status = err?.response?.status;
-      const detail = err?.response?.data?.error || err?.message || 'Erreur inconnue';
+      const detail = err?.response?.data?.error || err?.message || t('chatRag.unknownError');
       const text =
         status === 503
-          ? "Service IA non démarré. Contactez votre administrateur."
+          ? t('chatRag.aiServiceNotStarted')
           : status === 502
-          ? "Service IA temporairement indisponible. Réessayez."
+          ? t('chatRag.aiServiceUnavailable')
           : status === 429
-          ? "Trop de questions. Patientez quelques minutes."
-          : `Erreur : ${detail}`;
+          ? t('chatRag.tooManyQuestions')
+          : t('chatRag.errorWithDetail', { detail });
       setMessages((m) =>
         m.map((msg) =>
           msg.id === pendingId ? { ...msg, text, pending: false, error: true } : msg,
@@ -99,18 +101,18 @@ export default function ChatRagScreen({ navigation }: any) {
         m.map((x) => (x.id === msg.id ? { ...x, feedbackScore: score } : x)),
       );
     } catch {
-      Alert.alert('Erreur', "Impossible d'envoyer votre avis.");
+      Alert.alert(t('common.error'), t('chatRag.feedbackError'));
     }
   };
 
   const clearChat = () => {
     if (messages.length === 0) return;
     Alert.alert(
-      'Effacer la conversation ?',
-      'Les questions et réponses ne seront plus visibles ici (l\'historique reste côté serveur).',
+      t('chatRag.clearTitle'),
+      t('chatRag.clearMessage'),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Effacer', style: 'destructive', onPress: () => setMessages([]) },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('chatRag.clearConfirm'), style: 'destructive', onPress: () => setMessages([]) },
       ],
     );
   };
@@ -127,8 +129,8 @@ export default function ChatRagScreen({ navigation }: any) {
             <MaterialCommunityIcons name="scale-balance" size={18} color="#fff" />
           </View>
           <View>
-            <Text style={styles.headerTitle}>Assistant RH</Text>
-            <Text style={styles.headerSubtitle}>Réponses basées sur vos documents</Text>
+            <Text style={styles.headerTitle}>{t('chatRag.headerTitle')}</Text>
+            <Text style={styles.headerSubtitle}>{t('chatRag.headerSubtitle')}</Text>
           </View>
         </View>
         <TouchableOpacity onPress={clearChat} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -148,10 +150,10 @@ export default function ChatRagScreen({ navigation }: any) {
           showsVerticalScrollIndicator={false}
         >
           {messages.length === 0 ? (
-            <EmptyState onPick={ask} />
+            <EmptyState onPick={ask} t={t} />
           ) : (
             messages.map((m) => (
-              <MessageBubble key={m.id} message={m} onFeedback={sendFeedback} />
+              <MessageBubble key={m.id} message={m} onFeedback={sendFeedback} t={t} />
             ))
           )}
         </ScrollView>
@@ -159,7 +161,7 @@ export default function ChatRagScreen({ navigation }: any) {
         <View style={styles.disclaimer}>
           <MaterialCommunityIcons name="information-outline" size={12} color={COLORS.outline} />
           <Text style={styles.disclaimerText}>
-            Réponses indicatives. Vérifiez toujours avec votre RH ou un juriste.
+            {t('chatRag.disclaimer')}
           </Text>
         </View>
 
@@ -168,7 +170,7 @@ export default function ChatRagScreen({ navigation }: any) {
             style={styles.input}
             value={input}
             onChangeText={setInput}
-            placeholder="Posez une question juridique ou RH…"
+            placeholder={t('chatRag.inputPlaceholder')}
             placeholderTextColor={COLORS.outline}
             multiline
             maxLength={500}
@@ -195,24 +197,26 @@ export default function ChatRagScreen({ navigation }: any) {
   );
 }
 
-function EmptyState({ onPick }: { onPick: (q: string) => void }) {
+function EmptyState({ onPick, t }: { onPick: (q: string) => void; t: (key: string, vars?: Record<string, any>) => string }) {
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIcon}>
         <MaterialCommunityIcons name="scale-balance" size={32} color={COLORS.primary} />
       </View>
-      <Text style={styles.emptyTitle}>Comment puis-je vous aider ?</Text>
+      <Text style={styles.emptyTitle}>{t('chatRag.emptyTitle')}</Text>
       <Text style={styles.emptyHint}>
-        Je réponds à vos questions à partir des documents juridiques de votre entreprise
-        (convention collective, règlement intérieur, accords).
+        {t('chatRag.emptyHint')}
       </Text>
-      <Text style={styles.suggestionsTitle}>EXEMPLES DE QUESTIONS</Text>
-      {SUGGESTIONS.map((s) => (
-        <TouchableOpacity key={s} style={styles.suggestion} onPress={() => onPick(s)} activeOpacity={0.8}>
-          <MaterialCommunityIcons name="lightbulb-outline" size={16} color={COLORS.primary} />
-          <Text style={styles.suggestionText}>{s}</Text>
-        </TouchableOpacity>
-      ))}
+      <Text style={styles.suggestionsTitle}>{t('chatRag.suggestionsTitle')}</Text>
+      {SUGGESTION_KEYS.map((key) => {
+        const s = t(key);
+        return (
+          <TouchableOpacity key={key} style={styles.suggestion} onPress={() => onPick(s)} activeOpacity={0.8}>
+            <MaterialCommunityIcons name="lightbulb-outline" size={16} color={COLORS.primary} />
+            <Text style={styles.suggestionText}>{s}</Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
@@ -220,9 +224,11 @@ function EmptyState({ onPick }: { onPick: (q: string) => void }) {
 function MessageBubble({
   message,
   onFeedback,
+  t,
 }: {
   message: Message;
   onFeedback: (m: Message, score: number) => void;
+  t: (key: string, vars?: Record<string, any>) => string;
 }) {
   const isUser = message.role === 'user';
   return (
@@ -242,7 +248,7 @@ function MessageBubble({
         {message.pending ? (
           <View style={styles.thinking}>
             <ActivityIndicator size="small" color={COLORS.primary} />
-            <Text style={styles.thinkingText}>Recherche dans vos documents…</Text>
+            <Text style={styles.thinkingText}>{t('chatRag.searching')}</Text>
           </View>
         ) : (
           <Text style={isUser ? styles.userText : styles.assistantText}>{message.text}</Text>
@@ -250,13 +256,13 @@ function MessageBubble({
 
         {message.sources && message.sources.length > 0 && (
           <View style={styles.sourcesWrap}>
-            <Text style={styles.sourcesTitle}>SOURCES</Text>
+            <Text style={styles.sourcesTitle}>{t('chatRag.sources')}</Text>
             {message.sources.map((s, i) => (
               <View key={`${s.documentId}_${i}`} style={styles.sourceChip}>
                 <MaterialCommunityIcons name="file-document-outline" size={14} color={COLORS.primary} />
                 <Text style={styles.sourceText} numberOfLines={2}>
                   {s.documentName}
-                  {s.page != null ? ` · p. ${s.page}` : ''}
+                  {s.page != null ? t('chatRag.pageSuffix', { page: s.page }) : ''}
                 </Text>
               </View>
             ))}
@@ -265,7 +271,7 @@ function MessageBubble({
 
         {!isUser && !message.pending && !message.error && message.logId && (
           <View style={styles.feedbackRow}>
-            <Text style={styles.feedbackLabel}>Utile ?</Text>
+            <Text style={styles.feedbackLabel}>{t('chatRag.feedbackLabel')}</Text>
             <TouchableOpacity
               style={[styles.feedbackBtn, message.feedbackScore === 5 && styles.feedbackBtnActive]}
               onPress={() => onFeedback(message, 5)}

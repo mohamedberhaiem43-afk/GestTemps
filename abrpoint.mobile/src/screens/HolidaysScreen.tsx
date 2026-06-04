@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
@@ -19,11 +20,13 @@ interface HolidayRow {
   fernpaye?: string | null;
 }
 
-const MONTHS_FR = [
-  'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
-];
-const DAYS_FR = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+function monthName(monthIndex: number, locale: string): string {
+  const d = new Date(2000, monthIndex, 1);
+  return d.toLocaleDateString(locale, { month: 'long' });
+}
+function dayName(date: Date, locale: string): string {
+  return date.toLocaleDateString(locale, { weekday: 'long' });
+}
 
 function isPaid(h: HolidayRow): boolean {
   // Fernpaye = 'O' / '1' / true → JOUR NON PAYÉ. Sinon payé par défaut.
@@ -42,22 +45,26 @@ function daysUntil(dateStr: string): number {
   return Math.round((target.getTime() - today.getTime()) / 86400000);
 }
 
-function formatLongDate(dateStr: string): string {
+function formatLongDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  return `${DAYS_FR[d.getDay()]} ${d.getDate()} ${MONTHS_FR[d.getMonth()]}`;
+  return `${dayName(d, locale)} ${d.getDate()} ${monthName(d.getMonth(), locale)}`;
 }
 
-function formatRelative(d: number): string {
-  if (d === 0) return "Aujourd'hui";
-  if (d === 1) return 'Demain';
-  if (d <= 7) return `Dans ${d} jours`;
-  if (d <= 30) return `Dans ${Math.round(d / 7)} sem.`;
-  return `Dans ${Math.round(d / 30)} mois`;
+type TFn = (key: string, vars?: Record<string, any>) => string;
+
+function formatRelative(d: number, t: TFn): string {
+  if (d === 0) return t('common.today');
+  if (d === 1) return t('holidays.tomorrow');
+  if (d <= 7) return t('holidays.inDays', { count: d });
+  if (d <= 30) return t('holidays.inWeeks', { count: Math.round(d / 7) });
+  return t('holidays.inMonths', { count: Math.round(d / 30) });
 }
 
 export default function HolidaysScreen({ navigation }: any) {
   const { user } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const tabBarPadding = useTabBarPadding();
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
   const [year, setYear] = useState<number>(new Date().getFullYear());
@@ -78,13 +85,13 @@ export default function HolidaysScreen({ navigation }: any) {
       setHolidays(Array.isArray(data) ? data : []);
     } catch (e: any) {
       console.log('Failed to load holidays:', e?.message);
-      setError("Impossible de charger les jours fériés. Réessayez plus tard.");
+      setError(t('holidays.loadError'));
       setHolidays([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.soccod, year]);
+  }, [user?.soccod, year, t]);
 
   useEffect(() => {
     setLoading(true);
@@ -112,11 +119,11 @@ export default function HolidaysScreen({ navigation }: any) {
         const [y, m] = k.split('-').map(Number);
         return {
           key: k,
-          label: `${MONTHS_FR[m - 1].toUpperCase()} ${y}`,
+          label: `${monthName(m - 1, locale).toUpperCase()} ${y}`,
           items,
         };
       });
-  }, [holidays]);
+  }, [holidays, locale]);
 
   const next = grouped[0]?.items?.[0];
   const nextDays = next?.ferdate ? daysUntil(next.ferdate) : null;
@@ -131,7 +138,7 @@ export default function HolidaysScreen({ navigation }: any) {
         >
           <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.onSurface} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Jours fériés</Text>
+        <Text style={styles.headerTitle}>{t('holidays.title')}</Text>
         <View style={styles.yearSwitcher}>
           <TouchableOpacity onPress={() => setYear(y => y - 1)} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}>
             <MaterialCommunityIcons name="chevron-left" size={22} color={COLORS.primary} />
@@ -151,7 +158,7 @@ export default function HolidaysScreen({ navigation }: any) {
         {offline && (
           <View style={styles.offlineBanner}>
             <MaterialCommunityIcons name="cloud-off-outline" size={16} color={COLORS.warning} />
-            <Text style={styles.offlineText}>Mode hors-ligne — données mises en cache</Text>
+            <Text style={styles.offlineText}>{t('holidays.offlineBanner')}</Text>
           </View>
         )}
 
@@ -163,12 +170,12 @@ export default function HolidaysScreen({ navigation }: any) {
                 <MaterialCommunityIcons name="calendar-star" size={28} color="#fff" />
               </View>
               <View style={styles.heroBadge}>
-                <Text style={styles.heroBadgeText}>{nextDays != null ? formatRelative(nextDays).toUpperCase() : ''}</Text>
+                <Text style={styles.heroBadgeText}>{nextDays != null ? formatRelative(nextDays, t).toUpperCase() : ''}</Text>
               </View>
             </View>
-            <Text style={styles.heroLabel}>PROCHAIN JOUR FÉRIÉ</Text>
-            <Text style={styles.heroTitle}>{next.fermotif || 'Jour férié'}</Text>
-            <Text style={styles.heroDate}>{formatLongDate(next.ferdate)}</Text>
+            <Text style={styles.heroLabel}>{t('holidays.nextHoliday')}</Text>
+            <Text style={styles.heroTitle}>{next.fermotif || t('holidays.defaultName')}</Text>
+            <Text style={styles.heroDate}>{formatLongDate(next.ferdate, locale)}</Text>
             <View style={styles.heroChips}>
               <View style={[styles.chip, isPaid(next) ? styles.chipPaid : styles.chipUnpaid]}>
                 <MaterialCommunityIcons
@@ -176,12 +183,12 @@ export default function HolidaysScreen({ navigation }: any) {
                   size={12}
                   color={isPaid(next) ? '#fff' : '#fff'}
                 />
-                <Text style={styles.chipText}>{isPaid(next) ? 'Payé' : 'Non payé'}</Text>
+                <Text style={styles.chipText}>{isPaid(next) ? t('holidays.paid') : t('holidays.unpaid')}</Text>
               </View>
               {next.ferfixe && (
                 <View style={[styles.chip, styles.chipMuted]}>
                   <MaterialCommunityIcons name="pin-outline" size={12} color="#cbd5e1" />
-                  <Text style={styles.chipText}>{String(next.ferfixe).toUpperCase() === 'O' ? 'Date fixe' : 'Mobile'}</Text>
+                  <Text style={styles.chipText}>{String(next.ferfixe).toUpperCase() === 'O' ? t('holidays.fixedDate') : t('holidays.movable')}</Text>
                 </View>
               )}
             </View>
@@ -205,11 +212,11 @@ export default function HolidaysScreen({ navigation }: any) {
         {!loading && !error && grouped.length === 0 && (
           <View style={styles.emptyBox}>
             <MaterialCommunityIcons name="calendar-blank-outline" size={48} color="#cbd5e1" />
-            <Text style={styles.emptyTitle}>Aucun jour férié à venir</Text>
+            <Text style={styles.emptyTitle}>{t('holidays.emptyTitle')}</Text>
             <Text style={styles.emptySub}>
               {year === new Date().getFullYear()
-                ? "Tous les jours fériés de l'année sont passés."
-                : `Aucun jour férié programmé pour ${year}.`}
+                ? t('holidays.emptyAllPast')
+                : t('holidays.emptyForYear', { year })}
             </Text>
           </View>
         )}
@@ -226,15 +233,15 @@ export default function HolidaysScreen({ navigation }: any) {
                 <View key={`${h.ferdate}-${idx}`} style={styles.row}>
                   <View style={styles.dateCircle}>
                     <Text style={styles.dateDay}>{d.getDate()}</Text>
-                    <Text style={styles.dateMonth}>{MONTHS_FR[d.getMonth()].slice(0, 3).toUpperCase()}</Text>
+                    <Text style={styles.dateMonth}>{monthName(d.getMonth(), locale).slice(0, 3).toUpperCase()}</Text>
                   </View>
                   <View style={styles.rowBody}>
-                    <Text style={styles.rowTitle} numberOfLines={1}>{h.fermotif || 'Jour férié'}</Text>
-                    <Text style={styles.rowSub}>{DAYS_FR[d.getDay()]} · {days >= 0 ? formatRelative(days) : 'Passé'}</Text>
+                    <Text style={styles.rowTitle} numberOfLines={1}>{h.fermotif || t('holidays.defaultName')}</Text>
+                    <Text style={styles.rowSub}>{dayName(d, locale)} · {days >= 0 ? formatRelative(days, t) : t('holidays.past')}</Text>
                   </View>
                   <View style={[styles.tag, paid ? styles.tagPaid : styles.tagUnpaid]}>
                     <Text style={[styles.tagText, paid ? styles.tagTextPaid : styles.tagTextUnpaid]}>
-                      {paid ? 'Payé' : 'Non payé'}
+                      {paid ? t('holidays.paid') : t('holidays.unpaid')}
                     </Text>
                   </View>
                 </View>

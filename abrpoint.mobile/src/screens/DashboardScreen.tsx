@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
+import { useT } from '../i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -25,6 +26,7 @@ interface KPIData {
 
 export default function DashboardScreen({ navigation }: any) {
   const { user, isEmployee } = useAuth();
+  const t = useT();
   const [kpis, setKpis] = useState<KPIData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -52,9 +54,9 @@ export default function DashboardScreen({ navigation }: any) {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Bonjour';
-    if (hour < 18) return 'Bon après-midi';
-    return 'Bonsoir';
+    if (hour < 12) return t('dashboard.greetingMorning');
+    if (hour < 18) return t('dashboard.greetingAfternoon');
+    return t('dashboard.greetingEvening');
   };
 
   if (loading) {
@@ -62,7 +64,7 @@ export default function DashboardScreen({ navigation }: any) {
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Chargement du tableau de bord...</Text>
+          <Text style={styles.loadingText}>{t('dashboard.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -95,7 +97,7 @@ export default function DashboardScreen({ navigation }: any) {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.greeting}>{getGreeting()},</Text>
-            <Text style={styles.userName}>{kpis?.emplib || user?.utilib || 'Employé'}</Text>
+            <Text style={styles.userName}>{kpis?.emplib || user?.utilib || t('dashboard.employee')}</Text>
           </View>
           <TouchableOpacity style={styles.profileBtn} onPress={() => navigation.navigate('Profile')}>
             <View style={styles.avatar}>
@@ -109,18 +111,18 @@ export default function DashboardScreen({ navigation }: any) {
         {/* KPI Cards */}
         <View style={styles.kpiRow}>
           <View style={[styles.kpiCard, { borderLeftColor: COLORS.primary }]}>
-            <Text style={styles.kpiLabel}>🏖️ Congés Restants</Text>
+            <Text style={styles.kpiLabel}>{t('dashboard.leaveRemaining')}</Text>
             <Text style={styles.kpiValue}>{kpis?.soldeConge?.toFixed(1) || '0'}</Text>
-            <Text style={styles.kpiSub}>{kpis?.congeAcquis?.toFixed(1) || '0'} jours acquis</Text>
+            <Text style={styles.kpiSub}>{t('dashboard.daysAccrued', { n: kpis?.congeAcquis?.toFixed(1) || '0' })}</Text>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${soldePercent}%`, backgroundColor: COLORS.primary }]} />
             </View>
           </View>
 
           <View style={[styles.kpiCard, { borderLeftColor: COLORS.success }]}>
-            <Text style={styles.kpiLabel}>⏱️ Heures Travaillées</Text>
+            <Text style={styles.kpiLabel}>{t('dashboard.hoursWorked')}</Text>
             <Text style={styles.kpiValue}>{kpis?.heuresTravailleesSemaine?.toFixed(1) || '0'}</Text>
-            <Text style={styles.kpiSub}>/ {kpis?.objectifHebdomadaire || 35}h cette semaine</Text>
+            <Text style={styles.kpiSub}>{t('dashboard.weekTarget', { n: kpis?.objectifHebdomadaire || 35 })}</Text>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${Math.min(workPercent, 100)}%`, backgroundColor: COLORS.success }]} />
             </View>
@@ -129,15 +131,15 @@ export default function DashboardScreen({ navigation }: any) {
 
         <View style={styles.kpiRow}>
           <View style={[styles.kpiCard, { borderLeftColor: COLORS.warning }]}>
-            <Text style={styles.kpiLabel}>⏳ En Attente</Text>
+            <Text style={styles.kpiLabel}>{t('dashboard.pending')}</Text>
             <Text style={styles.kpiValue}>{kpis?.demandesEnAttente || 0}</Text>
-            <Text style={styles.kpiSub}>demandes</Text>
+            <Text style={styles.kpiSub}>{t('dashboard.requests')}</Text>
           </View>
 
           <View style={[styles.kpiCard, { borderLeftColor: COLORS.accent }]}>
-            <Text style={styles.kpiLabel}>📊 Objectif</Text>
+            <Text style={styles.kpiLabel}>{t('dashboard.target')}</Text>
             <Text style={styles.kpiValue}>{workPercent.toFixed(0)}%</Text>
-            <Text style={styles.kpiSub}>atteint cette semaine</Text>
+            <Text style={styles.kpiSub}>{t('dashboard.targetReached')}</Text>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${Math.min(workPercent, 100)}%`, backgroundColor: COLORS.accent }]} />
             </View>
@@ -147,19 +149,19 @@ export default function DashboardScreen({ navigation }: any) {
         {/* Pointage Chart */}
         <View style={styles.chartSection}>
           <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>Suivi des Pointages</Text>
+            <Text style={styles.chartTitle}>{t('dashboard.pointageTracking')}</Text>
             <View style={styles.tabRow}>
               <TouchableOpacity
                 style={[styles.tabBtn, activeTab === 'week' && styles.tabBtnActive]}
                 onPress={() => setActiveTab('week')}
               >
-                <Text style={[styles.tabText, activeTab === 'week' && styles.tabTextActive]}>Semaine</Text>
+                <Text style={[styles.tabText, activeTab === 'week' && styles.tabTextActive]}>{t('dashboard.week')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.tabBtn, activeTab === 'month' && styles.tabBtnActive]}
                 onPress={() => setActiveTab('month')}
               >
-                <Text style={[styles.tabText, activeTab === 'month' && styles.tabTextActive]}>Mois</Text>
+                <Text style={[styles.tabText, activeTab === 'month' && styles.tabTextActive]}>{t('dashboard.month')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -186,42 +188,42 @@ export default function DashboardScreen({ navigation }: any) {
             </View>
           ) : (
             <View style={styles.noChartData}>
-              <Text style={styles.noChartDataText}>Aucune donnée de pointage disponible</Text>
+              <Text style={styles.noChartDataText}>{t('dashboard.noPointageData')}</Text>
             </View>
           )}
         </View>
 
         {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>Actions rapides</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.quickActions')}</Text>
         <View style={styles.actionsGrid}>
           <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('LeaveRequest')}>
             <Text style={styles.actionIcon}>🏖️</Text>
-            <Text style={styles.actionLabel}>Demande{'\n'}de Congé</Text>
+            <Text style={styles.actionLabel}>{t('dashboard.aLeave')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('PresenceHistory')}>
             <Text style={styles.actionIcon}>📊</Text>
-            <Text style={styles.actionLabel}>Historique{'\n'}Présence</Text>
+            <Text style={styles.actionLabel}>{t('dashboard.aHistory')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Expense')}>
             <Text style={styles.actionIcon}>💰</Text>
-            <Text style={styles.actionLabel}>Notes{'\n'}de Frais</Text>
+            <Text style={styles.actionLabel}>{t('dashboard.aExpense')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Balance')}>
             <Text style={styles.actionIcon}>📋</Text>
-            <Text style={styles.actionLabel}>Solde{'\n'}Congés</Text>
+            <Text style={styles.actionLabel}>{t('dashboard.aBalance')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('DigitalVault')}>
             <Text style={styles.actionIcon}>📁</Text>
-            <Text style={styles.actionLabel}>Coffre{'\n'}Numérique</Text>
+            <Text style={styles.actionLabel}>{t('dashboard.aVault')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('Authorization')}>
             <Text style={styles.actionIcon}>🚪</Text>
-            <Text style={styles.actionLabel}>Autorisation{'\n'}Sortie</Text>
+            <Text style={styles.actionLabel}>{t('dashboard.aAuthorization')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

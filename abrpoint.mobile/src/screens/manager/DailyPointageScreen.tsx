@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../i18n';
 import apiService from '../../services/api';
 import { COLORS } from '../../config/env';
 
@@ -26,6 +27,8 @@ interface PointageEntry {
 
 export default function DailyPointageScreen({ navigation }: any) {
   const { user, isEmployee } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [pointageData, setPointageData] = useState<PointageEntry[]>([]);
   const [filteredData, setFilteredData] = useState<PointageEntry[]>([]);
@@ -86,7 +89,7 @@ export default function DailyPointageScreen({ navigation }: any) {
 
   const formatDateDisplay = (dateStr: string) => {
     const d = new Date(dateStr);
-    return d.toLocaleDateString('fr-FR', {
+    return d.toLocaleDateString(locale, {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
     });
   };
@@ -105,28 +108,28 @@ export default function DailyPointageScreen({ navigation }: any) {
 
   const renderEntry = ({ item, index }: { item: PointageEntry; index: number }) => {
     let statusColor = '#94a3b8';
-    let statusText = 'Absent';
+    let statusText = t('mgrPointage.statusAbsent');
     let statusBg = '#f1f5f9';
     let statusIcon = '⛔';
 
     switch (item.status) {
       case 'present':
-        statusColor = '#16a34a'; statusText = 'Complété'; statusBg = '#dcfce7'; statusIcon = '✅';
+        statusColor = '#16a34a'; statusText = t('mgrPointage.statusCompleted'); statusBg = '#dcfce7'; statusIcon = '✅';
         break;
       case 'en_cours':
-        statusColor = '#2563eb'; statusText = 'En cours'; statusBg = '#dbeafe'; statusIcon = '🔄';
+        statusColor = '#2563eb'; statusText = t('mgrPointage.statusInProgress'); statusBg = '#dbeafe'; statusIcon = '🔄';
         break;
       case 'absent':
-        statusColor = '#dc2626'; statusText = 'Absent'; statusBg = '#fee2e2'; statusIcon = '⛔';
+        statusColor = '#dc2626'; statusText = t('mgrPointage.statusAbsent'); statusBg = '#fee2e2'; statusIcon = '⛔';
         break;
       case 'conge':
-        statusColor = '#d97706'; statusText = item.motif || 'Congé'; statusBg = '#fef3c7'; statusIcon = '🏖️';
+        statusColor = '#d97706'; statusText = item.motif || t('mgrPointage.statusLeave'); statusBg = '#fef3c7'; statusIcon = '🏖️';
         break;
       case 'repos':
-        statusColor = '#8b5cf6'; statusText = 'Repos'; statusBg = '#ede9fe'; statusIcon = '😴';
+        statusColor = '#8b5cf6'; statusText = t('mgrPointage.statusRest'); statusBg = '#ede9fe'; statusIcon = '😴';
         break;
       case 'ferie':
-        statusColor = '#0891b2'; statusText = item.motif || 'Férié'; statusBg = '#cffafe'; statusIcon = '🎉';
+        statusColor = '#0891b2'; statusText = item.motif || t('mgrPointage.statusHoliday'); statusBg = '#cffafe'; statusIcon = '🎉';
         break;
     }
 
@@ -159,7 +162,7 @@ export default function DailyPointageScreen({ navigation }: any) {
             <Text style={styles.timeValue}>{item.sortie2 || '—'}</Text>
           </View>
           <View style={styles.timeSlot}>
-            <Text style={styles.timeLabel}>Total</Text>
+            <Text style={styles.timeLabel}>{t('mgrPointage.total')}</Text>
             <Text style={[styles.timeValue, { fontWeight: '700', color: '#0d1f3c' }]}>
               {item.totalHeure || '00:00'}
             </Text>
@@ -177,7 +180,7 @@ export default function DailyPointageScreen({ navigation }: any) {
       <SafeAreaView style={styles.container}>
         <View style={styles.accessDenied}>
           <Text style={styles.accessDeniedIcon}>🔒</Text>
-          <Text style={styles.accessDeniedText}>Accès réservé aux administrateurs</Text>
+          <Text style={styles.accessDeniedText}>{t('mgrPointage.accessDenied')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -188,9 +191,9 @@ export default function DailyPointageScreen({ navigation }: any) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← Retour</Text>
+          <Text style={styles.backBtnText}>← {t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>📋 Pointage du jour</Text>
+        <Text style={styles.headerTitle}>📋 {t('mgrPointage.title')}</Text>
       </View>
 
       {/* Date Navigation */}
@@ -202,7 +205,7 @@ export default function DailyPointageScreen({ navigation }: any) {
           <Text style={styles.dateDisplay}>{formatDateDisplay(selectedDate)}</Text>
           {!isToday && (
             <TouchableOpacity onPress={goToToday} style={styles.todayBtn}>
-              <Text style={styles.todayBtnText}>Aujourd'hui</Text>
+              <Text style={styles.todayBtnText}>{t('common.today')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -215,19 +218,19 @@ export default function DailyPointageScreen({ navigation }: any) {
       <View style={styles.statsRow}>
         <View style={[styles.statCard, { borderLeftColor: '#2563eb' }]}>
           <Text style={styles.statValue}>{stats.total}</Text>
-          <Text style={styles.statLabel}>Total</Text>
+          <Text style={styles.statLabel}>{t('mgrPointage.total')}</Text>
         </View>
         <View style={[styles.statCard, { borderLeftColor: '#16a34a' }]}>
           <Text style={styles.statValue}>{stats.presents}</Text>
-          <Text style={styles.statLabel}>Présents</Text>
+          <Text style={styles.statLabel}>{t('mgrPointage.present')}</Text>
         </View>
         <View style={[styles.statCard, { borderLeftColor: '#dc2626' }]}>
           <Text style={styles.statValue}>{stats.absents}</Text>
-          <Text style={styles.statLabel}>Absents</Text>
+          <Text style={styles.statLabel}>{t('mgrPointage.absent')}</Text>
         </View>
         <View style={[styles.statCard, { borderLeftColor: '#d97706' }]}>
           <Text style={styles.statValue}>{stats.enConge}</Text>
-          <Text style={styles.statLabel}>Congé/Abs</Text>
+          <Text style={styles.statLabel}>{t('mgrPointage.leaveAbs')}</Text>
         </View>
       </View>
 
@@ -235,7 +238,7 @@ export default function DailyPointageScreen({ navigation }: any) {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="🔍 Rechercher un employé..."
+          placeholder={t('mgrPointage.searchPlaceholder')}
           value={searchQuery}
           onChangeText={(q) => { setSearchQuery(q); applyFilter(pointageData, q); }}
           placeholderTextColor="#94a3b8"
@@ -246,7 +249,7 @@ export default function DailyPointageScreen({ navigation }: any) {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Chargement du pointage...</Text>
+          <Text style={styles.loadingText}>{t('mgrPointage.loadingPointage')}</Text>
         </View>
       ) : (
         <FlatList
@@ -257,7 +260,7 @@ export default function DailyPointageScreen({ navigation }: any) {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>📊</Text>
-              <Text style={styles.emptyText}>Aucun pointage trouvé pour cette date</Text>
+              <Text style={styles.emptyText}>{t('mgrPointage.empty')}</Text>
             </View>
           }
           contentContainerStyle={filteredData.length === 0 ? { flex: 1 } : { paddingBottom: 20 }}

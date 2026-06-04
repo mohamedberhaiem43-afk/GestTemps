@@ -11,6 +11,7 @@ import apiService from '../services/api';
 import { COLORS, THEME } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
 import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
+import { useI18n } from '../i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -30,6 +31,8 @@ interface KPISummary {
 
 export default function LeaveRequestScreen({ navigation }: any) {
   const { user } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const tabBarPadding = useTabBarPadding();
   // Inset bas système : sur Android avec barre de nav (3-boutons ou gesture),
   // le bouton ENVOYER au pied du modal se faisait masquer par les boutons
@@ -88,39 +91,39 @@ export default function LeaveRequestScreen({ navigation }: any) {
   const handleRequestPress = (req: any) => {
     if (!isPending(req.etat)) {
       Alert.alert(
-        'Action impossible',
-        'Cette demande a déjà été traitée et ne peut plus être modifiée ou supprimée.'
+        t('leave.actionImpossibleTitle'),
+        t('leave.actionImpossibleMessage')
       );
       return;
     }
     Alert.alert(
-      'Demande en attente',
-      `Que souhaitez-vous faire avec cette demande ?`,
+      t('leave.pendingRequestTitle'),
+      t('leave.pendingRequestMessage'),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Modifier', onPress: () => openEditForm(req) },
-        { text: 'Supprimer', style: 'destructive', onPress: () => confirmDelete(req) },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('leave.edit'), onPress: () => openEditForm(req) },
+        { text: t('common.delete'), style: 'destructive', onPress: () => confirmDelete(req) },
       ]
     );
   };
 
   const confirmDelete = (req: any) => {
     Alert.alert(
-      'Supprimer la demande',
-      'Êtes-vous sûr de vouloir supprimer cette demande de congé ?',
+      t('leave.deleteRequestTitle'),
+      t('leave.deleteRequestMessage'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             if (!user?.soccod || !req.concod) return;
             try {
               await apiService.deleteLeaveRequest(user.soccod, req.concod);
-              Alert.alert('✅ Succès', 'Demande supprimée');
+              Alert.alert(t('leave.successTitle'), t('leave.requestDeleted'));
               loadRequests();
             } catch {
-              Alert.alert('Erreur', 'Impossible de supprimer la demande');
+              Alert.alert(t('common.error'), t('leave.deleteError'));
             }
           }
         },
@@ -205,11 +208,11 @@ export default function LeaveRequestScreen({ navigation }: any) {
 
   const handleSubmit = async () => {
     if (!form.abscod) {
-      Alert.alert('Erreur', 'Veuillez sélectionner un type de congé');
+      Alert.alert(t('common.error'), t('leave.selectLeaveTypeError'));
       return;
     }
     if (form.conret < form.condep) {
-      Alert.alert('Erreur', 'La date de retour doit être après la date de départ');
+      Alert.alert(t('common.error'), t('leave.returnAfterStartError'));
       return;
     }
     // Garde supplémentaire RTT — défense en profondeur (le backend refusera aussi
@@ -219,8 +222,8 @@ export default function LeaveRequestScreen({ navigation }: any) {
     const isRttEligible = kpiSummary?.rtt != null;
     if (isRttType && !isRttEligible) {
       Alert.alert(
-        'Non éligible',
-        "Vous n'êtes pas éligible aux congés RTT. Contactez votre administrateur pour activer la méthode RTT sur votre fiche."
+        t('leave.notEligibleTitle'),
+        t('leave.rttNotEligibleAdmin')
       );
       return;
     }
@@ -241,12 +244,12 @@ export default function LeaveRequestScreen({ navigation }: any) {
           conadr: form.conadr || null,
           connbjour: calcDays(),
         });
-        Alert.alert('✅ Succès', 'Demande modifiée avec succès');
+        Alert.alert(t('leave.successTitle'), t('leave.requestUpdated'));
       } else {
         const nextCode = await apiService.getNextLeaveRequestCode(user.soccod);
         const concod = (nextCode?.concod || '').trim();
         if (!concod) {
-          Alert.alert('Erreur', 'Impossible de générer le numéro de demande');
+          Alert.alert(t('common.error'), t('leave.generateCodeError'));
           return;
         }
 
@@ -263,7 +266,7 @@ export default function LeaveRequestScreen({ navigation }: any) {
           conadr: form.conadr || null,
           connbjour: calcDays(),
         });
-        Alert.alert('✅ Succès', 'Demande de congé envoyée');
+        Alert.alert(t('leave.successTitle'), t('leave.requestSent'));
       }
       closeForm();
       loadRequests();
@@ -277,14 +280,11 @@ export default function LeaveRequestScreen({ navigation }: any) {
       const wasNetworkOrServerHiccup = !status || status >= 500;
       try { await loadRequests(); } catch { /* best-effort */ }
       if (wasNetworkOrServerHiccup) {
-        Alert.alert('⚠️ Action partielle',
-          editingConcod
-            ? 'La demande a peut-être été enregistrée. Vérifiez la liste — si elle apparaît, tout est bon.'
-            : 'La demande a peut-être été enregistrée. Vérifiez la liste — si elle apparaît, tout est bon.');
+        Alert.alert(t('leave.partialActionTitle'), t('leave.partialActionMessage'));
         closeForm();
         return;
       }
-      Alert.alert('Erreur', editingConcod ? 'Impossible de modifier la demande' : 'Impossible d\'envoyer la demande');
+      Alert.alert(t('common.error'), editingConcod ? t('leave.updateError') : t('leave.sendError'));
     }
   };
 
@@ -312,19 +312,19 @@ export default function LeaveRequestScreen({ navigation }: any) {
   const getStatusInfo = (etat: string) => {
     const e = (etat || '').toLowerCase();
     if (e.includes('accept') || e.includes('valid')) {
-      return { label: 'Validé', color: COLORS.tertiary, bgColor: 'rgba(0, 81, 54, 0.1)' };
+      return { labelKey: 'leave.statusApproved', color: COLORS.tertiary, bgColor: 'rgba(0, 81, 54, 0.1)' };
     }
     if (e.includes('refus') || e.includes('reject')) {
-      return { label: 'Refusé', color: COLORS.error, bgColor: 'rgba(186, 26, 26, 0.1)' };
+      return { labelKey: 'leave.statusRefused', color: COLORS.error, bgColor: 'rgba(186, 26, 26, 0.1)' };
     }
-    return { label: 'En attente', color: '#a14a00', bgColor: '#ffe0cc' };
+    return { labelKey: 'leave.statusPending', color: '#a14a00', bgColor: '#ffe0cc' };
   };
 
   const getIconForType = (type: string) => {
-    const t = type.toLowerCase();
-    if (t.includes('annuel')) return { name: 'flight', color: COLORS.primary, bgColor: COLORS.primaryFixed };
-    if (t.includes('rtt')) return { name: 'work-history', color: COLORS.secondary, bgColor: COLORS.secondaryFixed };
-    if (t.includes('parent')) return { name: 'stroller', color: COLORS.error, bgColor: COLORS.errorContainer };
+    const v = type.toLowerCase();
+    if (v.includes('annuel')) return { name: 'flight', color: COLORS.primary, bgColor: COLORS.primaryFixed };
+    if (v.includes('rtt')) return { name: 'work-history', color: COLORS.secondary, bgColor: COLORS.secondaryFixed };
+    if (v.includes('parent')) return { name: 'stroller', color: COLORS.error, bgColor: COLORS.errorContainer };
     return { name: 'beach-access', color: COLORS.primary, bgColor: '#dae2ff' };
   };
 
@@ -351,7 +351,7 @@ export default function LeaveRequestScreen({ navigation }: any) {
     return days;
   }, [currentMonth]);
 
-  const monthLabel = currentMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const monthLabel = currentMonth.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 
   if (loading && !refreshing) {
     return (
@@ -388,19 +388,19 @@ export default function LeaveRequestScreen({ navigation }: any) {
         {/* Balances Section : Solde CP + Solde RTT (RTT affiché uniquement si
             l'employé est configuré comme éligible côté fiche employé). */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>SOLDES</Text>
+          <Text style={styles.sectionLabel}>{t('leave.balancesLabel')}</Text>
           <View style={kpiSummary?.rtt ? styles.balancesGrid : undefined}>
             <View style={kpiSummary?.rtt ? styles.balanceCardHalf : styles.balanceCardSolo}>
               <MaterialCommunityIcons name="beach-access" size={28} color={COLORS.primary} />
               <View style={styles.balanceContent}>
                 <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
                   <Text style={styles.balanceValue}>{(kpiSummary?.soldeConge ?? 0).toFixed(1)}</Text>
-                  <Text style={styles.balanceUnit}>j</Text>
+                  <Text style={styles.balanceUnit}>{t('leave.dayUnit')}</Text>
                 </View>
                 <Text style={styles.balanceName}>
                   {kpiSummary?.congeAcquis
-                    ? `CP · sur ${kpiSummary.congeAcquis.toFixed(1)} acquis`
-                    : 'Congés payés'}
+                    ? t('leave.cpAcquired', { count: kpiSummary.congeAcquis.toFixed(1) })
+                    : t('leave.paidLeave')}
                 </Text>
               </View>
             </View>
@@ -411,10 +411,10 @@ export default function LeaveRequestScreen({ navigation }: any) {
                 <View style={styles.balanceContent}>
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
                     <Text style={[styles.balanceValue, { color: '#065f46' }]}>{kpiSummary.rtt.solde.toFixed(1)}</Text>
-                    <Text style={styles.balanceUnit}>j</Text>
+                    <Text style={styles.balanceUnit}>{t('leave.dayUnit')}</Text>
                   </View>
                   <Text style={styles.balanceName}>
-                    {`RTT · sur ${kpiSummary.rtt.droitAnnuel.toFixed(1)} acquis`}
+                    {t('leave.rttAcquired', { count: kpiSummary.rtt.droitAnnuel.toFixed(1) })}
                   </Text>
                 </View>
               </View>
@@ -437,8 +437,8 @@ export default function LeaveRequestScreen({ navigation }: any) {
           </View>
           
           <View style={styles.calendarGrid}>
-            {['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'].map(day => (
-              <Text key={day} style={styles.dayHeader}>{day}</Text>
+            {['weekdayMon', 'weekdayTue', 'weekdayWed', 'weekdayThu', 'weekdayFri', 'weekdaySat', 'weekdaySun'].map(dayKey => (
+              <Text key={dayKey} style={styles.dayHeader}>{t(`leave.${dayKey}`)}</Text>
             ))}
             {daysInMonth.map((d, i) => {
               const isToday = d.isCurrent && d.day === new Date().getDate() && currentMonth.getMonth() === new Date().getMonth();
@@ -460,10 +460,10 @@ export default function LeaveRequestScreen({ navigation }: any) {
         {/* Recent Requests */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Demandes récentes</Text>
+            <Text style={styles.sectionTitle}>{t('leave.recentRequests')}</Text>
             {requests.length > 3 && (
               <TouchableOpacity onPress={() => setShowAllRequests((v) => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Text style={styles.seeAllText}>{showAllRequests ? 'RÉDUIRE' : 'VOIR TOUT'}</Text>
+                <Text style={styles.seeAllText}>{showAllRequests ? t('leave.collapse') : t('leave.seeAll')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -489,13 +489,13 @@ export default function LeaveRequestScreen({ navigation }: any) {
                     <View style={styles.requestInfo}>
                       <Text style={styles.requestType}>{typeLib}</Text>
                       <Text style={styles.requestPeriod}>
-                        {new Date(req.condep).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} - {new Date(req.conret).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} ({req.connbjour} jrs)
+                        {new Date(req.condep).toLocaleDateString(locale, { day: '2-digit', month: 'short' })} - {new Date(req.conret).toLocaleDateString(locale, { day: '2-digit', month: 'short' })} {t('leave.daysCount', { count: req.connbjour })}
                       </Text>
                     </View>
                   </View>
                   <View style={styles.requestRight}>
                     <View style={[styles.statusBadge, { backgroundColor: status.bgColor }]}>
-                      <Text style={[styles.statusText, { color: status.color }]}>{status.label.toUpperCase()}</Text>
+                      <Text style={[styles.statusText, { color: status.color }]}>{t(status.labelKey).toUpperCase()}</Text>
                     </View>
                     {pending && (
                       <MaterialCommunityIcons name="chevron-right" size={18} color={COLORS.outline} />
@@ -506,7 +506,7 @@ export default function LeaveRequestScreen({ navigation }: any) {
             })}
             {requests.length === 0 && (
               <View style={styles.emptyRequests}>
-                <Text style={styles.emptyRequestsText}>Aucune demande récente</Text>
+                <Text style={styles.emptyRequestsText}>{t('leave.noRecentRequests')}</Text>
               </View>
             )}
           </View>
@@ -533,14 +533,14 @@ export default function LeaveRequestScreen({ navigation }: any) {
         <View style={styles.modalOverlay}>
           <View style={[styles.formCard, { paddingBottom: formCardPaddingBottom }]}>
             <View style={styles.formHeader}>
-              <Text style={styles.formHeaderTitle}>{editingConcod ? 'Modifier la demande' : 'Nouvelle Demande'}</Text>
+              <Text style={styles.formHeaderTitle}>{editingConcod ? t('leave.editRequestTitle') : t('leave.newRequestTitle')}</Text>
               <TouchableOpacity onPress={closeForm} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <MaterialCommunityIcons name="close" size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false}>
-              <Text style={styles.label}>Type de congé</Text>
+              <Text style={styles.label}>{t('leave.leaveType')}</Text>
               {/* Filtre RTT — masque les types abscng='R' aux employés non éligibles.
                   L'éligibilité est connue via kpiSummary.rtt (renvoyé par /get-my-kpis :
                   null si l'employé n'a pas la méthode RTT activée). Le backend
@@ -559,7 +559,7 @@ export default function LeaveRequestScreen({ navigation }: any) {
                       <View style={styles.rttHint}>
                         <MaterialCommunityIcons name="information-outline" size={14} color={COLORS.primary} />
                         <Text style={styles.rttHintText}>
-                          Vous n'êtes pas éligible aux congés RTT. Demandez à votre RH d'activer la méthode RTT sur votre fiche pour les voir.
+                          {t('leave.rttNotEligibleHr')}
                         </Text>
                       </View>
                     )}
@@ -578,9 +578,9 @@ export default function LeaveRequestScreen({ navigation }: any) {
                     ) : (
                       <View style={styles.typeEmptyRow}>
                         <ActivityIndicator size="small" color={COLORS.primary} />
-                        <Text style={styles.typeEmptyText}>Chargement des types…</Text>
+                        <Text style={styles.typeEmptyText}>{t('leave.loadingTypes')}</Text>
                         <TouchableOpacity onPress={loadAbsences} style={styles.typeReloadBtn}>
-                          <Text style={styles.typeReloadText}>Réessayer</Text>
+                          <Text style={styles.typeReloadText}>{t('common.retry')}</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -588,9 +588,9 @@ export default function LeaveRequestScreen({ navigation }: any) {
                 );
               })()}
 
-              <Text style={styles.label}>Date départ</Text>
+              <Text style={styles.label}>{t('leave.startDate')}</Text>
               <TouchableOpacity style={styles.dateInput} onPress={() => setShowStartPicker(true)}>
-                <Text style={styles.dateInputText}>{form.condep.toLocaleDateString('fr-FR')}</Text>
+                <Text style={styles.dateInputText}>{form.condep.toLocaleDateString(locale)}</Text>
                 <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
               </TouchableOpacity>
               <TouchableOpacity
@@ -603,12 +603,12 @@ export default function LeaveRequestScreen({ navigation }: any) {
                   size={22}
                   color={COLORS.primary}
                 />
-                <Text style={styles.checkboxLabel}>Après-midi (date départ)</Text>
+                <Text style={styles.checkboxLabel}>{t('leave.afternoonStart')}</Text>
               </TouchableOpacity>
 
-              <Text style={styles.label}>Date retour</Text>
+              <Text style={styles.label}>{t('leave.returnDate')}</Text>
               <TouchableOpacity style={styles.dateInput} onPress={() => setShowEndPicker(true)}>
-                <Text style={styles.dateInputText}>{form.conret.toLocaleDateString('fr-FR')}</Text>
+                <Text style={styles.dateInputText}>{form.conret.toLocaleDateString(locale)}</Text>
                 <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
               </TouchableOpacity>
               <TouchableOpacity
@@ -621,12 +621,12 @@ export default function LeaveRequestScreen({ navigation }: any) {
                   size={22}
                   color={COLORS.primary}
                 />
-                <Text style={styles.checkboxLabel}>Après-midi (date retour)</Text>
+                <Text style={styles.checkboxLabel}>{t('leave.afternoonReturn')}</Text>
               </TouchableOpacity>
 
               <View style={styles.formFooter}>
                 <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-                  <Text style={styles.submitBtnText}>{editingConcod ? 'METTRE À JOUR' : 'ENVOYER LA DEMANDE'}</Text>
+                  <Text style={styles.submitBtnText}>{editingConcod ? t('leave.updateButton') : t('leave.sendButton')}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -637,10 +637,10 @@ export default function LeaveRequestScreen({ navigation }: any) {
       {/* Date Pickers */}
       <DatePickerModal visible={showStartPicker} value={form.condep}
         onChange={(d) => { setForm({ ...form, condep: d }); setShowStartPicker(false); }}
-        onClose={() => setShowStartPicker(false)} title="Date de départ" />
+        onClose={() => setShowStartPicker(false)} title={t('leave.startDatePickerTitle')} />
       <DatePickerModal visible={showEndPicker} value={form.conret}
         onChange={(d) => { setForm({ ...form, conret: d }); setShowEndPicker(false); }}
-        onClose={() => setShowEndPicker(false)} title="Date de retour" />
+        onClose={() => setShowEndPicker(false)} title={t('leave.returnDatePickerTitle')} />
 
       <BottomTabBar active="requests" navigation={navigation} />
     </SafeAreaView>

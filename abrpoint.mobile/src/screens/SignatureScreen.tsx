@@ -10,6 +10,7 @@ import { COLORS, THEME } from '../config/env';
 import { useSecureScreen } from '../hooks/useSecureScreen';
 import SignaturePad, { SignaturePadHandle } from '../components/SignaturePad';
 import apiService from '../services/api';
+import { useT } from '../i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -17,13 +18,14 @@ export default function SignatureScreen({ navigation, route }: any) {
   // SEC-G4 : signature électronique = pièce probante → bloque toute capture.
   useSecureScreen();
   const { user } = useAuth();
+  const t = useT();
   const padRef = useRef<SignaturePadHandle>(null);
   const [hasSigned, setHasSigned] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   // documentId arrive via route.params quand on est appelé depuis le coffre (DigitalVault).
   // Sans documentId, on reste en mode "preview" — la validation ferme l'écran sans POST.
   const documentId = route?.params?.documentId;
-  const documentName = route?.params?.docName || "Contrat de travail";
+  const documentName = route?.params?.docName || t('signature.defaultDocName');
 
   // Mode workflow (Phase 4) : on arrive via un deep-link push (signature_pending)
   // avec requestId + stepId. La validation passe alors par api/Signatures (circuit
@@ -45,12 +47,12 @@ export default function SignatureScreen({ navigation, route }: any) {
       setOtpSending(true);
       const res = await apiService.sendSignatureOtp(Number(requestId), Number(stepId));
       setOtpSentTo(res?.email ?? null);
-      Alert.alert('Code envoyé', `Un code de vérification a été envoyé à ${res?.email ?? 'votre adresse e-mail'} (valable 10 min).`);
+      Alert.alert(t('signature.otpSentTitle'), t('signature.otpSentMessage', { email: res?.email ?? t('signature.yourEmailAddress') }));
     } catch (e: any) {
       const msg = e?.response?.data?.code === 'no_email'
-        ? "Aucune adresse e-mail n'est associée à votre compte."
-        : "Impossible d'envoyer le code. Réessayez.";
-      Alert.alert('Erreur', msg);
+        ? t('signature.otpNoEmail')
+        : t('signature.otpSendFailed');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setOtpSending(false);
     }
@@ -58,17 +60,17 @@ export default function SignatureScreen({ navigation, route }: any) {
 
   const submitReject = async (motif: string) => {
     if (motif.trim().length < 3) {
-      Alert.alert('Motif requis', 'Merci d’indiquer un motif d’au moins 3 caractères.');
+      Alert.alert(t('signature.reasonRequiredTitle'), t('signature.reasonRequiredMessage'));
       return;
     }
     try {
       setSubmitting(true);
       await apiService.rejectSignatureStep(Number(requestId), Number(stepId), motif.trim());
-      Alert.alert('Document refusé', 'Votre refus a été enregistré et le demandeur a été notifié.', [
+      Alert.alert(t('signature.rejectedTitle'), t('signature.rejectedMessage'), [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.error || 'Échec du refus.');
+      Alert.alert(t('common.error'), e?.response?.data?.error || t('signature.rejectFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -81,7 +83,7 @@ export default function SignatureScreen({ navigation, route }: any) {
     if (!isWorkflow) return;
     // Alert.prompt est iOS-only : sur Android on bascule sur un champ de saisie inline.
     if (typeof Alert.prompt === 'function') {
-      Alert.prompt('Refuser le document', 'Indiquez le motif du refus (transmis au demandeur) :', (motif?: string) => submitReject(motif ?? ''));
+      Alert.prompt(t('signature.rejectPromptTitle'), t('signature.rejectPromptMessage'), (motif?: string) => submitReject(motif ?? ''));
     } else {
       setRejectOpen(true);
     }
@@ -94,19 +96,19 @@ export default function SignatureScreen({ navigation, route }: any) {
 
   const handleValidate = async () => {
     if (!hasSigned || padRef.current?.isEmpty()) {
-      Alert.alert('Attention', 'Veuillez apposer votre signature avant de valider.');
+      Alert.alert(t('signature.warningTitle'), t('signature.signBeforeValidate'));
       return;
     }
     const dataUri = padRef.current?.toDataUri();
     if (!dataUri) {
-      Alert.alert('Erreur', 'Impossible de capturer la signature. Réessayez.');
+      Alert.alert(t('common.error'), t('signature.captureFailed'));
       return;
     }
 
     // Mode workflow : signe l'étape courante du circuit (OTP optionnel).
     if (isWorkflow) {
       if (otpEnabled && otpCode.trim().length < 4) {
-        Alert.alert('Code requis', 'Saisissez le code de vérification reçu avant de signer.');
+        Alert.alert(t('signature.codeRequiredTitle'), t('signature.codeRequiredMessage'));
         return;
       }
       setSubmitting(true);
@@ -114,27 +116,27 @@ export default function SignatureScreen({ navigation, route }: any) {
         const res = await apiService.signSignatureStep(Number(requestId), Number(stepId), {
           signatureData: `drawn:${dataUri}`,
           signerName: user?.utilib || '',
-          mention: 'Lu et approuvé',
+          mention: t('signature.readAndApproved'),
           otpCode: otpEnabled ? otpCode.trim() : undefined,
           otpMethod: otpEnabled ? 'email' : undefined,
         });
         const completed = res?.completed === true;
         Alert.alert(
-          '✅ Succès',
+          t('signature.successTitle'),
           completed
-            ? 'Document signé et scellé. La signature est juridiquement opposable.'
-            : 'Votre signature est enregistrée. Le document a été transmis au prochain approbateur.',
+            ? t('signature.signedSealedMessage')
+            : t('signature.signedNextApproverMessage'),
           [{ text: 'OK', onPress: () => navigation.goBack() }],
         );
       } catch (e: any) {
         const code = e?.response?.data?.code;
         const status = e?.response?.status;
         const msg = (code === 'otp_invalid' || status === 401)
-          ? 'Code de vérification invalide ou expiré. Demandez un nouveau code.'
+          ? t('signature.otpInvalid')
           : status === 409
-            ? (e?.response?.data?.error || "Cette étape n'est plus celle en cours.")
-            : (e?.response?.data?.error || e?.message || 'Erreur lors de la signature.');
-        Alert.alert('Erreur', msg);
+            ? (e?.response?.data?.error || t('signature.stepNoLongerCurrent'))
+            : (e?.response?.data?.error || e?.message || t('signature.signError'));
+        Alert.alert(t('common.error'), msg);
       } finally {
         setSubmitting(false);
       }
@@ -144,7 +146,7 @@ export default function SignatureScreen({ navigation, route }: any) {
     // Sans documentId associé, on est en mode démo (ouvert depuis le bottom nav par exemple)
     // → confirmation locale sans appel backend, identique au comportement précédent.
     if (!documentId) {
-      Alert.alert('✅ Succès', 'Votre signature a été capturée.', [
+      Alert.alert(t('signature.successTitle'), t('signature.signatureCapturedMessage'), [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
       return;
@@ -153,12 +155,12 @@ export default function SignatureScreen({ navigation, route }: any) {
     setSubmitting(true);
     try {
       await apiService.signVaultDocument(Number(documentId), dataUri, user?.utilib || '');
-      Alert.alert('✅ Succès', 'Document signé avec succès. La signature est juridiquement opposable.', [
+      Alert.alert(t('signature.successTitle'), t('signature.documentSignedMessage'), [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (e: any) {
-      const msg = e?.response?.data?.message || e?.message || 'Erreur lors de la signature.';
-      Alert.alert('Erreur', msg);
+      const msg = e?.response?.data?.message || e?.message || t('signature.signError');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setSubmitting(false);
     }
@@ -172,7 +174,7 @@ export default function SignatureScreen({ navigation, route }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
             <MaterialCommunityIcons name="close" size={24} color={COLORS.primary} />
           </TouchableOpacity>
-          <Text style={styles.logoText}>Signature Électronique</Text>
+          <Text style={styles.logoText}>{t('signature.title')}</Text>
         </View>
         <View style={styles.profileWrapper}>
           <Image
@@ -190,19 +192,19 @@ export default function SignatureScreen({ navigation, route }: any) {
             <View style={[styles.stepCircle, styles.stepCompleted]}>
               <MaterialCommunityIcons name="check" size={16} color="#fff" />
             </View>
-            <Text style={styles.stepLabel}>Lecture</Text>
+            <Text style={styles.stepLabel}>{t('signature.stepReading')}</Text>
           </View>
           <View style={styles.stepItem}>
             <View style={[styles.stepCircle, styles.stepCompleted]}>
               <MaterialCommunityIcons name="check" size={16} color="#fff" />
             </View>
-            <Text style={styles.stepLabel}>Consentement</Text>
+            <Text style={styles.stepLabel}>{t('signature.stepConsent')}</Text>
           </View>
           <View style={styles.stepItem}>
             <View style={[styles.stepCircle, styles.stepActive]}>
               <MaterialCommunityIcons name="draw" size={16} color="#fff" />
             </View>
-            <Text style={[styles.stepLabel, { color: COLORS.primary }]}>Signature</Text>
+            <Text style={[styles.stepLabel, { color: COLORS.primary }]}>{t('signature.stepSignature')}</Text>
           </View>
         </View>
 
@@ -210,48 +212,48 @@ export default function SignatureScreen({ navigation, route }: any) {
         <View style={styles.securityBox}>
           <MaterialCommunityIcons name="shield-check" size={24} color={COLORS.tertiary} />
           <View style={styles.securityTextContainer}>
-            <Text style={styles.securityTitle}>Session sécurisée</Text>
+            <Text style={styles.securityTitle}>{t('signature.secureSessionTitle')}</Text>
             <Text style={styles.securityDesc}>
-              Cette signature est juridiquement contraignante et protégée par un cryptage AES-256 conforme eIDAS.
+              {t('signature.secureSessionDesc')}
             </Text>
           </View>
         </View>
 
         {/* Document Preview */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>APERÇU DU CONTRAT</Text>
+          <Text style={styles.sectionTitle}>{t('signature.contractPreview')}</Text>
           <View style={styles.pageBadge}>
-            <Text style={styles.pageText}>PAGE 4 / 4</Text>
+            <Text style={styles.pageText}>{t('signature.pageIndicator')}</Text>
           </View>
         </View>
 
         <View style={styles.documentCard}>
           <ScrollView style={styles.documentContent} nestedScrollEnabled>
-            <Text style={styles.articleTitle}>ARTICLE 12 - VALIDATION FINALE</Text>
+            <Text style={styles.articleTitle}>{t('signature.articleTitle')}</Text>
             <Text style={styles.articleText}>
-              Les parties reconnaissent que la signature électronique apposée ci-dessous manifeste leur consentement plein et entier aux termes du présent contrat de travail "Ledger HR Signature".
+              {t('signature.articleText1')}
             </Text>
             <View style={styles.divider} />
             <Text style={styles.articleText}>
-              En signant ce document, l'employé confirme avoir pris connaissance de l'ensemble des annexes de sécurité et de confidentialité.
+              {t('signature.articleText2')}
             </Text>
             <View style={styles.placeholderSignature}>
               <MaterialCommunityIcons name="file-edit-outline" size={24} color={COLORS.outline} />
-              <Text style={styles.placeholderText}>EMPLACEMENT DE LA SIGNATURE</Text>
+              <Text style={styles.placeholderText}>{t('signature.signaturePlaceholder')}</Text>
             </View>
           </ScrollView>
         </View>
 
         {/* Signature Zone */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>ZONE DE SIGNATURE</Text>
+          <Text style={styles.sectionTitle}>{t('signature.signatureZone')}</Text>
         </View>
 
         <View style={styles.signatureContainer}>
           {/* Vraie zone de dessin au doigt — chaque mouvement tactile est capturé par
               SignaturePad (PanResponder) et reconstitué en SVG au moment de la validation. */}
           <View style={styles.signatureCanvas} collapsable={false}>
-            <Text style={styles.canvasHint} pointerEvents="none">DESSINEZ AU DOIGT</Text>
+            <Text style={styles.canvasHint} pointerEvents="none">{t('signature.drawWithFinger')}</Text>
             <TouchableOpacity style={styles.refreshBtn} onPress={handleClear}>
               <MaterialCommunityIcons name="refresh" size={20} color={COLORS.secondary} />
             </TouchableOpacity>
@@ -267,7 +269,7 @@ export default function SignatureScreen({ navigation, route }: any) {
             {!hasSigned && (
               <View style={[styles.instructionContainer, StyleSheet.absoluteFillObject, { justifyContent: 'center' }]} pointerEvents="none">
                 <MaterialCommunityIcons name="gesture-tap" size={40} color={COLORS.outline} style={{ opacity: 0.35 }} />
-                <Text style={[styles.instructionText, { opacity: 0.6 }]}>Tracez votre signature dans cette zone</Text>
+                <Text style={[styles.instructionText, { opacity: 0.6 }]}>{t('signature.drawInZone')}</Text>
               </View>
             )}
           </View>
@@ -275,9 +277,9 @@ export default function SignatureScreen({ navigation, route }: any) {
           <View style={styles.canvasFooter}>
             <View style={styles.statusRow}>
               <View style={[styles.statusDot, { backgroundColor: hasSigned ? COLORS.tertiary : COLORS.outlineVariant }]} />
-              <Text style={styles.statusLabel}>{hasSigned ? 'CAPTURÉ' : 'PRÊT À CAPTURER'}</Text>
+              <Text style={styles.statusLabel}>{hasSigned ? t('signature.statusCaptured') : t('signature.statusReadyToCapture')}</Text>
             </View>
-            <Text style={styles.idLabel}>{documentId ? `DOC ${documentId}` : 'DÉMO'}</Text>
+            <Text style={styles.idLabel}>{documentId ? t('signature.docId', { id: documentId }) : t('signature.demo')}</Text>
           </View>
         </View>
 
@@ -286,8 +288,8 @@ export default function SignatureScreen({ navigation, route }: any) {
           <View style={styles.otpBox}>
             <View style={styles.otpHeaderRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.otpTitle}>Renforcer avec un code (OTP)</Text>
-                <Text style={styles.otpSub}>Ajoute une vérification d'identité par e-mail (recommandé).</Text>
+                <Text style={styles.otpTitle}>{t('signature.otpReinforceTitle')}</Text>
+                <Text style={styles.otpSub}>{t('signature.otpReinforceSub')}</Text>
               </View>
               <Switch value={otpEnabled} onValueChange={setOtpEnabled} trackColor={{ true: COLORS.primary }} />
             </View>
@@ -306,10 +308,10 @@ export default function SignatureScreen({ navigation, route }: any) {
                   />
                   <TouchableOpacity style={styles.otpSendBtn} onPress={handleSendOtp} disabled={otpSending}>
                     <MaterialCommunityIcons name="email-outline" size={16} color={COLORS.primary} />
-                    <Text style={styles.otpSendText}>{otpSending ? 'Envoi…' : otpSentTo ? 'Renvoyer' : 'Recevoir un code'}</Text>
+                    <Text style={styles.otpSendText}>{otpSending ? t('signature.sending') : otpSentTo ? t('signature.resend') : t('signature.receiveCode')}</Text>
                   </TouchableOpacity>
                 </View>
-                {otpSentTo && <Text style={styles.otpSent}>Code envoyé à {otpSentTo} (valable 10 min)</Text>}
+                {otpSentTo && <Text style={styles.otpSent}>{t('signature.otpSentInline', { email: otpSentTo })}</Text>}
               </>
             )}
           </View>
@@ -318,22 +320,22 @@ export default function SignatureScreen({ navigation, route }: any) {
         {/* Refus inline (Android — Alert.prompt indisponible) */}
         {isWorkflow && rejectOpen && (
           <View style={[styles.otpBox, { borderColor: '#ef9a9a' }]}>
-            <Text style={styles.otpTitle}>Motif du refus</Text>
+            <Text style={styles.otpTitle}>{t('signature.rejectReasonTitle')}</Text>
             <TextInput
               style={styles.rejectInput}
               multiline
               numberOfLines={3}
               value={rejectMotif}
               onChangeText={setRejectMotif}
-              placeholder="Expliquez pourquoi vous refusez de signer…"
+              placeholder={t('signature.rejectReasonPlaceholder')}
               placeholderTextColor={COLORS.outline}
             />
             <View style={styles.rejectActions}>
               <TouchableOpacity style={styles.rejectCancel} onPress={() => { setRejectOpen(false); setRejectMotif(''); }}>
-                <Text style={styles.btnText}>Annuler</Text>
+                <Text style={styles.btnText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.rejectConfirm} onPress={() => submitReject(rejectMotif)} disabled={submitting}>
-                <Text style={[styles.btnText, { color: '#fff' }]}>Confirmer le refus</Text>
+                <Text style={[styles.btnText, { color: '#fff' }]}>{t('signature.confirmReject')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -343,7 +345,7 @@ export default function SignatureScreen({ navigation, route }: any) {
         <View style={styles.actionsGrid}>
           <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
             <MaterialCommunityIcons name="cancel" size={20} color={COLORS.onSurface} />
-            <Text style={styles.btnText}>Annuler</Text>
+            <Text style={styles.btnText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.validateBtn} onPress={handleValidate} disabled={submitting}>
@@ -354,7 +356,7 @@ export default function SignatureScreen({ navigation, route }: any) {
               end={{ x: 1, y: 1 }}
             >
               <MaterialCommunityIcons name="draw" size={20} color="#fff" />
-              <Text style={[styles.btnText, { color: '#fff' }]}>{submitting ? 'Envoi…' : 'Valider'}</Text>
+              <Text style={[styles.btnText, { color: '#fff' }]}>{submitting ? t('signature.sending') : t('signature.validate')}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -363,7 +365,7 @@ export default function SignatureScreen({ navigation, route }: any) {
         {isWorkflow && !rejectOpen && (
           <TouchableOpacity style={styles.rejectLink} onPress={handleReject} disabled={submitting}>
             <MaterialCommunityIcons name="close-circle-outline" size={18} color="#ba1a1a" />
-            <Text style={styles.rejectLinkText}>Refuser ce document</Text>
+            <Text style={styles.rejectLinkText}>{t('signature.rejectDocument')}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -372,19 +374,19 @@ export default function SignatureScreen({ navigation, route }: any) {
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
           <MaterialCommunityIcons name="view-dashboard-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>TABLEAU</Text>
+          <Text style={styles.navLabel}>{t('signature.navDashboard')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('LeaveRequest')}>
           <MaterialCommunityIcons name="calendar-month-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>CONGÉS</Text>
+          <Text style={styles.navLabel}>{t('signature.navLeave')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('DigitalVault')}>
           <MaterialCommunityIcons name="folder-shared-outline" size={24} color="#94a3b8" />
-          <Text style={styles.navLabel}>COFFRE</Text>
+          <Text style={styles.navLabel}>{t('signature.navVault')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => {}}>
           <MaterialCommunityIcons name="draw" size={24} color={COLORS.primary} />
-          <Text style={[styles.navLabel, { color: COLORS.primary }]}>SIGNER</Text>
+          <Text style={[styles.navLabel, { color: COLORS.primary }]}>{t('signature.navSign')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

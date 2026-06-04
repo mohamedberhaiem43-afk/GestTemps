@@ -40,6 +40,7 @@ export function useDeviceTrust(): DeviceTrustReport | null {
           isEmulator: false,
           reasons: ['assessment_failed'],
           platform: 'other',
+          fingerprint: { osVersion: null, brand: null, model: null, yearClass: null },
         };
         cached = fallback;
         if (mounted) setReport(fallback);

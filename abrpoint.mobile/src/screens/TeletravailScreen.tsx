@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../config/env';
+import { useI18n } from '../i18n';
 import apiService from '../services/api';
 import DatePickerModal from '../components/DatePickerModal';
 import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
@@ -40,11 +41,11 @@ interface RemoteWorkRequest {
   decisionComment: string | null;
 }
 
-const STATUS_LABEL: Record<Status, string> = {
-  Pending: 'En attente',
-  Approved: 'Acceptée',
-  Rejected: 'Refusée',
-  Cancelled: 'Annulée',
+const STATUS_LABEL_KEY: Record<Status, string> = {
+  Pending: 'teletravail.statusPending',
+  Approved: 'teletravail.statusApproved',
+  Rejected: 'teletravail.statusRejected',
+  Cancelled: 'teletravail.statusCancelled',
 };
 const STATUS_COLOR: Record<Status, { bg: string; fg: string }> = {
   Pending:   { bg: '#fef9c3', fg: '#854d0e' },
@@ -53,14 +54,16 @@ const STATUS_COLOR: Record<Status, { bg: string; fg: string }> = {
   Cancelled: { bg: '#e2e8f0', fg: '#475569' },
 };
 
-const fmt = (iso: string | null | undefined) => {
+const fmt = (iso: string | null | undefined, locale: string) => {
   if (!iso) return '—';
-  try { return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  try { return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' }); }
   catch { return iso; }
 };
 
 export default function TeletravailScreen({ navigation }: any) {
   const tabBarPadding = useTabBarPadding();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const [items, setItems] = useState<RemoteWorkRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -101,15 +104,15 @@ export default function TeletravailScreen({ navigation }: any) {
   }, [load]);
 
   const resetForm = () => {
-    const t = new Date();
-    setStartDate(t);
-    setEndDate(t);
+    const d = new Date();
+    setStartDate(d);
+    setEndDate(d);
     setReason('');
   };
 
   const submit = async () => {
     if (endDate < startDate) {
-      Alert.alert('Dates invalides', 'La date de fin doit être ≥ à la date de début.');
+      Alert.alert(t('teletravail.invalidDatesTitle'), t('teletravail.invalidDatesMsg'));
       return;
     }
     setSubmitting(true);
@@ -122,13 +125,13 @@ export default function TeletravailScreen({ navigation }: any) {
         endDate: isoDate(endDate),
         reason: reason.trim() || null,
       });
-      Alert.alert('✅ Demande envoyée', 'Votre manager sera notifié.');
+      Alert.alert(t('teletravail.sentTitle'), t('teletravail.sentMsg'));
       setShowForm(false);
       resetForm();
       await load();
     } catch (e: any) {
-      const msg = e?.response?.data?.error ?? 'Impossible d\'envoyer la demande.';
-      Alert.alert('Erreur', msg);
+      const msg = e?.response?.data?.error ?? t('teletravail.sendError');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setSubmitting(false);
     }
@@ -136,20 +139,20 @@ export default function TeletravailScreen({ navigation }: any) {
 
   const confirmCancel = (item: RemoteWorkRequest) => {
     Alert.alert(
-      'Annuler la demande',
-      `Annuler la demande de télétravail du ${fmt(item.startDate)} au ${fmt(item.endDate)} ?`,
+      t('teletravail.cancelTitle'),
+      t('teletravail.cancelConfirm', { start: fmt(item.startDate, locale), end: fmt(item.endDate, locale) }),
       [
-        { text: 'Garder', style: 'cancel' },
+        { text: t('teletravail.keep'), style: 'cancel' },
         {
-          text: 'Annuler la demande',
+          text: t('teletravail.cancelTitle'),
           style: 'destructive',
           onPress: async () => {
             try {
               await apiService.cancelRemoteWorkRequest(item.id);
               await load();
             } catch (e: any) {
-              const msg = e?.response?.data?.error ?? 'Impossible d\'annuler la demande.';
-              Alert.alert('Erreur', msg);
+              const msg = e?.response?.data?.error ?? t('teletravail.cancelError');
+              Alert.alert(t('common.error'), msg);
             }
           },
         },
@@ -171,7 +174,7 @@ export default function TeletravailScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.primary} />
         </TouchableOpacity>
-        <Text style={styles.topTitle}>Mes demandes de télétravail</Text>
+        <Text style={styles.topTitle}>{t('teletravail.title')}</Text>
         <View style={{ width: 32 }} />
       </View>
 
@@ -182,8 +185,8 @@ export default function TeletravailScreen({ navigation }: any) {
         {items.length === 0 ? (
           <View style={styles.emptyCard}>
             <MaterialCommunityIcons name="home-account" size={48} color="#94a3b8" />
-            <Text style={styles.emptyTitle}>Aucune demande pour l'instant</Text>
-            <Text style={styles.emptySub}>Touchez « Nouvelle demande » pour en créer une.</Text>
+            <Text style={styles.emptyTitle}>{t('teletravail.emptyTitle')}</Text>
+            <Text style={styles.emptySub}>{t('teletravail.emptySub')}</Text>
           </View>
         ) : items.map((it) => {
           const c = STATUS_COLOR[it.status];
@@ -191,19 +194,23 @@ export default function TeletravailScreen({ navigation }: any) {
             <View key={it.id} style={styles.card}>
               <View style={styles.cardHeader}>
                 <View style={[styles.badge, { backgroundColor: c.bg }]}>
-                  <Text style={[styles.badgeText, { color: c.fg }]}>{STATUS_LABEL[it.status]}</Text>
+                  <Text style={[styles.badgeText, { color: c.fg }]}>{t(STATUS_LABEL_KEY[it.status])}</Text>
                 </View>
                 {it.daysCount != null && (
-                  <Text style={styles.daysText}>{it.daysCount} jour{it.daysCount > 1 ? 's' : ''}</Text>
+                  <Text style={styles.daysText}>
+                    {it.daysCount > 1
+                      ? t('teletravail.daysPlural', { count: it.daysCount })
+                      : t('teletravail.daysSingular', { count: it.daysCount })}
+                  </Text>
                 )}
               </View>
               <Text style={styles.datesText}>
-                Du <Text style={styles.bold}>{fmt(it.startDate)}</Text> au <Text style={styles.bold}>{fmt(it.endDate)}</Text>
+                {t('teletravail.fromLabel')} <Text style={styles.bold}>{fmt(it.startDate, locale)}</Text> {t('teletravail.toLabel')} <Text style={styles.bold}>{fmt(it.endDate, locale)}</Text>
               </Text>
               {!!it.reason && <Text style={styles.reasonText}>« {it.reason} »</Text>}
               {it.status === 'Rejected' && !!it.decisionComment && (
                 <View style={[styles.alertBox, { backgroundColor: '#fef2f2', borderColor: '#fecaca' }]}>
-                  <Text style={[styles.alertText, { color: '#991b1b' }]}>Motif du refus : {it.decisionComment}</Text>
+                  <Text style={[styles.alertText, { color: '#991b1b' }]}>{t('teletravail.rejectReason', { comment: it.decisionComment })}</Text>
                 </View>
               )}
               {it.status === 'Approved' && !!it.decisionComment && (
@@ -212,13 +219,13 @@ export default function TeletravailScreen({ navigation }: any) {
                 </View>
               )}
               <Text style={styles.metaText}>
-                Soumise le {fmt(it.requestedAt)}
-                {it.decidedAt && it.decidedByName ? ` · décidée le ${fmt(it.decidedAt)} par ${it.decidedByName}` : ''}
+                {t('teletravail.submittedOn', { date: fmt(it.requestedAt, locale) })}
+                {it.decidedAt && it.decidedByName ? t('teletravail.decidedOn', { date: fmt(it.decidedAt, locale), name: it.decidedByName }) : ''}
               </Text>
               {it.status === 'Pending' && (
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => confirmCancel(it)}>
                   <MaterialCommunityIcons name="close-circle-outline" size={18} color="#991b1b" />
-                  <Text style={styles.cancelBtnText}>Annuler ma demande</Text>
+                  <Text style={styles.cancelBtnText}>{t('teletravail.cancelMyRequest')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -228,7 +235,7 @@ export default function TeletravailScreen({ navigation }: any) {
 
       <TouchableOpacity style={[styles.fab, { bottom: tabBarPadding + 16 }]} onPress={() => { resetForm(); setShowForm(true); }}>
         <MaterialCommunityIcons name="plus" size={26} color="#fff" />
-        <Text style={styles.fabText}>Nouvelle demande</Text>
+        <Text style={styles.fabText}>{t('teletravail.newRequest')}</Text>
       </TouchableOpacity>
 
       {/* Formulaire de création — Modal plein écran pour rester cohérent avec
@@ -239,31 +246,31 @@ export default function TeletravailScreen({ navigation }: any) {
             <TouchableOpacity onPress={() => setShowForm(false)} style={styles.iconBtn}>
               <MaterialCommunityIcons name="close" size={24} color={COLORS.primary} />
             </TouchableOpacity>
-            <Text style={styles.topTitle}>Nouvelle demande</Text>
+            <Text style={styles.topTitle}>{t('teletravail.newRequest')}</Text>
             <View style={{ width: 32 }} />
           </View>
           <ScrollView contentContainerStyle={styles.scroll}>
             <View style={styles.formField}>
-              <Text style={styles.label}>Date de début</Text>
+              <Text style={styles.label}>{t('teletravail.startDate')}</Text>
               <TouchableOpacity style={styles.dateField} onPress={() => setShowStartPicker(true)}>
                 <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
-                <Text style={styles.dateText}>{fmt(startDate.toISOString())}</Text>
+                <Text style={styles.dateText}>{fmt(startDate.toISOString(), locale)}</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.formField}>
-              <Text style={styles.label}>Date de fin</Text>
+              <Text style={styles.label}>{t('teletravail.endDate')}</Text>
               <TouchableOpacity style={styles.dateField} onPress={() => setShowEndPicker(true)}>
                 <MaterialCommunityIcons name="calendar-check" size={20} color={COLORS.primary} />
-                <Text style={styles.dateText}>{fmt(endDate.toISOString())}</Text>
+                <Text style={styles.dateText}>{fmt(endDate.toISOString(), locale)}</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.formField}>
-              <Text style={styles.label}>Motif (facultatif)</Text>
+              <Text style={styles.label}>{t('teletravail.reasonLabel')}</Text>
               <TextInput
                 style={styles.textarea}
                 value={reason}
-                onChangeText={(t) => setReason(t.slice(0, 500))}
-                placeholder="Ex : journée de focus, garde d'enfant…"
+                onChangeText={(v) => setReason(v.slice(0, 500))}
+                placeholder={t('teletravail.reasonPlaceholder')}
                 placeholderTextColor="#94a3b8"
                 multiline
                 numberOfLines={4}
@@ -274,7 +281,7 @@ export default function TeletravailScreen({ navigation }: any) {
             <TouchableOpacity style={[styles.submitBtn, submitting && { opacity: 0.6 }]} disabled={submitting} onPress={submit}>
               {submitting
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.submitBtnText}>Soumettre la demande</Text>}
+                : <Text style={styles.submitBtnText}>{t('teletravail.submitRequest')}</Text>}
             </TouchableOpacity>
           </ScrollView>
 

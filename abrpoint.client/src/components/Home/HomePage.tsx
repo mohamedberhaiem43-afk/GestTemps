@@ -102,7 +102,7 @@ interface Dict {
   flMsg: string; flMsgPh: string; formSubmit: string;
   // FOOTER
   fDesc: string; fFlags: string; fcol1: string; fcol2: string;
-  flPricing: string; flMobile: string; flContact: string; flAbout: string; flLogin: string; flSignup: string;
+  flPricing: string; flMobile: string; flContact: string; flLogin: string; flSignup: string;
   copyright: string; privacy: string; cgu: string; legal: string; cookies: string;
 }
 
@@ -133,7 +133,7 @@ const FR: Dict = {
   sl1: 'Entreprises clientes', sl2: 'Multi-pays', sl3: 'Absentéisme moyen', sl4: 'Pour déployer',
 
   dlTag: '📱 Application mobile', dlTitle: "Téléchargez l'app Concorde Workly",
-  dlSubA: 'iOS · Android · Mode offline · Géolocalisation optionnelle. Rendez-vous sur',
+  dlSubA: 'Android · Mode offline · Géolocalisation optionnelle. Rendez-vous sur',
   dlSubB: 'pour récupérer la dernière version.',
 
   howTag: 'Découvrir la plateforme', howTitle: 'Opérationnel en', howAccent: '2 semaines',
@@ -141,7 +141,7 @@ const FR: Dict = {
   steps: [
     { title: 'Inscrivez-vous & validez votre SIRET', desc: "Création du compte en 5 minutes. Vérification automatique du numéro d'entreprise (SIRET FR, BCE BE, ICE MA, NINEA SN).", long: "Création du compte en 5 minutes. Vérification automatique du numéro d'entreprise (SIRET FR, BCE BE, ICE MA, NINEA SN). Aucune installation, aucun technicien requis : vous démarrez immédiatement depuis votre navigateur." },
     { title: 'Importez vos équipes', desc: "Upload CSV ou saisie manuelle de vos collaborateurs, sites et départements. Paramétrage en moins d'une heure.", long: "Upload CSV ou saisie manuelle de vos collaborateurs, sites et départements. Paramétrage en moins d'une heure. Vos données sont chiffrées et hébergées en France dès l'import." },
-    { title: 'Déployez sur le terrain', desc: 'Application mobile iOS/Android pour les collaborateurs. Pointeuses biométriques compatibles. Mode offline disponible.', long: 'Application mobile iOS/Android pour les collaborateurs. Pointeuses biométriques compatibles. Mode offline disponible pour les sites sans connexion. Déploiement progressif site par site.' },
+    { title: 'Déployez sur le terrain', desc: 'Application mobile Android pour les collaborateurs. Pointeuses biométriques compatibles. Mode offline disponible.', long: 'Application mobile Android pour les collaborateurs. Pointeuses biométriques compatibles. Mode offline disponible pour les sites sans connexion. Déploiement progressif site par site.' },
     { title: 'Pilotez en temps réel', desc: 'Tableau de bord temps réel dès J+1. Notifications push aux managers. Préparation paie automatisée.', long: "Tableau de bord temps réel dès J+1. Notifications push aux managers. Préparation paie automatisée et exports prêts pour votre logiciel de paie. Vous pilotez l'absentéisme et la productivité au quotidien." },
   ],
   stepLabel: 'Étape {n} sur 4', slideStart: 'Inscription', slideEnd: 'Pilotage',
@@ -159,7 +159,7 @@ const FR: Dict = {
   pi2: '25 collaborateurs inclus · 50 Go stockage sécurisé',
   pi3: '50 collaborateurs inclus · 200 Go stockage sécurisé',
   extraCollab: 'puis +{price} € HT / mois par collaborateur supplémentaire',
-  starterFeatures: ['Pointage web & mobile (iOS / Android)', 'Gestion RH essentielle (fiches, contrats)', 'Gestion congés & absences', 'Tableau de bord simplifié · exports PDF / Excel', 'Notifications essentielles', '10 Go stockage sécurisé · Hébergement France OVH', 'Multi utilisateurs'],
+  starterFeatures: ['Pointage web & mobile (Android)', 'Gestion RH essentielle (fiches, contrats)', 'Gestion congés & absences', 'Tableau de bord simplifié · exports PDF / Excel', 'Notifications essentielles', '10 Go stockage sécurisé · Hébergement France OVH', 'Multi utilisateurs'],
   standardFeatures: ['Tout le pack Starter', 'Application mobile + géolocalisation', 'Coffre numérique & signature électronique', 'Import Excel en masse (employés, services, fonctions, rubriques…)', 'Préparation paie · export paie · Multi-sites simple', 'Congés, RTT, CET, sanctions · Notifications push / email', 'Reporting avancé · 50 Go stockage sécurisé', 'Hébergement France OVH · Multi utilisateurs', 'Idéal : PME en croissance · équipes terrain · structures multi-sites · gestion RH centralisée'],
   businessFeatures: ['Tout le pack Standard', 'Multi-filiales sur devis · tableaux de bord avancés', 'Sécurité renforcée · Audit logs avancés', 'Supervision avancée · 200 Go stockage sécurisé', 'Hébergement France OVH · Administrateurs illimités', 'Onboarding accompagné · SLA prioritaire', 'Idéal : PME structurées · groupes multi-sites · conformité & sécurité avancées · organisations en croissance'],
   entFeatures: ['IA RH avancée', 'Recherche documentaire', 'Workflows intelligents', 'API avancées & SSO', 'Hébergement dédié', 'Architecture sur mesure'],
@@ -171,7 +171,7 @@ const FR: Dict = {
   compTag: 'Comparatif détaillé', compTitleA: 'Tout ce qui est inclus dans', compAccent: 'chaque pack',
   compSub: 'La matrice complète des modules et fonctionnalités, pack par pack. Choisissez en toute transparence.',
   compCorner: 'Fonctionnalités', fromShort: 'à partir de', compTrial: 'Essai gratuit 30j',
-  csPointage: 'Pointage & présence', cfWeb: 'Pointage web', cfMobile: 'Application mobile (iOS / Android)', cfGeo: 'Pointage géolocalisé',
+  csPointage: 'Pointage & présence', cfWeb: 'Pointage web', cfMobile: 'Application mobile (Android)', cfGeo: 'Pointage géolocalisé',
   csEmp: 'Gestion des employés', cfFiches: 'Fiches collaborateurs', cfCoffre: 'Coffre numérique', cfSign: 'Signature électronique',
   csConges: 'Congés & absences', cfConges: 'Demandes de congés', csPaie: 'Paie & frais', cfPaie: 'Préparation paie · export paie',
   csSecu: 'Sécurité & conformité', cfOvh: 'Hébergement France OVH', cfCrypto: 'Chiffrement AES-256 + TLS 1.3', cfBrand: 'Branding personnalisé',
@@ -248,7 +248,7 @@ const FR: Dict = {
   fDesc: 'La plateforme RH & pointage conçue pour les équipes terrain en Afrique francophone et en Europe.',
   fFlags: 'Multi-pays', fcol1: 'Produit', fcol2: 'Ressources',
   flPricing: 'Tarifs', flMobile: 'Application mobile', flContact: 'Contact',
-  flAbout: 'À propos', flLogin: 'Se connecter', flSignup: 'Créer un compte',
+  flLogin: 'Se connecter', flSignup: 'Créer un compte',
   copyright: '© 2026 Concorde Workforce · Tous droits réservés',
   privacy: 'Confidentialité', cgu: 'CGUS', legal: 'Mentions légales', cookies: 'Cookies',
 };
@@ -280,7 +280,7 @@ const EN: Dict = {
   sl1: 'Client companies', sl2: 'Multi-country', sl3: 'Avg absenteeism', sl4: 'To deploy',
 
   dlTag: '📱 Mobile app', dlTitle: 'Download the Concorde Workly app',
-  dlSubA: 'iOS · Android · Offline mode · Optional geolocation. Visit',
+  dlSubA: 'Android · Offline mode · Optional geolocation. Visit',
   dlSubB: 'to get the latest version.',
 
   howTag: 'Discover the platform', howTitle: 'Operational in', howAccent: '2 weeks',
@@ -288,7 +288,7 @@ const EN: Dict = {
   steps: [
     { title: 'Sign up & validate your company number', desc: 'Account creation in 5 minutes. Automatic verification of your company number (SIRET FR, BCE BE, ICE MA, NINEA SN).', long: 'Account creation in 5 minutes. Automatic verification of your company number (SIRET FR, BCE BE, ICE MA, NINEA SN). No installation, no technician required: you start right away from your browser.' },
     { title: 'Import your teams', desc: 'CSV upload or manual entry of your employees, sites and departments. Setup in under an hour.', long: 'CSV upload or manual entry of your employees, sites and departments. Setup in under an hour. Your data is encrypted and hosted in France from the very first import.' },
-    { title: 'Deploy in the field', desc: 'iOS/Android mobile app for employees. Compatible biometric terminals. Offline mode available.', long: 'iOS/Android mobile app for employees. Compatible biometric terminals. Offline mode available for sites without connectivity. Gradual roll-out, site by site.' },
+    { title: 'Deploy in the field', desc: 'Android mobile app for employees. Compatible biometric terminals. Offline mode available.', long: 'Android mobile app for employees. Compatible biometric terminals. Offline mode available for sites without connectivity. Gradual roll-out, site by site.' },
     { title: 'Manage in real time', desc: 'Real-time dashboard from day 1. Push notifications to managers. Automated payroll.', long: 'Real-time dashboard from day 1. Push notifications to managers. Automated payroll preparation and exports ready for your payroll software. Track absenteeism and productivity every day.' },
   ],
   stepLabel: 'Step {n} of 4', slideStart: 'Sign-up', slideEnd: 'Management',
@@ -306,7 +306,7 @@ const EN: Dict = {
   pi2: '25 users included · 50 GB secure storage',
   pi3: '50 users included · 200 GB secure storage',
   extraCollab: 'then +€{price} excl. tax / mo per additional employee',
-  starterFeatures: ['Web & mobile time tracking (iOS / Android)', 'Essential HR management (records, contracts)', 'Leave & absence management', 'Simplified dashboard · PDF / Excel exports', 'Essential notifications', '10 GB secure storage · Hosted in France OVH', 'Multi-user'],
+  starterFeatures: ['Web & mobile time tracking (Android)', 'Essential HR management (records, contracts)', 'Leave & absence management', 'Simplified dashboard · PDF / Excel exports', 'Essential notifications', '10 GB secure storage · Hosted in France OVH', 'Multi-user'],
   standardFeatures: ['Everything in Starter', 'Mobile app + geolocation', 'Digital vault & e-signature', 'Bulk Excel import (employees, services, roles, items…)', 'Payroll preparation · payroll export · simple multi-site', 'Leave, RTT, time-off, sanctions · push / email notifications', 'Advanced reporting · 50 GB secure storage', 'Hosted in France OVH · Multi-user', 'Ideal for: growing SMEs · field teams · multi-site structures · centralized HR management'],
   businessFeatures: ['Everything in Standard', 'Multi-subsidiary on quote · advanced dashboards', 'Enhanced security · advanced audit logs', 'Advanced supervision · 200 GB secure storage', 'Hosted in France OVH · Unlimited administrators', 'Guided onboarding · priority SLA', 'Ideal for: structured SMEs · multi-site groups · advanced compliance & security · growing organizations'],
   entFeatures: ['Advanced HR AI', 'Document search', 'Smart workflows', 'Advanced APIs & SSO', 'Dedicated hosting', 'Tailor-made architecture'],
@@ -318,7 +318,7 @@ const EN: Dict = {
   compTag: 'Detailed comparison', compTitleA: 'Everything included in', compAccent: 'each plan',
   compSub: 'The complete feature matrix, plan by plan. Choose with full transparency.',
   compCorner: 'Features', fromShort: 'from', compTrial: '30-day free trial',
-  csPointage: 'Time tracking & attendance', cfWeb: 'Web time tracking', cfMobile: 'Mobile app (iOS / Android)', cfGeo: 'Geolocated time tracking',
+  csPointage: 'Time tracking & attendance', cfWeb: 'Web time tracking', cfMobile: 'Mobile app (Android)', cfGeo: 'Geolocated time tracking',
   csEmp: 'Employee management', cfFiches: 'Employee records', cfCoffre: 'Digital vault', cfSign: 'Electronic signature',
   csConges: 'Leave & absences', cfConges: 'Leave requests', csPaie: 'Payroll & expenses', cfPaie: 'Payroll preparation · payroll export',
   csSecu: 'Security & compliance', cfOvh: 'Hosted in France OVH', cfCrypto: 'AES-256 + TLS 1.3 encryption', cfBrand: 'Custom branding',
@@ -395,7 +395,7 @@ const EN: Dict = {
   fDesc: 'The HR & time tracking platform designed for field teams in French-speaking Africa and Europe.',
   fFlags: 'Multi-country', fcol1: 'Product', fcol2: 'Resources',
   flPricing: 'Pricing', flMobile: 'Mobile app', flContact: 'Contact',
-  flAbout: 'About us', flLogin: 'Log in', flSignup: 'Create account',
+  flLogin: 'Log in', flSignup: 'Create account',
   copyright: '© 2026 Concorde Workforce · All rights reserved',
   privacy: 'Privacy', cgu: 'Terms', legal: 'Legal notice', cookies: 'Cookies',
 };
@@ -649,8 +649,12 @@ export default function HomePage() {
   return (
     <div className="hp2">
       <PageSeo
-        title="Concorde Workforce – Logiciel RH & pointage pour PME"
-        description="Gérez la RH de votre PME avec Concorde Workforce : pointage, congés, contrats et plannings réunis dans une seule plateforme. Essai gratuit 1 mois, sans CB."
+        title={lang === 'en'
+          ? 'Concorde Workforce – HR & time-tracking software for SMEs'
+          : 'Concorde Workforce – Logiciel RH & pointage pour PME'}
+        description={lang === 'en'
+          ? 'Manage your SME’s HR with Concorde Workforce: time tracking, leave, contracts and schedules in one platform. Free 1-month trial, no credit card.'
+          : 'Gérez la RH de votre PME avec Concorde Workforce : pointage, congés, contrats et plannings réunis dans une seule plateforme. Essai gratuit 1 mois, sans CB.'}
       />
 
       {/* NAV */}
@@ -1192,7 +1196,6 @@ export default function HomePage() {
           <div className="footer-col">
             <h4>{d.fcol2}</h4>
             <div className="footer-links">
-              <a onClick={() => navigate('/about')}>{d.flAbout}</a>
               <a onClick={goToLogin}>{d.flLogin}</a>
               <a onClick={goToSignup}>{d.flSignup}</a>
             </div>

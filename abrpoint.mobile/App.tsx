@@ -7,6 +7,7 @@ import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { InactivityProvider } from './src/contexts/InactivityContext';
+import { I18nProvider } from './src/i18n';
 import { COLORS } from './src/config/env';
 import { configureNotificationHandler, registerForPushAsync } from './src/services/push';
 
@@ -198,6 +199,7 @@ configureNotificationHandler();
 export default function App() {
   return (
     <SafeAreaProvider>
+      <I18nProvider>
       <AuthProvider>
         {/* SEC-G5 : auto-lock après inactivité — InactivityProvider doit être
             sous AuthProvider (LockScreen consomme useAuth) ; ActivityTracker
@@ -216,6 +218,7 @@ export default function App() {
           </BackgroundShield>
         </InactivityProvider>
       </AuthProvider>
+      </I18nProvider>
     </SafeAreaProvider>
   );
 }

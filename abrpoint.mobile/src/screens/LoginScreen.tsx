@@ -27,6 +27,9 @@ import {
   isBiometricLoginEnabled,
   biometricLoginFlow,
 } from '../services/biometric';
+import { useT } from '../i18n';
+
+type TFunc = (key: string, vars?: Record<string, string | number>) => string;
 
 // URL du portail web où l'admin peut upgrader son plan. On garde "concorde-work-force.com"
 // (et non concordeworkly.com, qui redirige vers /download) parce que c'est le portail
@@ -47,7 +50,7 @@ const HERO_IMAGE_URL =
  *
  * Retourne `true` si le cas a été géré (le caller doit s'arrêter là).
  */
-function handlePlanLockedIfApplicable(error: any): boolean {
+function handlePlanLockedIfApplicable(error: any, t: TFunc): boolean {
   const status = error?.response?.status;
   const data = error?.response?.data;
   const isPlanLocked =
@@ -56,16 +59,12 @@ function handlePlanLockedIfApplicable(error: any): boolean {
 
   const currentPlan = data?.currentPlan || 'Starter';
   Alert.alert(
-    `🔒 Pack ${currentPlan} — mobile non inclus`,
-    `L'application mobile fait partie des packs Standard et Premium.\n\n` +
-    `Sur le pack ${currentPlan}, vous gardez l'accès complet à l'application web ` +
-    `depuis votre ordinateur, mais le mobile est verrouillé.\n\n` +
-    `Pour activer l'app mobile, demandez à votre administrateur d'upgrader le ` +
-    `compte depuis le portail web.`,
+    t('login.planLockedTitle', { plan: currentPlan }),
+    t('login.planLockedBody', { plan: currentPlan }),
     [
-      { text: 'Fermer', style: 'cancel' },
+      { text: t('common.close'), style: 'cancel' },
       {
-        text: 'Mettre à niveau',
+        text: t('login.upgrade'),
         onPress: () => { Linking.openURL(UPGRADE_URL).catch(() => { /* noop */ }); },
       },
     ]
@@ -79,6 +78,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login, hydrateAfterBiometric } = useAuth();
+  const t = useT();
 
   // Biométrie : on n'affiche le bouton "Se connecter avec FaceID/TouchID" que si l'utilisateur
   // l'a explicitement activé après un login classique précédent ET que l'appareil le supporte
@@ -115,12 +115,12 @@ export default function LoginScreen() {
       const already = await isBiometricLoginEnabled();
       if (already || !caps.hasHardware || !caps.isEnrolled) return;
       Alert.alert(
-        `Activer ${caps.label} ?`,
-        `Connectez-vous plus rapidement la prochaine fois en utilisant ${caps.label}. Aucun mot de passe ne sera stocké sur l'appareil.`,
+        t('login.enableBioTitle', { method: caps.label }),
+        t('login.enableBioBody', { method: caps.label }),
         [
-          { text: 'Plus tard', style: 'cancel' },
+          { text: t('login.later'), style: 'cancel' },
           {
-            text: 'Activer',
+            text: t('login.enable'),
             onPress: async () => {
               try { await enableBiometricLogin(slug); } catch { /* noop */ }
             },
@@ -135,14 +135,14 @@ export default function LoginScreen() {
     try {
       const result = await biometricLoginFlow();
       if (!result) {
-        Alert.alert('Information', 'Aucun identifiant biométrique stocké. Connectez-vous une première fois.');
+        Alert.alert(t('common.info'), t('login.noBioStored'));
         return;
       }
       hydrateAfterBiometric(result.user);
     } catch (error: any) {
-      if (handlePlanLockedIfApplicable(error)) return;
-      const msg = error?.response?.data?.message || 'Connexion biométrique échouée.';
-      Alert.alert('Erreur', msg);
+      if (handlePlanLockedIfApplicable(error, t)) return;
+      const msg = error?.response?.data?.message || t('login.bioFailed');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setLoading(false);
     }
@@ -151,7 +151,7 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     const normalizedEmail = email.trim();
     if (!normalizedEmail || !password) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
+      Alert.alert(t('common.error'), t('login.fillRequired'));
       return;
     }
     setLoading(true);
@@ -159,34 +159,34 @@ export default function LoginScreen() {
       await login(normalizedEmail, password);
       await offerBiometricEnrollment();
     } catch (error: any) {
-      if (handlePlanLockedIfApplicable(error)) return;
-      const msg = error?.response?.data?.message || 'Erreur de connexion. Vérifiez vos identifiants.';
-      Alert.alert('Erreur', msg);
+      if (handlePlanLockedIfApplicable(error, t)) return;
+      const msg = error?.response?.data?.message || t('login.loginError');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setLoading(false);
     }
   };
 
   const handleSendResetCode = async () => {
-    if (!forgotEmail) { Alert.alert('Erreur', 'Veuillez entrer votre email.'); return; }
+    if (!forgotEmail) { Alert.alert(t('common.error'), t('login.enterEmail')); return; }
     setForgotLoading(true);
     try {
       const res = await axios.post(`${API_BASE_URL}/auth/forgot-password`, { Email: forgotEmail });
-      const successMsg = res.data?.message || res.data?.Message || 'Code envoyé. Consultez votre boîte mail.';
-      Alert.alert('Succès', successMsg);
+      const successMsg = res.data?.message || res.data?.Message || t('login.codeSent');
+      Alert.alert(t('common.success'), successMsg);
       setForgotStep('code');
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.response?.data?.Message || 'Erreur lors de l\'envoi du code.';
-      Alert.alert('Erreur', msg);
+      const msg = err?.response?.data?.message || err?.response?.data?.Message || t('login.sendCodeError');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setForgotLoading(false);
     }
   };
 
   const handleResetPassword = async () => {
-    if (!newPassword || !confirmPassword) { Alert.alert('Erreur', 'Veuillez remplir tous les champs.'); return; }
-    if (newPassword !== confirmPassword) { Alert.alert('Erreur', 'Les mots de passe ne correspondent pas.'); return; }
-    if (newPassword.length < 6) { Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 6 caractères.'); return; }
+    if (!newPassword || !confirmPassword) { Alert.alert(t('common.error'), t('login.fillAll')); return; }
+    if (newPassword !== confirmPassword) { Alert.alert(t('common.error'), t('login.pwdMismatch')); return; }
+    if (newPassword.length < 6) { Alert.alert(t('common.error'), t('login.pwdTooShort')); return; }
     setForgotLoading(true);
     try {
       const res = await axios.post(`${API_BASE_URL}/auth/reset-password`, {
@@ -194,8 +194,8 @@ export default function LoginScreen() {
         Code: resetCode,
         NewPassword: newPassword,
       });
-      const successMsg = res.data?.message || res.data?.Message || 'Mot de passe réinitialisé.';
-      Alert.alert('Succès', successMsg);
+      const successMsg = res.data?.message || res.data?.Message || t('login.pwdReset');
+      Alert.alert(t('common.success'), successMsg);
       setShowForgot(false);
       setForgotStep('email');
       setForgotEmail('');
@@ -203,8 +203,8 @@ export default function LoginScreen() {
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.response?.data?.Message || 'Erreur lors de la réinitialisation.';
-      Alert.alert('Erreur', msg);
+      const msg = err?.response?.data?.message || err?.response?.data?.Message || t('login.resetError');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setForgotLoading(false);
     }
@@ -244,13 +244,13 @@ export default function LoginScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.brandName}>Concorde Workforce</Text>
-                  <Text style={styles.brandTag}>Pointage · Congés · Gestion du temps</Text>
+                  <Text style={styles.brandTag}>{t('login.heroTagline')}</Text>
                 </View>
               </View>
               <View style={styles.heroBottom}>
-                <Text style={styles.heroTitle}>Bienvenue.</Text>
+                <Text style={styles.heroTitle}>{t('login.welcome')}</Text>
                 <Text style={styles.heroSubtitle}>
-                  Pilotez le temps de travail de vos équipes depuis votre poche.
+                  {t('login.heroSubtitle')}
                 </Text>
               </View>
             </SafeAreaView>
@@ -262,14 +262,14 @@ export default function LoginScreen() {
             {!showForgot ? (
               <>
                 <View style={styles.formHead}>
-                  <Text style={styles.formTitle}>Connexion à votre espace</Text>
+                  <Text style={styles.formTitle}>{t('login.title')}</Text>
                   <Text style={styles.formSubtitle}>
-                    Saisissez vos identifiants pour accéder à vos pointages, congés et planning.
+                    {t('login.subtitle')}
                   </Text>
                 </View>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>Email</Text>
+                  <Text style={styles.fieldLabel}>{t('login.email')}</Text>
                   <View style={styles.inputWrap}>
                     <MaterialCommunityIcons name="email-outline" size={18} color="#737785" style={styles.inputIcon} />
                     <TextInput
@@ -286,7 +286,7 @@ export default function LoginScreen() {
                 </View>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>Mot de passe</Text>
+                  <Text style={styles.fieldLabel}>{t('login.password')}</Text>
                   <View style={styles.inputWrap}>
                     <MaterialCommunityIcons name="lock-outline" size={18} color="#737785" style={styles.inputIcon} />
                     <TextInput
@@ -316,7 +316,7 @@ export default function LoginScreen() {
                   style={styles.forgotLink}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Text style={styles.forgotLinkText}>Mot de passe oublié ?</Text>
+                  <Text style={styles.forgotLinkText}>{t('login.forgot')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -329,7 +329,7 @@ export default function LoginScreen() {
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <>
-                      <Text style={styles.primaryBtnText}>Se connecter</Text>
+                      <Text style={styles.primaryBtnText}>{t('login.signIn')}</Text>
                       <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
                     </>
                   )}
@@ -339,7 +339,7 @@ export default function LoginScreen() {
                   <>
                     <View style={styles.divider}>
                       <View style={styles.dividerLine} />
-                      <Text style={styles.dividerText}>OU</Text>
+                      <Text style={styles.dividerText}>{t('login.or')}</Text>
                       <View style={styles.dividerLine} />
                     </View>
                     <TouchableOpacity
@@ -353,7 +353,7 @@ export default function LoginScreen() {
                         size={22}
                         color={COLORS.primary}
                       />
-                      <Text style={styles.bioBtnText}>{`Continuer avec ${bioLabel}`}</Text>
+                      <Text style={styles.bioBtnText}>{t('login.continueWith', { method: bioLabel })}</Text>
                     </TouchableOpacity>
                   </>
                 )}
@@ -361,34 +361,34 @@ export default function LoginScreen() {
                     Guideline 5.1.1(i) et Google Play Data Safety). */}
                 <View style={styles.legalLinks}>
                   <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/docs/politique-confidentialite.pdf')}>
-                    <Text style={styles.legalLink}>Confidentialité</Text>
+                    <Text style={styles.legalLink}>{t('login.privacy')}</Text>
                   </TouchableOpacity>
                   <Text style={styles.legalSep}>·</Text>
                   <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/docs/cgu.pdf')}>
-                    <Text style={styles.legalLink}>CGU</Text>
+                    <Text style={styles.legalLink}>{t('login.terms')}</Text>
                   </TouchableOpacity>
                   <Text style={styles.legalSep}>·</Text>
                   <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/docs/mentions-legales.pdf')}>
-                    <Text style={styles.legalLink}>Mentions légales</Text>
+                    <Text style={styles.legalLink}>{t('login.legal')}</Text>
                   </TouchableOpacity>
                 </View>
               </>
             ) : (
               <>
                 <View style={styles.formHead}>
-                  <Text style={styles.formTitle}>Réinitialiser le mot de passe</Text>
+                  <Text style={styles.formTitle}>{t('login.resetTitle')}</Text>
                   <Text style={styles.formSubtitle}>
                     {forgotStep === 'email'
-                      ? 'Saisissez votre email pour recevoir un code de vérification.'
+                      ? t('login.resetStepEmail')
                       : forgotStep === 'code'
-                        ? 'Entrez le code à 6 chiffres reçu par email.'
-                        : 'Choisissez un nouveau mot de passe.'}
+                        ? t('login.resetStepCode')
+                        : t('login.resetStepReset')}
                   </Text>
                 </View>
 
                 {forgotStep === 'email' && (
                   <View style={styles.fieldGroup}>
-                    <Text style={styles.fieldLabel}>Email</Text>
+                    <Text style={styles.fieldLabel}>{t('login.email')}</Text>
                     <View style={styles.inputWrap}>
                       <MaterialCommunityIcons name="email-outline" size={18} color="#737785" style={styles.inputIcon} />
                       <TextInput
@@ -406,7 +406,7 @@ export default function LoginScreen() {
 
                 {forgotStep === 'code' && (
                   <View style={styles.fieldGroup}>
-                    <Text style={styles.fieldLabel}>Code de vérification</Text>
+                    <Text style={styles.fieldLabel}>{t('login.verifCode')}</Text>
                     <View style={styles.inputWrap}>
                       <MaterialCommunityIcons name="numeric" size={18} color="#737785" style={styles.inputIcon} />
                       <TextInput
@@ -425,7 +425,7 @@ export default function LoginScreen() {
                 {forgotStep === 'reset' && (
                   <>
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.fieldLabel}>Nouveau mot de passe</Text>
+                      <Text style={styles.fieldLabel}>{t('login.newPassword')}</Text>
                       <View style={styles.inputWrap}>
                         <MaterialCommunityIcons name="lock-outline" size={18} color="#737785" style={styles.inputIcon} />
                         <TextInput
@@ -439,7 +439,7 @@ export default function LoginScreen() {
                       </View>
                     </View>
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.fieldLabel}>Confirmer</Text>
+                      <Text style={styles.fieldLabel}>{t('login.confirmPassword')}</Text>
                       <View style={styles.inputWrap}>
                         <MaterialCommunityIcons name="lock-check-outline" size={18} color="#737785" style={styles.inputIcon} />
                         <TextInput
@@ -470,7 +470,7 @@ export default function LoginScreen() {
                   ) : (
                     <>
                       <Text style={styles.primaryBtnText}>
-                        {forgotStep === 'email' ? 'Envoyer le code' : forgotStep === 'code' ? 'Vérifier le code' : 'Réinitialiser'}
+                        {forgotStep === 'email' ? t('login.sendCode') : forgotStep === 'code' ? t('login.verifyCode') : t('login.reset')}
                       </Text>
                       <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
                     </>
@@ -483,14 +483,14 @@ export default function LoginScreen() {
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <MaterialCommunityIcons name="arrow-left" size={16} color="#64748b" />
-                  <Text style={styles.backLinkText}>Retour à la connexion</Text>
+                  <Text style={styles.backLinkText}>{t('login.backToLogin')}</Text>
                 </TouchableOpacity>
               </>
             )}
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>
-                Besoin d'aide ?{' '}
+                {t('login.needHelp')}{' '}
                 <Text
                   style={styles.footerLink}
                   onPress={() =>
@@ -499,7 +499,7 @@ export default function LoginScreen() {
                     ).catch(() => { /* noop */ })
                   }
                 >
-                  Contacter le support
+                  {t('login.contactSupport')}
                 </Text>
               </Text>
             </View>

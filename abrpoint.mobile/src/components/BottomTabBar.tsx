@@ -4,12 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../config/env';
 import { useAuth, PlanFeatures } from '../contexts/AuthContext';
+import { useT } from '../i18n';
 
 export type TabKey = 'home' | 'history' | 'requests' | 'profile';
 
 interface TabSpec {
   key: TabKey;
-  label: string;
+  labelKey: string;
   icon: string;
   route: string;
   /** Si défini, la tab disparaît quand la feature n'est pas active sur le pack. */
@@ -17,13 +18,13 @@ interface TabSpec {
 }
 
 const TABS: TabSpec[] = [
-  { key: 'home', label: 'Accueil', icon: 'home-variant', route: 'Home' },
-  { key: 'history', label: 'Historique', icon: 'history', route: 'PresenceHistory' },
+  { key: 'home', labelKey: 'tab.home', icon: 'home-variant', route: 'Home' },
+  { key: 'history', labelKey: 'tab.history', icon: 'history', route: 'PresenceHistory' },
   // 2026-05-27 — Tab Demandes gated sur leaveManagement : sur le pack Starter
   // (positionnement « pointage simple sans workflow RH ») l'écran LeaveRequest
   // n'a pas de sens — on retire l'entrée de la barre du bas.
-  { key: 'requests', label: 'Demandes', icon: 'inbox-multiple-outline', route: 'LeaveRequest', requires: 'leaveManagement' },
-  { key: 'profile', label: 'Profil', icon: 'account-circle-outline', route: 'Profile' },
+  { key: 'requests', labelKey: 'tab.requests', icon: 'inbox-multiple-outline', route: 'LeaveRequest', requires: 'leaveManagement' },
+  { key: 'profile', labelKey: 'tab.profile', icon: 'account-circle-outline', route: 'Profile' },
 ];
 
 interface Props {
@@ -61,6 +62,7 @@ export function useTabBarPadding(extra: number = 16): number {
 export default function BottomTabBar({ active, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { planAllows } = useAuth();
+  const t = useT();
   // Sur Android on garde un minimum de 8px même si insets.bottom est 0 (cas mode
   // 3-boutons sur certains constructeurs où Android ne les reporte pas comme inset).
   const bottomPad = Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 0);
@@ -90,7 +92,7 @@ export default function BottomTabBar({ active, navigation }: Props) {
                 color={isActive ? COLORS.onPrimary : COLORS.outline}
               />
             </View>
-            <Text style={[styles.label, isActive && styles.labelActive]}>{tab.label}</Text>
+            <Text style={[styles.label, isActive && styles.labelActive]}>{t(tab.labelKey)}</Text>
           </TouchableOpacity>
         );
       })}

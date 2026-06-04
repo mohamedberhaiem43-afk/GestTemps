@@ -71,7 +71,6 @@ export const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({ children
  */
 export const PUBLIC_PATHS = new Set<string>([
   '/',
-  '/about',
   '/login',
   '/signup',
   '/plan-configuration',
@@ -97,6 +96,9 @@ export const PUBLIC_PATHS = new Set<string>([
   // Console (« URL de suppression de compte »), vérifiée anonymement par les reviewers.
   '/suppression-compte',
   '/verify-email',
+  // Versions anglaises publiques (pages bilingues — variante de langue /en).
+  '/en',
+  '/en/suppression-compte',
 ]);
 
 /**

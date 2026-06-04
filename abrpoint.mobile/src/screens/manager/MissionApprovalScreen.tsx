@@ -8,6 +8,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../../contexts/AuthContext';
 import apiService from '../../services/api';
 import { COLORS } from '../../config/env';
+import { useI18n } from '../../i18n';
 
 /**
  * MissionApprovalScreen — version manager.
@@ -36,18 +37,18 @@ interface Mission {
   abslib?: string;
 }
 
-const STATE_COLORS: Record<string, { bg: string; fg: string; label: string }> = {
-  Pending:    { bg: '#fef3c7', fg: '#92400e', label: '⏳ En attente' },
-  Approved:   { bg: '#dbeafe', fg: '#1d4ed8', label: '✅ Approuvée' },
-  InProgress: { bg: '#ede9fe', fg: '#6d28d9', label: '🔄 En cours' },
-  Completed:  { bg: '#d1fae5', fg: '#047857', label: '✓ Terminée' },
-  Cancelled:  { bg: '#fee2e2', fg: '#b91c1c', label: '✖ Annulée' },
+const STATE_COLORS: Record<string, { bg: string; fg: string; labelKey: string }> = {
+  Pending:    { bg: '#fef3c7', fg: '#92400e', labelKey: 'mgrMission.statePending' },
+  Approved:   { bg: '#dbeafe', fg: '#1d4ed8', labelKey: 'mgrMission.stateApproved' },
+  InProgress: { bg: '#ede9fe', fg: '#6d28d9', labelKey: 'mgrMission.stateInProgress' },
+  Completed:  { bg: '#d1fae5', fg: '#047857', labelKey: 'mgrMission.stateCompleted' },
+  Cancelled:  { bg: '#fee2e2', fg: '#b91c1c', labelKey: 'mgrMission.stateCancelled' },
 };
 
-const fmtDate = (d: any) => {
+const fmtDate = (d: any, locale: string) => {
   if (!d) return '—';
   try {
-    return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+    return new Date(d).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
   } catch { return '—'; }
 };
 
@@ -57,6 +58,8 @@ const toIsoDate = (d: any) => {
 
 export default function MissionApprovalScreen({ navigation }: any) {
   const { user } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const [missions, setMissions] = useState<Mission[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -100,21 +103,21 @@ export default function MissionApprovalScreen({ navigation }: any) {
       });
       loadMissions();
     } catch (e: any) {
-      Alert.alert('Erreur', e?.response?.data?.message || 'Mise à jour impossible');
+      Alert.alert(t('common.error'), e?.response?.data?.message || t('mgrMission.updateFailed'));
     }
   };
 
   const handleApprove = (m: Mission) => {
-    Alert.alert('Approuver', `Approuver la mission "${m.misobj}" de ${m.emplib || m.empcod} ?`, [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Approuver', onPress: () => transition(m, 'Approved') },
+    Alert.alert(t('mgrMission.approve'), t('mgrMission.approveConfirm', { obj: m.misobj, emp: m.emplib || m.empcod }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('mgrMission.approve'), onPress: () => transition(m, 'Approved') },
     ]);
   };
 
   const handleReject = (m: Mission) => {
-    Alert.alert('Refuser', `Refuser la mission "${m.misobj}" ?`, [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Refuser', style: 'destructive', onPress: () => transition(m, 'Cancelled') },
+    Alert.alert(t('mgrMission.refuse'), t('mgrMission.refuseConfirm', { obj: m.misobj }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('mgrMission.refuse'), style: 'destructive', onPress: () => transition(m, 'Cancelled') },
     ]);
   };
 
@@ -139,7 +142,7 @@ export default function MissionApprovalScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.onSurface} />
         </TouchableOpacity>
-        <Text style={styles.topTitle}>Validation missions</Text>
+        <Text style={styles.topTitle}>{t('mgrMission.title')}</Text>
         <View style={styles.iconBtn} />
       </View>
 
@@ -150,10 +153,10 @@ export default function MissionApprovalScreen({ navigation }: any) {
         contentContainerStyle={styles.filterRow}
       >
         {([
-          { key: 'pending', label: 'En attente', count: missions.filter(m => m.misetat === 'Pending').length },
-          { key: 'approved', label: 'Approuvées', count: missions.filter(m => m.misetat === 'Approved' || m.misetat === 'InProgress').length },
-          { key: 'completed', label: 'Terminées', count: missions.filter(m => m.misetat === 'Completed' || m.misetat === 'Cancelled').length },
-          { key: 'all', label: 'Tous', count: missions.length },
+          { key: 'pending', label: t('common.pending'), count: missions.filter(m => m.misetat === 'Pending').length },
+          { key: 'approved', label: t('common.approved'), count: missions.filter(m => m.misetat === 'Approved' || m.misetat === 'InProgress').length },
+          { key: 'completed', label: t('mgrMission.filterCompleted'), count: missions.filter(m => m.misetat === 'Completed' || m.misetat === 'Cancelled').length },
+          { key: 'all', label: t('common.all'), count: missions.length },
         ] as const).map(f => (
           <TouchableOpacity
             key={f.key}
@@ -179,10 +182,13 @@ export default function MissionApprovalScreen({ navigation }: any) {
         {filtered.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="briefcase-check-outline" size={64} color="#cbd5e1" />
-            <Text style={styles.emptyText}>Aucune mission dans cette catégorie.</Text>
+            <Text style={styles.emptyText}>{t('mgrMission.emptyState')}</Text>
           </View>
         ) : filtered.map(m => {
-          const sc = STATE_COLORS[m.misetat] || { bg: '#f1f5f9', fg: '#475569', label: m.misetat };
+          const sc = STATE_COLORS[m.misetat];
+          const stateLabel = sc ? t(sc.labelKey) : m.misetat;
+          const stateBg = sc ? sc.bg : '#f1f5f9';
+          const stateFg = sc ? sc.fg : '#475569';
           const isPending = m.misetat === 'Pending';
           return (
             <View key={m.id} style={styles.card}>
@@ -191,8 +197,8 @@ export default function MissionApprovalScreen({ navigation }: any) {
                   <Text style={styles.empName}>{m.emplib || m.empcod}</Text>
                   <Text style={styles.cardTitle} numberOfLines={2}>{m.misobj}</Text>
                 </View>
-                <View style={[styles.stateChip, { backgroundColor: sc.bg }]}>
-                  <Text style={[styles.stateChipText, { color: sc.fg }]}>{sc.label}</Text>
+                <View style={[styles.stateChip, { backgroundColor: stateBg }]}>
+                  <Text style={[styles.stateChipText, { color: stateFg }]}>{stateLabel}</Text>
                 </View>
               </View>
               {!!m.misdest && (
@@ -204,7 +210,7 @@ export default function MissionApprovalScreen({ navigation }: any) {
               <View style={styles.cardRow}>
                 <MaterialCommunityIcons name="calendar-range" size={14} color={COLORS.outline} />
                 <Text style={styles.cardRowText}>
-                  {fmtDate(m.misdatedeb)} → {fmtDate(m.misdatefin)}
+                  {fmtDate(m.misdatedeb, locale)} → {fmtDate(m.misdatefin, locale)}
                 </Text>
               </View>
               {m.misbudget != null && (
@@ -224,14 +230,14 @@ export default function MissionApprovalScreen({ navigation }: any) {
                     onPress={() => handleReject(m)}
                   >
                     <MaterialCommunityIcons name="close-circle-outline" size={18} color="#b91c1c" />
-                    <Text style={[styles.actionText, { color: '#b91c1c' }]}>Refuser</Text>
+                    <Text style={[styles.actionText, { color: '#b91c1c' }]}>{t('mgrMission.refuse')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionBtn, styles.approveBtn]}
                     onPress={() => handleApprove(m)}
                   >
                     <MaterialCommunityIcons name="check-circle-outline" size={18} color="#fff" />
-                    <Text style={[styles.actionText, { color: '#fff' }]}>Approuver</Text>
+                    <Text style={[styles.actionText, { color: '#fff' }]}>{t('mgrMission.approve')}</Text>
                   </TouchableOpacity>
                 </View>
               )}

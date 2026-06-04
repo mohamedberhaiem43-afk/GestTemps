@@ -40,9 +40,6 @@ const Navbar: React.FC = () => {
         <ListItem button component={RouterLink} to="/">
           <ListItemText primary={t('navigation.dashboard')} />
         </ListItem>
-        <ListItem button component={RouterLink} to="/about">
-          <ListItemText primary={t('navigation.about')} />
-        </ListItem>
         <ListItem button component={RouterLink} to="/services">
           <ListItemText primary={t('navigation.service')} />
         </ListItem>

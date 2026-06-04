@@ -7,6 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
@@ -55,15 +56,21 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   'En attente': { bg: '#fef9c3', text: '#854d0e' },
 };
 
-const fmtDate = (d: string | null | undefined) => {
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  'Approuvé': 'common.approved',
+  'Refusé': 'common.refused',
+  'En attente': 'common.pending',
+};
+
+const fmtDate = (d: string | null | undefined, locale: string = 'fr-FR') => {
   if (!d) return '-';
-  try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  try { return new Date(d).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' }); }
   catch { return d; }
 };
 
-const fmtTime = (d: string | null | undefined) => {
+const fmtTime = (d: string | null | undefined, locale: string = 'fr-FR') => {
   if (!d) return '';
-  try { return new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
+  try { return new Date(d).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }); }
   catch { return ''; }
 };
 
@@ -76,6 +83,8 @@ const fmtDuration = (hours: number | null | undefined) => {
 
 export default function DemandeAutorisationScreen({ navigation }: any) {
   const { user, isEmployee, isAdmin, isManager } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const tabBarPadding = useTabBarPadding();
   // Coussin bas du modal — voir LeaveRequestScreen pour le contexte.
   const insets = useSafeAreaInsets();
@@ -198,11 +207,11 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
 
   const handleSubmit = async () => {
     if (!formAbscod) {
-      Alert.alert('Erreur', 'Veuillez sélectionner un type de sortie');
+      Alert.alert(t('common.error'), t('authorization.errorSelectType'));
       return;
     }
     if (!formConmotif) {
-      Alert.alert('Erreur', 'Veuillez remplir le motif');
+      Alert.alert(t('common.error'), t('authorization.errorFillReason'));
       return;
     }
     if (!user?.soccod || !user?.uticod) return;
@@ -224,10 +233,10 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
 
       if (editDemande) {
         await apiService.updateDemandeAutorisation({ ...payload, id: editDemande.id });
-        Alert.alert('✅ Succès', 'Demande modifiée avec succès');
+        Alert.alert(t('authorization.successTitle'), t('authorization.successUpdated'));
       } else {
         await apiService.createDemandeAutorisation(payload);
-        Alert.alert('✅ Succès', "Demande de sortie envoyée");
+        Alert.alert(t('authorization.successTitle'), t('authorization.successCreated'));
       }
       setShowForm(false);
       setEditDemande(null);
@@ -239,55 +248,55 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
       const wasNetworkOrServerHiccup = !status || status >= 500;
       try { await loadDemandes(); } catch { /* best-effort */ }
       if (wasNetworkOrServerHiccup) {
-        Alert.alert('⚠️ Action partielle',
-          'La demande a peut-être été enregistrée. Vérifiez la liste — si elle apparaît, tout est bon.');
+        Alert.alert(t('authorization.partialActionTitle'),
+          t('authorization.partialActionMessage'));
         setShowForm(false);
         setEditDemande(null);
         return;
       }
-      Alert.alert('Erreur', "Impossible d'envoyer la demande");
+      Alert.alert(t('common.error'), t('authorization.errorSubmit'));
     }
   };
 
   const handleDelete = (d: DemandeAutorisation) => {
-    Alert.alert('Supprimer', 'Voulez-vous supprimer cette demande ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('common.delete'), t('authorization.deleteConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer', style: 'destructive', onPress: async () => {
+        text: t('common.delete'), style: 'destructive', onPress: async () => {
           try {
             await apiService.deleteDemandeAutorisation(d.id);
             loadDemandes();
-          } catch { Alert.alert('Erreur', 'Impossible de supprimer'); }
+          } catch { Alert.alert(t('common.error'), t('authorization.errorDelete')); }
         },
       },
     ]);
   };
 
   const handleApprove = (d: DemandeAutorisation) => {
-    Alert.alert('Approuver', `Approuver la demande de ${d.emplib || d.empcod} ?`, [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('authorization.approveTitle'), t('authorization.approveConfirm', { name: d.emplib || d.empcod || '' }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Approuver', onPress: async () => {
+        text: t('authorization.approveTitle'), onPress: async () => {
           try {
             await apiService.approveDemandeAutorisation(d.id, user!.uticod!);
-            Alert.alert('✅ Succès', 'Demande approuvée');
+            Alert.alert(t('authorization.successTitle'), t('authorization.successApproved'));
             loadDemandes();
-          } catch { Alert.alert('Erreur', "Impossible d'approuver"); }
+          } catch { Alert.alert(t('common.error'), t('authorization.errorApprove')); }
         },
       },
     ]);
   };
 
   const handleRefuse = (d: DemandeAutorisation) => {
-    Alert.alert('Refuser', `Refuser la demande de ${d.emplib || d.empcod} ?`, [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('authorization.refuseTitle'), t('authorization.refuseConfirm', { name: d.emplib || d.empcod || '' }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Refuser', style: 'destructive', onPress: async () => {
+        text: t('authorization.refuseTitle'), style: 'destructive', onPress: async () => {
           try {
             await apiService.refuseDemandeAutorisation(d.id, user!.uticod!);
-            Alert.alert('Succès', 'Demande refusée');
+            Alert.alert(t('common.success'), t('authorization.successRefused'));
             loadDemandes();
-          } catch { Alert.alert('Erreur', 'Impossible de refuser'); }
+          } catch { Alert.alert(t('common.error'), t('authorization.errorRefuse')); }
         },
       },
     ]);
@@ -309,7 +318,7 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.onSurface} />
         </TouchableOpacity>
-        <Text style={styles.topAppTitle}>Demandes de sortie</Text>
+        <Text style={styles.topAppTitle}>{t('authorization.title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -323,11 +332,11 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
           <View style={styles.heroIconBubble}>
             <MaterialCommunityIcons name="logout-variant" size={24} color="#fff" />
           </View>
-          <Text style={styles.heroTitle}>Mes demandes de sortie</Text>
-          <Text style={styles.heroSub}>Suivez l'état de vos sorties et créez-en de nouvelles.</Text>
+          <Text style={styles.heroTitle}>{t('authorization.heroTitle')}</Text>
+          <Text style={styles.heroSub}>{t('authorization.heroSubtitle')}</Text>
           <TouchableOpacity style={styles.addBtn} onPress={openNewForm} activeOpacity={0.85}>
             <MaterialCommunityIcons name="plus-circle" size={18} color="#fff" />
-            <Text style={styles.addBtnText}>Nouvelle sortie</Text>
+            <Text style={styles.addBtnText}>{t('authorization.newRequest')}</Text>
           </TouchableOpacity>
         </LinearGradient>
 
@@ -335,30 +344,30 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { borderLeftColor: '#22c55e' }]}>
             <Text style={[styles.statValue, { color: '#22c55e' }]}>{approved.length}</Text>
-            <Text style={styles.statLabel}>Approuvées</Text>
+            <Text style={styles.statLabel}>{t('authorization.statApproved')}</Text>
           </View>
           <View style={[styles.statCard, { borderLeftColor: '#ef4444' }]}>
             <Text style={[styles.statValue, { color: '#ef4444' }]}>{refused.length}</Text>
-            <Text style={styles.statLabel}>Refusées</Text>
+            <Text style={styles.statLabel}>{t('authorization.statRefused')}</Text>
           </View>
           <View style={[styles.statCard, { borderLeftColor: '#f59e0b' }]}>
             <Text style={[styles.statValue, { color: '#f59e0b' }]}>{pending.length}</Text>
-            <Text style={styles.statLabel}>En attente</Text>
+            <Text style={styles.statLabel}>{t('common.pending')}</Text>
           </View>
         </View>
 
         {/* ── History ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Historique des demandes</Text>
+          <Text style={styles.sectionTitle}>{t('authorization.historyTitle')}</Text>
         </View>
 
         <View style={styles.historyList}>
           {demandes.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>📋</Text>
-              <Text style={styles.emptyText}>Aucune demande de sortie</Text>
+              <Text style={styles.emptyText}>{t('authorization.emptyText')}</Text>
               <TouchableOpacity style={styles.emptyBtn} onPress={openNewForm}>
-                <Text style={styles.emptyBtnText}>Créer une demande</Text>
+                <Text style={styles.emptyBtnText}>{t('authorization.createRequest')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -373,10 +382,10 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.historyTitle}>
-                        {item.conmotif || item.abslib || "Demande de sortie"}
+                        {item.conmotif || item.abslib || t('authorization.itemDefaultTitle')}
                       </Text>
                       <Text style={styles.historyMeta}>
-                        {fmtDate(item.condep)} • {fmtDuration(item.connbjour)}
+                        {fmtDate(item.condep, locale)} • {fmtDuration(item.connbjour)}
                       </Text>
                       {item.emplib && (
                         <Text style={styles.historyEmp}>👤 {item.emplib}</Text>
@@ -386,7 +395,7 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
 
                   <View style={{ alignItems: 'flex-end', gap: 8 }}>
                     <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
-                      <Text style={[styles.statusText, { color: statusColors.text }]}>{status}</Text>
+                      <Text style={[styles.statusText, { color: statusColors.text }]}>{t(STATUS_LABEL_KEYS[status])}</Text>
                     </View>
 
                     {status === 'En attente' && (
@@ -432,7 +441,7 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
           <View style={[styles.formCard, { paddingBottom: formCardPaddingBottom }]}>
             <View style={styles.formHeader}>
               <Text style={styles.formHeaderTitle}>
-                {editDemande ? 'Modifier la demande' : 'Nouvelle Demande'}
+                {editDemande ? t('authorization.formTitleEdit') : t('authorization.formTitleNew')}
               </Text>
               <TouchableOpacity onPress={() => { setShowForm(false); setEditDemande(null); }}>
                 <MaterialCommunityIcons name="close" size={24} color="#64748b" />
@@ -440,7 +449,7 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
             </View>
 
             <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false}>
-              <Text style={styles.label}>Type de sortie</Text>
+              <Text style={styles.label}>{t('authorization.labelType')}</Text>
               <View style={styles.typeRow}>
                 {absences.map((abs) => (
                   <TouchableOpacity
@@ -455,49 +464,49 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
                 ))}
               </View>
 
-              <Text style={styles.label}>Date / Heure de début</Text>
+              <Text style={styles.label}>{t('authorization.labelStartDateTime')}</Text>
               <View style={styles.dateTimeRow}>
                 <TouchableOpacity style={[styles.dateInput, styles.dateTimeBtn]} onPress={() => setShowDepDatePicker(true)}>
-                  <Text style={styles.dateInputText}>{fmtDate(formCondep.toISOString())}</Text>
+                  <Text style={styles.dateInputText}>{fmtDate(formCondep.toISOString(), locale)}</Text>
                   <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.dateInput, styles.dateTimeBtn]} onPress={() => setShowDepTimePicker(true)}>
-                  <Text style={styles.dateInputText}>{fmtTime(formCondep.toISOString())}</Text>
+                  <Text style={styles.dateInputText}>{fmtTime(formCondep.toISOString(), locale)}</Text>
                   <MaterialCommunityIcons name="clock-outline" size={20} color={COLORS.primary} />
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.label}>Date / Heure de fin</Text>
+              <Text style={styles.label}>{t('authorization.labelEndDateTime')}</Text>
               <View style={styles.dateTimeRow}>
                 <TouchableOpacity style={[styles.dateInput, styles.dateTimeBtn]} onPress={() => setShowRetDatePicker(true)}>
-                  <Text style={styles.dateInputText}>{fmtDate(formConret.toISOString())}</Text>
+                  <Text style={styles.dateInputText}>{fmtDate(formConret.toISOString(), locale)}</Text>
                   <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.dateInput, styles.dateTimeBtn]} onPress={() => setShowRetTimePicker(true)}>
-                  <Text style={styles.dateInputText}>{fmtTime(formConret.toISOString())}</Text>
+                  <Text style={styles.dateInputText}>{fmtTime(formConret.toISOString(), locale)}</Text>
                   <MaterialCommunityIcons name="clock-outline" size={20} color={COLORS.primary} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.durationCard}>
-                <Text style={styles.durationLabel}>Durée</Text>
+                <Text style={styles.durationLabel}>{t('authorization.durationLabel')}</Text>
                 <Text style={styles.durationValue}>{fmtDuration(calcDuration())}</Text>
               </View>
 
-              <Text style={styles.label}>Motif</Text>
+              <Text style={styles.label}>{t('authorization.labelReason')}</Text>
               <TextInput
                 style={styles.motifInput}
                 value={formConmotif}
                 multiline
                 onChangeText={setFormConmotif}
-                placeholder="Raison de la sortie…"
+                placeholder={t('authorization.reasonPlaceholder')}
                 placeholderTextColor={COLORS.outline}
               />
 
               <View style={styles.formFooter}>
                 <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
                   <Text style={styles.submitBtnText}>
-                    {editDemande ? 'METTRE À JOUR' : 'ENVOYER LA DEMANDE'}
+                    {editDemande ? t('authorization.submitUpdate') : t('authorization.submitSend')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -517,7 +526,7 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
           setShowDepDatePicker(false);
         }}
         onClose={() => setShowDepDatePicker(false)}
-        title="Date début"
+        title={t('authorization.pickerStartDate')}
       />
       <DatePickerModal
         visible={showRetDatePicker}
@@ -529,7 +538,7 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
           setShowRetDatePicker(false);
         }}
         onClose={() => setShowRetDatePicker(false)}
-        title="Date fin"
+        title={t('authorization.pickerEndDate')}
       />
 
       {/* ── Time Pickers ── */}
@@ -538,14 +547,14 @@ export default function DemandeAutorisationScreen({ navigation }: any) {
         value={formCondep}
         onChange={(d) => { setFormCondep(d); }}
         onClose={() => setShowDepTimePicker(false)}
-        title="Heure de début"
+        title={t('authorization.pickerStartTime')}
       />
       <TimePickerModal
         visible={showRetTimePicker}
         value={formConret}
         onChange={(d) => { setFormConret(d); }}
         onClose={() => setShowRetTimePicker(false)}
-        title="Heure de retour"
+        title={t('authorization.pickerEndTime')}
       />
 
       <BottomTabBar active="requests" navigation={navigation} />

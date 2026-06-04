@@ -59,7 +59,7 @@
     "download": {
       "tag": "📱 Mobile app",
       "title": "Download the Concorde Workly app",
-      "subA": "iOS · Android · Offline mode · Optional geolocation. Visit",
+      "subA": "Android · Offline mode · Optional geolocation. Visit",
       "subB": "to get the latest version.",
       "appStoreSmall": "Download on", "appStoreLarge": "App Store",
       "playSmall": "AVAILABLE ON", "playLarge": "Google Play",
@@ -72,7 +72,7 @@
       "steps": [
         { "num": "01", "title": "Sign up & validate your business ID", "desc": "Account creation in 5 minutes. Automatic verification of the company number (SIRET FR, BCE BE, ICE MA, NINEA SN) — uniqueness enforced to prevent duplicates." },
         { "num": "02", "title": "Import your teams", "desc": "CSV upload or manual entry of your employees, sites and departments. Setup in under an hour with our team." },
-        { "num": "03", "title": "Deploy in the field", "desc": "iOS/Android mobile app for employees. Compatible biometric time clocks. Web for managers. Offline mode available." },
+        { "num": "03", "title": "Deploy in the field", "desc": "Android mobile app for employees. Compatible biometric time clocks. Web for managers. Offline mode available." },
         { "num": "04", "title": "Manage in real time", "desc": "Real-time dashboard from day 1. Push notifications to managers. Automated payroll preparation at month end. ROI measured and shared by day 30." }
       ],
       "videoAria": "Concorde Workforce platform demonstration"
@@ -95,7 +95,7 @@
       "starterTier": "Starter",
       "starterIncluded": "10 employees included · 10 GB secure storage",
       "starterFeatures": [
-        "Web & mobile clocking (iOS / Android)",
+        "Web & mobile clocking (Android)",
         "Essential HR management (records, contracts)",
         "Leave & absence management",
         "Simplified dashboard · PDF / Excel exports",
@@ -172,7 +172,7 @@
       "rows": [
         { "type": "section", "label": "Clocking & attendance" },
         { "type": "feature", "label": "Web clocking", "starter": true, "standard": true, "premium": true },
-        { "type": "feature", "label": "Mobile app (iOS / Android)", "starter": true, "standard": true, "premium": true },
+        { "type": "feature", "label": "Mobile app (Android)", "starter": true, "standard": true, "premium": true },
         { "type": "feature", "label": "Geolocated clocking", "starter": false, "standard": true, "premium": true },
         { "type": "feature", "label": "Periodic report & PDF/Excel exports", "starter": true, "standard": true, "premium": true },
         { "type": "section", "label": "Employee management" },

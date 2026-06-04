@@ -6,9 +6,11 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '../../contexts/AuthContext';
 import apiService from '../../services/api';
 import { COLORS } from '../../config/env';
+import { useT } from '../../i18n';
 
 export default function AddEmployeeScreen({ navigation }: any) {
   const { user } = useAuth();
+  const t = useT();
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [form, setForm] = useState({
@@ -20,18 +22,18 @@ export default function AddEmployeeScreen({ navigation }: any) {
 
   const handleScanDocument = async () => {
     try {
-      Alert.alert('📷 Scanner un Document', 'Choisissez la source', [
-        { text: 'Appareil Photo', onPress: () => scanFromCamera() },
-        { text: 'Galerie', onPress: () => scanFromGallery() },
-        { text: 'Fichier', onPress: () => scanFromFile() },
-        { text: 'Annuler', style: 'cancel' },
+      Alert.alert(t('mgrAddEmployee.scanTitle'), t('mgrAddEmployee.scanChooseSource'), [
+        { text: t('mgrAddEmployee.scanCamera'), onPress: () => scanFromCamera() },
+        { text: t('mgrAddEmployee.scanGallery'), onPress: () => scanFromGallery() },
+        { text: t('mgrAddEmployee.scanFile'), onPress: () => scanFromFile() },
+        { text: t('common.cancel'), style: 'cancel' },
       ]);
-    } catch (e) { Alert.alert('Erreur', 'Impossible d\'accéder au document'); }
+    } catch (e) { Alert.alert(t('common.error'), t('mgrAddEmployee.docAccessError')); }
   };
 
   const scanFromCamera = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) { Alert.alert('Erreur', 'Permission caméra requise'); return; }
+    if (!permission.granted) { Alert.alert(t('common.error'), t('mgrAddEmployee.cameraPermission')); return; }
     const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
     if (!result.canceled && result.assets[0]) {
       await processScannedDocument(result.assets[0].uri, 'image/jpeg');
@@ -70,15 +72,15 @@ export default function AddEmployeeScreen({ navigation }: any) {
           empadr: data.adresse || data.address || prev.empadr,
           vilib: data.ville || data.city || prev.vilib,
         }));
-        Alert.alert('✅ IA', 'Document analysé avec succès! Vérifiez et complétez les informations.');
+        Alert.alert(t('mgrAddEmployee.aiTitle'), t('mgrAddEmployee.aiSuccess'));
       }
     } catch (e) {
-      Alert.alert('Erreur IA', 'Impossible d\'analyser le document. Remplissez manuellement.');
+      Alert.alert(t('mgrAddEmployee.aiErrorTitle'), t('mgrAddEmployee.aiError'));
     } finally { setScanning(false); }
   };
 
   const handleSubmit = async () => {
-    if (!form.emplib) { Alert.alert('Erreur', 'Le nom est obligatoire'); return; }
+    if (!form.emplib) { Alert.alert(t('common.error'), t('mgrAddEmployee.nameRequired')); return; }
     if (!user?.soccod) return;
     setLoading(true);
     try {
@@ -87,10 +89,10 @@ export default function AddEmployeeScreen({ navigation }: any) {
         empcod: form.empcod || `EMP${Date.now()}`,
         soccod: user.soccod,
       });
-      Alert.alert('✅ Succès', 'Employé ajouté avec succès', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+      Alert.alert(t('mgrAddEmployee.successTitle'), t('mgrAddEmployee.employeeAdded'), [
+        { text: t('mgrAddEmployee.ok'), onPress: () => navigation.goBack() },
       ]);
-    } catch (e) { Alert.alert('Erreur', 'Impossible d\'ajouter l\'employé'); }
+    } catch (e) { Alert.alert(t('common.error'), t('mgrAddEmployee.addError')); }
     finally { setLoading(false); }
   };
 
@@ -99,8 +101,8 @@ export default function AddEmployeeScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.backBtn}>← Retour</Text></TouchableOpacity>
-        <Text style={styles.title}>Nouvel Employé</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.backBtn}>← {t('common.back')}</Text></TouchableOpacity>
+        <Text style={styles.title}>{t('mgrAddEmployee.title')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
@@ -109,57 +111,57 @@ export default function AddEmployeeScreen({ navigation }: any) {
           {scanning ? (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <ActivityIndicator color="#fff" size="small" />
-              <Text style={styles.aiButtonText}> Analyse IA en cours...</Text>
+              <Text style={styles.aiButtonText}> {t('mgrAddEmployee.aiAnalyzing')}</Text>
             </View>
           ) : (
-            <Text style={styles.aiButtonText}>🤖 Scanner avec IA (Caméra/Document)</Text>
+            <Text style={styles.aiButtonText}>{t('mgrAddEmployee.aiScanButton')}</Text>
           )}
         </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>Informations Personnelles</Text>
+        <Text style={styles.sectionTitle}>{t('mgrAddEmployee.sectionPersonal')}</Text>
         {[
-          { key: 'emplib', label: 'Nom complet *', placeholder: 'Nom Prénom' },
-          { key: 'empmat', label: 'Matricule', placeholder: 'MAT-001' },
-          { key: 'empcin', label: 'CIN', placeholder: 'Numéro CIN' },
-          { key: 'empdatns', label: 'Date naissance', placeholder: 'YYYY-MM-DD' },
-          { key: 'empsexe', label: 'Sexe (M/F)', placeholder: 'M' },
+          { key: 'emplib', labelKey: 'mgrAddEmployee.labelFullName', placeholderKey: 'mgrAddEmployee.phFullName' },
+          { key: 'empmat', labelKey: 'mgrAddEmployee.labelMatricule', placeholderKey: 'mgrAddEmployee.phMatricule' },
+          { key: 'empcin', labelKey: 'mgrAddEmployee.labelCin', placeholderKey: 'mgrAddEmployee.phCin' },
+          { key: 'empdatns', labelKey: 'mgrAddEmployee.labelBirthDate', placeholderKey: 'mgrAddEmployee.phDate' },
+          { key: 'empsexe', labelKey: 'mgrAddEmployee.labelGender', placeholderKey: 'mgrAddEmployee.phGender' },
         ].map(f => (
           <View key={f.key} style={styles.fieldContainer}>
-            <Text style={styles.label}>{f.label}</Text>
+            <Text style={styles.label}>{t(f.labelKey)}</Text>
             <TextInput style={styles.input} value={form[f.key as keyof typeof form]}
-              onChangeText={(v: string) => updateField(f.key, v)} placeholder={f.placeholder} />
+              onChangeText={(v: string) => updateField(f.key, v)} placeholder={t(f.placeholderKey)} />
           </View>
         ))}
 
-        <Text style={styles.sectionTitle}>Contact</Text>
+        <Text style={styles.sectionTitle}>{t('mgrAddEmployee.sectionContact')}</Text>
         {[
-          { key: 'empemail', label: 'Email', placeholder: 'email@company.com', kb: 'email-address' },
-          { key: 'emptel', label: 'Téléphone', placeholder: '+216 XX XXX XXX', kb: 'phone-pad' },
-          { key: 'empadr', label: 'Adresse', placeholder: 'Adresse' },
+          { key: 'empemail', labelKey: 'mgrAddEmployee.labelEmail', placeholderKey: 'mgrAddEmployee.phEmail', kb: 'email-address' },
+          { key: 'emptel', labelKey: 'mgrAddEmployee.labelPhone', placeholderKey: 'mgrAddEmployee.phPhone', kb: 'phone-pad' },
+          { key: 'empadr', labelKey: 'mgrAddEmployee.labelAddress', placeholderKey: 'mgrAddEmployee.phAddress' },
         ].map(f => (
           <View key={f.key} style={styles.fieldContainer}>
-            <Text style={styles.label}>{f.label}</Text>
+            <Text style={styles.label}>{t(f.labelKey)}</Text>
             <TextInput style={styles.input} value={form[f.key as keyof typeof form]}
-              onChangeText={(v: string) => updateField(f.key, v)} placeholder={f.placeholder}
+              onChangeText={(v: string) => updateField(f.key, v)} placeholder={t(f.placeholderKey)}
               keyboardType={f.kb as any} />
           </View>
         ))}
 
-        <Text style={styles.sectionTitle}>Professionnel</Text>
+        <Text style={styles.sectionTitle}>{t('mgrAddEmployee.sectionProfessional')}</Text>
         {[
-          { key: 'foncod', label: 'Fonction', placeholder: 'Code fonction' },
-          { key: 'quacod', label: 'Qualification', placeholder: 'Code qualification' },
-          { key: 'empdatemb', label: 'Date embauche', placeholder: 'YYYY-MM-DD' },
+          { key: 'foncod', labelKey: 'mgrAddEmployee.labelFunction', placeholderKey: 'mgrAddEmployee.phFunction' },
+          { key: 'quacod', labelKey: 'mgrAddEmployee.labelQualification', placeholderKey: 'mgrAddEmployee.phQualification' },
+          { key: 'empdatemb', labelKey: 'mgrAddEmployee.labelHireDate', placeholderKey: 'mgrAddEmployee.phDate' },
         ].map(f => (
           <View key={f.key} style={styles.fieldContainer}>
-            <Text style={styles.label}>{f.label}</Text>
+            <Text style={styles.label}>{t(f.labelKey)}</Text>
             <TextInput style={styles.input} value={form[f.key as keyof typeof form]}
-              onChangeText={(v: string) => updateField(f.key, v)} placeholder={f.placeholder} />
+              onChangeText={(v: string) => updateField(f.key, v)} placeholder={t(f.placeholderKey)} />
           </View>
         ))}
 
         <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Ajouter l'Employé</Text>}
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>{t('mgrAddEmployee.submitButton')}</Text>}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

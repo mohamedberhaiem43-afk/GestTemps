@@ -1,15 +1,28 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Select, MenuItem, FormControl } from '@mui/material';
+
+// Pages marketing bilingues : la langue est portée par l'URL (/ ↔ /en). Sur ces
+// routes, changer de langue NAVIGUE vers l'URL correspondante — sinon l'effet de
+// forçage de langue côté Navigation re-basculerait au render suivant.
+const FR_TO_EN: Record<string, string> = { '/': '/en', '/suppression-compte': '/en/suppression-compte' };
+const EN_TO_FR: Record<string, string> = { '/en': '/', '/en/suppression-compte': '/suppression-compte' };
 
 function LanguageSwitcher() {
   const { i18n } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // 2026-05-27 — Arabe MASQUÉ : couverture de traduction trop faible (~3%),
   // l'UI tombait en mode bilingue cassé (titres FR, contenu AR). À réactiver
   // quand locales/ar/translation.json sera ≥95% complet. Le code RTL document.dir
   // est conservé en commentaire pour réintégration rapide.
   const changeLanguage = (lng: string) => {
+    const path = location.pathname;
+    // Sur une page bilingue, on bascule via l'URL (l'effet de Navigation pose la langue).
+    if (lng === 'en' && FR_TO_EN[path]) { navigate(FR_TO_EN[path]); return; }
+    if (lng === 'fr' && EN_TO_FR[path]) { navigate(EN_TO_FR[path]); return; }
     i18n.changeLanguage(lng);
     document.documentElement.dir = 'ltr';
     document.documentElement.lang = lng;

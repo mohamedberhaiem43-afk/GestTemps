@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import { useSecureScreen } from '../hooks/useSecureScreen';
+import { useI18n } from '../i18n';
 
 interface EligibiliteLine {
   abscod: string;
@@ -29,11 +30,13 @@ interface AlimentationLine {
   motifrefus?: string | null;
 }
 
-const statutMeta = (s: string) => {
+type TFunc = (key: string, vars?: Record<string, string | number>) => string;
+
+const statutMeta = (s: string, t: TFunc) => {
   switch (s) {
-    case 'approved': return { label: 'Approuvée', color: COLORS.tertiary, bg: '#d7f5e6' };
-    case 'refused': return { label: 'Refusée', color: COLORS.error, bg: COLORS.errorContainer };
-    default: return { label: 'En attente', color: '#92400e', bg: '#fde68a' };
+    case 'approved': return { label: t('cet.statusApproved'), color: COLORS.tertiary, bg: '#d7f5e6' };
+    case 'refused': return { label: t('cet.statusRefused'), color: COLORS.error, bg: COLORS.errorContainer };
+    default: return { label: t('cet.statusPending'), color: '#92400e', bg: '#fde68a' };
   }
 };
 
@@ -41,6 +44,8 @@ export default function AlimenterCetScreen({ navigation }: any) {
   // Soldes / CET = données RH personnelles.
   useSecureScreen();
   const { user } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const [eligibilite, setEligibilite] = useState<EligibiliteLine[]>([]);
   const [requests, setRequests] = useState<AlimentationLine[]>([]);
   const [abscod, setAbscod] = useState('');
@@ -69,27 +74,25 @@ export default function AlimenterCetScreen({ navigation }: any) {
   const submit = async () => {
     if (!user?.soccod || !user?.uticod) return;
     const n = Number(jours.replace(',', '.'));
-    if (!abscod) { Alert.alert('Type requis', 'Sélectionnez un type de congé à transférer.'); return; }
-    if (!n || n <= 0) { Alert.alert('Jours invalides', 'Saisissez un nombre de jours valide.'); return; }
+    if (!abscod) { Alert.alert(t('cet.typeRequired'), t('cet.selectType')); return; }
+    if (!n || n <= 0) { Alert.alert(t('cet.daysInvalid'), t('cet.enterValidDays')); return; }
     if (selected && n > selected.resteTransferable) {
-      Alert.alert('Limite dépassée', `Vous ne pouvez transférer que ${selected.resteTransferable.toFixed(1)} jour(s) pour ce type.`);
+      Alert.alert(t('cet.limitExceeded'), t('cet.limitMsg', { n: selected.resteTransferable.toFixed(1) }));
       return;
     }
     setSubmitting(true);
     try {
       const res = await apiService.requestCetAlimentation(user.soccod, user.uticod, abscod, n);
       Alert.alert(
-        res.applied ? 'Transfert effectué' : 'Demande envoyée',
-        res.applied
-          ? 'Les jours ont été transférés vers votre CET.'
-          : 'Votre demande a été envoyée pour validation.',
+        res.applied ? t('cet.transferDone') : t('cet.requestSent'),
+        res.applied ? t('cet.transferDoneMsg') : t('cet.requestSentMsg'),
       );
       setJours('');
       setAbscod('');
       await load();
     } catch (e: any) {
-      const msg = e?.response?.data?.message ?? e?.message ?? "Échec de la demande d'alimentation.";
-      Alert.alert('Erreur', msg);
+      const msg = e?.response?.data?.message ?? e?.message ?? t('cet.requestFail');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setSubmitting(false);
     }
@@ -99,18 +102,18 @@ export default function AlimenterCetScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>← Retour</Text>
+          <Text style={styles.backBtn}>← {t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Alimenter le CET</Text>
+        <Text style={styles.title}>{t('cet.title')}</Text>
       </View>
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         contentContainerStyle={{ padding: 16 }}
       >
-        <Text style={styles.sectionLabel}>Type de congé à transférer</Text>
+        <Text style={styles.sectionLabel}>{t('cet.typeToTransfer')}</Text>
         {eligibilite.length === 0 ? (
-          <Text style={styles.empty}>Aucun type de congé éligible n'est configuré par votre société.</Text>
+          <Text style={styles.empty}>{t('cet.noEligible')}</Text>
         ) : (
           eligibilite.map((e) => {
             const active = e.abscod === abscod;
@@ -124,8 +127,8 @@ export default function AlimenterCetScreen({ navigation }: any) {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.typeTitle}>{e.abslib || e.abscod} <Text style={styles.typeCat}>· {e.categorie}</Text></Text>
                   <Text style={styles.typeSub}>
-                    Disponible {e.soldeDisponible.toFixed(1)} j · Reste transférable {e.resteTransferable.toFixed(1)} j
-                    {e.plafondAnnuel ? ` · Plafond ${e.plafondAnnuel.toFixed(1)} j/an` : ''}
+                    {t('cet.typeSub', { avail: e.soldeDisponible.toFixed(1), rest: e.resteTransferable.toFixed(1) })}
+                    {e.plafondAnnuel ? t('cet.cap', { cap: e.plafondAnnuel.toFixed(1) }) : ''}
                   </Text>
                 </View>
                 <MaterialCommunityIcons
@@ -138,17 +141,17 @@ export default function AlimenterCetScreen({ navigation }: any) {
           })
         )}
 
-        <Text style={[styles.sectionLabel, { marginTop: 16 }]}>Nombre de jours</Text>
+        <Text style={[styles.sectionLabel, { marginTop: 16 }]}>{t('cet.numDays')}</Text>
         <TextInput
           style={styles.input}
           value={jours}
           onChangeText={setJours}
           keyboardType="decimal-pad"
-          placeholder="Ex : 3"
+          placeholder={t('cet.daysPlaceholder')}
           placeholderTextColor={COLORS.outline}
         />
         {selected ? (
-          <Text style={styles.hint}>Reste transférable pour ce type : {selected.resteTransferable.toFixed(1)} j</Text>
+          <Text style={styles.hint}>{t('cet.restForType', { n: selected.resteTransferable.toFixed(1) })}</Text>
         ) : null}
 
         <TouchableOpacity
@@ -159,20 +162,20 @@ export default function AlimenterCetScreen({ navigation }: any) {
         >
           {submitting
             ? <ActivityIndicator color={COLORS.onPrimary} />
-            : <Text style={styles.submitText}>Demander le transfert</Text>}
+            : <Text style={styles.submitText}>{t('cet.requestTransfer')}</Text>}
         </TouchableOpacity>
 
-        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Mes demandes</Text>
+        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>{t('cet.myRequests')}</Text>
         {requests.length === 0 ? (
-          <Text style={styles.empty}>Aucune demande pour le moment.</Text>
+          <Text style={styles.empty}>{t('cet.noRequests')}</Text>
         ) : (
           requests.map((r) => {
-            const m = statutMeta(r.statut);
+            const m = statutMeta(r.statut, t);
             return (
               <View key={r.id} style={styles.reqCard}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.reqTitle}>{r.abslib || r.abscod} — {r.nbjours.toFixed(1)} j</Text>
-                  <Text style={styles.reqSub}>{new Date(r.datedemande).toLocaleDateString('fr-FR')}</Text>
+                  <Text style={styles.reqTitle}>{t('cet.reqTitle', { label: r.abslib || r.abscod || '', n: r.nbjours.toFixed(1) })}</Text>
+                  <Text style={styles.reqSub}>{new Date(r.datedemande).toLocaleDateString(locale)}</Text>
                   {r.statut === 'refused' && r.motifrefus ? (
                     <Text style={styles.reqRefus}>{r.motifrefus}</Text>
                   ) : null}

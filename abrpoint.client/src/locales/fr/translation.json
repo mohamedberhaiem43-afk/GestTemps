@@ -59,7 +59,7 @@
     "download": {
       "tag": "📱 Application mobile",
       "title": "Téléchargez l'app Concorde Workly",
-      "subA": "iOS · Android · Mode offline · Géolocalisation optionnelle. Rendez-vous sur",
+      "subA": "Android · Mode offline · Géolocalisation optionnelle. Rendez-vous sur",
       "subB": "pour récupérer la dernière version.",
       "appStoreSmall": "Télécharger sur", "appStoreLarge": "App Store",
       "playSmall": "DISPONIBLE SUR", "playLarge": "Google Play",
@@ -72,7 +72,7 @@
       "steps": [
         { "num": "01", "title": "Inscrivez-vous & validez votre SIRET", "desc": "Création du compte en 5 minutes. Vérification automatique du numéro d'entreprise (SIRET FR, BCE BE, ICE MA, NINEA SN) — unicité contrôlée pour empêcher les doublons." },
         { "num": "02", "title": "Importez vos équipes", "desc": "Upload CSV ou saisie manuelle de vos collaborateurs, sites et départements. Paramétrage en moins d'une heure avec notre équipe." },
-        { "num": "03", "title": "Déployez sur le terrain", "desc": "Application mobile iOS/Android pour les collaborateurs. Pointeuses biométriques compatibles. Web pour les managers. Mode offline disponible." },
+        { "num": "03", "title": "Déployez sur le terrain", "desc": "Application mobile Android pour les collaborateurs. Pointeuses biométriques compatibles. Web pour les managers. Mode offline disponible." },
         { "num": "04", "title": "Pilotez en temps réel", "desc": "Tableau de bord temps réel dès J+1. Notifications push aux managers. Préparation paie automatisée à la fin du mois. ROI mesuré et partagé à J+30." }
       ],
       "videoAria": "Démonstration de la plateforme Concorde Workforce"
@@ -95,7 +95,7 @@
       "starterTier": "Starter",
       "starterIncluded": "10 collaborateurs inclus · 10 Go stockage sécurisé",
       "starterFeatures": [
-        "Pointage web & mobile (iOS / Android)",
+        "Pointage web & mobile (Android)",
         "Gestion RH essentielle (fiches, contrats)",
         "Gestion congés & absences",
         "Tableau de bord simplifié · exports PDF / Excel",
@@ -172,7 +172,7 @@
       "rows": [
         { "type": "section", "label": "Pointage & présence" },
         { "type": "feature", "label": "Pointage web", "starter": true, "standard": true, "premium": true },
-        { "type": "feature", "label": "Application mobile (iOS / Android)", "starter": true, "standard": true, "premium": true },
+        { "type": "feature", "label": "Application mobile (Android)", "starter": true, "standard": true, "premium": true },
         { "type": "feature", "label": "Pointage géolocalisé", "starter": false, "standard": true, "premium": true },
         { "type": "feature", "label": "État périodique & exports PDF/Excel", "starter": true, "standard": true, "premium": true },
         { "type": "section", "label": "Gestion des employés" },

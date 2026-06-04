@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
+import { useI18n } from '../i18n';
 
 /**
  * MissionsScreen — version employé.
@@ -45,34 +46,34 @@ interface AbsenceNature {
 
 // Liste partagée mobile/web. ISO 4217 + symbole pour l'affichage. Étendre si
 // l'entreprise opère dans une autre zone — la BD stocke le code 3 lettres.
-const CURRENCIES: { code: string; symbol: string; label: string }[] = [
-  { code: 'EUR', symbol: '€',   label: 'Euro' },
-  { code: 'USD', symbol: '$',   label: 'Dollar US' },
-  { code: 'GBP', symbol: '£',   label: 'Livre sterling' },
-  { code: 'CHF', symbol: 'CHF', label: 'Franc suisse' },
-  { code: 'TND', symbol: 'DT',  label: 'Dinar tunisien' },
-  { code: 'MAD', symbol: 'MAD', label: 'Dirham marocain' },
-  { code: 'DZD', symbol: 'DA',  label: 'Dinar algérien' },
-  { code: 'CAD', symbol: 'CA$', label: 'Dollar canadien' },
-  { code: 'XOF', symbol: 'FCFA', label: 'Franc CFA (BCEAO)' },
-  { code: 'AED', symbol: 'AED', label: 'Dirham émirati' },
+const CURRENCIES: { code: string; symbol: string; labelKey: string }[] = [
+  { code: 'EUR', symbol: '€',   labelKey: 'missions.currencyEUR' },
+  { code: 'USD', symbol: '$',   labelKey: 'missions.currencyUSD' },
+  { code: 'GBP', symbol: '£',   labelKey: 'missions.currencyGBP' },
+  { code: 'CHF', symbol: 'CHF', labelKey: 'missions.currencyCHF' },
+  { code: 'TND', symbol: 'DT',  labelKey: 'missions.currencyTND' },
+  { code: 'MAD', symbol: 'MAD', labelKey: 'missions.currencyMAD' },
+  { code: 'DZD', symbol: 'DA',  labelKey: 'missions.currencyDZD' },
+  { code: 'CAD', symbol: 'CA$', labelKey: 'missions.currencyCAD' },
+  { code: 'XOF', symbol: 'FCFA', labelKey: 'missions.currencyXOF' },
+  { code: 'AED', symbol: 'AED', labelKey: 'missions.currencyAED' },
 ];
 
 const currencySymbol = (code: string | null | undefined): string =>
   CURRENCIES.find(c => c.code === code)?.symbol || code || '€';
 
-const STATE_COLORS: Record<string, { bg: string; fg: string; label: string }> = {
-  Pending:    { bg: '#fef3c7', fg: '#92400e', label: 'En attente' },
-  Approved:   { bg: '#dbeafe', fg: '#1d4ed8', label: 'Approuvée' },
-  InProgress: { bg: '#ede9fe', fg: '#6d28d9', label: 'En cours' },
-  Completed:  { bg: '#d1fae5', fg: '#047857', label: 'Terminée' },
-  Cancelled:  { bg: '#fee2e2', fg: '#b91c1c', label: 'Annulée' },
+const STATE_COLORS: Record<string, { bg: string; fg: string; labelKey: string }> = {
+  Pending:    { bg: '#fef3c7', fg: '#92400e', labelKey: 'missions.statePending' },
+  Approved:   { bg: '#dbeafe', fg: '#1d4ed8', labelKey: 'missions.stateApproved' },
+  InProgress: { bg: '#ede9fe', fg: '#6d28d9', labelKey: 'missions.stateInProgress' },
+  Completed:  { bg: '#d1fae5', fg: '#047857', labelKey: 'missions.stateCompleted' },
+  Cancelled:  { bg: '#fee2e2', fg: '#b91c1c', labelKey: 'missions.stateCancelled' },
 };
 
-const fmtDate = (d: any) => {
+const fmtDate = (d: any, locale: string) => {
   if (!d) return '—';
   try {
-    return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+    return new Date(d).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' });
   } catch { return '—'; }
 };
 
@@ -80,6 +81,8 @@ const toIsoDate = (d: Date) => d.toISOString().split('T')[0];
 
 export default function MissionsScreen({ navigation }: any) {
   const { user } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const [missions, setMissions] = useState<Mission[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -169,21 +172,21 @@ export default function MissionsScreen({ navigation }: any) {
 
   const confirmDelete = (m: Mission) => {
     Alert.alert(
-      'Supprimer la mission',
-      `Voulez-vous vraiment supprimer « ${m.misobj} » ?`,
+      t('missions.deleteTitle'),
+      t('missions.deleteConfirm', { obj: m.misobj }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await apiService.deleteMission(m.id);
-              Alert.alert('✅ Succès', 'Mission supprimée.');
+              Alert.alert(t('missions.successTitle'), t('missions.deleteSuccess'));
               loadAll();
             } catch (e: any) {
-              const msg = e?.response?.data?.message || 'Impossible de supprimer la mission.';
-              Alert.alert('Erreur', msg);
+              const msg = e?.response?.data?.message || t('missions.deleteError');
+              Alert.alert(t('common.error'), msg);
             }
           },
         },
@@ -195,26 +198,26 @@ export default function MissionsScreen({ navigation }: any) {
   // supprimer ; sinon on explique qu'une mission traitée n'est plus modifiable.
   const onMissionPress = (m: Mission) => {
     if (m.misetat !== 'Pending') {
-      Alert.alert('Mission traitée', "Cette mission a déjà été traitée par votre responsable : elle ne peut plus être modifiée ni supprimée.");
+      Alert.alert(t('missions.processedTitle'), t('missions.processedMessage'));
       return;
     }
     Alert.alert(
       m.misobj,
-      'Que souhaitez-vous faire ?',
+      t('missions.actionPrompt'),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Modifier', onPress: () => openEditForm(m) },
-        { text: 'Supprimer', style: 'destructive', onPress: () => confirmDelete(m) },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('missions.edit'), onPress: () => openEditForm(m) },
+        { text: t('common.delete'), style: 'destructive', onPress: () => confirmDelete(m) },
       ],
     );
   };
 
   const handleSubmit = async () => {
     if (!user?.soccod || !user?.uticod) return;
-    if (!form.misobj.trim()) { Alert.alert('Erreur', "L'objet de la mission est requis."); return; }
-    if (!form.abscod) { Alert.alert('Erreur', 'La nature d\'absence est requise.'); return; }
+    if (!form.misobj.trim()) { Alert.alert(t('common.error'), t('missions.errObjRequired')); return; }
+    if (!form.abscod) { Alert.alert(t('common.error'), t('missions.errNatureRequired')); return; }
     if (form.misdatefin < form.misdatedeb) {
-      Alert.alert('Erreur', 'La date de fin doit être postérieure à la date de début.');
+      Alert.alert(t('common.error'), t('missions.errDateOrder'));
       return;
     }
 
@@ -240,17 +243,17 @@ export default function MissionsScreen({ navigation }: any) {
       };
       if (editingId != null) {
         await apiService.updateMission(editingId, payload);
-        Alert.alert('✅ Succès', 'Mission modifiée avec succès.');
+        Alert.alert(t('missions.successTitle'), t('missions.updateSuccess'));
       } else {
         await apiService.createMission(payload);
-        Alert.alert('✅ Succès', 'Mission créée avec succès.');
+        Alert.alert(t('missions.successTitle'), t('missions.createSuccess'));
       }
       closeForm();
       loadAll();
     } catch (e: any) {
       const msg = e?.response?.data?.message
-        || (editingId != null ? 'Impossible de modifier la mission.' : 'Impossible de créer la mission.');
-      Alert.alert('Erreur', msg);
+        || (editingId != null ? t('missions.updateError') : t('missions.createError'));
+      Alert.alert(t('common.error'), msg);
     } finally {
       setSubmitting(false);
     }
@@ -271,7 +274,7 @@ export default function MissionsScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.onSurface} />
         </TouchableOpacity>
-        <Text style={styles.topTitle}>Mes missions</Text>
+        <Text style={styles.topTitle}>{t('missions.title')}</Text>
         <TouchableOpacity onPress={openCreateForm} style={styles.iconBtn}>
           <MaterialCommunityIcons name="plus" size={26} color={COLORS.primary} />
         </TouchableOpacity>
@@ -285,27 +288,30 @@ export default function MissionsScreen({ navigation }: any) {
         {missions.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="briefcase-outline" size={64} color="#cbd5e1" />
-            <Text style={styles.emptyTitle}>Aucune mission</Text>
+            <Text style={styles.emptyTitle}>{t('missions.emptyTitle')}</Text>
             <Text style={styles.emptyText}>
-              Créez un ordre de mission pour vos déplacements, formations ou événements.
+              {t('missions.emptyText')}
             </Text>
             <TouchableOpacity style={styles.emptyCta} onPress={openCreateForm}>
               <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.emptyCtaGradient}>
                 <MaterialCommunityIcons name="plus" size={18} color="#fff" />
-                <Text style={styles.emptyCtaText}>Nouvelle mission</Text>
+                <Text style={styles.emptyCtaText}>{t('missions.newMission')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
         ) : (
           missions.map(m => {
-            const sc = STATE_COLORS[m.misetat] || { bg: '#f1f5f9', fg: '#475569', label: m.misetat };
+            const sc = STATE_COLORS[m.misetat];
+            const chipBg = sc?.bg || '#f1f5f9';
+            const chipFg = sc?.fg || '#475569';
+            const chipLabel = sc ? t(sc.labelKey) : m.misetat;
             const editable = m.misetat === 'Pending';
             return (
               <TouchableOpacity key={m.id} style={styles.card} onPress={() => onMissionPress(m)} activeOpacity={0.7}>
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardTitle} numberOfLines={2}>{m.misobj}</Text>
-                  <View style={[styles.stateChip, { backgroundColor: sc.bg }]}>
-                    <Text style={[styles.stateChipText, { color: sc.fg }]}>{sc.label}</Text>
+                  <View style={[styles.stateChip, { backgroundColor: chipBg }]}>
+                    <Text style={[styles.stateChipText, { color: chipFg }]}>{chipLabel}</Text>
                   </View>
                 </View>
                 {!!m.misdest && (
@@ -317,7 +323,7 @@ export default function MissionsScreen({ navigation }: any) {
                 <View style={styles.cardRow}>
                   <MaterialCommunityIcons name="calendar-range" size={14} color={COLORS.outline} />
                   <Text style={styles.cardRowText}>
-                    {fmtDate(m.misdatedeb)} → {fmtDate(m.misdatefin)}
+                    {fmtDate(m.misdatedeb, locale)} → {fmtDate(m.misdatefin, locale)}
                   </Text>
                 </View>
                 {m.misbudget != null && (
@@ -332,7 +338,7 @@ export default function MissionsScreen({ navigation }: any) {
                 {editable && (
                   <View style={styles.cardActionsHint}>
                     <MaterialCommunityIcons name="gesture-tap" size={13} color={COLORS.outline} />
-                    <Text style={styles.cardActionsHintText}>Touchez pour modifier ou supprimer</Text>
+                    <Text style={styles.cardActionsHintText}>{t('missions.tapHint')}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -347,55 +353,55 @@ export default function MissionsScreen({ navigation }: any) {
           <View style={styles.formSheet}>
             <View style={styles.formHandle} />
             <View style={styles.formHeader}>
-              <Text style={styles.formTitle}>{editingId != null ? 'Modifier la mission' : 'Nouvelle mission'}</Text>
+              <Text style={styles.formTitle}>{editingId != null ? t('missions.editTitle') : t('missions.newMission')}</Text>
               <TouchableOpacity onPress={closeForm}>
                 <MaterialCommunityIcons name="close" size={24} color={COLORS.outline} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.fieldLabel}>OBJET *</Text>
+              <Text style={styles.fieldLabel}>{t('missions.fieldObject')}</Text>
               <TextInput
                 style={styles.input}
                 value={form.misobj}
-                onChangeText={t => setForm({ ...form, misobj: t })}
-                placeholder="Ex : Formation TypeScript avancé"
+                onChangeText={v => setForm({ ...form, misobj: v })}
+                placeholder={t('missions.placeholderObject')}
                 placeholderTextColor="#94a3b8"
               />
 
               {/* Champ NATURE retiré : la nature est forcée à « mission » côté
                   mobile (cf. missionAbscod). Aucune liste déroulante exposée. */}
 
-              <Text style={styles.fieldLabel}>DESTINATION</Text>
+              <Text style={styles.fieldLabel}>{t('missions.fieldDestination')}</Text>
               <TextInput
                 style={styles.input}
                 value={form.misdest}
-                onChangeText={t => setForm({ ...form, misdest: t })}
-                placeholder="Ex : Paris, Lyon, Tunis…"
+                onChangeText={v => setForm({ ...form, misdest: v })}
+                placeholder={t('missions.placeholderDestination')}
                 placeholderTextColor="#94a3b8"
               />
 
               <View style={styles.row2}>
                 <View style={styles.col2}>
-                  <Text style={styles.fieldLabel}>DÉBUT *</Text>
+                  <Text style={styles.fieldLabel}>{t('missions.fieldStart')}</Text>
                   <TouchableOpacity style={styles.input} onPress={() => setShowStartPicker(true)}>
-                    <Text style={styles.inputText}>{fmtDate(form.misdatedeb)}</Text>
+                    <Text style={styles.inputText}>{fmtDate(form.misdatedeb, locale)}</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={styles.col2}>
-                  <Text style={styles.fieldLabel}>FIN *</Text>
+                  <Text style={styles.fieldLabel}>{t('missions.fieldEnd')}</Text>
                   <TouchableOpacity style={styles.input} onPress={() => setShowEndPicker(true)}>
-                    <Text style={styles.inputText}>{fmtDate(form.misdatefin)}</Text>
+                    <Text style={styles.inputText}>{fmtDate(form.misdatefin, locale)}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
-              <Text style={styles.fieldLabel}>BUDGET PRÉVISIONNEL</Text>
+              <Text style={styles.fieldLabel}>{t('missions.fieldBudget')}</Text>
               <View style={styles.budgetRow}>
                 <TextInput
                   style={[styles.input, styles.budgetInput]}
                   value={form.misbudget}
-                  onChangeText={t => setForm({ ...form, misbudget: t })}
+                  onChangeText={v => setForm({ ...form, misbudget: v })}
                   placeholder="0.00"
                   placeholderTextColor="#94a3b8"
                   keyboardType="decimal-pad"
@@ -406,12 +412,12 @@ export default function MissionsScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.fieldLabel}>NOTE</Text>
+              <Text style={styles.fieldLabel}>{t('missions.fieldNote')}</Text>
               <TextInput
                 style={[styles.input, styles.textarea]}
                 value={form.misnote}
-                onChangeText={t => setForm({ ...form, misnote: t })}
-                placeholder="Détails complémentaires…"
+                onChangeText={v => setForm({ ...form, misnote: v })}
+                placeholder={t('missions.placeholderNote')}
                 placeholderTextColor="#94a3b8"
                 multiline
                 numberOfLines={3}
@@ -426,7 +432,7 @@ export default function MissionsScreen({ navigation }: any) {
                 <LinearGradient colors={[COLORS.primary, COLORS.primaryContainer]} style={styles.submitGradient}>
                   {submitting
                     ? <ActivityIndicator size="small" color="#fff" />
-                    : <Text style={styles.submitText}>{editingId != null ? 'ENREGISTRER' : 'CRÉER LA MISSION'}</Text>}
+                    : <Text style={styles.submitText}>{editingId != null ? t('missions.btnSave') : t('missions.btnCreate')}</Text>}
                 </LinearGradient>
               </TouchableOpacity>
               <View style={{ height: 40 }} />
@@ -441,7 +447,7 @@ export default function MissionsScreen({ navigation }: any) {
           <View style={[styles.formSheet, { maxHeight: '60%' }]}>
             <View style={styles.formHandle} />
             <View style={styles.formHeader}>
-              <Text style={styles.formTitle}>Devise du budget</Text>
+              <Text style={styles.formTitle}>{t('missions.currencyTitle')}</Text>
               <TouchableOpacity onPress={() => setShowCurrencyPicker(false)}>
                 <MaterialCommunityIcons name="close" size={24} color={COLORS.outline} />
               </TouchableOpacity>
@@ -454,7 +460,7 @@ export default function MissionsScreen({ navigation }: any) {
                   onPress={() => { setForm({ ...form, misdevise: c.code }); setShowCurrencyPicker(false); }}
                 >
                   <Text style={styles.natureCode}>{c.symbol}</Text>
-                  <Text style={styles.natureLib}>{c.code} — {c.label}</Text>
+                  <Text style={styles.natureLib}>{c.code} — {t(c.labelKey)}</Text>
                   {form.misdevise === c.code && (
                     <MaterialCommunityIcons name="check-circle" size={20} color={COLORS.primary} />
                   )}

@@ -11,6 +11,7 @@ import { COLORS } from '../config/env';
 import TimePickerModal from '../components/TimePickerModal';
 import { useAuth } from '../contexts/AuthContext';
 import { registerForPushAsync } from '../services/push';
+import { useT } from '../i18n';
 
 interface PrefItem {
   code: string;
@@ -21,15 +22,16 @@ interface PrefItem {
   inapp: boolean;
 }
 
-const GROUP_LABELS: Record<string, string> = {
-  reminders: 'Rappels',
-  leaves: 'Congés',
-  authorizations: 'Autorisations',
-  system: 'Système',
+const GROUP_LABEL_KEYS: Record<string, string> = {
+  reminders: 'notifPrefs.grpReminders',
+  leaves: 'notifPrefs.grpLeaves',
+  authorizations: 'notifPrefs.grpAuthorizations',
+  system: 'notifPrefs.grpSystem',
 };
 
 export default function NotificationPreferencesScreen({ navigation }: any) {
   const { user } = useAuth();
+  const t = useT();
   const [items, setItems] = useState<PrefItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -81,7 +83,7 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
         setOriginalQuiet(next);
         setQuietStatus(qs || null);
       } catch {
-        if (!cancelled) Alert.alert('Erreur', 'Impossible de charger les préférences.');
+        if (!cancelled) Alert.alert(t('common.error'), t('notifPrefs.loadError'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -104,9 +106,9 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
       });
       setOriginalQuiet(quiet);
       try { setQuietStatus(await apiService.getQuietStatus()); } catch { /* noop */ }
-      Alert.alert('✅ Enregistré', 'Heures silencieuses mises à jour.');
+      Alert.alert(t('notifPrefs.saved'), t('notifPrefs.quietSaved'));
     } catch {
-      Alert.alert('Erreur', 'Enregistrement impossible.');
+      Alert.alert(t('common.error'), t('notifPrefs.saveError'));
     }
   };
 
@@ -146,9 +148,9 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
       const payload = items.map(it => ({ code: it.code, push: it.push, inapp: it.inapp }));
       await apiService.updateNotificationPreferences(payload);
       setOriginal(Object.fromEntries(items.map(i => [i.code, `${i.push}:${i.inapp}`])));
-      Alert.alert('✅ Enregistré', 'Vos préférences de notification ont été mises à jour.');
+      Alert.alert(t('notifPrefs.saved'), t('notifPrefs.prefsSaved'));
     } catch {
-      Alert.alert('Erreur', 'Enregistrement impossible.');
+      Alert.alert(t('common.error'), t('notifPrefs.saveError'));
     } finally {
       setSaving(false);
     }
@@ -163,19 +165,19 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
       const result = await registerForPushAsync(user?.soccod);
       await refreshPermission();
       if (result?.token) {
-        Alert.alert('✅ Push réactivé', 'Token enregistré. Vous pouvez tester avec « Envoyer un test ».');
+        Alert.alert(t('notifPrefs.pushReEnabled'), t('notifPrefs.pushReEnabledMsg'));
       } else {
         Alert.alert(
-          'Notifications désactivées',
-          "Les notifications sont bloquées au niveau système. Ouvrez les paramètres pour les autoriser.",
+          t('notifPrefs.notifDisabledTitle'),
+          t('notifPrefs.notifDisabledMsg'),
           [
-            { text: 'Annuler', style: 'cancel' },
-            { text: 'Ouvrir les paramètres', onPress: () => Linking.openSettings() },
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('notifPrefs.openSettings'), onPress: () => Linking.openSettings() },
           ]
         );
       }
     } catch {
-      Alert.alert('Erreur', "Impossible de réactiver les notifications.");
+      Alert.alert(t('common.error'), t('notifPrefs.reEnableError'));
     } finally {
       setReRegistering(false);
     }
@@ -191,17 +193,17 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
       const r = await apiService.sendTestPush(user.uticod);
       if (r.sent > 0) {
         Alert.alert(
-          '📤 Notification envoyée',
-          `Envoyée à ${r.sent} appareil${r.sent > 1 ? 's' : ''}. Vous devriez la voir dans quelques secondes.`
+          t('notifPrefs.sentTitle'),
+          t('notifPrefs.sentMsg', { n: r.sent })
         );
       } else {
         Alert.alert(
-          'Aucun appareil enregistré',
-          "Cliquez sur « Réactiver les notifications » pour enregistrer ce téléphone."
+          t('notifPrefs.noDeviceTitle'),
+          t('notifPrefs.noDeviceMsg')
         );
       }
     } catch {
-      Alert.alert('Erreur', "Impossible d'envoyer le test.");
+      Alert.alert(t('common.error'), t('notifPrefs.testError'));
     } finally {
       setTesting(false);
     }
@@ -222,8 +224,8 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
           <MaterialCommunityIcons name="arrow-left" size={22} color={COLORS.onSurface} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.subHeader}>Réglages</Text>
-          <Text style={styles.mainTitle}>Notifications</Text>
+          <Text style={styles.subHeader}>{t('notifPrefs.settings')}</Text>
+          <Text style={styles.mainTitle}>{t('notifPrefs.title')}</Text>
         </View>
         <TouchableOpacity
           onPress={save}
@@ -235,15 +237,12 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
           ) : (
             <MaterialCommunityIcons name="content-save-outline" size={18} color={COLORS.onPrimary} />
           )}
-          <Text style={styles.saveBtnText}>{saving ? '...' : 'Enregistrer'}</Text>
+          <Text style={styles.saveBtnText}>{saving ? '...' : t('notifPrefs.save')}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.intro}>
-          Choisissez les types de notifications que vous souhaitez recevoir. Désactivé = aucun push, aucune entrée
-          dans le centre de notifications.
-        </Text>
+        <Text style={styles.intro}>{t('notifPrefs.intro')}</Text>
 
         {/* ── Diagnostic push ── */}
         {/* Permet à l'utilisateur de vérifier que les permissions système sont
@@ -254,37 +253,35 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
           <View style={styles.groupHeaderRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <MaterialCommunityIcons name="shield-check-outline" size={16} color={COLORS.secondary} />
-              <Text style={styles.groupTitle}>Diagnostic</Text>
+              <Text style={styles.groupTitle}>{t('notifPrefs.diagnostic')}</Text>
             </View>
           </View>
           <View style={styles.card}>
             <View style={[styles.row, styles.rowDivider]}>
               <View style={{ flex: 1, marginRight: 8 }}>
-                <Text style={styles.rowTitle}>Autorisation système</Text>
+                <Text style={styles.rowTitle}>{t('notifPrefs.sysPermTitle')}</Text>
                 <Text style={styles.rowDesc}>
                   {permission === 'granted'
-                    ? '✅ Les notifications sont autorisées sur cet appareil.'
+                    ? t('notifPrefs.sysPermGranted')
                     : permission === 'denied'
-                    ? "❌ Bloquées par le système — ouvrez les paramètres pour les autoriser."
+                    ? t('notifPrefs.sysPermDenied')
                     : permission === 'undetermined'
-                    ? "Permission non encore demandée — utilisez « Réactiver » ci-dessous."
-                    : 'Statut inconnu.'}
+                    ? t('notifPrefs.sysPermUndetermined')
+                    : t('notifPrefs.sysPermUnknown')}
                 </Text>
               </View>
               {permission === 'denied' && (
                 <TouchableOpacity onPress={() => Linking.openSettings()} style={styles.miniSaveBtn}>
                   <MaterialCommunityIcons name="cog-outline" size={14} color={COLORS.onPrimary} />
-                  <Text style={styles.miniSaveBtnText}>Paramètres</Text>
+                  <Text style={styles.miniSaveBtnText}>{t('notifPrefs.settingsBtn')}</Text>
                 </TouchableOpacity>
               )}
             </View>
 
             <View style={[styles.row, styles.rowDivider]}>
               <View style={{ flex: 1, marginRight: 8 }}>
-                <Text style={styles.rowTitle}>Réactiver les notifications</Text>
-                <Text style={styles.rowDesc}>
-                  Re-demande la permission et ré-enregistre ce téléphone côté serveur.
-                </Text>
+                <Text style={styles.rowTitle}>{t('notifPrefs.reEnableTitle')}</Text>
+                <Text style={styles.rowDesc}>{t('notifPrefs.reEnableDesc')}</Text>
               </View>
               <TouchableOpacity
                 onPress={handleReRegister}
@@ -296,16 +293,14 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
                 ) : (
                   <MaterialCommunityIcons name="refresh" size={14} color={COLORS.onPrimary} />
                 )}
-                <Text style={styles.miniSaveBtnText}>Réactiver</Text>
+                <Text style={styles.miniSaveBtnText}>{t('notifPrefs.reEnable')}</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.row}>
               <View style={{ flex: 1, marginRight: 8 }}>
-                <Text style={styles.rowTitle}>Tester l'envoi</Text>
-                <Text style={styles.rowDesc}>
-                  Envoie une notification de test à tous vos appareils enregistrés.
-                </Text>
+                <Text style={styles.rowTitle}>{t('notifPrefs.testTitle')}</Text>
+                <Text style={styles.rowDesc}>{t('notifPrefs.testDesc')}</Text>
               </View>
               <TouchableOpacity
                 onPress={handleTestPush}
@@ -317,7 +312,7 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
                 ) : (
                   <MaterialCommunityIcons name="bell-ring-outline" size={14} color={COLORS.onPrimary} />
                 )}
-                <Text style={styles.miniSaveBtnText}>Envoyer un test</Text>
+                <Text style={styles.miniSaveBtnText}>{t('notifPrefs.testSend')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -328,12 +323,12 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
           <View style={styles.groupHeaderRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <MaterialCommunityIcons name="bed" size={16} color={COLORS.secondary} />
-              <Text style={styles.groupTitle}>Heures silencieuses</Text>
+              <Text style={styles.groupTitle}>{t('notifPrefs.quietHours')}</Text>
             </View>
             {quietDirty && (
               <TouchableOpacity onPress={saveQuiet} style={styles.miniSaveBtn}>
                 <MaterialCommunityIcons name="content-save-outline" size={14} color={COLORS.onPrimary} />
-                <Text style={styles.miniSaveBtnText}>Enregistrer</Text>
+                <Text style={styles.miniSaveBtnText}>{t('notifPrefs.save')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -342,7 +337,7 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
             <View style={styles.silentBanner}>
               <MaterialCommunityIcons name="bell-sleep" size={16} color="#92400e" />
               <Text style={styles.silentBannerText}>
-                {quietStatus.until ? `Silencieux jusqu'à ${quietStatus.until}.` : (quietStatus.reason || 'Silencieux.')}
+                {quietStatus.until ? t('notifPrefs.silentUntil', { time: quietStatus.until }) : (quietStatus.reason || t('notifPrefs.silent'))}
               </Text>
             </View>
           )}
@@ -350,10 +345,8 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
           <View style={styles.card}>
             <View style={[styles.row, quiet.enabled && styles.rowDivider]}>
               <View style={{ flex: 1, marginRight: 8 }}>
-                <Text style={styles.rowTitle}>Activer les heures silencieuses</Text>
-                <Text style={styles.rowDesc}>
-                  Pendant ce créneau, les push sont supprimés. L'historique reste visible dans le centre.
-                </Text>
+                <Text style={styles.rowTitle}>{t('notifPrefs.enableQuiet')}</Text>
+                <Text style={styles.rowDesc}>{t('notifPrefs.enableQuietDesc')}</Text>
               </View>
               <Switch
                 value={quiet.enabled}
@@ -373,14 +366,14 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
                       onPress={() => setQuiet(q => ({ ...q, mode: 'manual' }))}
                     >
                       <MaterialCommunityIcons name="clock-outline" size={14} color={quiet.mode === 'manual' ? COLORS.onPrimary : COLORS.outline} />
-                      <Text style={[styles.modeBtnText, quiet.mode === 'manual' && styles.modeBtnTextActive]}>Manuel</Text>
+                      <Text style={[styles.modeBtnText, quiet.mode === 'manual' && styles.modeBtnTextActive]}>{t('notifPrefs.modeManual')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.modeBtn, quiet.mode === 'auto_poste' && styles.modeBtnActive]}
                       onPress={() => setQuiet(q => ({ ...q, mode: 'auto_poste' }))}
                     >
                       <MaterialCommunityIcons name="auto-fix" size={14} color={quiet.mode === 'auto_poste' ? COLORS.onPrimary : COLORS.outline} />
-                      <Text style={[styles.modeBtnText, quiet.mode === 'auto_poste' && styles.modeBtnTextActive]}>Selon mon poste</Text>
+                      <Text style={[styles.modeBtnText, quiet.mode === 'auto_poste' && styles.modeBtnTextActive]}>{t('notifPrefs.modeAuto')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -388,14 +381,14 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
                 {quiet.mode === 'manual' ? (
                   <View style={[styles.row, { gap: 8 }]}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.rowDesc}>Début</Text>
+                      <Text style={styles.rowDesc}>{t('notifPrefs.start')}</Text>
                       <TouchableOpacity style={styles.timeBtn} onPress={() => setPickerOpen('start')}>
                         <MaterialCommunityIcons name="weather-night" size={16} color={COLORS.primary} />
                         <Text style={styles.timeBtnText}>{quiet.start}</Text>
                       </TouchableOpacity>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.rowDesc}>Fin</Text>
+                      <Text style={styles.rowDesc}>{t('notifPrefs.end')}</Text>
                       <TouchableOpacity style={styles.timeBtn} onPress={() => setPickerOpen('end')}>
                         <MaterialCommunityIcons name="weather-sunny" size={16} color={COLORS.warning} />
                         <Text style={styles.timeBtnText}>{quiet.end}</Text>
@@ -405,10 +398,7 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
                 ) : (
                   <View style={[styles.row, { gap: 8, alignItems: 'flex-start' }]}>
                     <MaterialCommunityIcons name="information-outline" size={18} color={COLORS.primary} style={{ marginTop: 2 }} />
-                    <Text style={[styles.rowDesc, { flex: 1 }]}>
-                      Vous serez silencieux en dehors des heures de votre poste. Le créneau s'ajuste
-                      automatiquement chaque jour selon votre planning de travail.
-                    </Text>
+                    <Text style={[styles.rowDesc, { flex: 1 }]}>{t('notifPrefs.autoInfo')}</Text>
                   </View>
                 )}
               </>
@@ -419,7 +409,7 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
         {grouped.map(([group, gItems]) => (
           <View key={group} style={styles.groupBlock}>
             <View style={styles.groupHeaderRow}>
-              <Text style={styles.groupTitle}>{GROUP_LABELS[group] || group}</Text>
+              <Text style={styles.groupTitle}>{GROUP_LABEL_KEYS[group] ? t(GROUP_LABEL_KEYS[group]) : group}</Text>
             </View>
             <View style={styles.card}>
               {gItems.map((it, idx) => (
@@ -433,7 +423,7 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
                   </View>
                   <View style={styles.channelGroup}>
                     <View style={styles.channelCell}>
-                      <Text style={styles.channelLabel}>Push</Text>
+                      <Text style={styles.channelLabel}>{t('notifPrefs.push')}</Text>
                       <Switch
                         value={it.push}
                         onValueChange={() => toggle(it.code, 'push')}
@@ -442,7 +432,7 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
                       />
                     </View>
                     <View style={styles.channelCell}>
-                      <Text style={styles.channelLabel}>Centre</Text>
+                      <Text style={styles.channelLabel}>{t('notifPrefs.inApp')}</Text>
                       <Switch
                         value={it.inapp}
                         onValueChange={() => toggle(it.code, 'inapp')}
@@ -466,7 +456,7 @@ export default function NotificationPreferencesScreen({ navigation }: any) {
           else if (pickerOpen === 'end') setQuiet(q => ({ ...q, end: dateToHHmm(d) }));
         }}
         onClose={() => setPickerOpen(null)}
-        title={pickerOpen === 'start' ? 'Début du silence' : 'Fin du silence'}
+        title={pickerOpen === 'start' ? t('notifPrefs.quietStart') : t('notifPrefs.quietEnd')}
       />
     </SafeAreaView>
   );

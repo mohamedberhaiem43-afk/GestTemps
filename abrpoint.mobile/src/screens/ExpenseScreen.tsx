@@ -11,28 +11,29 @@ import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
 import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
+import { useI18n } from '../i18n';
 
 // Catégories alignées sur la web (CATEGORY_KEYS de RemboursementModern).
 const CATEGORIES = [
-  { id: 'Transport', label: 'Transport', icon: 'car-outline' },
-  { id: 'Repas',     label: 'Repas',     icon: 'silverware-fork-knife' },
-  { id: 'Equipement', label: 'Équipement', icon: 'tools' },
-  { id: 'Logement',  label: 'Logement',  icon: 'bed-outline' },
-  { id: 'Autre',     label: 'Autre',     icon: 'tag-outline' },
+  { id: 'Transport', labelKey: 'expense.catTransport', icon: 'car-outline' },
+  { id: 'Repas',     labelKey: 'expense.catMeal',      icon: 'silverware-fork-knife' },
+  { id: 'Equipement', labelKey: 'expense.catEquipment', icon: 'tools' },
+  { id: 'Logement',  labelKey: 'expense.catLodging',   icon: 'bed-outline' },
+  { id: 'Autre',     labelKey: 'expense.catOther',     icon: 'tag-outline' },
 ];
 
 // Liste partagée mobile/web. ISO 4217 + symbole pour l'affichage.
-const CURRENCIES: { code: string; symbol: string; label: string }[] = [
-  { code: 'EUR', symbol: '€',    label: 'Euro' },
-  { code: 'USD', symbol: '$',    label: 'Dollar US' },
-  { code: 'GBP', symbol: '£',    label: 'Livre sterling' },
-  { code: 'CHF', symbol: 'CHF',  label: 'Franc suisse' },
-  { code: 'TND', symbol: 'DT',   label: 'Dinar tunisien' },
-  { code: 'MAD', symbol: 'MAD',  label: 'Dirham marocain' },
-  { code: 'DZD', symbol: 'DA',   label: 'Dinar algérien' },
-  { code: 'CAD', symbol: 'CA$',  label: 'Dollar canadien' },
-  { code: 'XOF', symbol: 'FCFA', label: 'Franc CFA (BCEAO)' },
-  { code: 'AED', symbol: 'AED',  label: 'Dirham émirati' },
+const CURRENCIES: { code: string; symbol: string; labelKey: string }[] = [
+  { code: 'EUR', symbol: '€',    labelKey: 'expense.currencyEUR' },
+  { code: 'USD', symbol: '$',    labelKey: 'expense.currencyUSD' },
+  { code: 'GBP', symbol: '£',    labelKey: 'expense.currencyGBP' },
+  { code: 'CHF', symbol: 'CHF',  labelKey: 'expense.currencyCHF' },
+  { code: 'TND', symbol: 'DT',   labelKey: 'expense.currencyTND' },
+  { code: 'MAD', symbol: 'MAD',  labelKey: 'expense.currencyMAD' },
+  { code: 'DZD', symbol: 'DA',   labelKey: 'expense.currencyDZD' },
+  { code: 'CAD', symbol: 'CA$',  labelKey: 'expense.currencyCAD' },
+  { code: 'XOF', symbol: 'FCFA', labelKey: 'expense.currencyXOF' },
+  { code: 'AED', symbol: 'AED',  labelKey: 'expense.currencyAED' },
 ];
 
 const currencySymbol = (code?: string | null): string =>
@@ -50,34 +51,36 @@ interface Mission {
   misetat?: string | null;
 }
 
-const fmtMissionDates = (deb?: string, fin?: string) => {
+const fmtMissionDates = (locale: string, deb?: string, fin?: string) => {
   try {
-    const d1 = deb ? new Date(deb).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '—';
-    const d2 = fin ? new Date(fin).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—';
+    const d1 = deb ? new Date(deb).toLocaleDateString(locale, { day: '2-digit', month: '2-digit' }) : '—';
+    const d2 = fin ? new Date(fin).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—';
     return `${d1} → ${d2}`;
   } catch { return ''; }
 };
 
 const STATUS_FILTERS = [
-  { key: 'all',        label: 'Tous' },
-  { key: 'pending',    label: 'En attente' },
-  { key: 'approved',   label: 'Validés' },
-  { key: 'reimbursed', label: 'Remboursés' },
-  { key: 'rejected',   label: 'Refusés' },
+  { key: 'all',        labelKey: 'common.all' },
+  { key: 'pending',    labelKey: 'expense.filterPending' },
+  { key: 'approved',   labelKey: 'expense.filterApproved' },
+  { key: 'reimbursed', labelKey: 'expense.filterReimbursed' },
+  { key: 'rejected',   labelKey: 'expense.filterRejected' },
 ] as const;
 
 type StatusFilter = typeof STATUS_FILTERS[number]['key'];
 
-const fmtMoney = (n: number) =>
-  (n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtMoney = (locale: string, n: number) =>
+  (n || 0).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const fmtDate = (d: any) => {
-  try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }); }
+const fmtDate = (locale: string, d: any) => {
+  try { return new Date(d).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' }); }
   catch { return '—'; }
 };
 
 export default function ExpenseScreen({ navigation }: any) {
   const { user } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const tabBarPadding = useTabBarPadding();
   // Coussin bas du modal — voir LeaveRequestScreen pour le contexte.
   const insets = useSafeAreaInsets();
@@ -175,7 +178,7 @@ export default function ExpenseScreen({ navigation }: any) {
 
   const handleCapture = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Erreur', 'Accès caméra requis'); return; }
+    if (status !== 'granted') { Alert.alert(t('common.error'), t('expense.cameraRequired')); return; }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: true });
     if (!result.canceled && result.assets[0]) {
       setImageUri(result.assets[0].uri);
@@ -198,19 +201,19 @@ export default function ExpenseScreen({ navigation }: any) {
   };
 
   const handleSubmit = async () => {
-    if (!form.titre.trim()) { Alert.alert('Erreur', 'Veuillez saisir un motif'); return; }
+    if (!form.titre.trim()) { Alert.alert(t('common.error'), t('expense.errReasonRequired')); return; }
     if (!form.montant || isNaN(parseFloat(form.montant.replace(',', '.')))) {
-      Alert.alert('Erreur', 'Veuillez saisir un montant valide');
+      Alert.alert(t('common.error'), t('expense.errAmountInvalid'));
       return;
     }
     if (form.categorie === 'Autre' && !form.categorieDetail.trim()) {
-      Alert.alert('Erreur', 'Précisez la nature de la dépense (catégorie "Autre")');
+      Alert.alert(t('common.error'), t('expense.errOtherDetailRequired'));
       return;
     }
     // Le backend exige une mission rattachée (MissionId > 0). On le valide AVANT l'envoi
     // pour éviter un 400 affiché comme une erreur générique « Impossible d'ajouter ».
     if (!form.missionId) {
-      Alert.alert('Mission requise', 'Veuillez sélectionner la mission à laquelle rattacher cette note de frais.');
+      Alert.alert(t('expense.missionRequiredTitle'), t('expense.missionRequiredMsg'));
       return;
     }
     if (!user?.soccod || !user?.uticod) return;
@@ -236,7 +239,7 @@ export default function ExpenseScreen({ navigation }: any) {
         devise: form.devise || 'EUR',
         missionId: form.missionId ?? undefined,
       }, imageUri || undefined);
-      Alert.alert('Succès', 'Note de frais soumise');
+      Alert.alert(t('common.success'), t('expense.submittedSuccess'));
       setShowForm(false);
       setForm(defaultForm);
       setImageUri(null);
@@ -248,8 +251,8 @@ export default function ExpenseScreen({ navigation }: any) {
       const msg = e?.response?.data?.message
         ?? e?.response?.data?.error
         ?? e?.message
-        ?? "Impossible d'ajouter la note de frais";
-      Alert.alert('Erreur', msg);
+        ?? t('expense.errAddFailed');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setSubmitting(false);
     }
@@ -285,10 +288,10 @@ export default function ExpenseScreen({ navigation }: any) {
 
   const getStatusInfo = (etat: string) => {
     const k = (etat || '').toLowerCase();
-    if (k === 'reimbursed') return { label: 'REMBOURSÉ', color: '#0040a1', bg: '#dbeafe' };
-    if (k === 'approved')   return { label: 'VALIDÉ',    color: '#059669', bg: '#dcfce7' };
-    if (k === 'rejected')   return { label: 'REFUSÉ',    color: '#dc2626', bg: '#fee2e2' };
-    return                       { label: 'EN ATTENTE', color: '#b45309', bg: '#fef3c7' };
+    if (k === 'reimbursed') return { label: t('expense.statusReimbursed'), color: '#0040a1', bg: '#dbeafe' };
+    if (k === 'approved')   return { label: t('expense.statusApproved'),   color: '#059669', bg: '#dcfce7' };
+    if (k === 'rejected')   return { label: t('expense.statusRejected'),   color: '#dc2626', bg: '#fee2e2' };
+    return                       { label: t('expense.statusPending'), color: '#b45309', bg: '#fef3c7' };
   };
 
   const getCategoryIcon = (cat: string): any => {
@@ -315,7 +318,7 @@ export default function ExpenseScreen({ navigation }: any) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
             <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.primary} />
           </TouchableOpacity>
-          <Text style={styles.logoText}>Notes de frais</Text>
+          <Text style={styles.logoText}>{t('expense.title')}</Text>
         </View>
         <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Notifications')}>
           <MaterialCommunityIcons name="bell-outline" size={24} color={COLORS.primary} />
@@ -330,35 +333,35 @@ export default function ExpenseScreen({ navigation }: any) {
         {/* En-tête avec bouton d'ajout — équivalent rmb-header / rmb-new-btn */}
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.subHeader}>Gestion financière</Text>
-            <Text style={styles.mainTitle}>Mes notes de frais</Text>
+            <Text style={styles.subHeader}>{t('expense.financialManagement')}</Text>
+            <Text style={styles.mainTitle}>{t('expense.myExpenses')}</Text>
           </View>
           <TouchableOpacity style={styles.newBtn} onPress={openNewForm}>
             <MaterialCommunityIcons name="plus" size={18} color="#fff" />
-            <Text style={styles.newBtnText}>Nouveau</Text>
+            <Text style={styles.newBtnText}>{t('expense.new')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* 3 stats cards — équivalent rmb-stats-grid */}
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { borderLeftColor: '#f59e0b' }]}>
-            <Text style={styles.statLabel}>EN ATTENTE</Text>
+            <Text style={styles.statLabel}>{t('expense.statPending')}</Text>
             <View style={styles.statValueRow}>
-              <Text style={[styles.statValue, { color: '#b45309' }]}>{fmtMoney(stats.pendingTotal)}</Text>
+              <Text style={[styles.statValue, { color: '#b45309' }]}>{fmtMoney(locale, stats.pendingTotal)}</Text>
               <Text style={styles.statCurrency}>€</Text>
             </View>
           </View>
           <View style={[styles.statCard, { borderLeftColor: '#0040a1' }]}>
-            <Text style={styles.statLabel}>REMBOURSÉ</Text>
+            <Text style={styles.statLabel}>{t('expense.statReimbursed')}</Text>
             <View style={styles.statValueRow}>
-              <Text style={[styles.statValue, { color: '#0040a1' }]}>{fmtMoney(stats.reimbursedTotal)}</Text>
+              <Text style={[styles.statValue, { color: '#0040a1' }]}>{fmtMoney(locale, stats.reimbursedTotal)}</Text>
               <Text style={styles.statCurrency}>€</Text>
             </View>
           </View>
           <View style={[styles.statCard, { borderLeftColor: '#059669' }]}>
-            <Text style={styles.statLabel}>TOTAL ANNÉE</Text>
+            <Text style={styles.statLabel}>{t('expense.statYtd')}</Text>
             <View style={styles.statValueRow}>
-              <Text style={[styles.statValue, { color: '#059669' }]}>{fmtMoney(stats.ytdTotal)}</Text>
+              <Text style={[styles.statValue, { color: '#059669' }]}>{fmtMoney(locale, stats.ytdTotal)}</Text>
               <Text style={styles.statCurrency}>€</Text>
             </View>
           </View>
@@ -367,7 +370,7 @@ export default function ExpenseScreen({ navigation }: any) {
         {/* Liste + filtres — équivalent rmb-table-card */}
         <View style={styles.tableCard}>
           <View style={styles.tableToolbar}>
-            <Text style={styles.tableTitle}>Mes dépenses</Text>
+            <Text style={styles.tableTitle}>{t('expense.myExpensesList')}</Text>
             <Text style={styles.tableCount}>{filteredExpenses.length}</Text>
           </View>
 
@@ -375,7 +378,7 @@ export default function ExpenseScreen({ navigation }: any) {
             <MaterialCommunityIcons name="magnify" size={18} color={COLORS.outline} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Rechercher par motif, catégorie, projet…"
+              placeholder={t('expense.searchPlaceholder')}
               placeholderTextColor={COLORS.outline}
               value={search}
               onChangeText={setSearch}
@@ -389,7 +392,7 @@ export default function ExpenseScreen({ navigation }: any) {
                 style={[styles.chip, statusFilter === c.key && styles.chipActive]}
                 onPress={() => setStatusFilter(c.key)}
               >
-                <Text style={[styles.chipText, statusFilter === c.key && styles.chipTextActive]}>{c.label}</Text>
+                <Text style={[styles.chipText, statusFilter === c.key && styles.chipTextActive]}>{t(c.labelKey)}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -398,7 +401,7 @@ export default function ExpenseScreen({ navigation }: any) {
             {filteredExpenses.length === 0 ? (
               <View style={styles.emptyState}>
                 <MaterialCommunityIcons name="file-document-outline" size={48} color={COLORS.outlineVariant} />
-                <Text style={styles.emptyText}>Aucune dépense enregistrée</Text>
+                <Text style={styles.emptyText}>{t('expense.emptyState')}</Text>
               </View>
             ) : (
               filteredExpenses.map((exp, idx) => {
@@ -414,12 +417,12 @@ export default function ExpenseScreen({ navigation }: any) {
                         <Text style={styles.expenseTitre} numberOfLines={1}>{exp.titre || '—'}</Text>
                         {!!exp.projet && <Text style={styles.expenseSub} numberOfLines={1}>{exp.projet}</Text>}
                         <Text style={styles.expenseMeta}>
-                          {fmtDate(exp.dateDepense)} • {(exp.categorie || '').toUpperCase()}
+                          {fmtDate(locale, exp.dateDepense)} • {(exp.categorie || '').toUpperCase()}
                         </Text>
                       </View>
                     </View>
                     <View style={styles.expenseRight}>
-                      <Text style={styles.expenseAmount}>{fmtMoney(exp.montant)} {currencySymbol(exp.devise)}</Text>
+                      <Text style={styles.expenseAmount}>{fmtMoney(locale, exp.montant)} {currencySymbol(exp.devise)}</Text>
                       <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
                         <View style={[styles.statusDot, { backgroundColor: status.color }]} />
                         <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
@@ -438,14 +441,14 @@ export default function ExpenseScreen({ navigation }: any) {
         <View style={styles.modalOverlay}>
           <View style={[styles.formCard, { paddingBottom: formCardPaddingBottom }]}>
             <View style={styles.formHeader}>
-              <Text style={styles.formHeaderTitle}>Nouvelle note de frais</Text>
+              <Text style={styles.formHeaderTitle}>{t('expense.newExpenseTitle')}</Text>
               <TouchableOpacity onPress={() => setShowForm(false)}>
                 <MaterialCommunityIcons name="close" size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false}>
-              <Text style={styles.label}>Catégorie</Text>
+              <Text style={styles.label}>{t('expense.category')}</Text>
               <View style={styles.typeRow}>
                 {CATEGORIES.map((c) => {
                   const active = form.categorie === c.id;
@@ -455,7 +458,7 @@ export default function ExpenseScreen({ navigation }: any) {
                       style={[styles.typeBtn, active && styles.typeBtnActive]}
                       onPress={() => setForm({ ...form, categorie: c.id })}
                     >
-                      <Text style={[styles.typeText, active && styles.typeTextActive]}>{c.label}</Text>
+                      <Text style={[styles.typeText, active && styles.typeTextActive]}>{t(c.labelKey)}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -463,36 +466,36 @@ export default function ExpenseScreen({ navigation }: any) {
 
               {form.categorie === 'Autre' && (
                 <>
-                  <Text style={styles.label}>Précisez la nature *</Text>
+                  <Text style={styles.label}>{t('expense.specifyNature')}</Text>
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Ex. Cadeau client, abonnement logiciel…"
+                    placeholder={t('expense.specifyNaturePlaceholder')}
                     placeholderTextColor={COLORS.outline}
                     maxLength={43}
                     value={form.categorieDetail}
-                    onChangeText={(t) => setForm({ ...form, categorieDetail: t })}
+                    onChangeText={(v) => setForm({ ...form, categorieDetail: v })}
                   />
                 </>
               )}
 
-              <Text style={styles.label}>Motif</Text>
+              <Text style={styles.label}>{t('expense.reason')}</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="Ex. Déjeuner client"
+                placeholder={t('expense.reasonPlaceholder')}
                 placeholderTextColor={COLORS.outline}
                 value={form.titre}
-                onChangeText={(t) => setForm({ ...form, titre: t })}
+                onChangeText={(v) => setForm({ ...form, titre: v })}
               />
 
-              <Text style={styles.label}>Date de la dépense</Text>
+              <Text style={styles.label}>{t('expense.expenseDate')}</Text>
               <TouchableOpacity style={styles.dateInput} onPress={() => setShowDatePicker(true)}>
                 <Text style={styles.dateInputText}>
-                  {form.dateDepense.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                  {form.dateDepense.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })}
                 </Text>
                 <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
               </TouchableOpacity>
 
-              <Text style={styles.label}>Montant</Text>
+              <Text style={styles.label}>{t('expense.amount')}</Text>
               <View style={styles.amountRow}>
                 <TextInput
                   style={[styles.textInput, { flex: 1 }]}
@@ -500,7 +503,7 @@ export default function ExpenseScreen({ navigation }: any) {
                   placeholderTextColor={COLORS.outline}
                   keyboardType="decimal-pad"
                   value={form.montant}
-                  onChangeText={(t) => setForm({ ...form, montant: t })}
+                  onChangeText={(v) => setForm({ ...form, montant: v })}
                 />
                 <TouchableOpacity style={styles.currencyBtn} onPress={() => setShowCurrencyPicker(true)}>
                   <Text style={styles.currencyBtnText}>{form.devise}</Text>
@@ -508,7 +511,7 @@ export default function ExpenseScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.label}>Mission rattachée (optionnel)</Text>
+              <Text style={styles.label}>{t('expense.attachedMission')}</Text>
               <TouchableOpacity
                 style={styles.missionInput}
                 onPress={() => setShowMissionPicker(true)}
@@ -521,13 +524,13 @@ export default function ExpenseScreen({ navigation }: any) {
                         {selectedMission.misobj}
                       </Text>
                       <Text style={styles.missionInputMeta} numberOfLines={1}>
-                        {fmtMissionDates(selectedMission.misdatedeb, selectedMission.misdatefin)}
+                        {fmtMissionDates(locale, selectedMission.misdatedeb, selectedMission.misdatefin)}
                         {selectedMission.misdest ? ` · ${selectedMission.misdest}` : ''}
                       </Text>
                     </>
                   ) : (
                     <Text style={[styles.missionInputText, { color: COLORS.outline, fontWeight: '500' }]}>
-                      {missions.length === 0 ? 'Aucune mission disponible' : 'Choisir une mission…'}
+                      {missions.length === 0 ? t('expense.noMissionAvailable') : t('expense.chooseMissionPlaceholder')}
                     </Text>
                   )}
                 </View>
@@ -543,45 +546,45 @@ export default function ExpenseScreen({ navigation }: any) {
                 )}
               </TouchableOpacity>
 
-              <Text style={styles.label}>Projet (optionnel)</Text>
+              <Text style={styles.label}>{t('expense.project')}</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="Ex. Mission Acme - Q2"
+                placeholder={t('expense.projectPlaceholder')}
                 placeholderTextColor={COLORS.outline}
                 value={form.projet}
-                onChangeText={(t) => setForm({ ...form, projet: t })}
+                onChangeText={(v) => setForm({ ...form, projet: v })}
               />
 
-              <Text style={styles.label}>Justificatif</Text>
+              <Text style={styles.label}>{t('expense.receipt')}</Text>
               <View style={styles.uploadArea}>
                 {imageUri ? (
                   <Image source={{ uri: imageUri }} style={styles.uploadedPreview} />
                 ) : (
                   <View style={{ alignItems: 'center', paddingVertical: 16 }}>
                     <MaterialCommunityIcons name="cloud-upload-outline" size={32} color={COLORS.primary} />
-                    <Text style={styles.uploadText}>Joindre un reçu (image ou PDF)</Text>
+                    <Text style={styles.uploadText}>{t('expense.attachReceipt')}</Text>
                   </View>
                 )}
                 <View style={styles.uploadActions}>
                   <TouchableOpacity style={styles.uploadBtn} onPress={handleCapture}>
                     <MaterialCommunityIcons name="camera-outline" size={16} color={COLORS.primary} />
-                    <Text style={styles.uploadBtnText}>Photo</Text>
+                    <Text style={styles.uploadBtnText}>{t('expense.photo')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.uploadBtn} onPress={handlePickImage}>
                     <MaterialCommunityIcons name="image-outline" size={16} color={COLORS.primary} />
-                    <Text style={styles.uploadBtnText}>Galerie</Text>
+                    <Text style={styles.uploadBtnText}>{t('expense.gallery')}</Text>
                   </TouchableOpacity>
                   {imageUri && (
                     <TouchableOpacity style={[styles.uploadBtn, { backgroundColor: '#fee2e2' }]} onPress={() => setImageUri(null)}>
                       <MaterialCommunityIcons name="trash-can-outline" size={16} color="#dc2626" />
-                      <Text style={[styles.uploadBtnText, { color: '#dc2626' }]}>Retirer</Text>
+                      <Text style={[styles.uploadBtnText, { color: '#dc2626' }]}>{t('expense.remove')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
                 {scanning && (
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 10 }}>
                     <ActivityIndicator size="small" color={COLORS.primary} />
-                    <Text style={{ color: COLORS.primary, fontSize: 12 }}>Analyse du reçu… remplissage automatique des champs</Text>
+                    <Text style={{ color: COLORS.primary, fontSize: 12 }}>{t('expense.scanningReceipt')}</Text>
                   </View>
                 )}
               </View>
@@ -591,7 +594,7 @@ export default function ExpenseScreen({ navigation }: any) {
                   {submitting ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={styles.submitBtnText}>SOUMETTRE LA DÉPENSE</Text>
+                    <Text style={styles.submitBtnText}>{t('expense.submitExpense')}</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -605,7 +608,7 @@ export default function ExpenseScreen({ navigation }: any) {
         value={form.dateDepense}
         onChange={(d) => { setForm({ ...form, dateDepense: d }); setShowDatePicker(false); }}
         onClose={() => setShowDatePicker(false)}
-        title="Date de dépense"
+        title={t('expense.datePickerTitle')}
       />
 
       {/* Picker devise — bottom sheet ISO 4217 */}
@@ -613,7 +616,7 @@ export default function ExpenseScreen({ navigation }: any) {
         <View style={styles.modalOverlay}>
           <View style={[styles.formCard, { maxHeight: '60%', paddingBottom: formCardPaddingBottom }]}>
             <View style={styles.formHeader}>
-              <Text style={styles.formHeaderTitle}>Devise</Text>
+              <Text style={styles.formHeaderTitle}>{t('expense.currency')}</Text>
               <TouchableOpacity onPress={() => setShowCurrencyPicker(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <MaterialCommunityIcons name="close" size={24} color="#64748b" />
               </TouchableOpacity>
@@ -626,7 +629,7 @@ export default function ExpenseScreen({ navigation }: any) {
                   onPress={() => { setForm({ ...form, devise: c.code }); setShowCurrencyPicker(false); }}
                 >
                   <Text style={styles.currencyItemSymbol}>{c.symbol}</Text>
-                  <Text style={styles.currencyItemLabel}>{c.code} — {c.label}</Text>
+                  <Text style={styles.currencyItemLabel}>{c.code} — {t(c.labelKey)}</Text>
                   {form.devise === c.code && (
                     <MaterialCommunityIcons name="check-circle" size={20} color={COLORS.primary} />
                   )}
@@ -644,7 +647,7 @@ export default function ExpenseScreen({ navigation }: any) {
         <View style={styles.modalOverlay}>
           <View style={[styles.formCard, { maxHeight: '70%', paddingBottom: formCardPaddingBottom }]}>
             <View style={styles.formHeader}>
-              <Text style={styles.formHeaderTitle}>Choisir une mission</Text>
+              <Text style={styles.formHeaderTitle}>{t('expense.chooseMission')}</Text>
               <TouchableOpacity onPress={() => setShowMissionPicker(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <MaterialCommunityIcons name="close" size={24} color="#64748b" />
               </TouchableOpacity>
@@ -653,10 +656,10 @@ export default function ExpenseScreen({ navigation }: any) {
               <View style={{ alignItems: 'center', paddingVertical: 36, gap: 8 }}>
                 <MaterialCommunityIcons name="briefcase-off-outline" size={42} color={COLORS.outlineVariant} />
                 <Text style={{ fontSize: 13, color: COLORS.outline, fontWeight: '600' }}>
-                  Aucune mission active à rattacher.
+                  {t('expense.noActiveMission')}
                 </Text>
                 <Text style={{ fontSize: 11, color: COLORS.outline, textAlign: 'center', paddingHorizontal: 20 }}>
-                  Créez une mission depuis l'écran « Missions » avant d'y attacher des notes de frais.
+                  {t('expense.noActiveMissionHint')}
                 </Text>
               </View>
             ) : (
@@ -666,8 +669,8 @@ export default function ExpenseScreen({ navigation }: any) {
                   onPress={() => { setForm({ ...form, missionId: null }); setShowMissionPicker(false); }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.missionItemTitle}>Aucune mission</Text>
-                    <Text style={styles.missionItemMeta}>Note de frais hors ordre de mission</Text>
+                    <Text style={styles.missionItemTitle}>{t('expense.noMission')}</Text>
+                    <Text style={styles.missionItemMeta}>{t('expense.noMissionHint')}</Text>
                   </View>
                   {form.missionId == null && (
                     <MaterialCommunityIcons name="check-circle" size={20} color={COLORS.primary} />
@@ -684,7 +687,7 @@ export default function ExpenseScreen({ navigation }: any) {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.missionItemTitle} numberOfLines={1}>{m.misobj}</Text>
                         <Text style={styles.missionItemMeta} numberOfLines={1}>
-                          {fmtMissionDates(m.misdatedeb, m.misdatefin)}
+                          {fmtMissionDates(locale, m.misdatedeb, m.misdatefin)}
                           {m.misdest ? ` · ${m.misdest}` : ''}
                         </Text>
                       </View>

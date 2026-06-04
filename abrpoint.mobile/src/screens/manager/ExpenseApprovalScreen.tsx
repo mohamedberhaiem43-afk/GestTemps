@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl, ActivityIndicator, Image, Modal, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../i18n';
 import apiService from '../../services/api';
 import { COLORS } from '../../config/env';
 import { resolveAssetUrl } from '../../config/assetUrl';
@@ -13,6 +14,8 @@ type Filter = 'all' | 'pending' | 'approved' | 'rejected';
 
 export default function ExpenseApprovalScreen({ navigation }: any) {
   const { user } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const [expenses, setExpenses] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -33,37 +36,37 @@ export default function ExpenseApprovalScreen({ navigation }: any) {
   const onRefresh = async () => { setRefreshing(true); await loadExpenses(); setRefreshing(false); };
 
   const handleApprove = (exp: any) => {
-    Alert.alert('Approuver', `Approuver "${exp.titre}" (${(exp.montant ?? 0).toFixed(2)} €) ?`, [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Approuver', onPress: async () => {
+    Alert.alert(t('mgrExpense.approve'), t('mgrExpense.approveConfirm', { title: exp.titre, amount: (exp.montant ?? 0).toFixed(2) }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('mgrExpense.approve'), onPress: async () => {
         try {
           await apiService.updateExpenseStatus(exp.id, 'Approved');
-          Alert.alert('✅ Succès', 'Note de frais approuvée');
+          Alert.alert(t('mgrExpense.successTitle'), t('mgrExpense.expenseApproved'));
           loadExpenses();
-        } catch { Alert.alert('Erreur', 'Impossible d\'approuver'); }
+        } catch { Alert.alert(t('common.error'), t('mgrExpense.approveError')); }
       }},
     ]);
   };
 
   const handleReject = (exp: any) => {
-    Alert.alert('Rejeter', `Rejeter "${exp.titre}" ?`, [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Rejeter', style: 'destructive', onPress: async () => {
+    Alert.alert(t('mgrExpense.reject'), t('mgrExpense.rejectConfirm', { title: exp.titre }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('mgrExpense.reject'), style: 'destructive', onPress: async () => {
         try {
           await apiService.updateExpenseStatus(exp.id, 'Rejected');
-          Alert.alert('Rejeté', 'Note de frais rejetée');
+          Alert.alert(t('mgrExpense.rejectedTitle'), t('mgrExpense.expenseRejected'));
           loadExpenses();
-        } catch { Alert.alert('Erreur', 'Impossible de rejeter'); }
+        } catch { Alert.alert(t('common.error'), t('mgrExpense.rejectError')); }
       }},
     ]);
   };
 
   const handleDelete = (exp: any) => {
-    Alert.alert('Supprimer', 'Supprimer cette note de frais ?', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Supprimer', style: 'destructive', onPress: async () => {
+    Alert.alert(t('common.delete'), t('mgrExpense.deleteConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: async () => {
         try { await apiService.deleteExpense(exp.id); loadExpenses(); }
-        catch { Alert.alert('Erreur', 'Impossible de supprimer'); }
+        catch { Alert.alert(t('common.error'), t('mgrExpense.deleteError')); }
       }},
     ]);
   };
@@ -74,11 +77,11 @@ export default function ExpenseApprovalScreen({ navigation }: any) {
 
   const getEtatLabel = (etat: string) => {
     switch (etat) {
-      case 'Approved': return '✅ Approuvé';
-      case 'Pending': return '⏳ En attente';
-      case 'Rejected': return '❌ Rejeté';
-      case 'Reimbursed': return '💰 Remboursé';
-      default: return '⏳ En attente';
+      case 'Approved': return `✅ ${t('mgrExpense.statusApproved')}`;
+      case 'Pending': return `⏳ ${t('mgrExpense.statusPending')}`;
+      case 'Rejected': return `❌ ${t('mgrExpense.statusRejected')}`;
+      case 'Reimbursed': return `💰 ${t('mgrExpense.statusReimbursed')}`;
+      default: return `⏳ ${t('mgrExpense.statusPending')}`;
     }
   };
 
@@ -105,25 +108,25 @@ export default function ExpenseApprovalScreen({ navigation }: any) {
 
   const fmtDate = (d: string) => {
     if (!d) return '-';
-    try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
+    try { return new Date(d).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }); }
     catch { return d; }
   };
 
-  const fmtMoney = (n: number) => n?.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) || '-';
+  const fmtMoney = (n: number) => n?.toLocaleString(locale, { style: 'currency', currency: 'EUR' }) || '-';
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.backBtn}>← Retour</Text></TouchableOpacity>
-        <Text style={styles.title}>Approbation Frais</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.backBtn}>← {t('common.back')}</Text></TouchableOpacity>
+        <Text style={styles.title}>{t('mgrExpense.title')}</Text>
       </View>
 
       <View style={styles.statusFilterRow}>
         {([
-          { key: 'pending' as const, label: `⏳ Attente (${pendingC})` },
-          { key: 'all' as const, label: `📋 Toutes (${expenses.length})` },
-          { key: 'approved' as const, label: `✅ Approuvées (${approvedC})` },
-          { key: 'rejected' as const, label: `❌ Rejetées (${rejectedC})` },
+          { key: 'pending' as const, label: `⏳ ${t('mgrExpense.filterPending', { count: pendingC })}` },
+          { key: 'all' as const, label: `📋 ${t('mgrExpense.filterAll', { count: expenses.length })}` },
+          { key: 'approved' as const, label: `✅ ${t('mgrExpense.filterApproved', { count: approvedC })}` },
+          { key: 'rejected' as const, label: `❌ ${t('mgrExpense.filterRejected', { count: rejectedC })}` },
         ]).map((f) => (
           <TouchableOpacity key={f.key}
             style={[styles.filterBtn, filter === f.key && styles.filterBtnActive]}
@@ -140,7 +143,7 @@ export default function ExpenseApprovalScreen({ navigation }: any) {
         ) : filtered.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>💰</Text>
-            <Text style={styles.emptyText}>Aucune note de frais</Text>
+            <Text style={styles.emptyText}>{t('mgrExpense.emptyText')}</Text>
           </View>
         ) : (
           filtered.map((exp: any) => (
@@ -172,20 +175,20 @@ export default function ExpenseApprovalScreen({ navigation }: any) {
                     style={styles.justifThumb}
                     resizeMode="cover"
                   />
-                  <Text style={styles.justifLink}>📎 Voir le justificatif</Text>
+                  <Text style={styles.justifLink}>📎 {t('mgrExpense.viewReceipt')}</Text>
                 </TouchableOpacity>
               ) : null}
 
               <View style={styles.expFooter}>
-                <Text style={styles.expCreated}>Créée: {fmtDate(exp.createdAt)}</Text>
+                <Text style={styles.expCreated}>{t('mgrExpense.createdAt', { date: fmtDate(exp.createdAt) })}</Text>
                 <View style={styles.actionRow}>
                   {isPending(exp.etat) && (
                     <>
                       <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(exp)}>
-                        <Text style={styles.actionBtnText}>✅ Approuver</Text>
+                        <Text style={styles.actionBtnText}>✅ {t('mgrExpense.approve')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(exp)}>
-                        <Text style={styles.actionBtnText}>❌ Rejeter</Text>
+                        <Text style={styles.actionBtnText}>❌ {t('mgrExpense.reject')}</Text>
                       </TouchableOpacity>
                     </>
                   )}

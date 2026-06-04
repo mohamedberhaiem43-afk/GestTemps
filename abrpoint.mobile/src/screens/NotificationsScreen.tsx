@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
+import { useI18n } from '../i18n';
 
 type NotifItem = {
   id: number;
@@ -20,34 +21,38 @@ type NotifItem = {
 
 type Filter = 'all' | 'unread';
 
-const CATEGORY_META: Record<string, { color: string; bg: string; icon: string; label: string }> = {
-  reminder_in:           { color: COLORS.primary,   bg: COLORS.primaryFixed,    icon: 'login',           label: 'Rappel entrée' },
-  reminder_out:          { color: COLORS.warning,   bg: '#fff1c2',              icon: 'logout',          label: 'Rappel sortie' },
-  leave_request_created: { color: COLORS.accent,    bg: COLORS.secondaryFixed,  icon: 'inbox-arrow-down',label: 'Nouvelle demande' },
-  leave_request_accepted:{ color: COLORS.tertiary,  bg: COLORS.tertiaryFixed,   icon: 'check-circle',    label: 'Congé accepté' },
-  leave_request_refused: { color: COLORS.error,     bg: COLORS.errorContainer,  icon: 'close-circle',    label: 'Congé refusé' },
-  auth_request_created:  { color: COLORS.accent,    bg: COLORS.secondaryFixed,  icon: 'inbox-arrow-down',label: 'Nouvelle autorisation' },
-  auth_request_accepted: { color: COLORS.tertiary,  bg: COLORS.tertiaryFixed,   icon: 'check-circle',    label: 'Autorisation acceptée' },
-  auth_request_refused:  { color: COLORS.error,     bg: COLORS.errorContainer,  icon: 'close-circle',    label: 'Autorisation refusée' },
-  test_push:             { color: COLORS.secondary, bg: COLORS.surfaceContainerLow, icon: 'flask',       label: 'Test' },
+const CATEGORY_META: Record<string, { color: string; bg: string; icon: string; labelKey: string }> = {
+  reminder_in:           { color: COLORS.primary,   bg: COLORS.primaryFixed,    icon: 'login',           labelKey: 'notif.catReminderIn' },
+  reminder_out:          { color: COLORS.warning,   bg: '#fff1c2',              icon: 'logout',          labelKey: 'notif.catReminderOut' },
+  leave_request_created: { color: COLORS.accent,    bg: COLORS.secondaryFixed,  icon: 'inbox-arrow-down',labelKey: 'notif.catLeaveCreated' },
+  leave_request_accepted:{ color: COLORS.tertiary,  bg: COLORS.tertiaryFixed,   icon: 'check-circle',    labelKey: 'notif.catLeaveAccepted' },
+  leave_request_refused: { color: COLORS.error,     bg: COLORS.errorContainer,  icon: 'close-circle',    labelKey: 'notif.catLeaveRefused' },
+  auth_request_created:  { color: COLORS.accent,    bg: COLORS.secondaryFixed,  icon: 'inbox-arrow-down',labelKey: 'notif.catAuthCreated' },
+  auth_request_accepted: { color: COLORS.tertiary,  bg: COLORS.tertiaryFixed,   icon: 'check-circle',    labelKey: 'notif.catAuthAccepted' },
+  auth_request_refused:  { color: COLORS.error,     bg: COLORS.errorContainer,  icon: 'close-circle',    labelKey: 'notif.catAuthRefused' },
+  test_push:             { color: COLORS.secondary, bg: COLORS.surfaceContainerLow, icon: 'flask',       labelKey: 'notif.catTest' },
 };
 
-const FALLBACK_META = { color: COLORS.secondary, bg: COLORS.surfaceContainerLow, icon: 'bell-outline', label: 'Notification' };
+const FALLBACK_META = { color: COLORS.secondary, bg: COLORS.surfaceContainerLow, icon: 'bell-outline', labelKey: 'notif.catDefault' };
 
-function formatRelative(dateStr: string): string {
+type TFunc = (key: string, vars?: Record<string, string | number>) => string;
+
+function formatRelative(dateStr: string, t: TFunc, locale: string): string {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return '';
   const diffMin = Math.round((Date.now() - d.getTime()) / 60000);
-  if (diffMin < 1) return "À l'instant";
-  if (diffMin < 60) return `il y a ${diffMin} min`;
+  if (diffMin < 1) return t('notif.relNow');
+  if (diffMin < 60) return t('notif.relMin', { n: diffMin });
   const diffH = Math.floor(diffMin / 60);
-  if (diffH < 24) return `il y a ${diffH} h`;
+  if (diffH < 24) return t('notif.relHour', { n: diffH });
   const diffD = Math.floor(diffH / 24);
-  if (diffD < 7) return `il y a ${diffD} j`;
-  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  if (diffD < 7) return t('notif.relDay', { n: diffD });
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 }
 
 export default function NotificationsScreen({ navigation }: any) {
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const [items, setItems] = useState<NotifItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -90,10 +95,10 @@ export default function NotificationsScreen({ navigation }: any) {
   };
 
   const onLongPress = (n: NotifItem) => {
-    Alert.alert('Notification', undefined, [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('notif.deleteTitle'), undefined, [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer', style: 'destructive',
+        text: t('common.delete'), style: 'destructive',
         onPress: async () => {
           try {
             await apiService.deleteNotification(n.id);
@@ -128,8 +133,8 @@ export default function NotificationsScreen({ navigation }: any) {
           <MaterialCommunityIcons name="arrow-left" size={22} color={COLORS.onSurface} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.subHeader}>Centre</Text>
-          <Text style={styles.mainTitle}>Notifications</Text>
+          <Text style={styles.subHeader}>{t('notif.center')}</Text>
+          <Text style={styles.mainTitle}>{t('notif.title')}</Text>
         </View>
         <TouchableOpacity onPress={onMarkAllRead} disabled={unreadCount === 0} style={[styles.iconButton, unreadCount === 0 && { opacity: 0.4 }]}>
           <MaterialCommunityIcons name="email-open-outline" size={22} color={COLORS.primary} />
@@ -144,7 +149,7 @@ export default function NotificationsScreen({ navigation }: any) {
             onPress={() => setFilter(f)}
           >
             <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>
-              {f === 'all' ? 'Tout' : `Non lues${unreadCount ? ` · ${unreadCount}` : ''}`}
+              {f === 'all' ? t('notif.all') : `${t('notif.unread')}${unreadCount ? ` · ${unreadCount}` : ''}`}
             </Text>
           </TouchableOpacity>
         ))}
@@ -159,7 +164,7 @@ export default function NotificationsScreen({ navigation }: any) {
           <View style={styles.empty}>
             <MaterialCommunityIcons name="bell-off-outline" size={42} color={COLORS.outline} />
             <Text style={styles.emptyText}>
-              {filter === 'unread' ? 'Aucune notification non lue.' : 'Aucune notification reçue.'}
+              {filter === 'unread' ? t('notif.emptyUnread') : t('notif.emptyAll')}
             </Text>
           </View>
         }
@@ -183,9 +188,9 @@ export default function NotificationsScreen({ navigation }: any) {
                 </View>
                 <Text style={styles.body} numberOfLines={2}>{item.body}</Text>
                 <View style={styles.metaRow}>
-                  <Text style={styles.metaText}>{formatRelative(item.createdAt)}</Text>
+                  <Text style={styles.metaText}>{formatRelative(item.createdAt, t, locale)}</Text>
                   {item.category && (
-                    <Text style={[styles.metaText, { color: meta.color, marginLeft: 8 }]}>· {meta.label}</Text>
+                    <Text style={[styles.metaText, { color: meta.color, marginLeft: 8 }]}>· {t(meta.labelKey)}</Text>
                   )}
                 </View>
               </View>

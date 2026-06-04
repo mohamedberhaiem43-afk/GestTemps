@@ -16,6 +16,7 @@ import DeviceTrustBanner from '../components/DeviceTrustBanner';
 import { withCacheFallback } from '../services/cache';
 import { captureCurrentPosition } from '../services/geolocation';
 import { startLiveLocationHeartbeat, stopLiveLocationHeartbeat } from '../services/liveLocation';
+import { useI18n } from '../i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -56,6 +57,8 @@ interface VaultDoc {
 
 export default function HomeScreen({ navigation }: any) {
   const { user, logout, isEmployee, isAdmin, isManager, planAllows } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const tabBarPadding = useTabBarPadding();
   const [todayStatus, setTodayStatus] = useState<TodayStatus>({ hasEntry: false, hasExit: false });
   const [kpiSummary, setKpiSummary] = useState<KPISummary | null>(null);
@@ -235,11 +238,11 @@ export default function HomeScreen({ navigation }: any) {
     if (isNaN(d.getTime())) return '';
     const diffMs = Date.now() - d.getTime();
     const diffDays = Math.floor(diffMs / 86400000);
-    if (diffDays === 0) return "Aujourd'hui";
-    if (diffDays === 1) return 'Hier';
-    if (diffDays < 7) return `Il y a ${diffDays} jours`;
-    if (diffDays < 30) return `Il y a ${Math.floor(diffDays / 7)} sem.`;
-    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    if (diffDays === 0) return t('home.relToday');
+    if (diffDays === 1) return t('home.relYesterday');
+    if (diffDays < 7) return t('home.relDays', { n: diffDays });
+    if (diffDays < 30) return t('home.relWeeks', { n: Math.floor(diffDays / 7) });
+    return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
   };
 
   const onRefresh = async () => {
@@ -269,13 +272,13 @@ export default function HomeScreen({ navigation }: any) {
       // % objectif) pour que la home reflète immédiatement le nouveau pointage.
       await Promise.all([loadTodayStatus(), loadKPISummary()]);
       const gpsHint = !geoAllowed
-        ? '✅ Pointage validé'
+        ? t('home.pointageValid')
         : gps?.status === 'granted'
-        ? `📍 Position enregistrée (±${Math.round(gps.coords?.accuracy || 0)}m)`
+        ? t('home.positionSaved', { m: Math.round(gps.coords?.accuracy || 0) })
         : gps?.status === 'blocked' || gps?.status === 'denied'
-        ? '⚠️ Position non autorisée — activez la localisation dans les réglages'
-        : '⚠️ Position indisponible — pointage validé sans GPS';
-      Alert.alert('✅ Pointage enregistré', gpsHint);
+        ? t('home.positionDenied')
+        : t('home.positionUnavailable');
+      Alert.alert(t('home.pointageOkTitle'), gpsHint);
     } catch (error: any) {
       // Le backend renvoie 422 avec {message, code} pour les pointages hors
       // période d'emploi (avant Empemb / après Empsort) ou hors zone GPS.
@@ -286,24 +289,24 @@ export default function HomeScreen({ navigation }: any) {
       const serverMsg = error?.response?.data?.message || error?.response?.data?.title;
       const text = serverMsg
         ?? (status === 401
-          ? 'Session expirée, veuillez vous reconnecter.'
+          ? t('home.sessionExpired')
           : status === 403
-          ? "Vous n'êtes pas autorisé à pointer pour cet utilisateur."
+          ? t('home.notAuthorized')
           : status
-          ? `Impossible de pointer (erreur ${status}).`
-          : 'Impossible de pointer — vérifiez votre connexion réseau.');
-      Alert.alert('Pointage refusé', text);
+          ? t('home.cannotPointCode', { status })
+          : t('home.cannotPointNetwork'));
+      Alert.alert(t('home.pointageRefused'), text);
     } finally {
       setPointing(false);
     }
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('fr-FR', {
+    return date.toLocaleDateString(locale, {
       weekday: 'long', day: 'numeric', month: 'long',
     });
   };
@@ -369,7 +372,7 @@ export default function HomeScreen({ navigation }: any) {
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.dateLabel}>{formatDate(currentTime).toUpperCase()}</Text>
-          <Text style={styles.welcomeTitle}>Bonjour, {user?.utilib?.split(' ')[0] || 'Marc'}.</Text>
+          <Text style={styles.welcomeTitle}>{t('home.greeting', { name: user?.utilib?.split(' ')[0] || 'Marc' })}</Text>
         </View>
 
         {/* CTA manager : raccourci vers le tableau de bord d'équipe — visible
@@ -391,8 +394,8 @@ export default function HomeScreen({ navigation }: any) {
                 <MaterialCommunityIcons name="view-dashboard-outline" size={20} color="#fff" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.managerCtaTitle}>Tableau de bord équipe</Text>
-                <Text style={styles.managerCtaSub}>Validations, contrats, absences du jour</Text>
+                <Text style={styles.managerCtaTitle}>{t('home.managerCtaTitle')}</Text>
+                <Text style={styles.managerCtaSub}>{t('home.managerCtaSub')}</Text>
               </View>
               <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
             </LinearGradient>
@@ -403,7 +406,7 @@ export default function HomeScreen({ navigation }: any) {
         {offlineMode && (
           <View style={styles.offlineBanner}>
             <MaterialCommunityIcons name="cloud-off-outline" size={16} color={COLORS.warning} />
-            <Text style={styles.offlineText}>Mode hors-ligne — données du dernier accès</Text>
+            <Text style={styles.offlineText}>{t('home.offline')}</Text>
           </View>
         )}
 
@@ -416,7 +419,7 @@ export default function HomeScreen({ navigation }: any) {
           >
             <MaterialCommunityIcons name="bell-sleep-outline" size={14} color="#92400e" />
             <Text style={styles.silentChipText}>
-              Notifications silencieuses jusqu'à {silentUntil}
+              {t('home.silentUntil', { time: silentUntil })}
             </Text>
             <MaterialCommunityIcons name="chevron-right" size={14} color="#92400e" />
           </TouchableOpacity>
@@ -426,7 +429,7 @@ export default function HomeScreen({ navigation }: any) {
         <View style={styles.punchCard}>
           <View style={styles.gpsStatus}>
             <View style={styles.gpsDot} />
-            <Text style={styles.gpsLabel}>STATUT GPS VALIDÉ</Text>
+            <Text style={styles.gpsLabel}>{t('home.gpsStatus')}</Text>
           </View>
           <Text style={styles.currentTimeText}>{formatTime(currentTime)}</Text>          
           <TouchableOpacity
@@ -448,22 +451,22 @@ export default function HomeScreen({ navigation }: any) {
               )}
               <Text style={styles.pointerButtonText}>
                 {pointing
-                  ? 'Localisation en cours...'
+                  ? t('home.pointing')
                   : todayStatus.hasEntry && !todayStatus.hasExit
-                  ? 'Pointer la sortie'
+                  ? t('home.punchOut')
                   : todayStatus.hasEntry && todayStatus.hasExit
-                  ? 'Reprendre le pointage'
-                  : "Pointer l'entrée"}
+                  ? t('home.punchResume')
+                  : t('home.punchIn')}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
           <Text style={styles.lastExitLabel}>
-            {todayStatus.hasEntry ? `Entrée à ${todayStatus.entryTime}` : 'Dernière sortie : Ven. 18:05'}
+            {todayStatus.hasEntry ? t('home.entryAt', { time: todayStatus.entryTime || '' }) : t('home.lastExitDefault')}
           </Text>
           {teletravailToday && (
             <View style={styles.ttBadge}>
               <MaterialCommunityIcons name="home-account" size={16} color="#9d174d" />
-              <Text style={styles.ttBadgeText}>Aujourd'hui : télétravail</Text>
+              <Text style={styles.ttBadgeText}>{t('home.ttToday')}</Text>
             </View>
           )}
         </View>
@@ -483,7 +486,7 @@ export default function HomeScreen({ navigation }: any) {
               <View style={[styles.quickIconBox, { backgroundColor: '#dae2ff' }]}>
                 <MaterialCommunityIcons name="calendar-plus" size={22} color={COLORS.primary} />
               </View>
-              <Text style={styles.quickLabel}>Congé</Text>
+              <Text style={styles.quickLabel}>{t('home.qaLeave')}</Text>
             </TouchableOpacity>
           )}
 
@@ -496,7 +499,7 @@ export default function HomeScreen({ navigation }: any) {
               <View style={[styles.quickIconBox, { backgroundColor: '#d1fadf' }]}>
                 <MaterialCommunityIcons name="exit-run" size={22} color={COLORS.tertiary} />
               </View>
-              <Text style={styles.quickLabel}>Sortie</Text>
+              <Text style={styles.quickLabel}>{t('home.qaExit')}</Text>
             </TouchableOpacity>
           )}
 
@@ -509,7 +512,7 @@ export default function HomeScreen({ navigation }: any) {
               <View style={[styles.quickIconBox, { backgroundColor: '#fce7f3' }]}>
                 <MaterialCommunityIcons name="home-account" size={22} color="#9d174d" />
               </View>
-              <Text style={styles.quickLabel}>Télétravail</Text>
+              <Text style={styles.quickLabel}>{t('home.qaRemote')}</Text>
             </TouchableOpacity>
           )}
 
@@ -522,7 +525,7 @@ export default function HomeScreen({ navigation }: any) {
               <View style={[styles.quickIconBox, { backgroundColor: '#ffe4e6' }]}>
                 <MaterialCommunityIcons name="hospital-box" size={22} color="#be123c" />
               </View>
-              <Text style={styles.quickLabel}>Absence</Text>
+              <Text style={styles.quickLabel}>{t('home.qaAbsence')}</Text>
             </TouchableOpacity>
           )}
 
@@ -535,7 +538,7 @@ export default function HomeScreen({ navigation }: any) {
               <View style={[styles.quickIconBox, { backgroundColor: '#fff1c2' }]}>
                 <MaterialCommunityIcons name="receipt" size={22} color="#92400e" />
               </View>
-              <Text style={styles.quickLabel}>Frais</Text>
+              <Text style={styles.quickLabel}>{t('home.qaExpense')}</Text>
             </TouchableOpacity>
           )}
 
@@ -551,7 +554,7 @@ export default function HomeScreen({ navigation }: any) {
               <View style={[styles.quickIconBox, { backgroundColor: '#fde68a' }]}>
                 <MaterialCommunityIcons name="clock-plus-outline" size={22} color="#92400e" />
               </View>
-              <Text style={styles.quickLabel}>Heures supp</Text>
+              <Text style={styles.quickLabel}>{t('home.qaOvertime')}</Text>
             </TouchableOpacity>
           )}
 
@@ -564,7 +567,7 @@ export default function HomeScreen({ navigation }: any) {
               <View style={[styles.quickIconBox, { backgroundColor: '#ede9fe' }]}>
                 <MaterialCommunityIcons name="briefcase-outline" size={22} color="#6d28d9" />
               </View>
-              <Text style={styles.quickLabel}>Missions</Text>
+              <Text style={styles.quickLabel}>{t('home.qaMissions')}</Text>
             </TouchableOpacity>
           )}
 
@@ -577,7 +580,7 @@ export default function HomeScreen({ navigation }: any) {
               <View style={[styles.quickIconBox, { backgroundColor: '#fde2e7' }]}>
                 <MaterialCommunityIcons name="folder-lock" size={22} color={COLORS.error} />
               </View>
-              <Text style={styles.quickLabel}>Coffre</Text>
+              <Text style={styles.quickLabel}>{t('home.qaVault')}</Text>
             </TouchableOpacity>
           )}
 
@@ -593,7 +596,7 @@ export default function HomeScreen({ navigation }: any) {
               <View style={[styles.quickIconBox, { backgroundColor: '#fef3c7' }]}>
                 <MaterialCommunityIcons name="cash-multiple" size={22} color="#92400e" />
               </View>
-              <Text style={styles.quickLabel}>Bulletin</Text>
+              <Text style={styles.quickLabel}>{t('home.qaPayslip')}</Text>
             </TouchableOpacity>
           )}
 
@@ -605,7 +608,7 @@ export default function HomeScreen({ navigation }: any) {
             <View style={[styles.quickIconBox, { backgroundColor: '#e0e7ff' }]}>
               <MaterialCommunityIcons name="calendar-star" size={22} color={COLORS.primary} />
             </View>
-            <Text style={styles.quickLabel}>Fériés</Text>
+            <Text style={styles.quickLabel}>{t('home.qaHolidays')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -618,20 +621,20 @@ export default function HomeScreen({ navigation }: any) {
                 <MaterialCommunityIcons name="calendar-blank" size={20} color={COLORS.primary} />
               </View>
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>1 DEMANDE</Text>
+                <Text style={styles.badgeText}>{t('home.oneRequest')}</Text>
               </View>
             </View>
-            <Text style={styles.statLabel}>SOLDE CONGÉS</Text>
+            <Text style={styles.statLabel}>{t('home.leaveBalance')}</Text>
             <View style={styles.statValueRow}>
               <Text style={styles.statValue}>{kpiSummary?.soldeConge?.toFixed(1) || '18'}</Text>
-              <Text style={styles.statUnit}>Jours</Text>
+              <Text style={styles.statUnit}>{t('home.days')}</Text>
             </View>
           </View>
 
           {/* Weekly Hours */}
           <View style={styles.hoursCard}>
             <MaterialCommunityIcons name="clock-outline" size={20} color={COLORS.primaryContainer} />
-            <Text style={[styles.statLabel, { color: '#cbd5e1', marginTop: 12 }]}>SEMAINE</Text>
+            <Text style={[styles.statLabel, { color: '#cbd5e1', marginTop: 12 }]}>{t('home.week')}</Text>
             <View style={styles.statValueRow}>
               <Text style={[styles.statValue, { color: '#fff' }]}>
                 {kpiSummary?.heuresTravailleesSemaine?.toFixed(1) || '32.5'}
@@ -656,12 +659,12 @@ export default function HomeScreen({ navigation }: any) {
               <MaterialCommunityIcons name="briefcase-clock-outline" size={24} color="#10b981" />
             </View>
             <View style={styles.rttContent}>
-              <Text style={styles.rttLabel}>SOLDE RTT</Text>
+              <Text style={styles.rttLabel}>{t('home.rttBalance')}</Text>
               <View style={styles.rttValueRow}>
                 <Text style={styles.rttValue}>{kpiSummary.rtt.solde.toFixed(1)}</Text>
-                <Text style={styles.rttUnit}>j</Text>
+                <Text style={styles.rttUnit}>{t('home.dayShort')}</Text>
                 <Text style={styles.rttSub}>
-                  {`· sur ${kpiSummary.rtt.droitAnnuel.toFixed(1)} acquis`}
+                  {t('home.rttAcquired', { n: kpiSummary.rtt.droitAnnuel.toFixed(1) })}
                 </Text>
               </View>
               <View style={styles.rttProgressBar}>
@@ -678,7 +681,7 @@ export default function HomeScreen({ navigation }: any) {
                   ]}
                 />
               </View>
-              <Text style={styles.rttFooter}>{kpiSummary.rtt.pris.toFixed(1)} j pris cette année</Text>
+              <Text style={styles.rttFooter}>{t('home.rttTaken', { n: kpiSummary.rtt.pris.toFixed(1) })}</Text>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={22} color="#10b981" />
           </TouchableOpacity>
@@ -687,9 +690,9 @@ export default function HomeScreen({ navigation }: any) {
         {/* Attendance Graph Section */}
         <View style={styles.attendanceSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Présence Hebdo</Text>
+            <Text style={styles.sectionTitle}>{t('home.weeklyPresence')}</Text>
             <TouchableOpacity onPress={() => navigation.navigate('PresenceHistory')}>
-              <Text style={styles.seeDetail}>VOIR DÉTAIL</Text>
+              <Text style={styles.seeDetail}>{t('home.seeDetail')}</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.graphContainer}>
@@ -712,7 +715,7 @@ export default function HomeScreen({ navigation }: any) {
         <View style={styles.vaultSection}>
           <View style={styles.vaultHeader}>
             <MaterialCommunityIcons name="folder-account-outline" size={18} color={COLORS.onSurface} />
-            <Text style={styles.vaultTitle}>Coffre-fort récent</Text>
+            <Text style={styles.vaultTitle}>{t('home.recentVault')}</Text>
           </View>
 
           {recentDocs.map((doc) => (

@@ -9,6 +9,7 @@ import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
 import { withCacheFallback } from '../services/cache';
+import { useI18n } from '../i18n';
 
 type DayStatus = 'present' | 'late' | 'absent' | 'repos' | 'conge' | 'ferier' | 'partial';
 
@@ -38,9 +39,8 @@ interface DayInfo {
 // pour ne pas écraser l'info métier — il est dessiné avec un cadre vert seul.
 type DayCategory = 'ferier' | 'conge' | 'autorisation' | 'overtime' | 'normal' | 'outside';
 
-const MONTH_NAMES = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 // Grille mensuelle façon européenne : lundi en premier, dimanche en dernier.
-const GRID_DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const GRID_DAY_KEYS = ['dayMon', 'dayTue', 'dayWed', 'dayThu', 'dayFri', 'daySat', 'daySun'];
 
 function pad(n: number) { return n < 10 ? `0${n}` : `${n}`; }
 function formatYMD(d: Date) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
@@ -92,15 +92,15 @@ function deriveStatus(p: any): DayStatus {
   return 'absent';
 }
 
-function statusMeta(s: DayStatus): { label: string; color: string; bg: string; icon: string } {
+function statusMeta(s: DayStatus): { labelKey: string; color: string; bg: string; icon: string } {
   switch (s) {
-    case 'present': return { label: 'Présent', color: COLORS.tertiary, bg: COLORS.tertiaryFixed, icon: 'check-circle' };
-    case 'late':    return { label: 'En retard', color: COLORS.warning, bg: '#fff1c2', icon: 'clock-alert' };
-    case 'partial': return { label: 'Sortie manquante', color: COLORS.warning, bg: '#fff1c2', icon: 'progress-clock' };
-    case 'absent':  return { label: 'Absent', color: COLORS.error, bg: COLORS.errorContainer, icon: 'close-circle' };
-    case 'repos':   return { label: 'Repos', color: COLORS.secondary, bg: COLORS.secondaryFixed, icon: 'sleep' };
-    case 'conge':   return { label: 'Congé', color: COLORS.primary, bg: COLORS.primaryFixed, icon: 'palm-tree' };
-    case 'ferier':  return { label: 'Férié', color: COLORS.accent, bg: COLORS.primaryFixed, icon: 'star-circle' };
+    case 'present': return { labelKey: 'presence.statusPresent', color: COLORS.tertiary, bg: COLORS.tertiaryFixed, icon: 'check-circle' };
+    case 'late':    return { labelKey: 'presence.statusLate', color: COLORS.warning, bg: '#fff1c2', icon: 'clock-alert' };
+    case 'partial': return { labelKey: 'presence.statusMissingOut', color: COLORS.warning, bg: '#fff1c2', icon: 'progress-clock' };
+    case 'absent':  return { labelKey: 'presence.statusAbsent', color: COLORS.error, bg: COLORS.errorContainer, icon: 'close-circle' };
+    case 'repos':   return { labelKey: 'presence.statusRest', color: COLORS.secondary, bg: COLORS.secondaryFixed, icon: 'sleep' };
+    case 'conge':   return { labelKey: 'presence.statusLeave', color: COLORS.primary, bg: COLORS.primaryFixed, icon: 'palm-tree' };
+    case 'ferier':  return { labelKey: 'presence.statusHoliday', color: COLORS.accent, bg: COLORS.primaryFixed, icon: 'star-circle' };
   }
 }
 
@@ -112,6 +112,8 @@ function formatHM(totalMinutes: number): string {
 
 export default function PresenceHistoryScreen({ navigation }: any) {
   const { user } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const tabBarPadding = useTabBarPadding();
   const today = useMemo(() => new Date(), []);
   const [refMonth, setRefMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
@@ -264,10 +266,10 @@ export default function PresenceHistoryScreen({ navigation }: any) {
       const totalMinutes = raw ? computeTotalMinutes(raw) : 0;
       const tothre = parseTime(raw?.tothre);
       const events: DayInfo['events'] = [];
-      if (raw?.preentmatup) events.push({ type: 'IN', label: 'Entrée matin', time: raw.preentmatup, color: COLORS.tertiary, icon: 'login' });
-      if (raw?.presortmatup) events.push({ type: 'OUT', label: 'Sortie matin', time: raw.presortmatup, color: COLORS.error, icon: 'logout' });
-      if (raw?.preentamidiup) events.push({ type: 'IN', label: 'Reprise après-midi', time: raw.preentamidiup, color: COLORS.tertiary, icon: 'login' });
-      if (raw?.presortamidiup) events.push({ type: 'OUT', label: 'Sortie après-midi', time: raw.presortamidiup, color: COLORS.error, icon: 'logout' });
+      if (raw?.preentmatup) events.push({ type: 'IN', label: t('presence.eventInMorning'), time: raw.preentmatup, color: COLORS.tertiary, icon: 'login' });
+      if (raw?.presortmatup) events.push({ type: 'OUT', label: t('presence.eventOutMorning'), time: raw.presortmatup, color: COLORS.error, icon: 'logout' });
+      if (raw?.preentamidiup) events.push({ type: 'IN', label: t('presence.eventInAfternoon'), time: raw.preentamidiup, color: COLORS.tertiary, icon: 'login' });
+      if (raw?.presortamidiup) events.push({ type: 'OUT', label: t('presence.eventOutAfternoon'), time: raw.presortamidiup, color: COLORS.error, icon: 'logout' });
       days.push({
         date, raw, status, totalMinutes,
         hasLate: !!(tothre && tothre > 0),
@@ -281,7 +283,7 @@ export default function PresenceHistoryScreen({ navigation }: any) {
       });
     }
     return days;
-  }, [refMonth, byDate, holidayMap, leaveApprovedSet, leavePendingSet, authorizationSet]);
+  }, [refMonth, byDate, holidayMap, leaveApprovedSet, leavePendingSet, authorizationSet, t]);
 
   // Catégorie principale par date (priorité férié > congé > autorisation > HS).
   // Aujourd'hui est traité à part : juste un cadre vert, sans changer la couleur.
@@ -366,15 +368,15 @@ export default function PresenceHistoryScreen({ navigation }: any) {
     );
   }
 
-  const monthLabel = `${MONTH_NAMES[refMonth.getMonth()]} ${refMonth.getFullYear()}`;
+  const monthLabel = refMonth.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   const isFuture = (d: Date) => d > today;
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topAppBar}>
         <View>
-          <Text style={styles.subHeader}>Suivi temporel</Text>
-          <Text style={styles.mainTitle}>Historique</Text>
+          <Text style={styles.subHeader}>{t('presence.subHeader')}</Text>
+          <Text style={styles.mainTitle}>{t('presence.title')}</Text>
         </View>
         <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Notifications')}>
           <MaterialCommunityIcons name="bell-outline" size={24} color={COLORS.primary} />
@@ -400,7 +402,7 @@ export default function PresenceHistoryScreen({ navigation }: any) {
           <View style={styles.calendarHeader}>
             <View>
               <Text style={styles.calendarMonth}>{monthLabel}</Text>
-              <Text style={styles.calendarHint}>Votre calendrier</Text>
+              <Text style={styles.calendarHint}>{t('presence.calendarHint')}</Text>
             </View>
             <View style={styles.calendarNav}>
               <TouchableOpacity onPress={goPrevMonth} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.navBtn}>
@@ -414,8 +416,8 @@ export default function PresenceHistoryScreen({ navigation }: any) {
 
           {/* En-tête jours de la semaine */}
           <View style={styles.gridHeaderRow}>
-            {GRID_DAY_LABELS.map((lbl) => (
-              <Text key={lbl} style={styles.gridHeaderCell}>{lbl}</Text>
+            {GRID_DAY_KEYS.map((dayKey) => (
+              <Text key={dayKey} style={styles.gridHeaderCell}>{t(`presence.${dayKey}`)}</Text>
             ))}
           </View>
 
@@ -469,27 +471,27 @@ export default function PresenceHistoryScreen({ navigation }: any) {
           <View style={styles.legendRow}>
             <View style={styles.legendItem}>
               <View style={[styles.legendSwatch, styles.gridCellOvertime]} />
-              <Text style={styles.legendLabel}>Heures sup.</Text>
+              <Text style={styles.legendLabel}>{t('presence.legendOvertime')}</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendSwatch, styles.gridCellCongeApproved]} />
-              <Text style={styles.legendLabel}>Congé</Text>
+              <Text style={styles.legendLabel}>{t('presence.legendLeave')}</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendSwatch, styles.gridCellCongePending]} />
-              <Text style={styles.legendLabel}>En attente</Text>
+              <Text style={styles.legendLabel}>{t('common.pending')}</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendSwatch, styles.gridCellAutorisation]} />
-              <Text style={styles.legendLabel}>Autorisation</Text>
+              <Text style={styles.legendLabel}>{t('presence.legendAuthorization')}</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendSwatch, styles.gridCellFerier]} />
-              <Text style={styles.legendLabel}>Férié</Text>
+              <Text style={styles.legendLabel}>{t('presence.legendHoliday')}</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendSwatch, styles.gridCellToday]} />
-              <Text style={styles.legendLabel}>Aujourd'hui</Text>
+              <Text style={styles.legendLabel}>{t('common.today')}</Text>
             </View>
           </View>
         </View>
@@ -510,7 +512,7 @@ export default function PresenceHistoryScreen({ navigation }: any) {
             onPress={() => navigation.navigate('HeuresSup', { presetDate: formatYMD(selectedDate) })}
           >
             <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#fff" />
-            <Text style={styles.addRequestBtnText}>Heures supplémentaires</Text>
+            <Text style={styles.addRequestBtnText}>{t('presence.overtime')}</Text>
           </TouchableOpacity>
         )}
 
@@ -519,14 +521,14 @@ export default function PresenceHistoryScreen({ navigation }: any) {
           <View style={[styles.statBento, { backgroundColor: COLORS.primaryFixed }]}>
             <MaterialCommunityIcons name="clock-outline" size={22} color={COLORS.primary} />
             <View>
-              <Text style={[styles.bentoLabel, { color: COLORS.onPrimaryFixedVariant }]}>TOTAL MOIS</Text>
+              <Text style={[styles.bentoLabel, { color: COLORS.onPrimaryFixedVariant }]}>{t('presence.monthTotal')}</Text>
               <Text style={[styles.bentoValue, { color: COLORS.onPrimaryFixed }]}>{formatHM(monthStats.workedMinutes)}</Text>
             </View>
           </View>
           <View style={[styles.statBento, { backgroundColor: COLORS.tertiaryFixed }]}>
             <MaterialCommunityIcons name="check-circle-outline" size={22} color={COLORS.tertiary} />
             <View>
-              <Text style={[styles.bentoLabel, { color: COLORS.onTertiaryFixedVariant }]}>JOURS PRÉSENTS</Text>
+              <Text style={[styles.bentoLabel, { color: COLORS.onTertiaryFixedVariant }]}>{t('presence.daysPresent')}</Text>
               <Text style={[styles.bentoValue, { color: COLORS.onTertiaryFixed }]}>{monthStats.presentDays + monthStats.lateDays}</Text>
             </View>
           </View>
@@ -537,7 +539,7 @@ export default function PresenceHistoryScreen({ navigation }: any) {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
-                {selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                {selectedDate.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
               </Text>
               <View style={[styles.statusPill, { backgroundColor: statusMeta(selectedInfo.status).bg }]}>
                 <MaterialCommunityIcons
@@ -546,7 +548,7 @@ export default function PresenceHistoryScreen({ navigation }: any) {
                   color={statusMeta(selectedInfo.status).color}
                 />
                 <Text style={[styles.statusPillText, { color: statusMeta(selectedInfo.status).color }]}>
-                  {statusMeta(selectedInfo.status).label}
+                  {t(statusMeta(selectedInfo.status).labelKey)}
                 </Text>
               </View>
             </View>
@@ -561,21 +563,21 @@ export default function PresenceHistoryScreen({ navigation }: any) {
                       </View>
                       <View>
                         <Text style={styles.ledgerTitle}>{event.label}</Text>
-                        <Text style={styles.ledgerSub}>{event.type === 'IN' ? 'Pointage entrée' : 'Pointage sortie'}</Text>
+                        <Text style={styles.ledgerSub}>{event.type === 'IN' ? t('presence.clockIn') : t('presence.clockOut')}</Text>
                       </View>
                     </View>
                     <Text style={styles.ledgerTime}>{event.time}</Text>
                   </View>
                 ))}
                 <View style={styles.daySummaryCard}>
-                  <Text style={styles.daySummaryLabel}>Total travaillé</Text>
+                  <Text style={styles.daySummaryLabel}>{t('presence.totalWorked')}</Text>
                   <Text style={styles.daySummaryValue}>{formatHM(selectedInfo.totalMinutes)}</Text>
                 </View>
               </View>
             ) : (
               <View style={styles.emptyLedger}>
                 <MaterialCommunityIcons name={statusMeta(selectedInfo.status).icon} size={36} color={statusMeta(selectedInfo.status).color} />
-                <Text style={styles.emptyText}>Aucun pointage enregistré</Text>
+                <Text style={styles.emptyText}>{t('presence.noClockings')}</Text>
               </View>
             )}
           </View>
@@ -584,12 +586,12 @@ export default function PresenceHistoryScreen({ navigation }: any) {
         {/* Filtres */}
         <View style={styles.filterRow}>
           {[
-            { k: 'all', label: 'Tout' },
-            { k: 'present', label: 'Présent' },
-            { k: 'late', label: 'Retard' },
-            { k: 'absent', label: 'Absent' },
-            { k: 'conge', label: 'Congé' },
-            { k: 'repos', label: 'Repos' },
+            { k: 'all', label: t('common.all') },
+            { k: 'present', label: t('presence.statusPresent') },
+            { k: 'late', label: t('presence.filterLate') },
+            { k: 'absent', label: t('presence.statusAbsent') },
+            { k: 'conge', label: t('presence.statusLeave') },
+            { k: 'repos', label: t('presence.statusRest') },
           ].map(f => (
             <TouchableOpacity
               key={f.k}
@@ -603,7 +605,7 @@ export default function PresenceHistoryScreen({ navigation }: any) {
 
         {/* Liste mensuelle */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tous les jours</Text>
+          <Text style={styles.sectionTitle}>{t('presence.allDays')}</Text>
           <View style={styles.archiveList}>
             {filteredDays.map((d, idx) => {
               const meta = statusMeta(d.status);
@@ -620,11 +622,11 @@ export default function PresenceHistoryScreen({ navigation }: any) {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.archiveDay}>
-                        {d.date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })}
+                        {d.date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'short' })}
                       </Text>
                       <View style={styles.archiveMetaRow}>
                         <View style={[styles.statusDot, { backgroundColor: meta.color }]} />
-                        <Text style={styles.archiveMeta}>{meta.label}</Text>
+                        <Text style={styles.archiveMeta}>{t(meta.labelKey)}</Text>
                         {d.totalMinutes > 0 && (
                           <Text style={styles.archiveMeta}> · {formatHM(d.totalMinutes)}</Text>
                         )}
@@ -637,7 +639,7 @@ export default function PresenceHistoryScreen({ navigation }: any) {
             })}
             {filteredDays.length === 0 && (
               <View style={styles.emptyLedger}>
-                <Text style={styles.emptyText}>Aucun jour ne correspond à ce filtre.</Text>
+                <Text style={styles.emptyText}>{t('presence.noDaysMatchFilter')}</Text>
               </View>
             )}
           </View>
@@ -662,7 +664,7 @@ export default function PresenceHistoryScreen({ navigation }: any) {
             <View style={styles.detailHeader}>
               <View>
                 <Text style={styles.detailDate}>
-                  {detailDay?.date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                  {detailDay?.date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                 </Text>
                 {detailDay && (
                   <View style={[styles.statusPill, { backgroundColor: statusMeta(detailDay.status).bg, marginTop: 6 }]}>
@@ -672,7 +674,7 @@ export default function PresenceHistoryScreen({ navigation }: any) {
                       color={statusMeta(detailDay.status).color}
                     />
                     <Text style={[styles.statusPillText, { color: statusMeta(detailDay.status).color }]}>
-                      {statusMeta(detailDay.status).label}
+                      {t(statusMeta(detailDay.status).labelKey)}
                     </Text>
                   </View>
                 )}
@@ -694,7 +696,7 @@ export default function PresenceHistoryScreen({ navigation }: any) {
                           </View>
                           <View>
                             <Text style={styles.ledgerTitle}>{event.label}</Text>
-                            <Text style={styles.ledgerSub}>{event.type === 'IN' ? 'Pointage entrée' : 'Pointage sortie'}</Text>
+                            <Text style={styles.ledgerSub}>{event.type === 'IN' ? t('presence.clockIn') : t('presence.clockOut')}</Text>
                           </View>
                         </View>
                         <Text style={styles.ledgerTime}>{event.time}</Text>
@@ -702,13 +704,13 @@ export default function PresenceHistoryScreen({ navigation }: any) {
                     ))}
                   </View>
                   <View style={styles.daySummaryCard}>
-                    <Text style={styles.daySummaryLabel}>Total travaillé</Text>
+                    <Text style={styles.daySummaryLabel}>{t('presence.totalWorked')}</Text>
                     <Text style={styles.daySummaryValue}>{formatHM(detailDay.totalMinutes)}</Text>
                   </View>
                   {detailDay.hasLate && (
                     <View style={styles.detailNoteCard}>
                       <MaterialCommunityIcons name="clock-alert-outline" size={18} color={COLORS.warning} />
-                      <Text style={styles.detailNoteText}>Retard détecté sur cette journée.</Text>
+                      <Text style={styles.detailNoteText}>{t('presence.lateDetected')}</Text>
                     </View>
                   )}
                 </>
@@ -721,14 +723,14 @@ export default function PresenceHistoryScreen({ navigation }: any) {
                   />
                   <Text style={styles.emptyText}>
                     {detailDay.status === 'absent'
-                      ? "Aucun pointage enregistré pour cette journée."
+                      ? t('presence.emptyAbsent')
                       : detailDay.status === 'repos'
-                      ? 'Jour de repos hebdomadaire — pas de pointage attendu.'
+                      ? t('presence.emptyRest')
                       : detailDay.status === 'conge'
-                      ? 'Journée en congé.'
+                      ? t('presence.emptyLeave')
                       : detailDay.status === 'ferier'
-                      ? 'Jour férié.'
-                      : 'Aucun détail disponible.'}
+                      ? t('presence.emptyHoliday')
+                      : t('presence.emptyNoDetail')}
                   </Text>
                 </View>
               ) : null}

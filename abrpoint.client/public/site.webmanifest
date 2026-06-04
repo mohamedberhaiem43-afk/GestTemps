@@ -1,0 +1,12 @@
+{
+  "name": "Concorde Workforce",
+  "short_name": "Concorde",
+  "description": "Pointage, congés, autorisations et gestion du temps de travail pour vos équipes.",
+  "icons": [
+    { "src": "/concorde-workly-light.jpg", "sizes": "1000x1000", "type": "image/jpeg" }
+  ],
+  "theme_color": "#0040a1",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/"
+}

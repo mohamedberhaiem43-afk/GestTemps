@@ -10,6 +10,7 @@ import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import DatePickerModal from '../components/DatePickerModal';
 import TimePickerModal from '../components/TimePickerModal';
+import { useI18n } from '../i18n';
 
 /**
  * HeuresSupScreen — écran DÉDIÉ à la déclaration d'heures supplémentaires.
@@ -62,8 +63,8 @@ function toLocalIso(d: Date) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
     + `T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 }
-function formatDateLong(d: Date) {
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+function formatDateLong(d: Date, locale: string) {
+  return d.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' });
 }
 function parseHHMM(s: string): { h: number; m: number } | null {
   const m = s.match(/^(\d{1,2}):(\d{2})/);
@@ -72,21 +73,21 @@ function parseHHMM(s: string): { h: number; m: number } | null {
 }
 
 // Statuts des demandes d'heures sup. (Conetat côté serveur). NULL = en attente.
-const OT_STATE: Record<string, { bg: string; fg: string; label: string }> = {
-  Pending:  { bg: '#fef3c7', fg: '#92400e', label: 'En attente' },
-  Approved: { bg: '#d1fae5', fg: '#047857', label: 'Validée' },
-  Refused:  { bg: '#fee2e2', fg: '#b91c1c', label: 'Refusée' },
-  Rejected: { bg: '#fee2e2', fg: '#b91c1c', label: 'Refusée' },
+const OT_STATE: Record<string, { bg: string; fg: string; labelKey: string }> = {
+  Pending:  { bg: '#fef3c7', fg: '#92400e', labelKey: 'common.pending' },
+  Approved: { bg: '#d1fae5', fg: '#047857', labelKey: 'common.approved' },
+  Refused:  { bg: '#fee2e2', fg: '#b91c1c', labelKey: 'common.refused' },
+  Rejected: { bg: '#fee2e2', fg: '#b91c1c', labelKey: 'common.refused' },
 };
-function otStatus(conetat?: string | null) {
+function otStatus(conetat?: string | null): { bg: string; fg: string; labelKey?: string; labelText?: string } {
   if (!conetat) return OT_STATE.Pending;
-  return OT_STATE[conetat] || { bg: '#f1f5f9', fg: '#475569', label: conetat };
+  return OT_STATE[conetat] || { bg: '#f1f5f9', fg: '#475569', labelText: conetat };
 }
 const isPendingReq = (conetat?: string | null) =>
   !conetat || conetat.toLowerCase() === 'pending';
-function fmtReqDate(d?: string | null) {
+function fmtReqDate(d?: string | null, locale: string = 'fr-FR') {
   if (!d) return '—';
-  try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }); } catch { return '—'; }
+  try { return new Date(d).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' }); } catch { return '—'; }
 }
 function fmtReqRange(dep?: string | null, ret?: string | null) {
   try {
@@ -106,6 +107,8 @@ function cleanMotif(motif?: string | null) {
 
 export default function HeuresSupScreen({ navigation, route }: any) {
   const { user } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
   const presetDate = route?.params?.presetDate ? new Date(route.params.presetDate) : new Date();
 
   const [day, setDay] = useState<Date>(presetDate);
@@ -192,20 +195,20 @@ export default function HeuresSupScreen({ navigation, route }: any) {
   const confirmDeleteRequest = (req: any) => {
     if (!user?.soccod || !req?.concod) return;
     Alert.alert(
-      'Supprimer la demande',
-      'Voulez-vous vraiment supprimer cette demande d\'heures supplémentaires ?',
+      t('overtime.deleteTitle'),
+      t('overtime.deleteMessage'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await apiService.deleteMyAuthorization(user.soccod!, req.concod);
               loadMyRequests();
             } catch (e: any) {
-              const msg = e?.response?.data?.message || 'Impossible de supprimer la demande.';
-              Alert.alert('Erreur', msg);
+              const msg = e?.response?.data?.message || t('overtime.deleteError');
+              Alert.alert(t('common.error'), msg);
             }
           },
         },
@@ -215,11 +218,11 @@ export default function HeuresSupScreen({ navigation, route }: any) {
 
   const handleSubmit = async () => {
     if (!user?.soccod || !user?.uticod) {
-      Alert.alert('Session expirée', 'Veuillez vous reconnecter.');
+      Alert.alert(t('overtime.sessionExpiredTitle'), t('overtime.sessionExpiredMessage'));
       return;
     }
     if (!overtimeMinutes || overtimeMinutes <= 0) {
-      Alert.alert('Champ manquant', 'Veuillez sélectionner une durée.');
+      Alert.alert(t('overtime.missingFieldTitle'), t('overtime.missingDurationMessage'));
       return;
     }
     setSubmitting(true);
@@ -240,19 +243,19 @@ export default function HeuresSupScreen({ navigation, route }: any) {
       });
       setNotes('');
       loadMyRequests();
-      Alert.alert('Demande envoyée', 'Votre déclaration d\'heures supplémentaires a été transmise au manager.');
+      Alert.alert(t('overtime.submittedTitle'), t('overtime.submittedMessage'));
     } catch (e: any) {
       const msg = e?.response?.data?.message
         ?? e?.response?.data?.error
         ?? e?.message
-        ?? 'Échec de l\'envoi de la demande.';
-      Alert.alert('Erreur', msg);
+        ?? t('overtime.submitError');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const durationLabel = OVERTIME_DURATIONS.find(d => d.minutes === overtimeMinutes)?.label ?? 'Sélectionner';
+  const durationLabel = OVERTIME_DURATIONS.find(d => d.minutes === overtimeMinutes)?.label ?? t('overtime.select');
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -261,7 +264,7 @@ export default function HeuresSupScreen({ navigation, route }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.onSurface} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Heures supplémentaires</Text>
+        <Text style={styles.headerTitle}>{t('overtime.title')}</Text>
         <View style={styles.iconBtn} />
       </View>
 
@@ -273,23 +276,23 @@ export default function HeuresSupScreen({ navigation, route }: any) {
           <View style={styles.intro}>
             <MaterialCommunityIcons name="clock-plus-outline" size={20} color={COLORS.primary} />
             <Text style={styles.introText}>
-              Déclarez les heures travaillées au-delà de votre planning. Votre manager les validera.
+              {t('overtime.intro')}
             </Text>
           </View>
 
           {/* Date */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Jour concerné</Text>
+            <Text style={styles.fieldLabel}>{t('overtime.dayLabel')}</Text>
             <TouchableOpacity style={styles.inputPlaceholder} onPress={() => setShowDatePicker(true)}>
               <MaterialCommunityIcons name="calendar-outline" size={18} color="#737785" />
-              <Text style={styles.inputPlaceholderText}>{formatDateLong(day)}</Text>
+              <Text style={styles.inputPlaceholderText}>{formatDateLong(day, locale)}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Heure de début + durée */}
           <View style={styles.row}>
             <View style={[styles.fieldGroup, { flex: 1 }]}>
-              <Text style={styles.fieldLabel}>Heure de début</Text>
+              <Text style={styles.fieldLabel}>{t('overtime.startTimeLabel')}</Text>
               <TouchableOpacity
                 style={styles.inputPlaceholder}
                 onPress={() => { setOvertimeStartTouched(true); setShowStartTimePicker(true); }}
@@ -298,11 +301,11 @@ export default function HeuresSupScreen({ navigation, route }: any) {
                 <Text style={styles.inputPlaceholderText}>{formatHHMM(startTime)}</Text>
               </TouchableOpacity>
               {overtimeStartFromSchedule && !overtimeStartTouched && (
-                <Text style={styles.hintText}>Heure de fin du poste (modifiable)</Text>
+                <Text style={styles.hintText}>{t('overtime.startTimeHint')}</Text>
               )}
             </View>
             <View style={[styles.fieldGroup, { flex: 1 }]}>
-              <Text style={styles.fieldLabel}>Durée</Text>
+              <Text style={styles.fieldLabel}>{t('overtime.durationLabel')}</Text>
               <TouchableOpacity style={styles.inputPlaceholder} onPress={() => setDurationPickerOpen(true)}>
                 <MaterialCommunityIcons name="timer-outline" size={18} color="#737785" />
                 <Text style={styles.inputPlaceholderText}>{durationLabel}</Text>
@@ -312,12 +315,12 @@ export default function HeuresSupScreen({ navigation, route }: any) {
 
           {/* Notes */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Motif / précisions</Text>
+            <Text style={styles.fieldLabel}>{t('overtime.notesLabel')}</Text>
             <View style={styles.inputWrap}>
               <MaterialCommunityIcons name="text-box-outline" size={18} color="#737785" style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, styles.inputMultiline]}
-                placeholder="Ex : surcharge de fin de mois, astreinte…"
+                placeholder={t('overtime.notesPlaceholder')}
                 value={notes}
                 onChangeText={setNotes}
                 placeholderTextColor="#9ca3af"
@@ -332,21 +335,21 @@ export default function HeuresSupScreen({ navigation, route }: any) {
             disabled={submitting}
             activeOpacity={0.85}
           >
-            <Text style={styles.submitText}>{submitting ? 'Envoi…' : 'Envoyer la demande'}</Text>
+            <Text style={styles.submitText}>{submitting ? t('overtime.submitting') : t('overtime.submitButton')}</Text>
           </TouchableOpacity>
 
           {/* Liste de mes demandes d'heures sup. — consultation + suppression. */}
           <View style={styles.listHeader}>
-            <Text style={styles.listTitle}>Mes demandes</Text>
+            <Text style={styles.listTitle}>{t('overtime.myRequests')}</Text>
             {myRequests.length > 0 && (
               <View style={styles.countBadge}><Text style={styles.countBadgeText}>{myRequests.length}</Text></View>
             )}
           </View>
 
           {loadingList ? (
-            <Text style={styles.listEmpty}>Chargement…</Text>
+            <Text style={styles.listEmpty}>{t('common.loading')}</Text>
           ) : myRequests.length === 0 ? (
-            <Text style={styles.listEmpty}>Aucune demande d'heures supplémentaires pour le moment.</Text>
+            <Text style={styles.listEmpty}>{t('overtime.emptyList')}</Text>
           ) : (
             myRequests.map((req: any) => {
               const st = otStatus(req.conetat);
@@ -357,9 +360,9 @@ export default function HeuresSupScreen({ navigation, route }: any) {
                   <View style={styles.reqMain}>
                     <View style={styles.reqRow}>
                       <MaterialCommunityIcons name="calendar-outline" size={14} color={COLORS.outline} />
-                      <Text style={styles.reqDate}>{fmtReqDate(req.condep || req.condat)}</Text>
+                      <Text style={styles.reqDate}>{fmtReqDate(req.condep || req.condat, locale)}</Text>
                       <View style={[styles.reqChip, { backgroundColor: st.bg }]}>
-                        <Text style={[styles.reqChipText, { color: st.fg }]}>{st.label}</Text>
+                        <Text style={[styles.reqChipText, { color: st.fg }]}>{st.labelKey ? t(st.labelKey) : st.labelText}</Text>
                       </View>
                     </View>
                     <View style={styles.reqRow}>
@@ -389,7 +392,7 @@ export default function HeuresSupScreen({ navigation, route }: any) {
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setDurationPickerOpen(false)}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Durée</Text>
+            <Text style={styles.modalTitle}>{t('overtime.durationLabel')}</Text>
             {OVERTIME_DURATIONS.map(d => (
               <TouchableOpacity
                 key={d.minutes}

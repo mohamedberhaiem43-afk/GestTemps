@@ -3,22 +3,69 @@
 
 <head>
   <meta charset="UTF-8" />
-  <!-- Favicon — logo Concorde Workly (JPG). -->
+  <!-- Favicon — logo Concorde Workly (CW, fond clair). Image carrée 1000x1000. -->
   <link rel="icon" type="image/jpeg" href="/concorde-workly-light.jpg" />
   <link rel="shortcut icon" type="image/jpeg" href="/concorde-workly-light.jpg" />
-  <link rel="apple-touch-icon" sizes="192x192" href="/concorde-workly-light.jpg" />
+  <link rel="apple-touch-icon" href="/concorde-workly-light.jpg" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="theme-color" content="#0040a1" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Concorde Workforce</title>
   <meta name="description" content="Concorde Workforce — pointage, congés, autorisations et gestion du temps de travail pour vos équipes." />
+  <!-- Pas de canonical statique ici : il est posé PAR ROUTE via le composant PageSeo
+       (sinon toutes les pages canonicaliseraient vers '/'). -->
   <meta property="og:title" content="Concorde Workforce" />
   <meta property="og:description" content="La plateforme de gestion du temps de travail : pointage, congés, autorisations et reporting RH." />
-  <meta property="og:image" content="/concorde-workly-light.jpg" />
+  <meta property="og:image" content="https://concorde-work-force.com/og-image.jpg" />
+  <meta property="og:url" content="https://concorde-work-force.com/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Concorde Workforce" />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="Concorde Workforce" />
   <meta name="twitter:description" content="La plateforme de gestion du temps de travail : pointage, congés, autorisations et reporting RH." />
-  <meta name="twitter:image" content="/concorde-workly-light.jpg" />
+  <meta name="twitter:image" content="https://concorde-work-force.com/og-image.jpg" />
+
+  <!-- Données structurées (JSON-LD) — entité marque + produit SaaS.
+       Statiques dans le <head> pour être lues même sans exécution JS (tous crawlers). -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://concorde-work-force.com/#organization",
+        "name": "Concorde Workforce",
+        "url": "https://concorde-work-force.com/",
+        "logo": "https://concorde-work-force.com/concorde-workly-light.jpg",
+        "sameAs": ["https://www.linkedin.com/company/concorde-tech-innovation/"]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://concorde-work-force.com/#website",
+        "name": "Concorde Workforce",
+        "url": "https://concorde-work-force.com/",
+        "inLanguage": "fr-FR",
+        "publisher": { "@id": "https://concorde-work-force.com/#organization" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Concorde Workforce",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web, Android",
+        "url": "https://concorde-work-force.com/",
+        "description": "Logiciel RH et de gestion du temps de travail : pointage, présence, congés, autorisations de sortie, plannings et reporting pour PME.",
+        "publisher": { "@id": "https://concorde-work-force.com/#organization" },
+        "offers": {
+          "@type": "AggregateOffer",
+          "priceCurrency": "EUR",
+          "lowPrice": "69",
+          "highPrice": "449",
+          "offerCount": "3"
+        }
+      }
+    ]
+  }
+  </script>
 </head>
 
 <body>

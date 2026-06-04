@@ -11,6 +11,7 @@ import { COLORS, API_BASE_URL } from '../config/env';
 import apiService from '../services/api';
 import DatePickerModal from '../components/DatePickerModal';
 import BottomTabBar, { useTabBarPadding } from '../components/BottomTabBar';
+import { useI18n } from '../i18n';
 
 /**
  * Écran « Mes demandes d'absence » côté mobile.
@@ -44,11 +45,11 @@ interface AbsenceRequest {
 
 interface PickedFile { uri: string; name: string; type: string; size?: number }
 
-const STATUS_LABEL: Record<Status, string> = {
-  Pending: 'En attente',
-  Approved: 'Acceptée',
-  Rejected: 'Refusée',
-  Cancelled: 'Annulée',
+const STATUS_LABEL_KEY: Record<Status, string> = {
+  Pending: 'absence.statusPending',
+  Approved: 'absence.statusApproved',
+  Rejected: 'absence.statusRejected',
+  Cancelled: 'absence.statusCancelled',
 };
 const STATUS_COLOR: Record<Status, { bg: string; fg: string }> = {
   Pending:   { bg: '#fef9c3', fg: '#854d0e' },
@@ -57,15 +58,18 @@ const STATUS_COLOR: Record<Status, { bg: string; fg: string }> = {
   Cancelled: { bg: '#e2e8f0', fg: '#475569' },
 };
 
-const fmt = (iso?: string | null) => {
+const fmt = (iso: string | null | undefined, locale: string) => {
   if (!iso) return '—';
-  try { return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  try { return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' }); }
   catch { return iso; }
 };
 
 const isoDate = (d: Date) => d.toISOString().split('T')[0];
 
 export default function DemandeAbsenceScreen({ navigation }: any) {
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : 'fr-FR';
+  const f = (iso?: string | null) => fmt(iso, locale);
   const tabBarPadding = useTabBarPadding();
   const [items, setItems] = useState<AbsenceRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,9 +111,9 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
   }, [load]);
 
   const resetForm = () => {
-    const t = new Date();
-    setStartDate(t);
-    setEndDate(t);
+    const now = new Date();
+    setStartDate(now);
+    setEndDate(now);
     setReason('');
     setFile(null);
     setScanInfo(null);
@@ -122,20 +126,20 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
   // ──────────────────────────────────────────────────────────────────────
   const pickJustification = () => {
     Alert.alert(
-      'Joindre un justificatif',
-      "Choisissez la source du document :",
+      t('absence.attachTitle'),
+      t('absence.attachMessage'),
       [
-        { text: 'Photo / Appareil', onPress: takePhoto },
-        { text: 'Galerie', onPress: pickFromGallery },
-        { text: 'Document (PDF)', onPress: pickDocument },
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('absence.sourceCamera'), onPress: takePhoto },
+        { text: t('absence.sourceGallery'), onPress: pickFromGallery },
+        { text: t('absence.sourceDocument'), onPress: pickDocument },
+        { text: t('common.cancel'), style: 'cancel' },
       ]
     );
   };
 
   const takePhoto = async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) { Alert.alert('Permission requise', 'Autorisez l\'accès à l\'appareil photo dans les réglages.'); return; }
+    if (!perm.granted) { Alert.alert(t('absence.permissionTitle'), t('absence.permissionCamera')); return; }
     const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
     if (result.canceled) return;
     const asset = result.assets[0];
@@ -149,7 +153,7 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
 
   const pickFromGallery = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) { Alert.alert('Permission requise', 'Autorisez l\'accès à la galerie dans les réglages.'); return; }
+    if (!perm.granted) { Alert.alert(t('absence.permissionTitle'), t('absence.permissionGallery')); return; }
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
     if (result.canceled) return;
     const asset = result.assets[0];
@@ -198,15 +202,15 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
           if (!isNaN(d.getTime())) setEndDate(d);
         }
         if (ext.reason) setReason(String(ext.reason).slice(0, 1000));
-        setScanInfo(data.message ?? 'Justificatif analysé.');
+        setScanInfo(data.message ?? t('absence.scanDone'));
       } else if (data?.message) {
         setScanInfo(data.message);
       }
     } catch (e: any) {
       if (e?.response?.status === 402) {
-        setScanInfo("Le scan IA n'est pas inclus dans votre pack. Vous pouvez quand même soumettre la demande.");
+        setScanInfo(t('absence.scanNotIncluded'));
       } else {
-        setScanInfo("Analyse automatique indisponible — complétez le formulaire manuellement.");
+        setScanInfo(t('absence.scanUnavailable'));
       }
     } finally {
       setScanLoading(false);
@@ -215,7 +219,7 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
 
   const submit = async () => {
     if (endDate < startDate) {
-      Alert.alert('Dates invalides', 'La date de fin doit être ≥ à la date de début.');
+      Alert.alert(t('absence.invalidDatesTitle'), t('absence.invalidDatesMessage'));
       return;
     }
     setSubmitting(true);
@@ -226,13 +230,13 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
         reason: reason.trim() || null,
         file,
       });
-      Alert.alert('✅ Demande envoyée', 'Votre manager sera notifié.');
+      Alert.alert(t('absence.submitSuccessTitle'), t('absence.submitSuccessMessage'));
       setShowForm(false);
       resetForm();
       await load();
     } catch (e: any) {
-      const msg = e?.response?.data?.error ?? 'Impossible d\'envoyer la demande.';
-      Alert.alert('Erreur', msg);
+      const msg = e?.response?.data?.error ?? t('absence.submitError');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setSubmitting(false);
     }
@@ -240,16 +244,16 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
 
   const confirmCancel = (item: AbsenceRequest) => {
     Alert.alert(
-      "Annuler la demande",
-      `Annuler la demande d'absence du ${fmt(item.startDate)} au ${fmt(item.endDate)} ?`,
+      t('absence.cancelTitle'),
+      t('absence.cancelMessage', { start: f(item.startDate), end: f(item.endDate) }),
       [
-        { text: 'Garder', style: 'cancel' },
+        { text: t('absence.keepRequest'), style: 'cancel' },
         {
-          text: 'Annuler la demande',
+          text: t('absence.cancelTitle'),
           style: 'destructive',
           onPress: async () => {
             try { await apiService.cancelAbsenceRequest(item.id); await load(); }
-            catch (e: any) { Alert.alert('Erreur', e?.response?.data?.error ?? 'Impossible d\'annuler.'); }
+            catch (e: any) { Alert.alert(t('common.error'), e?.response?.data?.error ?? t('absence.cancelError')); }
           },
         },
       ]
@@ -263,7 +267,7 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
     const absolute = it.justificationUrl.startsWith('http')
       ? it.justificationUrl
       : API_BASE_URL.replace(/\/api$/, '') + it.justificationUrl;
-    Linking.openURL(absolute).catch(() => Alert.alert('Erreur', 'Impossible d\'ouvrir le fichier.'));
+    Linking.openURL(absolute).catch(() => Alert.alert(t('common.error'), t('absence.openFileError')));
   };
 
   if (loading) {
@@ -280,7 +284,7 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.primary} />
         </TouchableOpacity>
-        <Text style={styles.topTitle}>Mes demandes d'absence</Text>
+        <Text style={styles.topTitle}>{t('absence.title')}</Text>
         <View style={{ width: 32 }} />
       </View>
 
@@ -291,8 +295,8 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
         {items.length === 0 ? (
           <View style={styles.emptyCard}>
             <MaterialCommunityIcons name="hospital-box-outline" size={48} color="#94a3b8" />
-            <Text style={styles.emptyTitle}>Aucune demande d'absence</Text>
-            <Text style={styles.emptySub}>Touchez « Nouvelle demande » pour en créer une avec justificatif.</Text>
+            <Text style={styles.emptyTitle}>{t('absence.emptyTitle')}</Text>
+            <Text style={styles.emptySub}>{t('absence.emptySub')}</Text>
           </View>
         ) : items.map((it) => {
           const c = STATUS_COLOR[it.status];
@@ -300,23 +304,23 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
             <View key={it.id} style={styles.card}>
               <View style={styles.cardHeader}>
                 <View style={[styles.badge, { backgroundColor: c.bg }]}>
-                  <Text style={[styles.badgeText, { color: c.fg }]}>{STATUS_LABEL[it.status]}</Text>
+                  <Text style={[styles.badgeText, { color: c.fg }]}>{t(STATUS_LABEL_KEY[it.status])}</Text>
                 </View>
                 {it.absenceLabel && <Text style={styles.typeText}>{it.absenceLabel}</Text>}
               </View>
               <Text style={styles.datesText}>
-                Du <Text style={styles.bold}>{fmt(it.startDate)}</Text> au <Text style={styles.bold}>{fmt(it.endDate)}</Text>
+                {t('absence.dateFrom')} <Text style={styles.bold}>{f(it.startDate)}</Text> {t('absence.dateTo')} <Text style={styles.bold}>{f(it.endDate)}</Text>
               </Text>
               {!!it.reason && <Text style={styles.reasonText}>« {it.reason} »</Text>}
               {!!it.justificationUrl && (
                 <TouchableOpacity style={styles.fileLink} onPress={() => openJustification(it)}>
                   <MaterialCommunityIcons name="paperclip" size={16} color={COLORS.primary} />
-                  <Text style={styles.fileLinkText}>{it.justificationFilename ?? 'Justificatif'}</Text>
+                  <Text style={styles.fileLinkText}>{it.justificationFilename ?? t('absence.justificationDefault')}</Text>
                 </TouchableOpacity>
               )}
               {it.status === 'Rejected' && !!it.decisionComment && (
                 <View style={[styles.alertBox, { backgroundColor: '#fef2f2', borderColor: '#fecaca' }]}>
-                  <Text style={[styles.alertText, { color: '#991b1b' }]}>Motif du refus : {it.decisionComment}</Text>
+                  <Text style={[styles.alertText, { color: '#991b1b' }]}>{t('absence.rejectionReason', { comment: it.decisionComment })}</Text>
                 </View>
               )}
               {it.status === 'Approved' && !!it.decisionComment && (
@@ -324,11 +328,11 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
                   <Text style={[styles.alertText, { color: '#166534' }]}>{it.decisionComment}</Text>
                 </View>
               )}
-              <Text style={styles.metaText}>Soumise le {fmt(it.requestedAt)}</Text>
+              <Text style={styles.metaText}>{t('absence.submittedOn', { date: f(it.requestedAt) })}</Text>
               {it.status === 'Pending' && (
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => confirmCancel(it)}>
                   <MaterialCommunityIcons name="close-circle-outline" size={18} color="#991b1b" />
-                  <Text style={styles.cancelBtnText}>Annuler ma demande</Text>
+                  <Text style={styles.cancelBtnText}>{t('absence.cancelMyRequest')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -338,7 +342,7 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
 
       <TouchableOpacity style={[styles.fab, { bottom: tabBarPadding + 16 }]} onPress={() => { resetForm(); setShowForm(true); }}>
         <MaterialCommunityIcons name="plus" size={26} color="#fff" />
-        <Text style={styles.fabText}>Nouvelle demande</Text>
+        <Text style={styles.fabText}>{t('absence.newRequest')}</Text>
       </TouchableOpacity>
 
       {/* Formulaire */}
@@ -348,7 +352,7 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
             <TouchableOpacity onPress={() => setShowForm(false)} style={styles.iconBtn}>
               <MaterialCommunityIcons name="close" size={24} color={COLORS.primary} />
             </TouchableOpacity>
-            <Text style={styles.topTitle}>Nouvelle demande d'absence</Text>
+            <Text style={styles.topTitle}>{t('absence.newRequestTitle')}</Text>
             <View style={{ width: 32 }} />
           </View>
           <ScrollView contentContainerStyle={styles.scroll}>
@@ -357,17 +361,17 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
             <View style={styles.aiCard}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <MaterialCommunityIcons name="auto-fix" size={20} color="#0040a1" />
-                <Text style={styles.aiCardTitle}>Scanner avec l'IA (recommandé)</Text>
+                <Text style={styles.aiCardTitle}>{t('absence.aiCardTitle')}</Text>
               </View>
               <Text style={styles.aiCardSub}>
-                Prenez en photo votre certificat médical ou choisissez un PDF. L'IA pré-remplit les champs.
+                {t('absence.aiCardSub')}
               </Text>
               <TouchableOpacity style={[styles.scanBtn, scanLoading && { opacity: 0.6 }]} disabled={scanLoading} onPress={pickJustification}>
                 {scanLoading
                   ? <ActivityIndicator color="#fff" size="small" />
                   : <>
                       <MaterialCommunityIcons name="camera" size={18} color="#fff" />
-                      <Text style={styles.scanBtnText}>{file ? 'Changer le justificatif' : 'Scanner / choisir un fichier'}</Text>
+                      <Text style={styles.scanBtnText}>{file ? t('absence.changeJustification') : t('absence.scanOrChoose')}</Text>
                     </>}
               </TouchableOpacity>
               {!!file && (
@@ -381,26 +385,26 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
             </View>
 
             <View style={styles.formField}>
-              <Text style={styles.label}>Date de début</Text>
+              <Text style={styles.label}>{t('absence.startDate')}</Text>
               <TouchableOpacity style={styles.dateField} onPress={() => setShowStartPicker(true)}>
                 <MaterialCommunityIcons name="calendar" size={20} color={COLORS.primary} />
-                <Text style={styles.dateText}>{fmt(startDate.toISOString())}</Text>
+                <Text style={styles.dateText}>{f(startDate.toISOString())}</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.formField}>
-              <Text style={styles.label}>Date de fin</Text>
+              <Text style={styles.label}>{t('absence.endDate')}</Text>
               <TouchableOpacity style={styles.dateField} onPress={() => setShowEndPicker(true)}>
                 <MaterialCommunityIcons name="calendar-check" size={20} color={COLORS.primary} />
-                <Text style={styles.dateText}>{fmt(endDate.toISOString())}</Text>
+                <Text style={styles.dateText}>{f(endDate.toISOString())}</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.formField}>
-              <Text style={styles.label}>Motif</Text>
+              <Text style={styles.label}>{t('absence.reason')}</Text>
               <TextInput
                 style={styles.textarea}
                 value={reason}
-                onChangeText={(t) => setReason(t.slice(0, 1000))}
-                placeholder="Ex : arrêt maladie 3 jours, consultation Dr. X…"
+                onChangeText={(v) => setReason(v.slice(0, 1000))}
+                placeholder={t('absence.reasonPlaceholder')}
                 placeholderTextColor="#94a3b8"
                 multiline numberOfLines={4}
               />
@@ -408,7 +412,7 @@ export default function DemandeAbsenceScreen({ navigation }: any) {
             </View>
 
             <TouchableOpacity style={[styles.submitBtn, submitting && { opacity: 0.6 }]} disabled={submitting} onPress={submit}>
-              {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Soumettre la demande</Text>}
+              {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>{t('absence.submitRequest')}</Text>}
             </TouchableOpacity>
           </ScrollView>
 

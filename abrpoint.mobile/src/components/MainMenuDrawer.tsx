@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../config/env';
 import { useAuth, PlanFeatures } from '../contexts/AuthContext';
+import { useT } from '../i18n';
 
 interface Props {
   visible: boolean;
@@ -13,13 +14,15 @@ interface Props {
 
 interface MenuItem {
   icon: string;
-  label: string;
+  labelKey: string;
   route?: string;
   action?: 'logout';
   managerOnly?: boolean;
   /** Si défini, l'entrée disparaît quand la feature n'est pas active sur le pack. */
   requires?: keyof PlanFeatures;
   color?: string;
+  /** Marque l'entrée « Bulletins de paie » → ouvre le coffre filtré sur les bulletins. */
+  vaultCategory?: 'bulletin';
 }
 
 // 2026-05-27 — chaque entrée du drawer porte un flag `requires` pour matcher
@@ -28,31 +31,31 @@ interface MenuItem {
 // renvoyés 402 par le backend → confusion. Maintenant l'entrée disparaît
 // silencieusement quand le tenant n'a pas la feature.
 const MENU: MenuItem[] = [
-  { icon: 'view-dashboard-outline',  label: 'Accueil',                route: 'Home' },
-  { icon: 'account-circle-outline',  label: 'Mon profil',             route: 'Profile' },
-  { icon: 'bell-outline',            label: 'Notifications',          route: 'Notifications' },
-  { icon: 'cog-outline',             label: 'Préférences notifications', route: 'NotificationPreferences' },
-  { icon: 'calendar-month-outline',  label: 'Mes congés',             route: 'LeaveRequest',         requires: 'leaveManagement' },
-  { icon: 'piggy-bank-outline',      label: 'Alimenter le CET',       route: 'AlimenterCet',         requires: 'leaveManagement' },
-  { icon: 'exit-run',                label: 'Autorisations sortie',   route: 'DemandeAutorisation',  requires: 'authorizationManagement' },
-  { icon: 'receipt',                 label: 'Notes de frais',         route: 'Expense',              requires: 'expenseReports' },
-  { icon: 'briefcase-outline',       label: 'Missions',               route: 'Missions',             requires: 'missions' },
-  { icon: 'history',                 label: 'Historique pointage',    route: 'PresenceHistory' },
-  { icon: 'calendar-clock-outline',  label: 'Mon planning',           route: 'Schedule' },
-  { icon: 'folder-lock',             label: 'Coffre-fort',            route: 'DigitalVault',         requires: 'digitalVault' },
-  { icon: 'cash-multiple',           label: 'Bulletins de paie',      route: 'DigitalVault',         requires: 'digitalVault' },
-  { icon: 'calendar-star',           label: 'Jours fériés',           route: 'Holidays' },
-  { icon: 'scale-balance',           label: 'Assistant juridique',    route: 'ChatRag',              requires: 'ragAi' },
-  { icon: 'view-dashboard',          label: 'Tableau de bord équipe', route: 'ManagerDashboard',     managerOnly: true, requires: 'advancedDashboards' },
-  { icon: 'calendar-check-outline',  label: 'Valider congés',         route: 'LeaveApproval',        managerOnly: true, requires: 'leaveManagement' },
-  { icon: 'exit-run',                label: 'Valider autorisations',  route: 'AuthorizationApproval',managerOnly: true, requires: 'authorizationManagement' },
-  { icon: 'receipt-text-check-outline', label: 'Valider notes de frais', route: 'ExpenseApproval',  managerOnly: true, requires: 'expenseReports' },
-  { icon: 'briefcase-check-outline', label: 'Valider missions',       route: 'MissionApproval',      managerOnly: true, requires: 'missions' },
-  { icon: 'account-group-outline',   label: 'Mes collaborateurs',     route: 'EmployeeList',         managerOnly: true },
-  { icon: 'calendar-today',          label: 'Pointage du jour',       route: 'DailyPointage',        managerOnly: true },
+  { icon: 'view-dashboard-outline',  labelKey: 'nav.home',             route: 'Home' },
+  { icon: 'account-circle-outline',  labelKey: 'nav.profile',          route: 'Profile' },
+  { icon: 'bell-outline',            labelKey: 'nav.notifications',    route: 'Notifications' },
+  { icon: 'cog-outline',             labelKey: 'nav.notifPrefs',       route: 'NotificationPreferences' },
+  { icon: 'calendar-month-outline',  labelKey: 'nav.leave',           route: 'LeaveRequest',         requires: 'leaveManagement' },
+  { icon: 'piggy-bank-outline',      labelKey: 'nav.cet',             route: 'AlimenterCet',         requires: 'leaveManagement' },
+  { icon: 'exit-run',                labelKey: 'nav.authorizations',  route: 'DemandeAutorisation',  requires: 'authorizationManagement' },
+  { icon: 'receipt',                 labelKey: 'nav.expenses',        route: 'Expense',              requires: 'expenseReports' },
+  { icon: 'briefcase-outline',       labelKey: 'nav.missions',        route: 'Missions',             requires: 'missions' },
+  { icon: 'history',                 labelKey: 'nav.history',         route: 'PresenceHistory' },
+  { icon: 'calendar-clock-outline',  labelKey: 'nav.schedule',        route: 'Schedule' },
+  { icon: 'folder-lock',             labelKey: 'nav.vault',           route: 'DigitalVault',         requires: 'digitalVault' },
+  { icon: 'cash-multiple',           labelKey: 'nav.payslips',        route: 'DigitalVault',         requires: 'digitalVault', vaultCategory: 'bulletin' },
+  { icon: 'calendar-star',           labelKey: 'nav.holidays',        route: 'Holidays' },
+  { icon: 'scale-balance',           labelKey: 'nav.legalAssistant',  route: 'ChatRag',              requires: 'ragAi' },
+  { icon: 'view-dashboard',          labelKey: 'nav.teamDashboard',   route: 'ManagerDashboard',     managerOnly: true, requires: 'advancedDashboards' },
+  { icon: 'calendar-check-outline',  labelKey: 'nav.validateLeave',   route: 'LeaveApproval',        managerOnly: true, requires: 'leaveManagement' },
+  { icon: 'exit-run',                labelKey: 'nav.validateAuth',    route: 'AuthorizationApproval',managerOnly: true, requires: 'authorizationManagement' },
+  { icon: 'receipt-text-check-outline', labelKey: 'nav.validateExpenses', route: 'ExpenseApproval', managerOnly: true, requires: 'expenseReports' },
+  { icon: 'briefcase-check-outline', labelKey: 'nav.validateMissions', route: 'MissionApproval',     managerOnly: true, requires: 'missions' },
+  { icon: 'account-group-outline',   labelKey: 'nav.myTeam',          route: 'EmployeeList',         managerOnly: true },
+  { icon: 'calendar-today',          labelKey: 'nav.dailyPointage',   route: 'DailyPointage',        managerOnly: true },
 ];
 
-const LOGOUT_ITEM: MenuItem = { icon: 'logout', label: 'Déconnexion', action: 'logout', color: COLORS.error };
+const LOGOUT_ITEM: MenuItem = { icon: 'logout', labelKey: 'nav.logout', action: 'logout', color: COLORS.error };
 
 /**
  * Drawer latéral activé par le burger menu (top-left). Liste l'ensemble des
@@ -64,22 +67,21 @@ const LOGOUT_ITEM: MenuItem = { icon: 'logout', label: 'Déconnexion', action: '
 export default function MainMenuDrawer({ visible, onClose, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { user, isAdmin, isManager, logout, planAllows } = useAuth();
+  const t = useT();
 
   const onItemPress = (item: MenuItem) => {
     onClose();
     if (item.action === 'logout') {
-      Alert.alert('🔐 Déconnexion', 'Voulez-vous vous déconnecter ?', [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Déconnexion', style: 'destructive', onPress: logout },
+      Alert.alert(`🔐 ${t('logout.title')}`, t('logout.confirm'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('nav.logout'), style: 'destructive', onPress: logout },
       ]);
       return;
     }
     if (item.route) {
       // setTimeout pour laisser le modal se fermer avant la navigation —
       // évite un flash visuel sur certains Android.
-      const params = item.route === 'DigitalVault' && item.label.toLowerCase().includes('bulletin')
-        ? { category: 'bulletin' }
-        : undefined;
+      const params = item.vaultCategory ? { category: item.vaultCategory } : undefined;
       setTimeout(() => navigation.navigate(item.route!, params), 80);
     }
   };
@@ -101,7 +103,7 @@ export default function MainMenuDrawer({ visible, onClose, navigation }: Props) 
               <Text style={styles.avatarText}>{initials}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.userName} numberOfLines={1}>{user?.utilib || 'Utilisateur'}</Text>
+              <Text style={styles.userName} numberOfLines={1}>{user?.utilib || t('common.user')}</Text>
               <Text style={styles.userEmail} numberOfLines={1}>{user?.uticod || ''}</Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -115,7 +117,7 @@ export default function MainMenuDrawer({ visible, onClose, navigation }: Props) 
                 <View style={styles.itemIconBox}>
                   <MaterialCommunityIcons name={it.icon as any} size={20} color={COLORS.primary} />
                 </View>
-                <Text style={styles.itemLabel}>{it.label}</Text>
+                <Text style={styles.itemLabel}>{t(it.labelKey)}</Text>
                 <MaterialCommunityIcons name="chevron-right" size={18} color={COLORS.outlineVariant} />
               </TouchableOpacity>
             ))}
@@ -126,7 +128,7 @@ export default function MainMenuDrawer({ visible, onClose, navigation }: Props) 
               <View style={[styles.itemIconBox, { backgroundColor: COLORS.errorContainer }]}>
                 <MaterialCommunityIcons name="logout" size={20} color={COLORS.error} />
               </View>
-              <Text style={[styles.itemLabel, { color: COLORS.error }]}>Déconnexion</Text>
+              <Text style={[styles.itemLabel, { color: COLORS.error }]}>{t('nav.logout')}</Text>
             </TouchableOpacity>
           </ScrollView>
         </TouchableOpacity>
