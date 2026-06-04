@@ -28,10 +28,17 @@ import 'material-symbols/outlined.css';
 import './index.css';
 import './i18n.js';
 
+// Google Analytics (chargé uniquement après consentement « audience »).
+import { initAnalytics } from './analytics/ga';
+
 
 async function bootstrap() {
   // Load config BEFORE rendering
   //await loadConfig();
+
+  // GA : pose les écouteurs de consentement et charge gtag si l'audience est déjà
+  // consentie. N'envoie aucun hit avant acceptation (cf. analytics/ga.ts).
+  initAnalytics();
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

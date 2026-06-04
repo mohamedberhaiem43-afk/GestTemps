@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import PageSeo from '../helper/PageSeo';
+import { trackEvent } from '../../analytics/ga';
 import './DownloadPage.css';
 
 // Page publique servie sous /download. Le domaine concordeworkly.com redirige
@@ -102,6 +104,10 @@ export default function DownloadPage() {
 
   return (
     <div className="dl-page">
+      <PageSeo
+        title="Télécharger Concorde Workly – App pointage mobile RH"
+        description="Téléchargez l'application Concorde Workly sur iOS et Android : pointage géolocalisé, gestion des congés et suivi des équipes terrain, où que vous soyez."
+      />
       <div className="dl-bg" />
 
       <header className="dl-header">
@@ -145,7 +151,7 @@ export default function DownloadPage() {
                     </span>
                   </div>
                 ) : apkInfo.available ? (
-                  <a className="dl-btn dl-btn-primary" href={apkInfo?.downloadUrl || APK_DIRECT_URL} download>
+                  <a className="dl-btn dl-btn-primary" href={apkInfo?.downloadUrl || APK_DIRECT_URL} download onClick={() => trackEvent('app_download_click', { platform: 'android', method: 'apk' })}>
                     <span className="dl-btn-icon">⬇</span>
                     <span className="dl-btn-content">
                       <span className="dl-btn-small">Télécharger l'APK</span>
@@ -162,7 +168,7 @@ export default function DownloadPage() {
                   // Aucun APK auto-hébergé : on sert le build officiel publié sur Expo.
                   // Lien externe (page Expo "Install") → target _blank, pas d'attribut
                   // download (c'est une page, pas un fichier direct).
-                  <a className="dl-btn dl-btn-primary" href={EXPO_BUILD_URL} target="_blank" rel="noreferrer">
+                  <a className="dl-btn dl-btn-primary" href={EXPO_BUILD_URL} target="_blank" rel="noreferrer" onClick={() => trackEvent('app_download_click', { platform: 'android', method: 'expo' })}>
                     <span className="dl-btn-icon">⬇</span>
                     <span className="dl-btn-content">
                       <span className="dl-btn-small">Télécharger l'app Android</span>
@@ -171,7 +177,7 @@ export default function DownloadPage() {
                     </span>
                   </a>
                 )}
-                <a className="dl-btn dl-btn-secondary" href={STORE_LINKS.android} target="_blank" rel="noreferrer">
+                <a className="dl-btn dl-btn-secondary" href={STORE_LINKS.android} target="_blank" rel="noreferrer" onClick={() => trackEvent('app_download_click', { platform: 'android', method: 'play_store' })}>
                   <span className="dl-btn-icon">▶</span>
                   <span className="dl-btn-content">
                     <span className="dl-btn-small">DISPONIBLE SUR</span>
@@ -194,7 +200,7 @@ export default function DownloadPage() {
 
             {os === 'ios' && (
               <>
-                <a className="dl-btn dl-btn-primary" href={STORE_LINKS.ios} target="_blank" rel="noreferrer">
+                <a className="dl-btn dl-btn-primary" href={STORE_LINKS.ios} target="_blank" rel="noreferrer" onClick={() => trackEvent('app_download_click', { platform: 'ios', method: 'app_store' })}>
                   <span className="dl-btn-icon"></span>
                   <span className="dl-btn-content">
                     <span className="dl-btn-small">Télécharger sur</span>
@@ -223,7 +229,7 @@ export default function DownloadPage() {
                     </span>
                   </div>
                 ) : apkInfo.available ? (
-                  <a className="dl-btn dl-btn-apk-inline" href={apkInfo?.downloadUrl || APK_DIRECT_URL} download>
+                  <a className="dl-btn dl-btn-apk-inline" href={apkInfo?.downloadUrl || APK_DIRECT_URL} download onClick={() => trackEvent('app_download_click', { platform: 'android', method: 'apk' })}>
                     <span className="dl-btn-icon">⬇</span>
                     <span className="dl-btn-content">
                       <span className="dl-btn-large">Télécharger l'APK Android directement</span>
@@ -231,7 +237,7 @@ export default function DownloadPage() {
                     </span>
                   </a>
                 ) : (
-                  <a className="dl-btn dl-btn-apk-inline" href={EXPO_BUILD_URL} target="_blank" rel="noreferrer">
+                  <a className="dl-btn dl-btn-apk-inline" href={EXPO_BUILD_URL} target="_blank" rel="noreferrer" onClick={() => trackEvent('app_download_click', { platform: 'android', method: 'expo' })}>
                     <span className="dl-btn-icon">⬇</span>
                     <span className="dl-btn-content">
                       <span className="dl-btn-large">Télécharger l'APK Android (Expo)</span>

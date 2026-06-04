@@ -5,6 +5,7 @@ import apiInstance from '../API/apiInstance';
 import { sendSupportMessage } from '../../services/ContactService';
 import { useAuth } from '../helper/AuthProvider';
 import { type PlanKey, type Cycle, type AddonKey } from './PlanPicker';
+import { trackEvent } from '../../analytics/ga';
 import './Signup.css';
 
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$/;
@@ -870,6 +871,8 @@ export default function SignupPage() {
       // Recharge le contexte d'auth maintenant que les cookies JWT du nouveau tenant sont posés
       // ET que tenantSlug est en localStorage : /me ira chercher l'admin dans la base du tenant.
       await refreshAuth();
+      // Conversion : inscription (création de compte tenant) réussie.
+      trackEvent('sign_up', { method: 'email', plan: pickerPlan, cycle: pickerCycle });
       // Notify internal contact that user accepted terms
       try {
         await sendSupportMessage({

@@ -7,6 +7,8 @@ import { useAuth } from '../helper/AuthProvider';
 import { openCookieConsent } from '../helper/CookieConsent';
 import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 import InlineAuthCard from './InlineAuthCard';
+import PageSeo from '../helper/PageSeo';
+import { trackEvent } from '../../analytics/ga';
 import './HomePage.css';   // styles de la carte d'auth réutilisés par la popup d'inscription
 import './HomePage2.css';  // nouveau design landing « Aperçu v2 » (scopé sous .hp2)
 
@@ -533,6 +535,8 @@ export default function HomePage() {
   //   • utilisateur connecté → on ouvre directement le Payment Link avec son slug.
   // Le cycle actif (mensuel / annuel) sélectionne le bon lien. Nouvel onglet.
   const goToCheckout = (pack: PaidPack) => {
+    // Conversion : clic « Essai gratuit » sur une carte payante (intention d'achat).
+    trackEvent('begin_checkout', { pack, cycle: billingCycle });
     const slug = (typeof window !== 'undefined' && window.localStorage.getItem('tenantSlug')) || '';
     if (!isAuthenticated || !slug) {
       goToSignup();
@@ -598,6 +602,10 @@ export default function HomePage() {
 
   return (
     <div className="hp2">
+      <PageSeo
+        title="Concorde Workforce – Logiciel RH & pointage pour PME"
+        description="Gérez la RH de votre PME avec Concorde Workforce : pointage, congés, contrats et plannings réunis dans une seule plateforme. Essai gratuit 1 mois, sans CB."
+      />
 
       {/* NAV */}
       <nav className="nav">

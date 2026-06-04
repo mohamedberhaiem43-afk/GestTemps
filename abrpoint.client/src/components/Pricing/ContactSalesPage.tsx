@@ -6,6 +6,8 @@ import './PricingPage.css';
 import { sendSalesRequest } from '../../services/ContactService';
 import { useAuth } from '../helper/AuthProvider';
 import apiInstance from '../API/apiInstance';
+import PageSeo from '../helper/PageSeo';
+import { trackEvent } from '../../analytics/ga';
 
 const ContactSalesPage: React.FC = () => {
   const { t } = useTranslation();
@@ -57,6 +59,8 @@ const ContactSalesPage: React.FC = () => {
         needs: needs.trim() || undefined,
       });
       setSubmitted(true);
+      // Conversion : demande de démo / contact commercial envoyée.
+      trackEvent('generate_lead', { form: 'contact-sales', headcount });
     } catch (err: any) {
       const msg = err?.response?.data?.error || "Échec de l'envoi. Réessayez plus tard.";
       setError(msg);
@@ -67,6 +71,10 @@ const ContactSalesPage: React.FC = () => {
 
   return (
     <div className="pricing-container min-h-screen bg-surface font-body selection:bg-primary-fixed">
+      <PageSeo
+        title="Demander une démo – Concorde Workforce | Logiciel RH"
+        description="Contactez l'équipe Concorde Workforce pour une démo gratuite de notre logiciel RH et découvrez comment digitaliser la gestion de votre PME. 1 mois offert."
+      />
       <nav className="w-full bg-white/60 backdrop-blur-xl sticky top-0 z-50 border-b border-surface-container">
         <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
           <button

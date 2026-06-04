@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../helper/AuthProvider';
+import PageSeo from '../helper/PageSeo';
 
 /**
  * Page « À propos » publique (route `/about`).
@@ -30,6 +31,10 @@ function AboutPage() {
 
   return (
     <div className="pricing-container min-h-screen bg-surface text-on-surface font-body">
+      <PageSeo
+        title="À propos | Concorde Tech Innovation – Logiciel RH PME"
+        description="Découvrez Concorde Tech Innovation, éditeur français de solutions RH pour PME : Concorde Workforce (plateforme web) et Workly (application mobile terrain)."
+      />
       {/* TopNavBar — variante simplifiée et cohérente avec PricingPage. */}
       <nav className="w-full top-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky z-50 border-b border-surface-container">
         <div className="flex justify-between items-center max-w-7xl mx-auto px-8 py-4">
