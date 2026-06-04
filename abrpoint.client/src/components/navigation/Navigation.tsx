@@ -109,6 +109,8 @@ const ContactPage = React.lazy(() => import('../Support/ContactPage'));
 // /cgu, /mentions-legales et /confidentialite redirigent désormais vers le PDF
 // officiel correspondant (cf. LegalPdfRedirect). Import non lazy : composant trivial.
 const LegalPdfRedirect = React.lazy(() => import('../Legal/LegalPdfRedirect'));
+// Suppression de compte — page publique (URL Google Play « Data deletion »).
+const AccountDeletionPage = React.lazy(() => import('../Legal/AccountDeletionPage'));
 const ServicesPage = React.lazy(() => import('../Services/ServicesPage'));
 
 /* ── Lucide icons ── */
@@ -685,6 +687,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/confidentialite': content = <LegalPdfRedirect to="/docs/politique-confidentialite.pdf" />; break;
     case '/mentions-legales': content = <LegalPdfRedirect to="/docs/mentions-legales.pdf" />; break;
     case '/cgu': content = <LegalPdfRedirect to="/docs/cgu.pdf" />; break;
+    case '/suppression-compte': content = <AccountDeletionPage />; break;
     default: content = <DashboardModernSync />;
   }
 
@@ -1056,7 +1059,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   const PUBLIC_PATHS = [
     '/', '/about', '/login', '/signup', '/verify-email',
     '/plan-configuration', '/payment', '/contact-sales', '/download',
-    '/confidentialite', '/cgu', '/mentions-legales',
+    '/confidentialite', '/cgu', '/mentions-legales', '/suppression-compte',
   ];
   const canonicalPathname = (pathname === '/dashboard' || pathname.startsWith('/dashboard/') || PUBLIC_PATHS.includes(pathname))
     ? pathname
@@ -1139,7 +1142,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // Track navigation to add tabs (cap MAX_OPEN_TABS, FIFO eviction).
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download') return;
+    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download' || pathname === '/suppression-compte') return;
     // Le dashboard est la page d'accueil par défaut, pas un onglet : on ne le
     // crée pas dans la barre d'onglets pour ne pas l'encombrer dès le login.
     if (canonicalPathname === '/dashboard' || pathname === '/dashboard') return;
@@ -1168,7 +1171,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
 
   // ── Recent Pages Tracking ──
   React.useEffect(() => {
-    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download' || canonicalPathname === '/dashboard') return;
+    if (pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download' || pathname === '/suppression-compte' || canonicalPathname === '/dashboard') return;
 
     const flatten = (items: NavGroup[]): any[] => items.flatMap(g => [g, ...(g.items || [])]);
     const navItems = flatten(NAVIGATION);
@@ -1253,7 +1256,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   ];
 
   // Pages publiques (rendues sans la barre latérale) : landing pricing + login.
-  const isPublicPage = pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download';
+  const isPublicPage = pathname === '/' || pathname === '/about' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download' || pathname === '/suppression-compte';
   const isProfilePage = canonicalPathname === '/dashboard/profil-employe';
 
   if (!authReady) {

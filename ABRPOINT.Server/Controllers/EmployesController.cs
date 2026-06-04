@@ -863,6 +863,19 @@ namespace ABRPOINT.Server.Controllers
                     employe.Natcod  = string.IsNullOrWhiteSpace(employe.Natcod)  ? null : employe.Natcod;
                     employe.Vilcod  = string.IsNullOrWhiteSpace(employe.Vilcod)  ? null : employe.Vilcod;
 
+                    // Scoping manager : un manager (non admin/RH) ne peut affecter QUE son
+                    // propre service au nouveau collaborateur. On FORCE le service côté
+                    // serveur quel que soit le sercod envoyé — couvre web, mobile et appel
+                    // API direct. GetManagerServiceCodeAsync renvoie null pour admin/RH
+                    // (aucune contrainte → ils choisissent librement).
+                    var callerUticod = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    if (!string.IsNullOrEmpty(callerUticod))
+                    {
+                        var managerService = await _employeRepository.GetManagerServiceCodeAsync(employe.Soccod, callerUticod);
+                        if (!string.IsNullOrEmpty(managerService))
+                            employe.Sercod = managerService;
+                    }
+
                     // Save plain CIN for user password before encrypting
                     var plainCin = employe.Empcin;
                     // Si l'admin n'a pas saisi de CIN, on bascule en mode « setup link » :
@@ -1209,6 +1222,17 @@ namespace ABRPOINT.Server.Controllers
             {
                 if (employe == null || employe.Empcod == null)
                     return BadRequest(new { message = "Employe object is null or does not match route parameters" });
+
+                // Scoping manager : un manager (non admin/RH) ne peut pas déplacer un
+                // collaborateur hors de SON service → on force le service au sien (même
+                // règle qu'à la création). null pour admin/RH = aucune contrainte.
+                var callerUticod = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(callerUticod))
+                {
+                    var managerService = await _employeRepository.GetManagerServiceCodeAsync(employe.Soccod, callerUticod);
+                    if (!string.IsNullOrEmpty(managerService))
+                        employe.Sercod = managerService;
+                }
 
                 // Unicité de l'email : on exclut l'employé courant pour autoriser un PUT
                 // qui ne change pas l'email (ou autre champ) sans déclencher un faux positif.

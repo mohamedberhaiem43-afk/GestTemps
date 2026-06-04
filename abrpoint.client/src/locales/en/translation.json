@@ -674,6 +674,7 @@
       "hourly": "Hourly",
       "branchSite": "Branch (Site)",
       "service": "Service",
+      "serviceManagerLocked": "Your service (assigned automatically)",
       "timeClass": "Time Class",
       "outOfRange": "(out of active range)",
       "calendar": "Calendar",

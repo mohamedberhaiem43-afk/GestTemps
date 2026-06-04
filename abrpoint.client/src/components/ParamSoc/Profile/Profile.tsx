@@ -35,7 +35,8 @@ function getInitials(nom: string | null, prn: string | null) {
 }
 
 function ProfilePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isFr = i18n.language !== 'en';
   const { uticod } = useAuth();
   const [userData, setUserData] = useState<User | null>(null);
   const [profileImage, setProfileImage] = useState<string>('');
@@ -195,6 +196,62 @@ function ProfilePage() {
       feedback.showError(err, t('paramSoc.profile.msg.twoFADisableError'));
     } finally {
       setTwoFALoading(false);
+    }
+  };
+
+  // ── Suppression de compte (RGPD / Google Play) — flux 2 étapes ────────────
+  const [delDialogOpen, setDelDialogOpen] = useState(false);
+  const [delLoading, setDelLoading] = useState(false);
+  const [delStep, setDelStep] = useState<'confirm' | 'code'>('confirm');
+  const [delCode, setDelCode] = useState('');
+  const [delEmail, setDelEmail] = useState('');
+
+  const openDeletionDialog = () => {
+    setDelStep('confirm');
+    setDelCode('');
+    setDelEmail('');
+    setDelDialogOpen(true);
+  };
+
+  // Étape 1 : envoi du code de confirmation par email à l'utilisateur.
+  const handleSendDeletionCode = async () => {
+    setDelLoading(true);
+    try {
+      const res = await apiInstance.post('/account/request-deletion', {});
+      setDelEmail(res?.data?.email ?? '');
+      setDelStep('code');
+    } catch (err) {
+      feedback.showError(
+        err,
+        isFr
+          ? "Échec de l'envoi du code. Écrivez à contact@concorde-tech.fr (objet : « Suppression de compte »)."
+          : 'Failed to send code. Email contact@concorde-tech.fr (subject: “Account deletion”).'
+      );
+    } finally {
+      setDelLoading(false);
+    }
+  };
+
+  // Étape 2 : confirmation avec le code reçu.
+  const handleConfirmDeletion = async () => {
+    if (delCode.trim().length < 4) {
+      feedback.showError(null, isFr ? 'Saisissez le code reçu par email.' : 'Enter the code received by email.');
+      return;
+    }
+    setDelLoading(true);
+    try {
+      const res = await apiInstance.post('/account/confirm-deletion', { code: delCode.trim() });
+      setDelDialogOpen(false);
+      setDelStep('confirm');
+      setDelCode('');
+      feedback.showSuccess(
+        res?.data?.message ??
+          (isFr ? 'Votre demande de suppression a été confirmée.' : 'Your deletion request has been confirmed.')
+      );
+    } catch (err) {
+      feedback.showError(err, isFr ? 'Code invalide ou expiré.' : 'Invalid or expired code.');
+    } finally {
+      setDelLoading(false);
     }
   };
 
@@ -476,6 +533,105 @@ function ProfilePage() {
       <div style={{ marginTop: 32 }}>
         <NotificationPreferences />
       </div>
+
+      {/* Zone de danger — suppression de compte (RGPD / Google Play « Data deletion »).
+          Déclenche une demande (cf. AccountController) ; détails sur /suppression-compte. */}
+      <div style={{ marginTop: 32, border: '1px solid #fecaca', background: '#fef2f2', borderRadius: 14, padding: '20px 24px' }}>
+        <h3 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 800, color: '#b91c1c' }}>
+          {isFr ? 'Supprimer mon compte' : 'Delete my account'}
+        </h3>
+        <p style={{ margin: '0 0 14px', color: '#7f1d1d', fontSize: 14, lineHeight: 1.6 }}>
+          {isFr
+            ? "Votre demande est transmise à notre support et à l'administrateur de votre entreprise. L'accès est suspendu et vos données personnelles supprimées / anonymisées sous 30 jours. Certaines données légales (paie, pointage, contrats) restent conservées si la loi l'exige."
+            : 'Your request is sent to our support and your company administrator. Access is suspended and your personal data deleted / anonymized within 30 days. Some legal data (payroll, attendance, contracts) is retained where required by law.'}{' '}
+          <a href="/suppression-compte" target="_blank" rel="noopener noreferrer" style={{ color: '#b91c1c', fontWeight: 600 }}>
+            {isFr ? 'En savoir plus' : 'Learn more'}
+          </a>
+        </p>
+        <button
+          type="button"
+          onClick={openDeletionDialog}
+          style={{ background: '#fff', color: '#dc2626', border: '1.5px solid #fca5a5', borderRadius: 10, padding: '10px 18px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+        >
+          {isFr ? 'Supprimer mon compte' : 'Delete my account'}
+        </button>
+      </div>
+
+      {/* Dialog suppression — 2 étapes (confirmation → code email) */}
+      {delDialogOpen && (
+        <div className="profile-pwd-overlay" onClick={() => !delLoading && setDelDialogOpen(false)}>
+          <div className="profile-pwd-dialog" onClick={(e) => e.stopPropagation()}>
+            {delStep === 'confirm' ? (
+              <>
+                <h3 className="profile-pwd-title" style={{ color: '#b91c1c' }}>
+                  {isFr ? 'Confirmer la suppression' : 'Confirm deletion'}
+                </h3>
+                <p style={{ color: '#475569', fontSize: 14, lineHeight: 1.6, margin: '0 0 20px' }}>
+                  {isFr
+                    ? 'Un code de confirmation va être envoyé à votre adresse email. Après saisie du code, votre demande de suppression sera transmise. Continuer ?'
+                    : 'A confirmation code will be sent to your email address. After entering the code, your deletion request will be sent. Continue?'}
+                </p>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => setDelDialogOpen(false)}
+                    disabled={delLoading}
+                    style={{ background: '#f1f5f9', color: '#334155', border: 'none', borderRadius: 10, padding: '10px 18px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+                  >
+                    {isFr ? 'Annuler' : 'Cancel'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSendDeletionCode}
+                    disabled={delLoading}
+                    style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontWeight: 700, fontSize: 14, cursor: delLoading ? 'wait' : 'pointer', opacity: delLoading ? 0.7 : 1 }}
+                  >
+                    {delLoading ? (isFr ? 'Envoi…' : 'Sending…') : (isFr ? 'Envoyer le code' : 'Send code')}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="profile-pwd-title" style={{ color: '#b91c1c' }}>
+                  {isFr ? 'Saisir le code' : 'Enter the code'}
+                </h3>
+                <p style={{ color: '#475569', fontSize: 14, lineHeight: 1.6, margin: '0 0 16px' }}>
+                  {isFr
+                    ? `Saisissez le code à 6 chiffres envoyé à ${delEmail || 'votre adresse email'}.`
+                    : `Enter the 6-digit code sent to ${delEmail || 'your email address'}.`}
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={delCode}
+                  onChange={(e) => setDelCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="------"
+                  style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #fca5a5', borderRadius: 10, padding: '12px 14px', fontSize: 22, letterSpacing: 8, textAlign: 'center', marginBottom: 18 }}
+                />
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'space-between', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={handleSendDeletionCode}
+                    disabled={delLoading}
+                    style={{ background: 'transparent', color: '#0040a1', border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+                  >
+                    {isFr ? 'Renvoyer un code' : 'Resend code'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmDeletion}
+                    disabled={delLoading}
+                    style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontWeight: 700, fontSize: 14, cursor: delLoading ? 'wait' : 'pointer', opacity: delLoading ? 0.7 : 1 }}
+                  >
+                    {delLoading ? (isFr ? 'Confirmation…' : 'Confirming…') : (isFr ? 'Confirmer la suppression' : 'Confirm deletion')}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Password Dialog */}
       {pwdDialogOpen && (

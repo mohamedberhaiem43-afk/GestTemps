@@ -724,6 +724,19 @@ class ApiService {
     return response.data;
   }
 
+  // Suppression de compte (RGPD / Google Play) — flux en 2 étapes.
+  // Étape 1 : envoie un code de confirmation par email à l'utilisateur.
+  async requestAccountDeletion() {
+    const response = await this.client.post('/account/request-deletion', {});
+    return response.data as { message: string; email: string; ttlMinutes: number };
+  }
+
+  // Étape 2 : confirme avec le code reçu → notifie support + admin (demande effective).
+  async confirmAccountDeletion(code: string, reason?: string) {
+    const response = await this.client.post('/account/confirm-deletion', { code, reason });
+    return response.data as { message: string; supportEmail: string };
+  }
+
   async uploadProfileImage(fileUri: string, uticod: string) {
     const formData = new FormData();
     const filename = fileUri.split('/').pop() || 'photo.jpg';

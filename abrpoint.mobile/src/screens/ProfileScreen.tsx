@@ -59,6 +59,11 @@ export default function ProfileScreen({ navigation, route }: any) {
   const [pwdModal, setPwdModal] = useState(false);
   const [pwdForm, setPwdForm] = useState({ current: '', next: '', confirm: '' });
   const [savingPwd, setSavingPwd] = useState(false);
+  // Suppression de compte (flux 2 étapes : demande → code email → confirmation).
+  const [delModal, setDelModal] = useState(false);
+  const [delCode, setDelCode] = useState('');
+  const [delEmail, setDelEmail] = useState('');
+  const [delLoading, setDelLoading] = useState(false);
   // 2FA : 'idle' (rien), 'qr' (QR + champ code de vérif), 'verifying'.
   const [twoFAState, setTwoFAState] = useState<'idle' | 'qr' | 'verifying' | 'disabling'>('idle');
   const [twoFAQr, setTwoFAQr] = useState<{ qrCodeBase64: string; manualEntryKey: string } | null>(null);
@@ -103,6 +108,58 @@ export default function ProfileScreen({ navigation, route }: any) {
       { text: 'Annuler', style: 'cancel' },
       { text: 'Déconnexion', style: 'destructive', onPress: logout },
     ]);
+  };
+
+  // Suppression de compte (RGPD / Google Play) — flux sécurisé en 2 étapes.
+  // Étape 1 : confirmation, puis envoi d'un code par email à l'utilisateur.
+  const handleRequestDeletion = () => {
+    Alert.alert(
+      'Supprimer mon compte',
+      "Un code de confirmation va être envoyé à votre adresse email. " +
+        "Après confirmation, votre demande sera transmise au support et à l'administrateur de " +
+        "votre entreprise ; l'accès sera suspendu et vos données personnelles supprimées / " +
+        "anonymisées sous 30 jours (certaines données restent conservées si la loi l'exige : " +
+        "paie, pointage, contrats).\n\nEnvoyer le code de confirmation ?",
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Envoyer le code',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await apiService.requestAccountDeletion();
+              setDelEmail(res?.email ?? '');
+              setDelCode('');
+              setDelModal(true);
+            } catch (e: any) {
+              const msg = e?.response?.data?.message
+                ?? "Échec de l'envoi. Merci d'écrire à contact@concorde-tech.fr (objet : « Suppression de compte »).";
+              Alert.alert('Erreur', msg);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Étape 2 : l'utilisateur saisit le code reçu → confirmation effective.
+  const handleConfirmDeletion = async () => {
+    if (delCode.trim().length < 4) {
+      Alert.alert('Code requis', 'Saisissez le code reçu par email.');
+      return;
+    }
+    setDelLoading(true);
+    try {
+      const res = await apiService.confirmAccountDeletion(delCode.trim());
+      setDelModal(false);
+      setDelCode('');
+      Alert.alert('Demande confirmée', res?.message ?? 'Votre demande de suppression a été confirmée.');
+    } catch (e: any) {
+      const msg = e?.response?.data?.message ?? 'Code invalide ou expiré.';
+      Alert.alert('Erreur', msg);
+    } finally {
+      setDelLoading(false);
+    }
   };
 
   // Upload réel après sélection. Le fichier est compressé à 0.8 par expo-image-picker
@@ -684,7 +741,19 @@ export default function ProfileScreen({ navigation, route }: any) {
           <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/docs/cgu.pdf')}>
             <Text style={styles.legalLink}>CGU</Text>
           </TouchableOpacity>
+          <Text style={styles.legalSep}>·</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/suppression-compte')}>
+            <Text style={styles.legalLink}>Suppression de compte</Text>
+          </TouchableOpacity>
         </View>
+
+        {/* Suppression de compte — exigence Google Play « Data deletion » + RGPD.
+            Déclenche une demande (cf. AccountController), accès suspendu, données
+            anonymisées/supprimées sous 30 j. */}
+        <TouchableOpacity style={styles.deleteAccountButton} onPress={handleRequestDeletion} activeOpacity={0.7}>
+          <MaterialCommunityIcons name="account-remove-outline" size={20} color="#dc2626" />
+          <Text style={styles.deleteAccountText}>Supprimer mon compte</Text>
+        </TouchableOpacity>
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -706,6 +775,46 @@ export default function ProfileScreen({ navigation, route }: any) {
           Sur la vue collaborateur (admin/manager), seule la flèche "Retour" sert
           à sortir de l'écran. */}
       {isOwnProfile && <BottomTabBar active="profile" navigation={navigation} />}
+
+      {/* ── Modal "Suppression de compte — saisie du code" ── */}
+      <Modal visible={delModal} transparent animationType="slide" statusBarTranslucent onRequestClose={() => !delLoading && setDelModal(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.contactModalOverlay}>
+          <View style={[styles.contactModalCard, { paddingBottom: modalCardPaddingBottom }]}>
+            <View style={styles.contactModalHeader}>
+              <Text style={[styles.contactModalTitle, { color: '#dc2626' }]}>Confirmer la suppression</Text>
+              <TouchableOpacity onPress={() => !delLoading && setDelModal(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <MaterialCommunityIcons name="close" size={24} color={COLORS.outline} />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ color: '#475569', fontSize: 14, lineHeight: 20, marginBottom: 16 }}>
+              {delEmail
+                ? `Saisissez le code à 6 chiffres envoyé à ${delEmail}.`
+                : 'Saisissez le code à 6 chiffres reçu par email.'}
+            </Text>
+            <TextInput
+              value={delCode}
+              onChangeText={setDelCode}
+              placeholder="------"
+              keyboardType="number-pad"
+              maxLength={6}
+              style={{ borderWidth: 1.5, borderColor: '#fca5a5', borderRadius: 12, paddingVertical: 14, paddingHorizontal: 16, fontSize: 22, letterSpacing: 8, textAlign: 'center', color: '#0f172a', marginBottom: 18 }}
+            />
+            <TouchableOpacity
+              style={{ height: 50, borderRadius: 14, backgroundColor: '#dc2626', alignItems: 'center', justifyContent: 'center', opacity: delLoading ? 0.7 : 1 }}
+              onPress={handleConfirmDeletion}
+              disabled={delLoading}
+              activeOpacity={0.8}
+            >
+              {delLoading
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Confirmer la suppression</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleRequestDeletion} disabled={delLoading} style={{ marginTop: 14, alignItems: 'center' }}>
+              <Text style={{ color: COLORS.primary, fontSize: 13, fontWeight: '600' }}>Renvoyer un code</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* ── Modal "Changer le mot de passe" ── */}
       <Modal visible={pwdModal} transparent animationType="slide" statusBarTranslucent onRequestClose={() => setPwdModal(false)}>
@@ -1114,6 +1223,8 @@ const styles = StyleSheet.create({
   legalLinks: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16, marginBottom: 4 },
   legalLink: { fontSize: 12, color: COLORS.outline, textDecorationLine: 'underline' },
   legalSep: { fontSize: 12, color: COLORS.outline },
+  deleteAccountButton: { marginTop: 16, height: 48, borderRadius: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, borderWidth: 1.5, borderColor: '#fecaca', backgroundColor: '#fef2f2' },
+  deleteAccountText: { fontSize: 14, fontWeight: '700', color: '#dc2626' },
   logoutButton: { marginTop: 8 },
   logoutGradient: { height: 56, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 4 },
   prefRow: {

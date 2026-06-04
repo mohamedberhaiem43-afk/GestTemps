@@ -337,8 +337,15 @@ namespace ABRPOINT.Server.Controllers
             // de Premium-pour-tous (cohérent avec la web app).
             var tenant = _currentTenant?.Current;
             var planCode = Tenancy.PlanCatalog.Normalize(tenant?.PlanCode);
-            var planDef = Tenancy.PlanCatalog.GetPlan(planCode);
-            var effectiveFeatures = planDef?.Features;
+            // Features EFFECTIVES = plan de base + add-ons. Cohérent avec la web /me et
+            // avec l'attribut [RequirePlanFeature] (qui renvoie 402 sur la même base).
+            // ⚠ Avant : on lisait planDef.Features (plan de base SEUL → add-ons ignorés)
+            // et on ne sérialisait que ~18 des 27 flags → les flags manquants arrivaient
+            // `undefined` côté mobile → Boolean(undefined)=false → fonctionnalités masquées
+            // pour TOUS les plans (ex. Notes de frais). On renvoie désormais le record
+            // complet (tous les flags, camelCase) ; GetEffectiveFeatures ne renvoie jamais
+            // null (repli Starter), donc le mobile applique le bon niveau même en legacy.
+            var effectiveFeatures = Tenancy.PlanCatalog.GetEffectiveFeatures(planCode, tenant?.Addons);
 
             return Ok(new
             {
@@ -357,28 +364,7 @@ namespace ABRPOINT.Server.Controllers
                 socimg,
                 sitcods,
                 planCode,
-                planFeatures = effectiveFeatures is null ? null : new
-                {
-                    mobileApp = effectiveFeatures.MobileApp,
-                    geolocation = effectiveFeatures.Geolocation,
-                    digitalVault = effectiveFeatures.DigitalVault,
-                    electronicSignature = effectiveFeatures.ElectronicSignature,
-                    multiSite = effectiveFeatures.MultiSite,
-                    multiSociete = effectiveFeatures.MultiSociete,
-                    advancedDashboards = effectiveFeatures.AdvancedDashboards,
-                    ragAi = effectiveFeatures.RagAi,
-                    advancedAuditLogs = effectiveFeatures.AdvancedAuditLogs,
-                    customBranding = effectiveFeatures.CustomBranding,
-                    deviceTrustEnforced = effectiveFeatures.DeviceTrustEnforced,
-                    screenshotProtection = effectiveFeatures.ScreenshotProtection,
-                    certificatePinning = effectiveFeatures.CertificatePinning,
-                    missions = effectiveFeatures.Missions,
-                    compensationDays = effectiveFeatures.CompensationDays,
-                    generalLeave = effectiveFeatures.GeneralLeave,
-                    generalExit = effectiveFeatures.GeneralExit,
-                    leaveManagement = effectiveFeatures.LeaveManagement,
-                    authorizationManagement = effectiveFeatures.AuthorizationManagement,
-                }
+                planFeatures = effectiveFeatures,
             });
         }
 

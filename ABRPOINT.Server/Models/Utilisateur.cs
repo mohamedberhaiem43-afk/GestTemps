@@ -112,4 +112,18 @@ public partial class Utilisateur : BaseEntity
 
     [Column("uti_sign_otp_attempts")]
     public int? UtiSignOtpAttempts { get; set; }
+
+    // ── OTP de suppression de compte (RGPD / Google Play « Data deletion ») ──
+    // Code 6 chiffres BCrypt-hashé envoyé par email à l'utilisateur pour confirmer sa
+    // demande de suppression. Stockage dédié (n'écrase pas le reset password ni la
+    // vérif email). Expiry court + anti-bruteforce. Cf. AccountController.
+    [Column("uti_del_otp_code")]
+    [StringLength(72)]
+    public string? UtiDelOtpCode { get; set; }
+
+    [Column("uti_del_otp_expiry")]
+    public DateTime? UtiDelOtpExpiry { get; set; }
+
+    [Column("uti_del_otp_attempts")]
+    public int? UtiDelOtpAttempts { get; set; }
 }

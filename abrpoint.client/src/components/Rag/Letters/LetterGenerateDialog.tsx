@@ -12,7 +12,6 @@ import {
   RadioGroup,
   Radio,
   Stack,
-  Switch,
   TextField,
   Typography,
 } from '@mui/material';
@@ -96,18 +95,7 @@ export default function LetterGenerateDialog({ open, template, onClose }: Props)
             )}
           />
 
-          <FormControlLabel
-            control={
-              <Switch checked={polish} onChange={(_, v) => setPolish(v)} />
-            }
-            label={t('rag.letters.polishWithAi')}
-          />
-          {polish && (
-            <Typography variant="caption" color="text.secondary">
-              {t('rag.letters.polishHint')}
-            </Typography>
-          )}
-
+        
           <RadioGroup
             row
             value={format}

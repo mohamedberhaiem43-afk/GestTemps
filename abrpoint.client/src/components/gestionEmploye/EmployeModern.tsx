@@ -380,7 +380,12 @@ function CountrySelect({ value, onChange }: { value: string; onChange: (cca3: st
 // ── Inner component ───────────────────────────────────────────────────────────
 const EmployeModernInner = () => {
     const { t } = useTranslation();
-    const { soccod, sitcod, uticod, hasPermission, planAllows } = useAuth();
+    const { soccod, sitcod, uticod, hasPermission, planAllows, isManager, isAdmin, roleName, sercod: mySercod } = useAuth();
+    // Scoping manager : un manager (non admin/RH) ne gère QUE son propre service.
+    // On restreint le champ SERVICE à son service (lecture seule) et on le pré-affecte
+    // au nouveau collaborateur. Le backend force aussi le service au POST (autorité).
+    // On ne restreint que si l'appelant a réellement un service propre (mySercod).
+    const restrictToOwnService = !!isManager && !isAdmin && roleName !== 'ResponsableRH' && !!mySercod;
     // Plan gating : le scan IA de pièces d'identité est réservé Standard+. Sur Starter
     // le bouton est masqué et le modal n'est pas monté (cf. controllers backend
     // RequirePlanFeature(DocumentScanOcr) qui bloque aussi l'API).
@@ -444,6 +449,14 @@ const EmployeModernInner = () => {
         apiInstance.get(`/Calendriers`)
             .then(r => setCalendrierLibs(r.data ?? [])).catch(() => { });
     }, [soccod]);
+
+    // Manager : on (pré)affecte systématiquement SON service au collaborateur édité —
+    // il ne peut pas en choisir un autre (champ en lecture seule + force backend).
+    useEffect(() => {
+        if (restrictToOwnService && mySercod && formData.sercod !== mySercod) {
+            setFormData(p => ({ ...p, sercod: mySercod }));
+        }
+    }, [restrictToOwnService, mySercod, formData.sercod]);
 
     const toMap = (raw: any): Record<string, string> => {
         if (!raw || typeof raw !== 'object') return {};
@@ -1459,9 +1472,17 @@ const EmployeModernInner = () => {
                                             </Box>
                                             <Box>
                                                 <Typography sx={labelStyle}>{t('employe.field.service')}</Typography>
-                                                <SelectWithAdd value={formData.sercod || ''}
-                                                    onChange={v => setFormData(p => ({ ...p, sercod: v }))}
-                                                    options={serviceLibs} onAdd={handleAddService} addTitle={t('employe.addTitle.service')} />
+                                                {restrictToOwnService ? (
+                                                    // Manager : service forcé à son propre service, non modifiable.
+                                                    <TextField size="small" fullWidth
+                                                        value={serviceLibs[mySercod || ''] || mySercod || ''}
+                                                        InputProps={{ readOnly: true }}
+                                                        helperText={t('employe.field.serviceManagerLocked')} />
+                                                ) : (
+                                                    <SelectWithAdd value={formData.sercod || ''}
+                                                        onChange={v => setFormData(p => ({ ...p, sercod: v }))}
+                                                        options={serviceLibs} onAdd={handleAddService} addTitle={t('employe.addTitle.service')} />
+                                                )}
                                             </Box>
                                             <Box>
                                                 <Typography sx={labelStyle}>{t('employe.field.timeClass')}</Typography>

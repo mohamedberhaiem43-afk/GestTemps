@@ -1,0 +1,57 @@
+# =============================================================================
+# EAS Build archive TOUT le dépôt git depuis sa racine (cf. expo.fyi/eas-build-archive).
+# Or abrpoint.mobile est un sous-dossier d'un monorepo (backend .NET + web React +
+# docs + une vidéo de 39 Mo…). Sans ce fichier, EAS uploadait ≈ 201 Mo → l'upload
+# échouait (ECONNRESET). On n'embarque ici QUE l'app mobile.
+#
+# ⚠ Important : dès qu'un .easignore existe, EAS l'utilise À LA PLACE de .gitignore.
+# Il faut donc aussi ré-exclure node_modules / bin / obj qui étaient gitignorés.
+# =============================================================================
+
+# --- Autres projets du monorepo (inutiles au build mobile) ---
+/ABRPOINT.Server/
+/ABRPOINT.Server.Tests/
+/ABRPOINT.Server.Benchmarks/
+/abrpoint.client/
+
+# --- Dossiers racine sans rapport avec le build mobile ---
+/docs/
+/postgres-backup/
+/services/
+/scripts/
+/bin/
+/obj/
+/.vs/
+/.vscode/
+/.github/
+
+# --- Fichiers racine : rapports, maquettes, dumps, images, infra, SECRETS… ---
+/*.md
+/*.pdf
+/*.html
+/*.txt
+/*.log
+/*.jpg
+/*.svg
+/*.js
+/*.sln
+/*.json
+/*.dcproj
+/.env*
+/.trivyignore
+/.gitattributes
+/Dockerfile*
+/docker-compose*
+/nginx.conf
+
+# --- node_modules partout (sinon ré-inclus car .easignore remplace .gitignore) ---
+**/node_modules/
+
+# --- Artefacts mobiles régénérés par `expo prebuild --clean` côté EAS ---
+/abrpoint.mobile/android/
+/abrpoint.mobile/ios/
+/abrpoint.mobile/.expo/
+/abrpoint.mobile/dist/
+**/*.aab
+**/*.apk
+**/*.ipa

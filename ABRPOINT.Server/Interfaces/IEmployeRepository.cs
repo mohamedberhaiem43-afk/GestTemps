@@ -8,6 +8,8 @@ namespace ABRPOINT.Server.Interfaces
 
         Task AddAsync(Employe employe);
         Task<Employe> GetByEmpcod(string soccod, string empcod);
+        /// <summary>Service (Sercod) du manager appelant ; null pour admin/RH (= pas de scoping).</summary>
+        Task<string?> GetManagerServiceCodeAsync(string soccod, string uticod);
         Task<Dictionary<string, string>> GetEmpLibs(string soccod, string uticod, string? sitcod = null, string? sercod = null, string? dircod = null, string? empreg = null);
         Task<Dictionary<string, string>> GetFemmeLibs(string soccod, string uticod);
         Task<Dictionary<string?, EmployeStat>> GetStatistics(string soccod, string? uticod = null);

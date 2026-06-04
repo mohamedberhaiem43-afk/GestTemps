@@ -215,6 +215,14 @@ public static class BaseDataSchemaMigrator
         await AddColumnIfMissingAsync(db, "utilisateur", "uti_sign_otp_expiry", "TIMESTAMP NULL", ct);
         await AddColumnIfMissingAsync(db, "utilisateur", "uti_sign_otp_attempts", "INTEGER NULL", ct);
 
+        // OTP de suppression de compte (RGPD / Google Play « Data deletion ») : un code
+        // 6 chiffres est envoyé par email à l'utilisateur qui demande la suppression ; il
+        // doit le saisir pour confirmer (preuve qu'il maîtrise bien l'adresse). Stockage
+        // dédié BCrypt-hashé, expiry court, anti-bruteforce. Cf. AccountController.
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_del_otp_code", "VARCHAR(72) NULL", ct);
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_del_otp_expiry", "TIMESTAMP NULL", ct);
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_del_otp_attempts", "INTEGER NULL", ct);
+
         // AuditLog : capture de l'IP cliente à l'origine de l'action. 45 chars suffisent
         // pour un IPv6 complet (39) + suffixe scope éventuel. NULL pour les actions issues
         // d'un hosted service ou d'une migration design-time sans HttpContext.

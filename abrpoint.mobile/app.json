@@ -21,7 +21,6 @@
       },
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.VIBRATE",
         "android.permission.WAKE_LOCK"
@@ -36,7 +35,6 @@
         "NSCameraUsageDescription": "Concorde Workly accède à l'appareil photo pour vous permettre de photographier vos justificatifs de notes de frais et votre signature.",
         "NSPhotoLibraryUsageDescription": "Concorde Workly accède à vos photos pour vous permettre d'attacher des justificatifs à vos demandes (frais, autorisations, missions).",
         "NSPhotoLibraryAddUsageDescription": "Concorde Workly peut enregistrer une copie locale de vos signatures et bulletins téléchargés.",
-        "NSMicrophoneUsageDescription": "Concorde Workly demande l'accès au microphone uniquement si vous enregistrez une note audio dans un justificatif.",
         "ITSAppUsesNonExemptEncryption": false,
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
@@ -87,7 +85,12 @@
       }
     },
     "plugins": [
-      "expo-camera",
+      [
+        "expo-camera",
+        {
+          "recordAudioAndroid": false
+        }
+      ],
       "expo-image-picker",
       [
         "expo-notifications",

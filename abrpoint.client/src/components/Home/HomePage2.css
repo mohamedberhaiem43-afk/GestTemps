@@ -38,6 +38,9 @@
 .hp2 .nav-mobile-toggle.is-open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
 .hp2 .nav-mobile-menu{display:none;flex-direction:column;gap:4px;padding:12px 24px 18px;background:rgba(247,249,251,.98);border-bottom:1px solid var(--outline-v);position:sticky;top:72px;z-index:99;}
 .hp2 .nav-mobile-menu a{padding:12px 8px;color:var(--on);text-decoration:none;font-size:15px;font-weight:600;border-bottom:1px solid var(--surface-low);cursor:pointer;}
+/* Actions auth déplacées dans le menu hamburger sur mobile (sinon elles débordent la barre). */
+.hp2 .nav-mobile-actions{display:flex;flex-direction:column;gap:10px;padding-top:14px;}
+.hp2 .nav-mobile-actions .btn-ghost,.hp2 .nav-mobile-actions .btn-primary{width:100%;justify-content:center;padding:13px 20px;font-size:15px;}
 
 /* HERO SPLIT */
 .hp2 .hero{min-height:88vh;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;padding:100px 80px 60px;background:linear-gradient(180deg,#f7f9fb,#eff4ff);}
@@ -265,6 +268,9 @@
 .hp2 .footer-bottom-links a:hover{color:rgba(255,255,255,.75);}
 
 /* ─── RESPONSIVE ─── */
+/* Garde-fou global : aucune section ne doit provoquer de scroll horizontal sur mobile.
+   `clip` (et non `hidden`) pour NE PAS casser les position:sticky (nav + en-tête comparatif). */
+.hp2{max-width:100%;overflow-x:clip;}
 @media (max-width:1024px){
   .hp2 .pricing-grid{grid-template-columns:repeat(2,1fr);}
   .hp2 .price-card:nth-child(4){grid-column:1 / -1;}
@@ -272,29 +278,46 @@
 @media (max-width:900px){
   .hp2 .nav{padding:0 20px;}
   .hp2 .nav-links{display:none;}
+  /* Les boutons auth desktop sont déplacés dans le menu hamburger → on les masque ici. */
+  .hp2 .nav-right > .btn-ghost,.hp2 .nav-right > .btn-primary{display:none;}
   .hp2 .nav-mobile-toggle{display:flex;}
   .hp2 .nav-mobile-menu{display:flex;}
   .hp2 .hero{grid-template-columns:1fr;gap:36px;padding:64px 24px 48px;min-height:auto;}
+  .hp2 .hero h1,.hp2 .hero p{max-width:100%;}
   .hp2 .how{padding:64px 24px;}
   .hp2 .how-layout{grid-template-columns:1fr;gap:40px;}
   .hp2 .pricing,.hp2 .comp,.hp2 .contact{padding:64px 24px;}
   .hp2 .download{padding:48px 24px;}
   .hp2 .info-box,.hp2 .services{padding:48px 24px;}
+  .hp2 .info-box{margin:40px 16px;}
   .hp2 .contact-inner{grid-template-columns:1fr;gap:40px;}
   .hp2 .footer{padding:56px 24px 28px;}
   .hp2 .footer-grid{grid-template-columns:1fr;gap:36px;}
   .hp2 .promo-cta-section{padding:64px 24px;}
+  /* Promo : la rangée titre + compte à rebours passe en colonne, le compte à rebours plein largeur. */
+  .hp2 .promo{padding:0 16px 48px;}
+  .hp2 .promo-row{flex-direction:column;gap:20px;}
+  .hp2 .countdown{width:100%;}
 }
 @media (max-width:640px){
   .hp2 .pricing-grid{grid-template-columns:1fr;}
+  .hp2 .price-card:nth-child(4){grid-column:auto;}
   .hp2 .avantages{grid-template-columns:1fr 1fr;}
   .hp2 .stats{grid-template-columns:1fr 1fr;}
   .hp2 .stat:nth-child(2n){border-right:none;}
-  .hp2 .promo-inner{padding:56px 22px 28px;}
+  /* Pastille promo : ne plus déborder — repli en flux normal, texte plus compact. */
+  .hp2 .promo-inner{padding:30px 18px 28px;}
+  .hp2 .promo-pill{position:static;transform:none;display:block;width:fit-content;max-width:100%;margin:0 auto 18px;white-space:normal;text-align:center;font-size:11px;letter-spacing:.1em;line-height:1.4;}
+  .hp2 .hero-video-box{height:240px;}
   .hp2 .form-row{grid-template-columns:1fr;}
   .hp2 .footer-bottom{flex-direction:column;align-items:flex-start;}
+  .hp2 .footer-bottom-links{flex-wrap:wrap;gap:14px;}
+  .hp2 .promo-trust{gap:14px;font-size:12px;}
 }
 @media (max-width:420px){
   .hp2 .avantages{grid-template-columns:1fr;}
   .hp2 .promo-cta{min-width:0;width:100%;padding:16px 20px;font-size:15px;}
+  .hp2 .countdown-grid{gap:2px;}
+  .hp2 .cu{min-width:38px;}
+  .hp2 .cn{font-size:26px;}
 }

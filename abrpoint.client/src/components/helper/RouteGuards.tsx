@@ -93,6 +93,9 @@ export const PUBLIC_PATHS = new Set<string>([
   '/confidentialite',
   '/mentions-legales',
   '/cgu',
+  // Suppression de compte : OBLIGATOIREMENT publique — URL déclarée dans Google Play
+  // Console (« URL de suppression de compte »), vérifiée anonymement par les reviewers.
+  '/suppression-compte',
   '/verify-email',
 ]);
 

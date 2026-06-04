@@ -633,6 +633,10 @@ export default function HomePage() {
           <a role="menuitem" onClick={() => scrollToId('comp')}>{d.navComp}</a>
           <a role="menuitem" onClick={() => scrollToId('download')}>{d.navDownload}</a>
           <a role="menuitem" onClick={() => scrollToId('contact')}>{d.navContact}</a>
+          <div className="nav-mobile-actions">
+            <button type="button" className="btn-ghost" onClick={() => { setMobileMenuOpen(false); goToLogin(); }}>{d.login}</button>
+            <button type="button" className="btn-primary" onClick={() => { setMobileMenuOpen(false); goToSignup(); }}>{d.signup} <span>→</span></button>
+          </div>
         </div>
       )}
 

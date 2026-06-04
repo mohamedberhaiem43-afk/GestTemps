@@ -2279,7 +2279,7 @@ namespace ABRPOINT.Server.Repository
                 || ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(user.Utirole);
         }
 
-        private async Task<string?> GetManagerServiceCodeAsync(string soccod, string uticod)
+        public async Task<string?> GetManagerServiceCodeAsync(string soccod, string uticod)
         {
             var user = await _dbContext.Utilisateurs.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Uticod == uticod);

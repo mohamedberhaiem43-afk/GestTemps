@@ -3,7 +3,7 @@ import {
   Box, Typography, Paper, Button, TextField, MenuItem,
   FormControl, Select, Snackbar, Alert, CircularProgress,
   Avatar, IconButton, Divider, Dialog, DialogTitle,
-  DialogContent, DialogActions,
+  DialogContent, DialogActions, Checkbox,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CheckIcon from '@mui/icons-material/Check';
@@ -682,7 +682,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
           </Box>
           <Box sx={{ pb: 0.5 }}>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.amHalf')}</Typography>
-            <input type="checkbox" checked={conamdep} onChange={(e) => setConamdep(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0040a1', cursor: 'pointer' }} />
+            <Checkbox checked={conamdep} onChange={(e) => setConamdep(e.target.checked)} sx={{ p: 0, color: '#64748b', '&.Mui-checked': { color: '#0040a1' }, '& .MuiSvgIcon-root': { fontSize: 28 } }} />
           </Box>
           <Box>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.returnDate')}</Typography>
@@ -690,7 +690,7 @@ function CongeFormDialog({ open, onClose, editConge, onSuccess }: { open: boolea
           </Box>
           <Box sx={{ pb: 0.5 }}>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.amHalf')}</Typography>
-            <input type="checkbox" checked={conamret} onChange={(e) => setConamret(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#0040a1', cursor: 'pointer' }} />
+            <Checkbox checked={conamret} onChange={(e) => setConamret(e.target.checked)} sx={{ p: 0, color: '#64748b', '&.Mui-checked': { color: '#0040a1' }, '& .MuiSvgIcon-root': { fontSize: 28 } }} />
           </Box>
           <Box sx={{ gridColumn: { xs: 'span 2', sm: 'auto' } }}>
             <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#0040a1', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5 }}>{t('conge.demConge.form.days')}</Typography>
