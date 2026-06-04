@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM python:3.11-slim
 
 # Eviter le bytecompile et le buffering, garder les logs lisibles dans Docker.
@@ -6,7 +7,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     HF_HOME=/models \
-    TRANSFORMERS_CACHE=/models
+    TRANSFORMERS_CACHE=/models \
+    # Laisse plus de temps par fichier avant abandon (évite des faux échecs réseau
+    # qui, combinés au rate-limit, déclenchent des retries agressifs → 429 en cascade).
+    HF_HUB_DOWNLOAD_TIMEOUT=60
 
 # Outils systeme pour PyPDF (libgomp1 pour torch CPU + git pour pip VCS si besoin).
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -38,11 +42,25 @@ RUN pip install --no-cache-dir \
     "pypdf==5.1.0" \
     "docx2txt==0.8"
 
-COPY app ./app
-
 # Pre-download du modele e5-large pour eviter le cold start au premier /retrieve.
-# 2.2 Go DL une fois au build, mis en cache sur la couche image.
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('intfloat/multilingual-e5-large')"
+# ~2,2 Go DL une fois au build, mis en cache sur la couche image (/models).
+#
+# Le DL passe par un script avec RETRY + BACKOFF EXPONENTIEL : le Hub HF rate-limit
+# (HTTP 429) les téléchargements anonymes, ce qui faisait échouer le build. Le script
+# (download_model.py) reprend les fichiers déjà récupérés à chaque tentative.
+#
+# Copié AVANT `app/` pour profiter du cache Docker : tant que le script et la liste
+# des deps ne changent pas, cette couche (le gros DL) n'est pas réexécutée quand seul
+# le code applicatif évolue.
+COPY download_model.py ./
+# Token HF optionnel mais RECOMMANDÉ pour fiabiliser (quota anonyme bas = source des 429).
+# Avec BuildKit : `docker build --secret id=hf_token,env=HF_TOKEN ...` (ou ,src=fichier).
+# Le secret est monté en RAM le temps du RUN et n'est PAS persisté dans l'image.
+RUN --mount=type=secret,id=hf_token,required=false \
+    HUGGING_FACE_HUB_TOKEN="$(cat /run/secrets/hf_token 2>/dev/null || true)" \
+    python download_model.py
+
+COPY app ./app
 
 EXPOSE 8080
 
