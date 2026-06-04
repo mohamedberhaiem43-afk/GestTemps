@@ -88,15 +88,6 @@ const ContactSalesPage: React.FC = () => {
       </nav>
 
       <main className="max-w-5xl mx-auto px-6 py-12 lg:py-20">
-        <div className="text-center mb-12">
-          <span className="inline-block text-[10px] font-black uppercase tracking-[0.3em] text-primary bg-primary/10 px-4 py-1.5 rounded-full mb-6">
-            Plan Premium · Sur devis
-          </span>
-          <h1 className="text-4xl lg:text-5xl font-black text-on-surface tracking-tight mb-4 font-headline">Contactez les ventes</h1>
-          <p className="text-on-surface-variant max-w-2xl mx-auto text-lg leading-relaxed">
-            Le plan Premium est tarifé en fonction de votre périmètre. Notre équipe revient vers vous sous 24h ouvrées avec une proposition personnalisée.
-          </p>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left: form */}

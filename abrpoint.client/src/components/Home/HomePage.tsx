@@ -596,7 +596,8 @@ export default function HomePage() {
         message: context ? `${message}\n\n— ${context}` : message,
       });
       setContactSent(true);
-      // Conversion : message de contact envoyé depuis la landing.
+      // Conversions GA — déclenchées UNIQUEMENT sur envoi réussi (pas au clic).
+      trackEvent('contact_form_submit');
       trackEvent('generate_lead', { form: 'home-contact', subject: objet });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
