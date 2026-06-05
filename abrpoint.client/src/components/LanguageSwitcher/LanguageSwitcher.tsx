@@ -6,8 +6,18 @@ import { Select, MenuItem, FormControl } from '@mui/material';
 // Pages marketing bilingues : la langue est portée par l'URL (/ ↔ /en). Sur ces
 // routes, changer de langue NAVIGUE vers l'URL correspondante — sinon l'effet de
 // forçage de langue côté Navigation re-basculerait au render suivant.
-const FR_TO_EN: Record<string, string> = { '/': '/en', '/suppression-compte': '/en/suppression-compte' };
-const EN_TO_FR: Record<string, string> = { '/en': '/', '/en/suppression-compte': '/suppression-compte' };
+const FR_TO_EN: Record<string, string> = {
+  '/': '/en',
+  '/suppression-compte': '/en/suppression-compte',
+  '/download': '/en/download',
+  '/contact-sales': '/en/contact-sales',
+};
+const EN_TO_FR: Record<string, string> = {
+  '/en': '/',
+  '/en/suppression-compte': '/suppression-compte',
+  '/en/download': '/download',
+  '/en/contact-sales': '/contact-sales',
+};
 
 function LanguageSwitcher() {
   const { i18n } = useTranslation();

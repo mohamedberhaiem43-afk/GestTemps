@@ -99,6 +99,8 @@ export const PUBLIC_PATHS = new Set<string>([
   // Versions anglaises publiques (pages bilingues — variante de langue /en).
   '/en',
   '/en/suppression-compte',
+  '/en/download',
+  '/en/contact-sales',
 ]);
 
 /**

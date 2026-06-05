@@ -21,15 +21,39 @@
   </url>
   <url>
     <loc>https://concorde-work-force.com/download</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://concorde-work-force.com/download" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://concorde-work-force.com/en/download" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://concorde-work-force.com/download" />
+  </url>
+  <url>
+    <loc>https://concorde-work-force.com/en/download</loc>
+    <lastmod>2026-06-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://concorde-work-force.com/download" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://concorde-work-force.com/en/download" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://concorde-work-force.com/download" />
   </url>
   <url>
     <loc>https://concorde-work-force.com/contact-sales</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://concorde-work-force.com/contact-sales" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://concorde-work-force.com/en/contact-sales" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://concorde-work-force.com/contact-sales" />
+  </url>
+  <url>
+    <loc>https://concorde-work-force.com/en/contact-sales</loc>
+    <lastmod>2026-06-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://concorde-work-force.com/contact-sales" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://concorde-work-force.com/en/contact-sales" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://concorde-work-force.com/contact-sales" />
   </url>
   <url>
     <loc>https://concorde-work-force.com/suppression-compte</loc>

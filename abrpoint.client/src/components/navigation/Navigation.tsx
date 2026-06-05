@@ -1059,7 +1059,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
     '/plan-configuration', '/payment', '/contact-sales', '/download',
     '/confidentialite', '/cgu', '/mentions-legales', '/suppression-compte',
     // Versions anglaises (pages réellement bilingues uniquement).
-    '/en', '/en/suppression-compte',
+    '/en', '/en/suppression-compte', '/en/download', '/en/contact-sales',
   ];
   const canonicalPathname = (pathname === '/dashboard' || pathname.startsWith('/dashboard/') || PUBLIC_PATHS.includes(pathname))
     ? pathname
@@ -1079,7 +1079,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   React.useEffect(() => {
     if (isEnRoute) {
       if (i18n.language !== 'en') i18n.changeLanguage('en');
-    } else if (pathname === '/' || pathname === '/suppression-compte') {
+    } else if (pathname === '/' || pathname === '/suppression-compte' || pathname === '/download' || pathname === '/contact-sales') {
       if (i18n.language !== 'fr') i18n.changeLanguage('fr');
     }
   }, [pathname, isEnRoute, i18n]);
