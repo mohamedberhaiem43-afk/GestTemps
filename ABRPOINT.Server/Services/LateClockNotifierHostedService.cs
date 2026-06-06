@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using ABRPOINT.Helper;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Models;
@@ -23,6 +24,10 @@ namespace ABRPOINT.Server.Services;
 public sealed class LateClockNotifierHostedService : BackgroundService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(15);
+
+    // Garde « migré une fois par tenant et par process », analogue au cache du
+    // TenantResolverMiddleware : évite de relancer le migrateur à chaque sweep (15 min).
+    private static readonly ConcurrentDictionary<string, byte> _migratedTenants = new();
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IConfiguration _cfg;
@@ -100,6 +105,26 @@ public sealed class LateClockNotifierHostedService : BackgroundService
             .Options;
 
         await using var db = new ApplicationDbContext(options);
+
+        // Les migrations de schéma idempotentes (ajout de colonnes type presence.preacc,
+        // prelat/prelon…) ne tournent QUE de façon paresseuse à la 1re requête HTTP d'un
+        // tenant (cf. TenantResolverMiddleware). Or ce hosted service balaie TOUS les
+        // tenants depuis la base master, sans trafic HTTP : un tenant jamais sollicité
+        // depuis le démarrage du process garde son schéma legacy → 42703 « column
+        // p.preacc does not exist » sur le SELECT ci-dessous. On garantit donc la
+        // migration ici, une fois par tenant et par process (idempotent + bon marché :
+        // chaque étape court-circuite via les checks d'existence).
+        if (_migratedTenants.TryAdd(tenantTag, 0))
+        {
+            try { await BaseDataSchemaMigrator.MigrateAsync(db, ct); }
+            catch (Exception migEx)
+            {
+                // On retire le tag pour réessayer au prochain passage si la migration
+                // a échoué (lock concurrent au boot, etc.) — sans bloquer le sweep.
+                _migratedTenants.TryRemove(tenantTag, out _);
+                _log.LogWarning(migEx, "LateClock migration schéma ignorée pour tenant {Tenant}", tenantTag);
+            }
+        }
 
         var today = DateTime.Today;
 

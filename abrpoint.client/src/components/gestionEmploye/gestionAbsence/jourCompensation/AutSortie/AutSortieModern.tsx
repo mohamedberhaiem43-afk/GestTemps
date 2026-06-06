@@ -22,7 +22,11 @@ import EventNoteIcon from '@mui/icons-material/EventNote';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useTranslation, Trans } from 'react-i18next';
-import useGetAbsencesLibs from '../../../../../hooks/absenceHooks/useGetAbsenceLibs';
+// Imputations : on ne liste QUE les natures de type « Autorisation » (Abscng='B',
+// filtré côté serveur par get-autorisations-libs) — et non plus toutes les natures
+// d'absence (congés, RTT, missions…), qui n'ont pas de sens sur une autorisation de
+// sortie. Cohérent avec le formulaire SaisieAutSortie.
+import useGetAutorisationLibs from '../../../../../hooks/absenceHooks/useGetAutorisationLibs';
 import useGetEmployee from '../../../../../hooks/employeHooks/useGetEmployee';
 import useAddSortie from '../../../../../hooks/sortieHooks/useAddSortie';
 import useGetAllSorties from '../../../../../hooks/sortieHooks/useGetAllSorties';
@@ -351,7 +355,7 @@ function AutSortieModernContent() {
   const canConsult = hasPermission('Absences et Sanctions', 'consult');
 
   // Hooks
-  const { data: absencesRaw } = useGetAbsencesLibs();
+  const { data: absencesRaw } = useGetAutorisationLibs();
   const absences = useMemo(() => {
     if (Array.isArray(absencesRaw)) return absencesRaw;
     if (absencesRaw && typeof absencesRaw === 'object') {

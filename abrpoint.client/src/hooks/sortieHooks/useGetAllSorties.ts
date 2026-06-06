@@ -15,7 +15,12 @@ const useGetAllSorties = () => {
     queryKey: ["sorties-all", soccod],
     queryFn: () => SortieService.getAllWithParams(`all/${soccod}`),
     enabled: !!soccod,
-    initialData: [],
+    // Avant : `initialData: []` combiné au staleTime global de 5 min (cf. App.tsx)
+    // faisait considérer le tableau vide comme « frais » → React Query SKIPPAIT le
+    // fetch au montage. La liste restait donc vide jusqu'au refetch déclenché par un
+    // ajout. On force le fetch dès l'ouverture pour afficher l'existant immédiatement.
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 };
 

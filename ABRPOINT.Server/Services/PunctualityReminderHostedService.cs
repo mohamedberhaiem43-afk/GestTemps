@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using ABRPOINT.Helper;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Models;
@@ -19,6 +20,12 @@ public sealed class PunctualityReminderHostedService : BackgroundService
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(15);
     /// <summary>Délai après l'heure prévue avant de notifier l'utilisateur.</summary>
     private static readonly TimeSpan GracePeriod = TimeSpan.FromMinutes(15);
+
+    // Garde « migré une fois par tenant et par process » : ce sweep balaie les tenants
+    // depuis la master sans trafic HTTP, donc le migrateur paresseux du middleware
+    // (TenantResolverMiddleware) n'a pas tourné → 42703 sur les colonnes récentes
+    // (presence.preacc…). On garantit la migration ici, idempotente.
+    private static readonly ConcurrentDictionary<string, byte> _migratedTenants = new();
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IConfiguration _cfg;
@@ -110,6 +117,20 @@ public sealed class PunctualityReminderHostedService : BackgroundService
             .Options;
 
         await using var db = new ApplicationDbContext(options);
+
+        // Garantit que le schéma du tenant est à jour avant toute requête : un tenant
+        // jamais sollicité par HTTP depuis le démarrage du process n'a pas eu sa migration
+        // paresseuse (cf. TenantResolverMiddleware) → SELECT sur db.Presences échouerait
+        // en 42703 « column p.preacc does not exist ». Idempotent, 1× par tenant/process.
+        if (_migratedTenants.TryAdd(tenantTag, 0))
+        {
+            try { await BaseDataSchemaMigrator.MigrateAsync(db, ct); }
+            catch (Exception migEx)
+            {
+                _migratedTenants.TryRemove(tenantTag, out _);
+                _log.LogWarning(migEx, "PunctualityReminder migration schéma ignorée pour tenant {Tenant}", tenantTag);
+            }
+        }
 
         // Liste des employés actifs aujourd'hui
         var today = DateTime.Today;

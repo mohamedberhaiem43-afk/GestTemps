@@ -215,7 +215,13 @@ namespace ABRPOINT.Server.Repository
                 if (authInfo != null)
                 {
                     string empcod = authInfo.empcod;
-                    var htmlPath = Path.Combine(_vaultPath, "Autorisation.html");
+                    // Le nom de fichier DOIT matcher la clé de catégorie utilisée par
+                    // l'éditeur de modèles (TemplatesController.TemplateCategories) et par le
+                    // seeder par défaut (DefaultLetterTemplateSeeder) : « AutorisationSortie ».
+                    // Avant : on lisait « Autorisation.html » → le modèle créé par l'admin
+                    // (enregistré sous « AutorisationSortie.html ») n'était jamais trouvé, on
+                    // retombait sur le rendu FastReport .frx qui jette en prod → 500.
+                    var htmlPath = Path.Combine(_vaultPath, "AutorisationSortie.html");
                     if (System.IO.File.Exists(htmlPath))
                     {
                         var html = System.IO.File.ReadAllText(htmlPath);

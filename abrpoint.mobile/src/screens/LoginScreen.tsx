@@ -243,7 +243,7 @@ export default function LoginScreen() {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.brandName}>Concorde Workforce</Text>
+                  <Text style={styles.brandName}>Concorde Workly</Text>
                   <Text style={styles.brandTag}>{t('login.heroTagline')}</Text>
                 </View>
               </View>
