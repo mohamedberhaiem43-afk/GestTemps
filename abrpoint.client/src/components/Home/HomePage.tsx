@@ -103,6 +103,7 @@ interface Dict {
   // FOOTER
   fDesc: string; fFlags: string; fcol1: string; fcol2: string;
   flPricing: string; flMobile: string; flContact: string; flLogin: string; flSignup: string;
+  flPointage: string; flConges: string; flPersonnel: string;
   copyright: string; privacy: string; cgu: string; legal: string; cookies: string; accountDeletion: string;
 }
 
@@ -248,6 +249,7 @@ const FR: Dict = {
   fDesc: 'La plateforme RH & pointage conçue pour les équipes terrain en Afrique francophone et en Europe.',
   fFlags: 'Multi-pays', fcol1: 'Produit', fcol2: 'Ressources',
   flPricing: 'Tarifs', flMobile: 'Application mobile', flContact: 'Contact',
+  flPointage: 'Pointage', flConges: 'Congés & absences', flPersonnel: 'Gestion du personnel',
   flLogin: 'Se connecter', flSignup: 'Créer un compte',
   copyright: '© 2026 Concorde Workforce · Tous droits réservés',
   privacy: 'Confidentialité', cgu: 'CGUS', legal: 'Mentions légales', cookies: 'Cookies',
@@ -396,6 +398,7 @@ const EN: Dict = {
   fDesc: 'The HR & time tracking platform designed for field teams in French-speaking Africa and Europe.',
   fFlags: 'Multi-country', fcol1: 'Product', fcol2: 'Resources',
   flPricing: 'Pricing', flMobile: 'Mobile app', flContact: 'Contact',
+  flPointage: 'Time tracking', flConges: 'Leave & absences', flPersonnel: 'Staff management',
   flLogin: 'Log in', flSignup: 'Create account',
   copyright: '© 2026 Concorde Workforce · All rights reserved',
   privacy: 'Privacy', cgu: 'Terms', legal: 'Legal notice', cookies: 'Cookies',
@@ -1190,6 +1193,10 @@ export default function HomePage() {
           <div className="footer-col">
             <h4>{d.fcol1}</h4>
             <div className="footer-links">
+              {/* Pages SEO statiques (servies depuis public/, hors SPA) → liens réels. */}
+              <a href="/logiciel-pointage">{d.flPointage}</a>
+              <a href="/logiciel-gestion-conges-absences">{d.flConges}</a>
+              <a href="/logiciel-gestion-du-personnel">{d.flPersonnel}</a>
               <a onClick={() => scrollToId('pricing')}>{d.flPricing}</a>
               <a href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">{d.flMobile}</a>
               <a onClick={() => scrollToId('contact')}>{d.flContact}</a>
