@@ -1,16 +1,28 @@
 /**
- * Google Analytics 4 — chargement CONDITIONNÉ AU CONSENTEMENT (catégorie « audience »).
+ * Google Analytics 4 — Google Consent Mode v2 (mode « avancé »).
  *
- * Posture CNIL stricte : la mesure d'audience n'est PAS exemptée ici, donc on ne charge
- * RIEN tant que l'utilisateur n'a pas accepté la catégorie « audience » de la bannière
- * cookies. Aucun hit n'est envoyé avant consentement.
+ * Posture : gtag.js est chargé DÈS LE DÉMARRAGE avec un consentement par défaut
+ * `denied` sur tous les signaux. Tant que l'utilisateur n'a pas accepté :
+ *   • aucun cookie n'est déposé ;
+ *   • GA n'envoie que des pings anonymes « cookieless » (modélisation), sans
+ *     identifiant ni donnée personnelle — c'est le mécanisme RGPD officiel de Google.
+ * Quand l'utilisateur accepte, on passe les signaux concernés à `granted` via
+ * `gtag('consent','update',…)` et la collecte cookie-based démarre.
  *
- * Cycle de vie :
- *   • au démarrage (initAnalytics) : si « audience » déjà consenti → on charge gtag.
- *   • à chaque changement de consentement (event `cookie-consent:changed`) :
- *       refusé → accepté : on charge gtag (et on track la page courante).
- *       accepté → refusé : on coupe GA via le flag `ga-disable-<ID>` (plus aucun hit).
- *   • retrait total (event `cookie-consent:cleared`) : on coupe GA.
+ * Pourquoi charger gtag avant consentement (vs. l'ancienne approche « rien avant
+ * accord ») : les paramètres UTM (campagnes LinkedIn, etc.) sont présents dans
+ * l'URL d'atterrissage. En chargeant gtag immédiatement + `url_passthrough`, la
+ * source de campagne est capturée et conservée même avant/sans cookies, puis
+ * correctement attribuée à la session dès l'acceptation. Sans ça, un visiteur qui
+ * naviguait avant d'accepter perdait ses UTM → session classée « direct ».
+ *
+ * Mapping consentement ↔ signaux Consent Mode :
+ *   • catégorie « audience »  → analytics_storage
+ *   • catégorie « marketing » → ad_storage / ad_user_data / ad_personalization
+ *
+ * `wait_for_update: 500` laisse 500 ms à la bannière pour pousser un `update`
+ * avant l'envoi du 1er hit : pour un visiteur déjà consentant, le page_view initial
+ * part donc directement en `granted`.
  *
  * SPA : GA4 n'envoie un page_view automatique qu'au 1er chargement. On émet donc un
  * page_view supplémentaire à chaque navigation react-router (pushState/replaceState/
@@ -27,16 +39,18 @@ declare global {
   interface Window {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
-    [key: `ga-disable-${string}`]: boolean | undefined;
   }
 }
 
-let scriptLoaded = false;       // le <script> gtag.js a-t-il été injecté ?
+let bootstrapped = false;       // gtag.js a-t-il été initialisé (consent default + config) ?
 let spaHooksInstalled = false;  // les hooks d'historique SPA sont-ils posés ?
 
-function loadGtagScript() {
-  if (scriptLoaded) return;
-  scriptLoaded = true;
+// Initialise gtag avec Consent Mode v2. Appelé UNE fois au démarrage, quel que soit
+// l'état du consentement : le consentement par défaut `denied` garantit qu'aucun
+// cookie n'est posé tant que l'utilisateur n'a pas accepté.
+function bootstrapGtag() {
+  if (bootstrapped) return;
+  bootstrapped = true;
 
   window.dataLayer = window.dataLayer || [];
   // gtag doit pousser les `arguments` bruts dans dataLayer (signature officielle GA).
@@ -44,6 +58,19 @@ function loadGtagScript() {
     // eslint-disable-next-line prefer-rest-params
     window.dataLayer!.push(arguments);
   };
+
+  // ── Consent Mode v2 : tout refusé PAR DÉFAUT (avant config, donc avant tout hit).
+  window.gtag('consent', 'default', {
+    analytics_storage: 'denied',
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+    wait_for_update: 500,
+  });
+  // Conserve les UTM / click IDs via l'URL quand les cookies sont refusés (attribution
+  // de campagne sans cookie) et caviarde les données pub tant que `ad_storage` est denied.
+  window.gtag('set', 'url_passthrough', true);
+  window.gtag('set', 'ads_data_redaction', true);
 
   const s = document.createElement('script');
   s.async = true;
@@ -91,30 +118,24 @@ function installSpaPageviewHooks() {
   window.addEventListener('popstate', fire);
 }
 
-// Active GA : 1re fois → charge le script (déclenche le pageview initial) ;
-// réactivation après un refus → on lève le flag de coupure + on track la page.
-function enableGa() {
-  window[`ga-disable-${GA_MEASUREMENT_ID}`] = false;
-  if (!scriptLoaded) {
-    loadGtagScript();
-  } else {
-    sendPageView();
-  }
-}
-
-// Coupe GA : flag officiel reconnu par gtag.js → plus aucun hit n'est envoyé.
-function disableGa() {
-  window[`ga-disable-${GA_MEASUREMENT_ID}`] = true;
-}
-
-function applyConsent(audienceGranted: boolean) {
-  if (audienceGranted) enableGa();
-  else disableGa();
+// Met à jour les signaux Consent Mode selon les catégories acceptées. gtag mémorise
+// l'état : passer `analytics_storage` à granted déclenche la collecte cookie-based
+// (et l'envoi des hits modélisés en attente), le repasser à denied la stoppe.
+function updateConsent(audience: boolean, marketing: boolean) {
+  if (!window.gtag) return;
+  window.gtag('consent', 'update', {
+    analytics_storage: audience ? 'granted' : 'denied',
+    ad_storage: marketing ? 'granted' : 'denied',
+    ad_user_data: marketing ? 'granted' : 'denied',
+    ad_personalization: marketing ? 'granted' : 'denied',
+  });
 }
 
 /**
- * Envoie un événement GA (conversions, clics…). No-op si GA n'est pas chargé
- * (pas de consentement) → sûr à appeler partout sans garde.
+ * Envoie un événement GA (conversions, clics…). gtag étant toujours initialisé
+ * (Consent Mode v2), l'event part dans tous les cas : sous consentement refusé il
+ * est géré/modélisé sans cookie ; accepté, il est collecté normalement. No-op
+ * uniquement hors navigateur (SSR) → sûr à appeler partout sans garde.
  * Ex. : trackEvent('generate_lead', { form: 'contact-sales' })
  *       trackEvent('sign_up', { method: 'email' })
  *       trackEvent('app_download_click', { platform: 'android' })
@@ -129,17 +150,20 @@ export function trackEvent(name: string, params?: Record<string, unknown>) {
 export function initAnalytics() {
   if (typeof window === 'undefined') return;
 
-  // État initial selon le consentement déjà enregistré (aucun hit si non consenti).
-  applyConsent(hasConsent('audience'));
+  // Consent Mode v2 : on initialise gtag immédiatement (consentement par défaut
+  // `denied`), puis on applique le consentement déjà enregistré pour le visiteur
+  // récurrent — grâce à `wait_for_update`, son page_view initial part en `granted`.
+  bootstrapGtag();
+  updateConsent(hasConsent('audience'), hasConsent('marketing'));
 
   // Changement de consentement via la bannière / le panneau « Gérer mes cookies ».
   window.addEventListener('cookie-consent:changed', (e: Event) => {
     const detail = (e as CustomEvent).detail as
-      | { categories?: { audience?: boolean } }
+      | { categories?: { audience?: boolean; marketing?: boolean } }
       | undefined;
-    applyConsent(Boolean(detail?.categories?.audience));
+    updateConsent(Boolean(detail?.categories?.audience), Boolean(detail?.categories?.marketing));
   });
 
-  // Retrait total du consentement.
-  window.addEventListener('cookie-consent:cleared', () => disableGa());
+  // Retrait total du consentement → tous les signaux repassent à denied.
+  window.addEventListener('cookie-consent:cleared', () => updateConsent(false, false));
 }
