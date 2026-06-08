@@ -84,6 +84,7 @@ export const fr = {
     privacy: 'Confidentialité',
     terms: 'CGU',
     legal: 'Mentions légales',
+    accountDeletion: 'Suppression de compte',
     needHelp: "Besoin d'aide ?",
     contactSupport: 'Contacter le support',
     // Réinitialisation

@@ -83,6 +83,7 @@ export const en = {
     privacy: 'Privacy',
     terms: 'Terms',
     legal: 'Legal notice',
+    accountDeletion: 'Account deletion',
     needHelp: 'Need help?',
     contactSupport: 'Contact support',
     // Reset

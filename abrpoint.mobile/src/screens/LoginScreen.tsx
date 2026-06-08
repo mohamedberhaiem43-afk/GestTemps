@@ -27,7 +27,7 @@ import {
   isBiometricLoginEnabled,
   biometricLoginFlow,
 } from '../services/biometric';
-import { useT } from '../i18n';
+import { useT, useI18n } from '../i18n';
 
 type TFunc = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -79,6 +79,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const { login, hydrateAfterBiometric } = useAuth();
   const t = useT();
+  const { lang } = useI18n();
 
   // Biométrie : on n'affiche le bouton "Se connecter avec FaceID/TouchID" que si l'utilisateur
   // l'a explicitement activé après un login classique précédent ET que l'appareil le supporte
@@ -370,6 +371,10 @@ export default function LoginScreen() {
                   <Text style={styles.legalSep}>·</Text>
                   <TouchableOpacity onPress={() => Linking.openURL('https://concorde-work-force.com/docs/mentions-legales.pdf')}>
                     <Text style={styles.legalLink}>{t('login.legal')}</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.legalSep}>·</Text>
+                  <TouchableOpacity onPress={() => Linking.openURL(lang === 'en' ? 'https://concorde-work-force.com/en/suppression-compte' : 'https://concorde-work-force.com/suppression-compte')}>
+                    <Text style={styles.legalLink}>{t('login.accountDeletion')}</Text>
                   </TouchableOpacity>
                 </View>
               </>

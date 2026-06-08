@@ -476,10 +476,88 @@ function DashboardModernAdmin() {
     const genderM = dashboardData?.effectifParSexe?.['M'] ?? 0;
     const genderF = dashboardData?.effectifParSexe?.['F'] ?? 0;
     const genderAutre = dashboardData?.effectifParSexe?.['Autre'] ?? 0;
-    // TODO: Use these variables for gender breakdown visualization
-    void genderM; void genderF; void genderAutre;
+    const genderTotal = genderM + genderF + genderAutre;
 
-  
+    // Couleurs alignees sur GenderKpiDonut (#0040a1 Hommes / #d946ef Femmes / #94a3b8 Autre).
+    const genderSlices = [
+      { value: genderM, color: [0, 64, 161] as [number, number, number], label: 'Hommes' },
+      { value: genderF, color: [217, 70, 239] as [number, number, number], label: 'Femmes' },
+      { value: genderAutre, color: [148, 163, 184] as [number, number, number], label: 'Autre' },
+    ].filter((s) => s.value > 0);
+
+    // Titre de section.
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(...C_TEXT);
+    doc.text('Effectif par sexe', margin, y);
+    y += 5;
+
+    {
+      const cxD = margin + 20;
+      const cyD = y + 20;
+      const radius = 18;
+
+      // Tracage des parts via approximation polygonale (doc.lines) : fiable dans
+      // jsPDF 4.x la ou doc.context2d.arc rend mal. Chaque part = eventail
+      // partant du centre -> debut d'arc -> segments d'arc -> fermeture au centre.
+      const drawSlice = (startDeg: number, endDeg: number, color: [number, number, number]) => {
+        doc.setFillColor(...color);
+        const steps = Math.max(2, Math.ceil((endDeg - startDeg) / 6));
+        const a0 = ((startDeg - 90) * Math.PI) / 180;
+        let prevX = cxD + radius * Math.cos(a0);
+        let prevY = cyD + radius * Math.sin(a0);
+        const segs: [number, number][] = [[prevX - cxD, prevY - cyD]];
+        for (let i = 1; i <= steps; i++) {
+          const a = (((startDeg + ((endDeg - startDeg) * i) / steps) - 90) * Math.PI) / 180;
+          const px = cxD + radius * Math.cos(a);
+          const py = cyD + radius * Math.sin(a);
+          segs.push([px - prevX, py - prevY]);
+          prevX = px; prevY = py;
+        }
+        doc.lines(segs, cxD, cyD, [1, 1], 'F', true);
+      };
+
+      if (genderTotal === 0) {
+        doc.setFillColor(241, 245, 249);
+        doc.circle(cxD, cyD, radius, 'F');
+      } else {
+        let angle = 0;
+        genderSlices.forEach((s) => {
+          const sweep = (s.value / genderTotal) * 360;
+          drawSlice(angle, angle + sweep, s.color);
+          angle += sweep;
+        });
+      }
+
+      // Trou central -> effet donut + total au centre.
+      doc.setFillColor(255, 255, 255);
+      doc.circle(cxD, cyD, radius * 0.58, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(...C_TEXT);
+      doc.text(`${genderTotal}`, cxD, cyD - 0.5, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...C_MUTED);
+      doc.text('total', cxD, cyD + 4, { align: 'center' });
+
+      // Legende a droite du donut.
+      const legendX = cxD + radius + 12;
+      let legendY = cyD - 8;
+      genderSlices.forEach((s) => {
+        doc.setFillColor(...s.color);
+        doc.circle(legendX, legendY - 1.2, 1.6, 'F');
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(...C_TEXT);
+        const pct = genderTotal > 0 ? Math.round((s.value / genderTotal) * 100) : 0;
+        doc.text(`${s.label} : ${s.value}  (${pct}%)`, legendX + 4, legendY);
+        legendY += 7;
+      });
+
+      y = cyD + radius + 8;
+    }
+
 
     // Indicateurs d\u00E9taill\u00E9s.
     autoTable(doc, {
@@ -500,8 +578,11 @@ function DashboardModernAdmin() {
         ...((dashboardData?.effectifParSexe?.['Autre'] ?? 0) > 0
           ? [['Effectif Autre', `${dashboardData?.effectifParSexe?.['Autre'] ?? 0}`]]
           : []),
+        // Intl 'fr-FR' utilise une espace fine insecable (U+202F) comme separateur
+        // de milliers : helvetica ne sait pas la mesurer, ce qui decalait le \u20AC
+        // hors de la cellule. On la remplace par une espace normale avant rendu.
         ['Masse salariale (brute)', dashboardData?.masseSalariale != null
-          ? `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(dashboardData.masseSalariale)} \u20AC`
+          ? `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(dashboardData.masseSalariale).replace(/[\u202F\u00A0]/g, ' ')} \u20AC`
           : '--'],
       ],
       headStyles: { fillColor: C_PRIMARY, textColor: 255, fontSize: 9, fontStyle: 'bold' },

@@ -103,7 +103,7 @@ interface Dict {
   // FOOTER
   fDesc: string; fFlags: string; fcol1: string; fcol2: string;
   flPricing: string; flMobile: string; flContact: string; flLogin: string; flSignup: string;
-  copyright: string; privacy: string; cgu: string; legal: string; cookies: string;
+  copyright: string; privacy: string; cgu: string; legal: string; cookies: string; accountDeletion: string;
 }
 
 const FR: Dict = {
@@ -251,6 +251,7 @@ const FR: Dict = {
   flLogin: 'Se connecter', flSignup: 'Créer un compte',
   copyright: '© 2026 Concorde Workforce · Tous droits réservés',
   privacy: 'Confidentialité', cgu: 'CGUS', legal: 'Mentions légales', cookies: 'Cookies',
+  accountDeletion: 'Suppression de compte',
 };
 
 const EN: Dict = {
@@ -398,6 +399,7 @@ const EN: Dict = {
   flLogin: 'Log in', flSignup: 'Create account',
   copyright: '© 2026 Concorde Workforce · All rights reserved',
   privacy: 'Privacy', cgu: 'Terms', legal: 'Legal notice', cookies: 'Cookies',
+  accountDeletion: 'Account deletion',
 };
 
 const LANG: Record<Lang, Dict> = { fr: FR, en: EN };
@@ -1207,6 +1209,7 @@ export default function HomePage() {
             <a href="/docs/politique-confidentialite.pdf" target="_blank" rel="noopener noreferrer">{d.privacy}</a>
             <a href="/docs/cgu.pdf" target="_blank" rel="noopener noreferrer">{d.cgu}</a>
             <a href="/docs/mentions-legales.pdf" target="_blank" rel="noopener noreferrer">{d.legal}</a>
+            <a href={lang === 'en' ? '/en/suppression-compte' : '/suppression-compte'}>{d.accountDeletion}</a>
             <a onClick={() => openCookieConsent()}>{d.cookies}</a>
           </span>
         </div>
