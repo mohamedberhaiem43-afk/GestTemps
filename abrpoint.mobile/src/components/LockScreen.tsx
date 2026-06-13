@@ -59,7 +59,7 @@ export default function LockScreen() {
       // Le lock screen n'a pas besoin du bio-token : les JWT sont toujours
       // valides en SecureStore (le verrou est purement local). Une simple
       // vérification biométrique du device suffit pour rendre la main.
-      const ok = await authenticateBiometric('Déverrouillez Concorde Workforce');
+      const ok = await authenticateBiometric('Déverrouillez Concorde Workly');
       if (ok) {
         unlock();
       }

@@ -11,6 +11,10 @@ volumes:
   # Cache du modèle d'embeddings e5-large (~2,2 Go), téléchargé au 1er démarrage de
   # rag-svc. Volume nommé → téléchargé UNE fois, conservé entre redémarrages/recréations.
   rag_models:
+  # Blog SEO Ghost : contenu (images, thèmes, settings) + base MySQL dédiée.
+  # Volumes nommés → survivent à la recréation des conteneurs.
+  ghost_content:
+  ghost_mysql_data:
 
 networks:
   app-network:
@@ -185,5 +189,64 @@ services:
       # Large : couvre le téléchargement du modèle au 1er démarrage (~1-2 min) + le
       # chargement en RAM (~20 s). Pendant cette fenêtre, les échecs ne comptent pas.
       start_period: 300s
+    networks:
+      - app-network
+
+  # ── Blog SEO Ghost ────────────────────────────────────────────────
+  # Servi sur https://blog.concorde-work-force.com (sous-domaine dédié).
+  # nginx-proxy termine le TLS et reverse-proxy vers ce conteneur (port 2368).
+  # Pas de ports publiés : accessible uniquement via le réseau app-network.
+  ghost-db:
+    image: mysql:8.0
+    container_name: abrpoint.ghost-db
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: "${GHOST_DB_ROOT_PASSWORD:?GHOST_DB_ROOT_PASSWORD manquant}"
+      MYSQL_DATABASE: "ghost_prod"
+      MYSQL_USER: "ghost"
+      MYSQL_PASSWORD: "${GHOST_DB_PASSWORD:?GHOST_DB_PASSWORD manquant}"
+    volumes:
+      - ghost_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${GHOST_DB_ROOT_PASSWORD}"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - app-network
+
+  ghost:
+    image: ghost:latest
+    container_name: abrpoint.ghost
+    restart: unless-stopped
+    environment:
+      # URL publique : DOIT correspondre au server_name nginx, sinon Ghost
+      # génère des liens/redirections cassés (admin /ghost/, canonical SEO…).
+      url: "https://blog.concorde-work-force.com"
+      NODE_ENV: "production"
+      database__client: "mysql"
+      database__connection__host: "ghost-db"
+      database__connection__port: "3306"
+      database__connection__database: "ghost_prod"
+      database__connection__user: "ghost"
+      database__connection__password: "${GHOST_DB_PASSWORD:?GHOST_DB_PASSWORD manquant}"
+      # E-mails membres / réinitialisation : réutilise le SMTP OVH de l'appli.
+      mail__transport: "SMTP"
+      mail__options__service: "${SMTP_HOST:-ssl0.ovh.net}"
+      mail__options__host: "${SMTP_HOST:-ssl0.ovh.net}"
+      mail__options__port: "${SMTP_PORT:-587}"
+      mail__options__secure: "false"
+      mail__options__auth__user: "${SMTP_USERNAME:-}"
+      mail__options__auth__pass: "${SMTP_PASSWORD:-}"
+      mail__from: "${SMTP_FROM_EMAIL:-}"
+    volumes:
+      - ghost_content:/var/lib/ghost/content
+    depends_on:
+      ghost-db:
+        condition: service_healthy
+    expose:
+      - "2368"
     networks:
       - app-network

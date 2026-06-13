@@ -48,7 +48,7 @@ export default function DeviceTrustBanner() {
             </View>
             <ScrollView style={{ maxHeight: 320 }}>
               <Text style={styles.modalIntro}>
-                Concorde Workforce a détecté un ou plusieurs facteurs qui réduisent
+                Concorde Workly a détecté un ou plusieurs facteurs qui réduisent
                 la confiance dans cet appareil. Les fonctions sensibles (signature
                 électronique, activation biométrique) peuvent être limitées.
               </Text>

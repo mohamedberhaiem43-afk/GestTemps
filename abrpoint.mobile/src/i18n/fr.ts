@@ -82,7 +82,7 @@ export const fr = {
     continueWith: 'Continuer avec {method}',
     biometricDefault: 'Biométrie',
     privacy: 'Confidentialité',
-    terms: 'CGU',
+    terms: 'CGUS',
     legal: 'Mentions légales',
     accountDeletion: 'Suppression de compte',
     needHelp: "Besoin d'aide ?",
@@ -399,7 +399,7 @@ export const fr = {
     notifPrefs: 'Préférences de notification',
     notifPrefsSub: 'Choisir les types de rappels et alertes',
     privacyPolicy: 'Politique de confidentialité',
-    terms: 'CGU',
+    terms: 'CGUS',
     accountDeletion: 'Suppression de compte',
     // Modal édition profil
     myProfile: 'Mon profil',

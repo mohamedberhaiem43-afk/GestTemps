@@ -324,7 +324,7 @@ export default function HomeScreen({ navigation }: any) {
               avec accent couleur reste lisible et propre quel que soit le DPI. */}
           <View style={styles.brandWordmark}>
             <Text style={styles.brandPrimary}>Concorde</Text>
-            <Text style={styles.brandSecondary}>Workforce</Text>
+            <Text style={styles.brandSecondary}>Workly</Text>
           </View>
         </View>
         <View style={styles.topAppRight}>

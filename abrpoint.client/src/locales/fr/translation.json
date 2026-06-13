@@ -214,7 +214,7 @@
     "promo": {
       "badge": "🎁 Essai gratuit 1 mois — sans carte bancaire",
       "titleA": "Rejoignez les entreprises", "titleB": "qui ont fait le choix de la sérénité.",
-      "textA": "Testez Concorde Workforce gratuitement pendant 1 mois — sans CB, sans engagement.",
+      "textA": "Testez Concorde Workly gratuitement pendant 1 mois — sans CB, sans engagement.",
       "textB": "Déploiement en 2 semaines · Support francophone humain · ROI mesurable dès J+30.",
       "feat1": "1 mois gratuit sans CB",
       "feat2": "Onboarding expert inclus",
@@ -228,13 +228,13 @@
       "productPricing": "Tarifs", "productDemo": "Démo", "productMobile": "Application mobile", "productSite": "concordeworkly.com", "productCases": "Cas clients",
       "resourcesTitle": "Ressources",
       "resourcesContact": "Contact commercial", "resourcesAbout": "À propos", "resourcesLogin": "Se connecter", "resourcesSignup": "Créer un compte",
-      "copyright": "© 2026 Concorde Workforce · Tous droits réservés",
-      "privacy": "Confidentialité", "cgu": "CGU", "legal": "Mentions légales", "cookies": "Cookies"
+      "copyright": "© 2026 Concorde Workly · Tous droits réservés",
+      "privacy": "Confidentialité", "cgus": "CGUS", "legal": "Mentions légales", "cookies": "Cookies"
     }
   },
   "cookieConsent": {
     "title": "Vos préférences cookies",
-    "intro": "Concorde Workforce utilise des traceurs (cookies et technologies similaires) pour assurer le fonctionnement du Service, mesurer son audience et, le cas échéant, personnaliser votre expérience. Conformément au RGPD et aux lignes directrices de la CNIL, vous pouvez accepter, refuser ou paramétrer ces traceurs avec la même simplicité.",
+    "intro": "Concorde Workly utilise des traceurs (cookies et technologies similaires) pour assurer le fonctionnement du Service, mesurer son audience et, le cas échéant, personnaliser votre expérience. Conformément au RGPD et aux lignes directrices de la CNIL, vous pouvez accepter, refuser ou paramétrer ces traceurs avec la même simplicité.",
     "aiProcessor": "Assistant IA : vos questions et les extraits récupérés sont envoyés à un fournisseur LLM (par défaut OpenRouter routant vers un modèle Llama / DeepSeek / Gemini ; en option directement Anthropic en région UE) pour générer des réponses. Les sous-traitants sont conformes RGPD. Aucune donnée n'est utilisée pour entraîner le modèle. Les CIN sont automatiquement masqués avant transmission.",
     "changeLater": "Vous pouvez modifier vos préférences à tout moment depuis le lien « Gérer mes cookies » dans les paramètres de votre profil ou le pied de page.",
     "customize": "Personnaliser mes choix",

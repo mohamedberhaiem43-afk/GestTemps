@@ -111,7 +111,7 @@ export async function biometricLoginFlow(): Promise<{ user: any } | null> {
   const bioToken = await SecureStore.getItemAsync(BIO_TOKEN_KEY);
   if (!bioToken) return null;
 
-  const ok = await authenticateBiometric('Connexion à Concorde Workforce');
+  const ok = await authenticateBiometric('Connexion à Concorde Workly');
   if (!ok) return null;
 
   const tenantSlug = await SecureStore.getItemAsync(BIO_TENANT_KEY);

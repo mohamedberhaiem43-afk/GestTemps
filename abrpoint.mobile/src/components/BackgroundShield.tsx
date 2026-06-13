@@ -38,7 +38,7 @@ export default function BackgroundShield({ children }: { children: React.ReactNo
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={styles.label}>Concorde Workforce</Text>
+          <Text style={styles.label}>Concorde Workly</Text>
         </View>
       )}
     </>
