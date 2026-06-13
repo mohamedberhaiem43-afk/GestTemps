@@ -87,10 +87,12 @@ public class PlanCatalogTests
     }
 
     [Fact]
-    public void Starter_IncludesMobileAppAndLeaveManagement()
+    public void Starter_ExcludesMobileApp_IncludesLeaveManagement()
     {
-        // Repositionnement commercial 2026-05 : pointage MOBILE inclus dès Starter.
-        PlanCatalog.Starter.Features.MobileApp.Should().BeTrue();
+        // 2026-06 : l'application mobile redevient réservée Standard/Premium. Sur Starter,
+        // MobileApp=false ⇒ /MobileAuth/login renvoie 402 (cf. RequirePlanFeature(MobileApp)).
+        // Le Starter conserve le pointage WEB et la gestion congés / autorisations.
+        PlanCatalog.Starter.Features.MobileApp.Should().BeFalse();
         PlanCatalog.Starter.Features.LeaveManagement.Should().BeTrue();
         PlanCatalog.Starter.Features.AuthorizationManagement.Should().BeTrue();
     }

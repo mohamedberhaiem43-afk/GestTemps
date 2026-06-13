@@ -107,7 +107,8 @@
             "usesCleartextTraffic": false
           }
         }
-      ]
+      ],
+      "./plugins/withBlockedMediaPermissions"
     ],
     "extra": {
       "eas": {

@@ -130,7 +130,7 @@ const PLAN_META: Record<PlanKey, {
     rank: 1,
     intro: 'Ce pack comprend les avantages :',
     features: [
-      'Pointage web & mobile (Android)',
+      'Pointage web',
       'Gestion RH essentielle (fiches, contrats)',
       'Gestion congés, RTT, absences',
       'Tableau de bord simplifié · exports PDF / Excel',
@@ -170,7 +170,7 @@ const PLAN_META: Record<PlanKey, {
     intro: 'L\'intégralité du Pack Standard plus :',
     features: [
       'Tout le pack Standard',
-      'Multi-filiales sur devis · tableaux de bord avancés',
+      'Multi-filiales · tableaux de bord avancés',
       'Sécurité renforcée',
       'Audit logs avancés',
       'Supervision avancée',

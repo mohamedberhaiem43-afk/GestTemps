@@ -95,7 +95,7 @@
       "starterTier": "Starter",
       "starterIncluded": "10 collaborateurs inclus · 10 Go stockage sécurisé",
       "starterFeatures": [
-        "Pointage web & mobile (Android)",
+        "Pointage web",
         "Gestion RH essentielle (fiches, contrats)",
         "Gestion congés & absences",
         "Tableau de bord simplifié · exports PDF / Excel",
@@ -124,7 +124,7 @@
       "premiumIncluded": "50 collaborateurs inclus · 200 Go stockage sécurisé",
       "premiumFeatures": [
         "Tout le pack Standard",
-        "Multi-filiales sur devis · tableaux de bord avancés",
+        "Multi-filiales · tableaux de bord avancés",
         "Sécurité renforcée",
         "Audit logs avancés",
         "Supervision avancée",
@@ -172,7 +172,7 @@
       "rows": [
         { "type": "section", "label": "Pointage & présence" },
         { "type": "feature", "label": "Pointage web", "starter": true, "standard": true, "premium": true },
-        { "type": "feature", "label": "Application mobile (Android)", "starter": true, "standard": true, "premium": true },
+        { "type": "feature", "label": "Application mobile", "starter": true, "standard": true, "premium": true },
         { "type": "feature", "label": "Pointage géolocalisé", "starter": false, "standard": true, "premium": true },
         { "type": "feature", "label": "État périodique & exports PDF/Excel", "starter": true, "standard": true, "premium": true },
         { "type": "section", "label": "Gestion des employés" },

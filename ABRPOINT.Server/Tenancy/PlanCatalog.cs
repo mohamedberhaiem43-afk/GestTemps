@@ -162,13 +162,16 @@ public static class PlanCatalog
         StorageQuotaMb: 10L * 1024,   // 10 Go inclus
         StorageSupplementBlockEur: 29m, // +29 € / 100 Go supplémentaires
         MaxStorageMb: null,           // 2026-05-27 : plus de plafond, extension illimitée par blocs
-        // 2026-05 — repositionnement commercial : le Starter intègre désormais
-        // le pointage MOBILE (web était trop restrictif vs concurrence) et la
-        // gestion congés / autorisations (essentielle même pour une TPE). Les
-        // features réservées Standard/Premium restent : géolocalisation, coffre
+        // 2026-06 — l'application mobile redevient un différenciateur Standard/Premium :
+        // le Starter est un pack « pointage web simple ». MobileApp=false ⇒ les endpoints
+        // /MobileAuth/login et /biometric-login (gatés par [RequirePlanFeature(MobileApp)])
+        // renvoient 402 plan_feature_locked, et l'app mobile affiche le dialog d'upgrade
+        // (cf. LoginScreen.handlePlanLockedIfApplicable). Le Starter conserve le pointage
+        // WEB et la gestion congés / autorisations (essentielle même pour une TPE). Les
+        // autres features réservées Standard/Premium restent : géolocalisation, coffre
         // numérique, signature, multi-sites, dashboards avancés, missions, audit.
         Features: new PlanFeatures(
-            MobileApp: true,
+            MobileApp: false,
             Geolocation: false,
             DigitalVault: false,
             ElectronicSignature: false,

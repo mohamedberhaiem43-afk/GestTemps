@@ -77,8 +77,8 @@ interface Dict {
   csEmp: string; cfFiches: string; cfCoffre: string; cfSign: string;
   csConges: string; cfConges: string; csPaie: string; cfPaie: string;
   csSecu: string; cfOvh: string; cfCrypto: string; cfBrand: string;
-  csLimites: string; cfCollab: string; cfStockage: string; cfSupport: string;
-  cvSup1: string; cvSup2: string; cvSup3: string;
+  csLimites: string; cfCollab: string; cfSites: string; cfAdmins: string; cfStockage: string; cfSupport: string;
+  cvSup1: string; cvSup2: string; cvSup3: string; cvUnlimited: string;
   // INFOS COMMERCIALES
   infoTitle: string; infoLead: string; infoItems: string[]; infoP1: string; infoP2: string; infoP3: string;
   // SERVICES
@@ -160,9 +160,9 @@ const FR: Dict = {
   pi2: '25 collaborateurs inclus · 50 Go stockage sécurisé',
   pi3: '50 collaborateurs inclus · 200 Go stockage sécurisé',
   extraCollab: 'puis +{price} € HT / mois par collaborateur supplémentaire',
-  starterFeatures: ['Pointage web & mobile (Android)', 'Gestion RH essentielle (fiches, contrats)', 'Gestion congés & absences', 'Tableau de bord simplifié · exports PDF / Excel', 'Notifications essentielles', '10 Go stockage sécurisé · Hébergement France OVH', 'Multi utilisateurs'],
+  starterFeatures: ['Pointage web (navigateur)', 'Gestion RH essentielle (fiches, contrats)', 'Gestion congés & absences', 'Tableau de bord simplifié · exports PDF / Excel', 'Notifications essentielles', '10 Go stockage sécurisé · Hébergement France OVH', 'Multi utilisateurs'],
   standardFeatures: ['Tout le pack Starter', 'Application mobile + géolocalisation', 'Coffre numérique & signature électronique', 'Import Excel en masse (employés, services, fonctions, rubriques…)', 'Préparation paie · export paie · Multi-sites simple', 'Congés, RTT, CET, sanctions · Notifications push / email', 'Reporting avancé · 50 Go stockage sécurisé', 'Hébergement France OVH · Multi utilisateurs', 'Idéal : PME en croissance · équipes terrain · structures multi-sites · gestion RH centralisée'],
-  businessFeatures: ['Tout le pack Standard', 'Multi-filiales sur devis · tableaux de bord avancés', 'Sécurité renforcée · Audit logs avancés', 'Supervision avancée · 200 Go stockage sécurisé', 'Hébergement France OVH · Administrateurs illimités', 'Onboarding accompagné · SLA prioritaire', 'Idéal : PME structurées · groupes multi-sites · conformité & sécurité avancées · organisations en croissance'],
+  businessFeatures: ['Tout le pack Standard', 'Multi-filiales · tableaux de bord avancés', 'Sécurité renforcée · Audit logs avancés', 'Supervision avancée · 200 Go stockage sécurisé', 'Hébergement France OVH · Administrateurs illimités', 'Onboarding accompagné · SLA prioritaire', 'Idéal : PME structurées · groupes multi-sites · conformité & sécurité avancées · organisations en croissance'],
   entFeatures: ['IA RH avancée', 'Recherche documentaire', 'Workflows intelligents', 'API avancées & SSO', 'Hébergement dédié', 'Architecture sur mesure'],
   entPriceLabel: 'Sur devis', entAmount: 'Tarification', entAmountSuffix: ' personnalisée',
   entCommit: 'selon votre structure & volume', entSub: 'Administrateurs illimités · Onboarding accompagné', entCta: 'Demander un devis →',
@@ -176,8 +176,8 @@ const FR: Dict = {
   csEmp: 'Gestion des employés', cfFiches: 'Fiches collaborateurs', cfCoffre: 'Coffre numérique', cfSign: 'Signature électronique',
   csConges: 'Congés & absences', cfConges: 'Demandes de congés', csPaie: 'Paie & frais', cfPaie: 'Préparation paie · export paie',
   csSecu: 'Sécurité & conformité', cfOvh: 'Hébergement France OVH', cfCrypto: 'Chiffrement AES-256 + TLS 1.3', cfBrand: 'Branding personnalisé',
-  csLimites: 'Limites & quotas', cfCollab: 'Collaborateurs inclus', cfStockage: 'Stockage inclus', cfSupport: 'Support',
-  cvSup1: 'Standard', cvSup2: 'Prioritaire', cvSup3: 'SLA prioritaire',
+  csLimites: 'Limites & quotas', cfCollab: 'Collaborateurs inclus', cfSites: 'Sites inclus', cfAdmins: 'Administrateurs', cfStockage: 'Stockage inclus', cfSupport: 'Support',
+  cvSup1: 'Standard', cvSup2: 'Prioritaire', cvSup3: 'SLA prioritaire', cvUnlimited: 'Illimités',
 
   infoTitle: 'Informations commerciales', infoLead: "Conditions tarifaires susceptibles d'évoluer selon :",
   infoItems: ['les fonctionnalités activées ;', "le volume d'utilisation ;", "le nombre d'utilisateurs ;", 'les modules complémentaires ;', 'les besoins de stockage ;', 'et les futures évolutions de la plateforme.'],
@@ -309,7 +309,7 @@ const EN: Dict = {
   pi2: '25 users included · 50 GB secure storage',
   pi3: '50 users included · 200 GB secure storage',
   extraCollab: 'then +€{price} excl. tax / mo per additional employee',
-  starterFeatures: ['Web & mobile time tracking (Android)', 'Essential HR management (records, contracts)', 'Leave & absence management', 'Simplified dashboard · PDF / Excel exports', 'Essential notifications', '10 GB secure storage · Hosted in France OVH', 'Multi-user'],
+  starterFeatures: ['Web time tracking (browser)', 'Essential HR management (records, contracts)', 'Leave & absence management', 'Simplified dashboard · PDF / Excel exports', 'Essential notifications', '10 GB secure storage · Hosted in France OVH', 'Multi-user'],
   standardFeatures: ['Everything in Starter', 'Mobile app + geolocation', 'Digital vault & e-signature', 'Bulk Excel import (employees, services, roles, items…)', 'Payroll preparation · payroll export · simple multi-site', 'Leave, RTT, time-off, sanctions · push / email notifications', 'Advanced reporting · 50 GB secure storage', 'Hosted in France OVH · Multi-user', 'Ideal for: growing SMEs · field teams · multi-site structures · centralized HR management'],
   businessFeatures: ['Everything in Standard', 'Multi-subsidiary on quote · advanced dashboards', 'Enhanced security · advanced audit logs', 'Advanced supervision · 200 GB secure storage', 'Hosted in France OVH · Unlimited administrators', 'Guided onboarding · priority SLA', 'Ideal for: structured SMEs · multi-site groups · advanced compliance & security · growing organizations'],
   entFeatures: ['Advanced HR AI', 'Document search', 'Smart workflows', 'Advanced APIs & SSO', 'Dedicated hosting', 'Tailor-made architecture'],
@@ -325,8 +325,8 @@ const EN: Dict = {
   csEmp: 'Employee management', cfFiches: 'Employee records', cfCoffre: 'Digital vault', cfSign: 'Electronic signature',
   csConges: 'Leave & absences', cfConges: 'Leave requests', csPaie: 'Payroll & expenses', cfPaie: 'Payroll preparation · payroll export',
   csSecu: 'Security & compliance', cfOvh: 'Hosted in France OVH', cfCrypto: 'AES-256 + TLS 1.3 encryption', cfBrand: 'Custom branding',
-  csLimites: 'Limits & quotas', cfCollab: 'Employees included', cfStockage: 'Storage included', cfSupport: 'Support',
-  cvSup1: 'Standard', cvSup2: 'Priority', cvSup3: 'Priority SLA',
+  csLimites: 'Limits & quotas', cfCollab: 'Employees included', cfSites: 'Sites included', cfAdmins: 'Administrators', cfStockage: 'Storage included', cfSupport: 'Support',
+  cvSup1: 'Standard', cvSup2: 'Priority', cvSup3: 'Priority SLA', cvUnlimited: 'Unlimited',
 
   infoTitle: 'Commercial information', infoLead: 'Pricing terms may change depending on:',
   infoItems: ['enabled features;', 'usage volume;', 'number of users;', 'add-on modules;', 'storage needs;', 'and future platform developments.'],
@@ -618,7 +618,10 @@ export default function HomePage() {
   const comparisonRows: CompRow[] = [
     { type: 'section', label: d.csPointage },
     { type: 'feature', label: d.cfWeb, s: true, st: true, b: true },
-    { type: 'feature', label: d.cfMobile, s: true, st: true, b: true },
+    // Application mobile réservée Standard/Premium (2026-06) : le Starter est un pack
+    // « pointage web ». Le backend bloque la connexion mobile des comptes Starter
+    // (PlanFeatures.MobileApp=false → /MobileAuth/login renvoie 402).
+    { type: 'feature', label: d.cfMobile, s: false, st: true, b: true },
     { type: 'feature', label: d.cfGeo, s: false, st: true, b: true },
     { type: 'section', label: d.csEmp },
     { type: 'feature', label: d.cfFiches, s: true, st: true, b: true },
@@ -635,6 +638,10 @@ export default function HomePage() {
     // « sur devis » (cf. section « Modules et services sur devis » ci-dessus).
     { type: 'section', label: d.csLimites },
     { type: 'feature', label: d.cfCollab, s: '10', st: '25', b: '50' },
+    // Sites & administrateurs : contraintes dures réellement gatées côté serveur
+    // (SitesController → MaxSites 1/5/∞ ; UtilisateursController → IncludedAdmins 1/3/∞).
+    { type: 'feature', label: d.cfSites, s: '1', st: '5', b: d.cvUnlimited },
+    { type: 'feature', label: d.cfAdmins, s: '1', st: '3', b: d.cvUnlimited },
     { type: 'feature', label: d.cfStockage, s: '10 Go', st: '50 Go', b: '200 Go' },
     { type: 'feature', label: d.cfSupport, s: d.cvSup1, st: d.cvSup2, b: d.cvSup3 },
   ];
