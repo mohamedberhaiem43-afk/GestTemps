@@ -449,7 +449,7 @@
   --fblue:#1E7BFF;--fblue-deep:#0C53D6;--fcyan:#12B5E8;
   --fink:#0C1F45;--fbody:#4C6488;--fmuted:#6A82A8;--fline:#1E7BFF;
   --ffd:'Sora','Manrope',sans-serif;--ffn:'Space Grotesk','Manrope',ui-monospace,monospace;
-  display:flex;justify-content:center;
+  display:flex;justify-content:center;align-items:flex-start;
   padding:0 clamp(14px,3.5vw,40px) clamp(28px,4vw,48px);
   background:radial-gradient(1100px 720px at 80% 4%,#d4e6ff 0%,transparent 56%),radial-gradient(820px 560px at 6% 102%,#dcebff 0%,transparent 55%),linear-gradient(165deg,#eef4fc,#e6effb 60%,#f1f6fe);
 }
@@ -457,14 +457,19 @@
   padding:clamp(20px,2.4vw,30px) clamp(28px,4vw,62px) clamp(28px,4vw,56px);
   background:linear-gradient(160deg,#ffffff,#f5f9ff);border:1.6px solid var(--fline);}
 .hp2 .fdr-aurora{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;opacity:.7}
-.hp2 .fdr-a{width:540px;height:540px;top:-220px;right:-150px;background:radial-gradient(circle,rgba(30,123,255,.22),transparent 65%);animation:fdrDrift1 18s ease-in-out infinite}
-.hp2 .fdr-b{width:440px;height:440px;bottom:-220px;left:-130px;background:radial-gradient(circle,rgba(18,181,232,.18),transparent 65%);animation:fdrDrift2 22s ease-in-out infinite}
+.hp2 .fdr-aur-a{width:540px;height:540px;top:-220px;right:-150px;background:radial-gradient(circle,rgba(30,123,255,.22),transparent 65%);animation:fdrDrift1 18s ease-in-out infinite}
+.hp2 .fdr-aur-b{width:440px;height:440px;bottom:-220px;left:-130px;background:radial-gradient(circle,rgba(18,181,232,.18),transparent 65%);animation:fdrDrift2 22s ease-in-out infinite}
 .hp2 .fdr-hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.55;
   background-image:radial-gradient(rgba(30,110,220,.13) 1px,transparent 1.4px);background-size:30px 30px;
   -webkit-mask:radial-gradient(115% 90% at 75% 12%,#000 35%,transparent 85%);mask:radial-gradient(115% 90% at 75% 12%,#000 35%,transparent 85%)}
 .hp2 .fdr-inner{position:relative;z-index:2}
-.hp2 .fdr-top{display:grid;grid-template-columns:1.1fr auto;gap:clamp(28px,4vw,56px);align-items:start}
-@media(max-width:900px){.hp2 .fdr-top{grid-template-columns:1fr;justify-items:center;text-align:center;gap:30px}}
+/* Flex (et non grid) + align-items:flex-start : garantit que le contenu reste collé
+   en HAUT de la carte. Évite l'inflation de hauteur de ligne provoquée par un item
+   `aspect-ratio` (la jauge) dans une ligne `auto` de CSS grid (quirk Chromium) qui
+   poussait tout le contenu vers le bas et créait le grand espace blanc en haut. */
+.hp2 .fdr-top{display:flex;align-items:flex-start;justify-content:space-between;gap:clamp(28px,4vw,56px);flex-wrap:wrap}
+.hp2 .fdr-top > :first-child{flex:1 1 360px;min-width:0}
+@media(max-width:900px){.hp2 .fdr-top{justify-content:center;text-align:center;gap:30px}}
 .hp2 .fdr-eyebrow{display:inline-flex;align-items:center;gap:9px;padding:8px 17px;border-radius:100px;
   font-family:var(--ffd);font-size:11.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--fblue-deep);
   background:rgba(30,123,255,.09);border:1px solid rgba(30,123,255,.28)}
@@ -486,7 +491,9 @@
 .hp2 .fdr-shine{position:absolute;top:0;left:-130%;width:55%;height:100%;transform:skewX(-20deg);background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);animation:fdrShine 4.2s ease-in-out infinite}
 .hp2 .fdr-reassure{font-size:13.5px;font-weight:500;color:var(--fmuted)}
 .hp2 .fdr-reassure b{color:var(--fbody);font-weight:700}
-.hp2 .fdr-gauge{position:relative;width:clamp(238px,27vw,300px);aspect-ratio:1;display:grid;place-items:center}
+/* Dimensions explicites (width = height) plutôt qu'`aspect-ratio` : empêche tout
+   calcul de hauteur surdimensionné de la jauge, et donc l'allongement de la carte. */
+.hp2 .fdr-gauge{position:relative;flex:0 0 auto;width:clamp(238px,27vw,300px);height:clamp(238px,27vw,300px);display:grid;place-items:center}
 .hp2 .fdr-sweep{position:absolute;inset:8%;border-radius:50%;
   background:conic-gradient(from 0deg,transparent 0deg 300deg,rgba(30,123,255,.18) 342deg,transparent 360deg);
   -webkit-mask:radial-gradient(circle,transparent 56%,#000 57%);mask:radial-gradient(circle,transparent 56%,#000 57%);animation:fdrSpin 5.5s linear infinite}

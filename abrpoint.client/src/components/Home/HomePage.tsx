@@ -331,7 +331,6 @@ const FR: Dict = {
     { icon: '✓', t: 'Administrateurs illimités', d: 'Gestion des accès avancée et sécurisée' },
     { icon: '✓', t: 'Salariés illimités', d: 'Aucun plafond, aucune contrainte' },
     { icon: '✓', t: 'Multi-filiales & multi-entités', d: 'Gestion centralisée ou décentralisée' },
-    { icon: '✓', t: 'Multi-sites avancé', d: 'Organisation, géolocalisation et reporting global' },
     { icon: '✓', t: 'IA RH avancée & recherche documentaire', d: 'Automatisez, analysez, décidez' },
     { icon: '✓', t: 'Workflows intelligents', d: 'Processus sur mesure et automatisations' },
     { icon: '✓', t: 'API avancées & SSO', d: 'Azure AD, Google, Microsoft 365, Okta, …' },
@@ -339,6 +338,8 @@ const FR: Dict = {
     { icon: '✓', t: 'Compatibilité terminaux de pointage', d: 'Intégration avec de nombreux terminaux' },
     { icon: '✓', t: 'Hébergement dédié & sécurité renforcée', d: 'Infrastructure dédiée en France ou UE' },
     { icon: '✓', t: 'Architecture sur mesure', d: 'Développements spécifiques & évolutifs' },
+    { icon: '✓', t: 'Développement spécifique', d: 'Modules et fonctionnalités sur mesure développés pour vos process métier' },
+    { icon: '✓', t: 'Agent vocal IA', d: 'Pointage et requêtes RH en langage naturel, pilotés par la voix' },
     { icon: '✓', t: 'SLA Entreprise & support prioritaire 24/7', d: 'Engagement de service et réactivité maximale' },
   ],
   epxPartnerStrong: "Plus qu'un logiciel, un partenaire de croissance",
@@ -571,6 +572,8 @@ const EN: Dict = {
     { icon: '✓', t: 'Time-clock terminal compatibility', d: 'Integration with many terminals' },
     { icon: '✓', t: 'Dedicated hosting & enhanced security', d: 'Dedicated infrastructure in France or EU' },
     { icon: '✓', t: 'Tailor-made architecture', d: 'Specific & scalable developments' },
+    { icon: '✓', t: 'Custom development', d: 'Bespoke modules and features built for your business processes' },
+    { icon: '✓', t: 'AI voice agent', d: 'Voice-driven clocking and HR queries in natural language' },
     { icon: '✓', t: 'Enterprise SLA & 24/7 priority support', d: 'Service commitment and maximum responsiveness' },
   ],
   epxPartnerStrong: 'More than software, a growth partner',
@@ -987,8 +990,8 @@ export default function HomePage() {
       {!countdown.expired && (
         <section className="fdr" aria-label="Offre Fondateur Été 2026">
           <div className="fdr-hero">
-            <div className="fdr-aurora fdr-a" />
-            <div className="fdr-aurora fdr-b" />
+            <div className="fdr-aurora fdr-aur-a" />
+            <div className="fdr-aurora fdr-aur-b" />
             <div className="fdr-inner">
               <div className="fdr-top">
                 <div>
