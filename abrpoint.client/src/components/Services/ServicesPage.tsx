@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Container, Typography, Paper, Button } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import {
-  Bot, PenLine, HardDrive,
   GraduationCap, Headset, CalendarClock, CalendarDays,
   Database, Plug, Wrench, ShieldCheck, Palette,
 } from 'lucide-react';
@@ -22,11 +21,8 @@ import {
  */
 
 // ── Payment Links Stripe (identiques à HomePage) ────────────────────────────
-const OPTIONAL_MODULE_LINKS = [
-  'https://buy.stripe.com/5kQfZa4q9gA1bRJ1hf0000b', // Assistant RH IA — 79 €/mois
-  'https://buy.stripe.com/cNi28k1dX3Nf6xpaRP0000a', // Signature électronique — 19 €/mois
-  'https://buy.stripe.com/6oU8wI5ud1F79JBaRP00009', // Stockage supplémentaire 100 Go — 29 €/mois
-];
+// NB : la table « Modules optionnels » (Assistant RH IA / Signature / Stockage) a été
+// retirée de cette page et de la home (décision 2026-06) → plus de OPTIONAL_MODULE_LINKS.
 const SERVICE_LINKS = [
   'https://buy.stripe.com/3cI14g7Cl4RjaNF9NL0000d', // Formation administrateurs (visio) — 290 €
   'https://buy.stripe.com/aFa3coe0J97zcVN3pn0000e', // Accompagnement Expert (visio) — 190 €
@@ -124,7 +120,6 @@ const EN: SvcDict = {
 const LANG: Record<Lang, SvcDict> = { fr: FR, en: EN };
 
 // Icônes par item (ordre = dict). lucide-react, cohérentes avec le reste de l'app.
-const OPT_ICONS = [<Bot size={22} />, <PenLine size={22} />, <HardDrive size={22} />];
 const SVC_ICONS = [<GraduationCap size={22} />, <Headset size={22} />, <CalendarClock size={22} />, <CalendarDays size={22} />];
 const QUOTE_ICONS = [<Database size={22} />, <Plug size={22} />, <Wrench size={22} />, <ShieldCheck size={22} />, <Palette size={22} />];
 
@@ -236,26 +231,6 @@ export default function ServicesPage() {
         <Typography sx={{ fontSize: 18, color: 'text.secondary' }}>
           {d.heroSub}
         </Typography>
-      </Box>
-
-      {/* ── Modules optionnels (Payment Links Stripe) ──────── */}
-      <Box component="section" sx={{ mb: 6 }}>
-        <SectionHead title={d.optTitle} note={d.optNote} />
-        <Box sx={grid(280)}>
-          {d.optModules.map((m, i) => (
-            <ServiceCard
-              key={m.name}
-              icon={OPT_ICONS[i]}
-              name={m.name}
-              desc={m.desc}
-              price={m.price}
-              onQuoteLabel={d.onQuote}
-              ctaLabel={d.addBtn}
-              ctaVariant="contained"
-              onClick={() => openStripeLink(OPTIONAL_MODULE_LINKS[i])}
-            />
-          ))}
-        </Box>
       </Box>
 
       {/* ── Nos services (Payment Links Stripe) ────────────── */}

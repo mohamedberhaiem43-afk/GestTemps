@@ -276,11 +276,13 @@ public static class PlanCatalog
         DisplayName: "Premium",
         // Grille tarifs.txt 2026-05 : 449 €/mois en mensuel, 249 €/mois en annuel
         // (soit 2 988 € HT / an, ~45 % de remise sur l'engagement annuel).
-        // 50 salariés inclus (était 30), cap pack 250 (était 200) — alignés sur le
-        // positionnement « PME structurées + groupes multi-sites ».
+        // 100 salariés inclus (2026-06 : relevé de 50 → 100 pour le pack Premium —
+        // décision commerciale « jusqu'à 100 collaborateurs inclus »). Au-delà, l'overage
+        // reste facturé sans plafond (MaxEmployees=null). Aligné avec la grille Home
+        // (pi3 « 100 collaborateurs inclus » + comparatif).
         FlatPriceMonthlyEur: 449m,
         FlatPriceAnnualMonthlyEur: 249m,
-        IncludedEmployees: 50,
+        IncludedEmployees: 100,
         IncludedAdmins: null,         // administrateurs illimités
         OverageRatePerEmployeeEur: 9.90m,
         MaxEmployees: null,           // 2026-05-23 : plafond supprimé — overage facturé sans plafond

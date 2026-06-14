@@ -108,7 +108,7 @@ interface Dict {
   // ── MISE À JOUR MAQUETTE v2-2 ──────────────────────────────────────────────
   // HERO : 2e paragraphe, mention « sans CB », encart compatibilité pointeuse, 5e gage.
   heroLead2: string; heroNoCard: string;
-  heroCompatTitle: string; heroCompatDesc: string; heroCompatCta: string; t5: string;
+  heroCompatTitle: string; heroCompatDesc: string; heroCompatCta: string; t5: string; t6: string;
   // DOWNLOAD enrichi (sous-titre en gras + texte, liste de fonctionnalités, conclusion, 3 stores).
   dlSubBold: string; dlSubText: string; dlFeatsTitle: string; dlFeats: string[];
   dlOutroBold: string; dlOutroText: string;
@@ -166,7 +166,7 @@ const FR: Dict = {
   steps: [
     { title: 'Inscrivez-vous & validez votre SIRET', desc: "Création du compte en 5 minutes. Vérification automatique du numéro d'entreprise (SIRET FR, BCE BE, ICE MA, NINEA SN).", long: "Création du compte en 5 minutes. Vérification automatique du numéro d'entreprise (SIRET FR, BCE BE, ICE MA, NINEA SN). Aucune installation, aucun technicien requis : vous démarrez immédiatement depuis votre navigateur." },
     { title: 'Importez vos équipes', desc: "Upload CSV ou saisie manuelle de vos collaborateurs, sites et départements. Paramétrage en moins d'une heure.", long: "Upload CSV ou saisie manuelle de vos collaborateurs, sites et départements. Paramétrage en moins d'une heure. Vos données sont chiffrées et hébergées en France dès l'import." },
-    { title: 'Déployez sur le terrain', desc: 'Application mobile Android pour les collaborateurs. Pointeuses biométriques compatibles. Mode offline disponible.', long: 'Application mobile Android pour les collaborateurs. Pointeuses biométriques compatibles. Mode offline disponible pour les sites sans connexion. Déploiement progressif site par site.' },
+    { title: 'Déployez sur le terrain', desc: 'Application mobile pour les collaborateurs. Pointeuses biométriques compatibles. Mode offline disponible.', long: 'Application mobile pour les collaborateurs. Pointeuses biométriques compatibles. Mode offline disponible pour les sites sans connexion. Déploiement progressif site par site.' },
     { title: 'Pilotez en temps réel', desc: 'Tableau de bord temps réel dès J+1. Notifications push aux managers. Préparation paie automatisée.', long: "Tableau de bord temps réel dès J+1. Notifications push aux managers. Préparation paie automatisée et exports prêts pour votre logiciel de paie. Vous pilotez l'absentéisme et la productivité au quotidien." },
   ],
   stepLabel: 'Étape {n} sur 4', slideStart: 'Inscription', slideEnd: 'Pilotage',
@@ -182,11 +182,11 @@ const FR: Dict = {
   premiumBadge: '★ Haut de gamme', entBadge: '★ Sur mesure',
   pi1: '10 collaborateurs inclus · 10 Go stockage sécurisé',
   pi2: '25 collaborateurs inclus · 50 Go stockage sécurisé',
-  pi3: '50 collaborateurs inclus · 200 Go stockage sécurisé',
+  pi3: '100 collaborateurs inclus · 200 Go stockage sécurisé',
   extraCollab: 'puis +{price} € HT / mois par collaborateur supplémentaire',
   starterFeatures: ["Jusqu'à 10 collaborateurs", '1 administrateur', 'Pointage Web', 'Gestion RH essentielle', 'Fiches salariés', 'Congés et absences', 'Tableau de bord RH', 'Notifications e-mail', 'Export Excel', 'Hébergement sécurisé France (OVH)', '10 Go stockage sécurisé', 'Support standard'],
   standardFeatures: ['Tout le pack Starter', "Jusqu'à 25 collaborateurs", '3 administrateurs', 'Application mobile Workly', 'Pointage mobile', 'Géolocalisation optionnelle', 'Signature électronique', 'Coffre numérique salarié', 'Import Excel en masse', 'Préparation paie', 'Export paie', 'Congés, RTT et CET', 'Notifications push et e-mail', 'Reporting RH avancé', 'Multi-sites simple', '50 Go stockage sécurisé', 'Support prioritaire'],
-  businessFeatures: ['Tout le pack Standard', "Jusqu'à 50 collaborateurs", 'Administrateurs illimités', 'Multi-sites avancé', 'Workflow de validation avancé', 'Tableaux de bord RH avancés', 'Exports personnalisés', 'Connecteur pointeuses biométriques', 'Compatibilité terminaux de pointage existants', 'Assistant IA RH', 'Audit et journaux avancés', 'Supervision avancée', '200 Go stockage sécurisé', 'SLA prioritaire', 'Onboarding accompagné'],
+  businessFeatures: ['Tout le pack Standard', "Jusqu'à 100 collaborateurs", 'Administrateurs illimités', 'Multi-sites avancé', 'Workflow de validation avancé', 'Tableaux de bord RH avancés', 'Exports personnalisés', 'Connecteur pointeuses biométriques', 'Compatibilité terminaux de pointage existants', 'Assistant IA RH', 'Audit et journaux avancés', 'Supervision avancée', '200 Go stockage sécurisé', 'SLA prioritaire', 'Onboarding accompagné'],
   entFeatures: ['IA RH avancée', 'Recherche documentaire', 'Workflows intelligents', 'API avancées & SSO', 'Hébergement dédié', 'Architecture sur mesure'],
   entPriceLabel: 'Sur devis', entAmount: 'Tarification', entAmountSuffix: ' personnalisée',
   entCommit: 'selon votre structure & volume', entSub: 'Administrateurs illimités · Onboarding accompagné', entCta: 'Demander un devis →',
@@ -196,7 +196,7 @@ const FR: Dict = {
   compTag: 'Comparatif détaillé', compTitleA: 'Tout ce qui est inclus dans', compAccent: 'chaque pack',
   compSub: 'La matrice complète des modules et fonctionnalités, pack par pack. Choisissez en toute transparence.',
   compCorner: 'Fonctionnalités', fromShort: 'à partir de', compTrial: 'Essai gratuit 30j',
-  csPointage: 'Pointage & présence', cfWeb: 'Pointage web', cfMobile: 'Application mobile (Android)', cfGeo: 'Pointage géolocalisé',
+  csPointage: 'Pointage & présence', cfWeb: 'Pointage web', cfMobile: 'Application mobile', cfGeo: 'Pointage géolocalisé',
   csEmp: 'Gestion des employés', cfFiches: 'Fiches collaborateurs', cfCoffre: 'Coffre numérique', cfSign: 'Signature électronique',
   csConges: 'Congés & absences', cfConges: 'Demandes de congés', csPaie: 'Paie & frais', cfPaie: 'Préparation paie · export paie',
   csSecu: 'Sécurité & conformité', cfOvh: 'Hébergement France OVH', cfCrypto: 'Chiffrement AES-256 + TLS 1.3', cfBrand: 'Branding personnalisé',
@@ -284,7 +284,7 @@ const FR: Dict = {
   heroCompatTitle: 'Vous possédez déjà une pointeuse ?',
   heroCompatDesc: "Notre équipe étudie gratuitement les possibilités d'intégration avec votre matériel existant.",
   heroCompatCta: 'Vérifier la compatibilité de ma pointeuse',
-  t5: 'Assurance Cyber Professionnelle',
+  t5: 'Assurance Cyber Professionnelle', t6: 'Paiement sécurisé',
 
   dlSubBold: 'Le compagnon mobile de vos collaborateurs.',
   dlSubText: 'Pointage mobile, géolocalisation optionnelle, signature électronique, transfert sécurisé de documents, coffre-fort numérique RH, gestion des horaires, congés et absences — tout est accessible depuis une seule application.',
@@ -415,11 +415,11 @@ const EN: Dict = {
   premiumBadge: '★ Premium', entBadge: '★ Custom',
   pi1: '10 users included · 10 GB secure storage',
   pi2: '25 users included · 50 GB secure storage',
-  pi3: '50 users included · 200 GB secure storage',
+  pi3: '100 users included · 200 GB secure storage',
   extraCollab: 'then +€{price} excl. tax / mo per additional employee',
   starterFeatures: ['Up to 10 employees', '1 administrator', 'Web clocking', 'Essential HR management', 'Employee records', 'Leave and absences', 'HR dashboard', 'Email notifications', 'Excel export', 'Secure hosting in France (OVH)', '10 GB secure storage', 'Standard support'],
   standardFeatures: ['Everything in Starter', 'Up to 25 employees', '3 administrators', 'Workly mobile app', 'Mobile clocking', 'Optional geolocation', 'Electronic signature', 'Employee digital vault', 'Bulk Excel import', 'Payroll preparation', 'Payroll export', 'Leave, RTT and time-off account', 'Push and email notifications', 'Advanced HR reporting', 'Simple multi-site', '50 GB secure storage', 'Priority support'],
-  businessFeatures: ['Everything in Standard', 'Up to 50 employees', 'Unlimited administrators', 'Advanced multi-site', 'Advanced approval workflow', 'Advanced HR dashboards', 'Custom exports', 'Biometric time-clock connector', 'Compatibility with existing clocking terminals', 'HR AI Assistant', 'Advanced audit and logs', 'Advanced supervision', '200 GB secure storage', 'Priority SLA', 'Guided onboarding'],
+  businessFeatures: ['Everything in Standard', 'Up to 100 employees', 'Unlimited administrators', 'Advanced multi-site', 'Advanced approval workflow', 'Advanced HR dashboards', 'Custom exports', 'Biometric time-clock connector', 'Compatibility with existing clocking terminals', 'HR AI Assistant', 'Advanced audit and logs', 'Advanced supervision', '200 GB secure storage', 'Priority SLA', 'Guided onboarding'],
   entFeatures: ['Advanced HR AI', 'Document search', 'Smart workflows', 'Advanced APIs & SSO', 'Dedicated hosting', 'Tailor-made architecture'],
   entPriceLabel: 'Custom quote', entAmount: 'Custom', entAmountSuffix: ' pricing',
   entCommit: 'based on your structure & volume', entSub: 'Unlimited administrators · Guided onboarding', entCta: 'Request a quote →',
@@ -517,7 +517,7 @@ const EN: Dict = {
   heroCompatTitle: 'Already have a time clock?',
   heroCompatDesc: 'Our team assesses integration options with your existing hardware free of charge.',
   heroCompatCta: "Check my time clock's compatibility",
-  t5: 'Professional Cyber Insurance',
+  t5: 'Professional Cyber Insurance', t6: 'Secure payment',
 
   dlSubBold: "Your employees' mobile companion.",
   dlSubText: 'Mobile clocking, optional geolocation, electronic signature, secure document transfer, HR digital vault, schedule management, leave and absences — all from a single app.',
@@ -660,7 +660,7 @@ function useFounderCountdown() {
 // Rend une cellule du comparatif : true → ✓ vert, false → ✗ gris, string → valeur libre.
 function renderComparisonCell(value: CompCell): React.ReactNode {
   if (value === true) return <span className="comp-check" aria-label="Inclus">✓</span>;
-  if (value === false) return <span className="comp-cross" aria-label="Non inclus">✗</span>;
+  if (value === false) return <span className="comp-none" aria-hidden="true" />;
   return <span className="comp-value">{value}</span>;
 }
 
@@ -689,12 +689,8 @@ const STRIPE_LINKS: Record<PaidPack, Record<BillingCycle, string>> = {
   },
 };
 
-// Payment Links des modules optionnels (ordre = dict.optModules). Essai/abonnement Stripe.
-const OPTIONAL_MODULE_LINKS = [
-  'https://buy.stripe.com/5kQfZa4q9gA1bRJ1hf0000b', // Assistant RH IA — 79 €/mois
-  'https://buy.stripe.com/cNi28k1dX3Nf6xpaRP0000a', // Signature électronique — 19 €/mois
-  'https://buy.stripe.com/6oU8wI5ud1F79JBaRP00009', // Stockage supplémentaire 100 Go — 29 €/mois
-];
+// NB : la table « Modules optionnels » (OPTIONAL_MODULE_LINKS) a été retirée de la home
+// et de la page Services & accompagnement (2026-06).
 // Payment Links des services ponctuels (ordre = dict.serviceItems).
 const SERVICE_LINKS = [
   'https://buy.stripe.com/3cI14g7Cl4RjaNF9NL0000d', // Formation administrateurs (visio) — 290 €
@@ -873,7 +869,7 @@ export default function HomePage() {
     // Branding personnalisé retiré du comparatif des packs (2026-06-02) : désormais
     // « sur devis » (cf. section « Modules et services sur devis » ci-dessus).
     { type: 'section', label: d.csLimites },
-    { type: 'feature', label: d.cfCollab, s: '10', st: '25', b: '50' },
+    { type: 'feature', label: d.cfCollab, s: '10', st: '25', b: '100' },
     // Sites & administrateurs : contraintes dures réellement gatées côté serveur
     // (SitesController → MaxSites 1/5/∞ ; UtilisateursController → IncludedAdmins 1/3/∞).
     { type: 'feature', label: d.cfSites, s: '1', st: '5', b: d.cvUnlimited },
@@ -976,6 +972,8 @@ export default function HomePage() {
             <div className="t"><span className="ti">✓</span><span>{d.t4}</span></div>
             <div className="tsep" />
             <div className="t"><span className="ti">✓</span><span>{d.t5}</span></div>
+            <div className="tsep" />
+            <div className="t"><span className="ti">✓</span><span>{d.t6}</span></div>
           </div>
         </div>
         <div className="hero-right">
@@ -1154,7 +1152,7 @@ export default function HomePage() {
             <ul className="price-list">{d.standardFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
           </div>
 
-          {/* PREMIUM — couleur OR. 50 collaborateurs inclus (aligné PlanCatalog, cf. pi3). */}
+          {/* PREMIUM — couleur OR. 100 collaborateurs inclus (aligné PlanCatalog, cf. pi3). */}
           <div className="price-card" style={{ border: '2px solid #b8860b', background: 'linear-gradient(180deg,#fdf8ec,#fff)' }}>
             <div style={{ position: 'absolute', top: -12, right: 20, background: 'linear-gradient(135deg,#b8860b,#d4af37)', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 999, letterSpacing: '.08em', textTransform: 'uppercase' }}>{d.premiumBadge}</div>
             <div className="price-tier" style={{ color: '#b8860b' }}>Premium</div>
@@ -1270,42 +1268,12 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* MODULES OPTIONNELS — juste sous les 4 packs. Bouton « Ajouter » → Payment Link
-            Stripe du module (rattaché au tenant via client_reference_id ; visiteur anonyme
-            redirigé d'abord vers l'inscription car un module débloque des fonctionnalités). */}
+        {/* SERVICES + MODULES SUR DEVIS (la table « Modules optionnels » a été retirée — 2026-06).
+            Services : bouton « Ajouter » → Payment Link Stripe (prestation ponctuelle, ouvert
+            directement ; client_reference_id ajouté si un tenant est connu).
+            Sur devis : bouton « Demander un devis » → section contact (formulaire). */}
         <div style={{ maxWidth: 1100, margin: '56px auto 0' }}>
-          <h3 style={secHeading}>{d.optTitle}</h3>
-          <p style={secSub}>{d.optSub}</p>
-          <div style={tblWrap}>
-            <table style={tbl}>
-              <thead>
-                <tr>
-                  <th style={thS}>{d.modCol}</th>
-                  <th style={thS}>{d.descCol}</th>
-                  <th style={{ ...thS, whiteSpace: 'nowrap' }}>{d.tarifCol}</th>
-                  <th style={{ ...thS, textAlign: 'center' }} aria-label={d.addBtn} />
-                </tr>
-              </thead>
-              <tbody>
-                {d.optModules.map((m, i) => (
-                  <tr key={m.name}>
-                    <td style={{ ...tdS, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>{m.name}</td>
-                    <td style={tdS}>{m.desc}</td>
-                    <td style={{ ...tdS, fontWeight: 700, color: '#0040a1', whiteSpace: 'nowrap' }}>{m.price}</td>
-                    <td style={{ ...tdS, textAlign: 'center' }}>
-                      <button type="button" style={addBtnS} onClick={() => openStripeLink(OPTIONAL_MODULE_LINKS[i], true)}>{d.addBtn}</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* NOS SERVICES + MODULES SUR DEVIS — placés juste sous les modules optionnels.
-              Services : bouton « Ajouter » → Payment Link Stripe (prestation ponctuelle,
-              ouvert directement ; client_reference_id ajouté si un tenant est connu).
-              Sur devis : bouton « Demander un devis » → section contact (formulaire). */}
-          <div style={{ marginTop: 56 }}>
+          <div>
             <h3 style={secHeading}>{d.svcTitle}</h3>
             <p style={secSub}>{d.svcSub}</p>
             <div style={tblWrap}>
@@ -1376,9 +1344,9 @@ export default function HomePage() {
               <tr>
                 <th className="comp-corner">{d.compCorner}</th>
                 <th className="comp-plan">
-                  <div className="comp-plan-name">Starter</div>
+                  <div className="comp-plan-name starter-green">Starter</div>
                   <div className="comp-plan-price">{d.fromShort} <strong>{fmt(annualMonthly.starter)} €</strong> HT{lang === 'en' ? ' / mo' : ' / mois'}</div>
-                  <button type="button" className="comp-cta" onClick={() => goToCheckout('starter')}>{d.compTrial}</button>
+                  <button type="button" className="comp-cta comp-cta-starter" onClick={() => goToCheckout('starter')}>{d.compTrial}</button>
                 </th>
                 <th className="comp-plan comp-plan-featured">
                   <div className="comp-plan-badge">{d.popularBadge}</div>
