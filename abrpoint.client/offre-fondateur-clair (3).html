@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Offre Fondateur — Été 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#1E7BFF; --blue-bright:#1488FF; --blue-deep:#0C53D6; --cyan:#12B5E8;
+    --ink:#0C1F45; --body:#4C6488; --muted:#6A82A8; --faint:#9DB1CE;
+    --line:#1E7BFF;
+    --line-strong:#1E7BFF;
+    --card:#ffffff;
+    --radius:26px;
+    --fd:"Sora",system-ui,sans-serif;
+    --fb:"Manrope",system-ui,sans-serif;
+    --fn:"Space Grotesk",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-font-smoothing:antialiased}
+  body{font-family:var(--fb);color:var(--body);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;
+    padding:clamp(16px,3vw,40px) clamp(14px,3.5vw,52px);
+    background:radial-gradient(1100px 720px at 80% 4%,#d4e6ff 0%,transparent 56%),radial-gradient(820px 560px at 6% 102%,#dcebff 0%,transparent 55%),linear-gradient(165deg,#eef4fc,#e6effb 60%,#f1f6fe);}
+
+  .hero{position:relative;width:100%;max-width:1140px;border-radius:var(--radius);overflow:hidden;
+    padding:clamp(22px,3vw,40px) clamp(28px,4vw,62px) clamp(28px,4vw,56px);
+    background:linear-gradient(160deg,#ffffff,#f5f9ff);
+    border:1.6px solid var(--line-strong);}
+  .aurora{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;opacity:.7}
+  .aurora.a{width:540px;height:540px;top:-220px;right:-150px;background:radial-gradient(circle,rgba(30,123,255,.22),transparent 65%);animation:drift1 18s ease-in-out infinite}
+  .aurora.b{width:440px;height:440px;bottom:-220px;left:-130px;background:radial-gradient(circle,rgba(18,181,232,.18),transparent 65%);animation:drift2 22s ease-in-out infinite}
+  .hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.55;
+    background-image:radial-gradient(rgba(30,110,220,.13) 1px,transparent 1.4px);background-size:30px 30px;
+    -webkit-mask:radial-gradient(115% 90% at 75% 12%,#000 35%,transparent 85%);mask:radial-gradient(115% 90% at 75% 12%,#000 35%,transparent 85%)}
+  .inner{position:relative;z-index:2}
+
+  .top{display:grid;grid-template-columns:1.1fr auto;gap:clamp(28px,4vw,56px);align-items:start}
+  @media(max-width:900px){.top{grid-template-columns:1fr;justify-items:center;text-align:center;gap:30px}}
+
+  .eyebrow{display:inline-flex;align-items:center;gap:9px;padding:8px 17px;border-radius:100px;
+    font-family:var(--fd);font-size:11.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--blue-deep);
+    background:rgba(30,123,255,.09);border:1px solid rgba(30,123,255,.28)}
+  .eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--blue);box-shadow:0 0 9px rgba(30,123,255,.7);animation:blink 1.5s ease-in-out infinite}
+
+  h1{font-family:var(--fd);font-weight:800;line-height:1.05;letter-spacing:-.022em;font-size:clamp(34px,5.4vw,64px);margin:20px 0 0;color:var(--ink)}
+  h1 .accent{background:linear-gradient(100deg,var(--blue-deep),var(--blue) 50%,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{margin:20px 0 0;max-width:42ch;font-size:clamp(15px,1.5vw,18px);font-weight:500;line-height:1.6;color:var(--body)}
+  .sub b{color:var(--ink);font-weight:700} .sub .c{color:var(--blue);font-weight:600}
+  @media(max-width:900px){.sub{margin-inline:auto}}
+
+  .actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:30px}
+  @media(max-width:900px){.actions{justify-content:center}}
+  .cta{position:relative;display:inline-flex;align-items:center;gap:11px;font-family:var(--fd);font-size:16px;font-weight:700;color:#fff;text-decoration:none;padding:17px 34px;border-radius:100px;overflow:hidden;
+    background:linear-gradient(180deg,#3aa0ff,#1E7BFF 48%,#125fe0);
+    border:1.6px solid var(--line-strong);
+    transition:transform .25s ease}
+  .cta:hover{transform:translateY(-2px)}
+  .cta:active{transform:translateY(0)}
+  .cta:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+  .cta svg{width:17px;height:17px;stroke:currentColor;stroke-width:2.3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .cta .arr{transition:transform .25s ease}.cta:hover .arr{transform:translateX(5px)}
+  .cta .shine{position:absolute;top:0;left:-130%;width:55%;height:100%;transform:skewX(-20deg);background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);animation:shine 4.2s ease-in-out infinite}
+  .reassure{font-size:13.5px;font-weight:500;color:var(--muted)}
+  .reassure b{color:var(--body);font-weight:700}
+
+  /* radial gauge */
+  .gauge{position:relative;width:clamp(238px,27vw,300px);aspect-ratio:1;display:grid;place-items:center}
+  .gauge .sweep{position:absolute;inset:8%;border-radius:50%;
+    background:conic-gradient(from 0deg,transparent 0deg 300deg,rgba(30,123,255,.18) 342deg,transparent 360deg);
+    -webkit-mask:radial-gradient(circle,transparent 56%,#000 57%);mask:radial-gradient(circle,transparent 56%,#000 57%);
+    animation:spin 5.5s linear infinite}
+  .gauge svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+  .gauge .track{fill:none;stroke:#d8e4f5;stroke-width:9}
+  .gauge .prog{fill:none;stroke:url(#g);stroke-width:9;stroke-linecap:round;
+    transition:stroke-dashoffset 1.4s cubic-bezier(.2,.7,.2,1)}
+  .gauge .ticks line{stroke:rgba(30,110,220,.28);stroke-width:2}
+  .gauge .chrome-ring{fill:none;stroke:rgba(30,110,220,.16);stroke-width:1.4}
+  .center{position:relative;z-index:2;text-align:center;line-height:1}
+  .center .big{font-family:var(--fn);font-weight:700;font-size:clamp(56px,8vw,78px);color:var(--ink);font-variant-numeric:tabular-nums}
+  .center .big-lab{font-family:var(--fd);font-size:12px;font-weight:600;letter-spacing:.26em;text-transform:uppercase;color:var(--blue);margin-top:6px}
+  .center .hms{margin-top:14px;font-family:var(--fn);font-weight:500;font-size:15px;letter-spacing:.05em;color:var(--muted);font-variant-numeric:tabular-nums}
+  .center .hms b{color:var(--ink);font-weight:700}
+  .gauge .badge{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);white-space:nowrap;
+    font-family:var(--fd);font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    background:#fff;border:1px solid var(--line);border-radius:100px;padding:6px 14px}
+
+  .divider{height:1px;background:linear-gradient(90deg,transparent,var(--line) 18%,var(--line) 82%,transparent);margin:clamp(34px,4.4vw,52px) 0 clamp(24px,3vw,32px)}
+  .benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:760px){.benefits{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:470px){.benefits{grid-template-columns:1fr}}
+  .b{position:relative;display:flex;gap:13px;align-items:center;padding:16px 18px;border-radius:14px;
+    background:var(--card);border:1.4px solid var(--line);transition:.3s ease;overflow:hidden}
+  .b::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),transparent);transform:scaleX(0);transform-origin:left;transition:transform .35s ease}
+  .b:hover{transform:translateY(-4px);border-color:var(--line)}
+  .b:hover::before{transform:scaleX(1)}
+  .b .ic{flex:none;width:40px;height:40px;border-radius:11px;display:grid;place-items:center;color:var(--blue);
+    background:rgba(30,123,255,.1);border:1px solid rgba(30,123,255,.22)}
+  .b .ic svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .b h3{font-family:var(--fd);font-size:14.5px;font-weight:600;color:var(--ink);margin-bottom:2px}
+  .b p{font-size:13px;font-weight:500;color:var(--muted);line-height:1.4}
+
+  .trust{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 24px;margin-top:clamp(28px,3.6vw,40px);padding-top:clamp(22px,3vw,28px);border-top:1px solid var(--line)}
+  .trust span{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--body)}
+  .trust svg{width:16px;height:16px;stroke:var(--blue);stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+  .rise{opacity:0;transform:translateY(18px);animation:rise .85s cubic-bezier(.2,.7,.2,1) forwards}
+  .d1{animation-delay:.05s}.d2{animation-delay:.18s}.d3{animation-delay:.3s}.d4{animation-delay:.42s}.d5{animation-delay:.54s}.d6{animation-delay:.66s}.d7{animation-delay:.78s}
+
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes drift1{50%{transform:translate(-34px,40px)}}
+  @keyframes drift2{50%{transform:translate(40px,-30px)}}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+  @keyframes shine{0%,55%{left:-130%}82%{left:150%}100%{left:150%}}
+  @keyframes rise{to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important}.rise{opacity:1;transform:none}.gauge .prog{transition:none}}
+</style>
+</head>
+<body>
+  <main class="hero">
+    <div class="aurora a"></div>
+    <div class="aurora b"></div>
+    <div class="inner">
+
+      <div class="top">
+        <div>
+          <span class="eyebrow rise d1"><i></i>Offre Fondateur · Été 2026</span>
+          <h1 class="rise d2">Conditions tarifaires préférentielles <span class="accent">Fondateur</span></h1>
+          <p class="sub rise d3">Du <b>1ᵉʳ juin</b> au <b>31 août 2026</b> — <span class="c">une fenêtre exclusive</span>, puis on referme.</p>
+          <div class="actions rise d4">
+            <a class="cta" href="#"><span class="shine"></span>Rejoindre l'offre Fondateur <span class="arr"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+            <span class="reassure"><b>Sans carte bancaire</b> · sans engagement</span>
+          </div>
+        </div>
+
+        <div class="gauge rise d3" role="img" aria-label="Temps restant avant la fin de l'offre">
+          <div class="sweep"></div>
+          <svg viewBox="0 0 240 240" aria-hidden="true">
+            <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#0C53D6"/><stop offset="0.5" stop-color="#1E7BFF"/><stop offset="1" stop-color="#19C5F5"/>
+            </linearGradient></defs>
+            <circle class="track" cx="120" cy="120" r="100"/>
+            <circle class="chrome-ring" cx="120" cy="120" r="112"/>
+            <circle class="prog" id="prog" cx="120" cy="120" r="100" stroke-dasharray="628.3" stroke-dashoffset="628.3"/>
+            <g class="ticks" id="ticks"></g>
+          </svg>
+          <div class="center">
+            <div class="big" id="days">79</div>
+            <div class="big-lab">jours restants</div>
+            <div class="hms"><b id="h">05</b>h <b id="m">23</b>m <b id="s">21</b>s</div>
+          </div>
+          <span class="badge">Fenêtre Fondateur · 1 juin → 31 août</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <section class="benefits" aria-label="Avantages">
+        <div class="b rise d3"><div class="ic"><svg viewBox="0 0 24 24"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div><div><h3>1 mois offert</h3><p>Sans carte bancaire</p></div></div>
+        <div class="b rise d4"><div class="ic"><svg viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2 0-2.8a2 2 0 0 0-3 0zM12 15l-3-3a22 22 0 0 1 8-10c2 0 4 0 6 2s2 4 2 6a22 22 0 0 1-10 8zM9 12H4l2.5-4h4M12 15v5l4-2.5v-4"/></svg></div><div><h3>Activation rapide</h3><p>Opérationnel en 48 h</p></div></div>
+        <div class="b rise d5"><div class="ic"><svg viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5zM6 12v5c0 1 2.7 3 6 3s6-2 6-3v-5M22 10v6"/></svg></div><div><h3>Onboarding inclus</h3><p>Accompagnement expert</p></div></div>
+        <div class="b rise d4"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 14v-2a9 9 0 0 1 18 0v2M3 14a2 2 0 0 0 2 2h1v-5H5a2 2 0 0 0-2 2zM21 14a2 2 0 0 1-2 2h-1v-5h1a2 2 0 0 1 2 2zM18 16v1a4 4 0 0 1-4 4h-2"/></svg></div><div><h3>Support prioritaire</h3><p>Accès file prioritaire</p></div></div>
+        <div class="b rise d5"><div class="ic"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div><div><h3>Accès anticipé</h3><p>Nouvelles fonctionnalités</p></div></div>
+        <div class="b rise d6"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 9h18M8 3v3M16 3v3M9 15l2 2 4-4"/></svg></div><div><h3>Sans engagement</h3><p>Vous décidez après l'essai</p></div></div>
+      </section>
+
+      <div class="trust rise d7">
+        <span><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Sécurisé &amp; conforme RGPD</span>
+        <span><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6"/></svg>Hébergement France · OVH</span>
+        <span><svg viewBox="0 0 24 24"><path d="M12 8v4l3 2M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z"/></svg>Mise en place en 48 h</span>
+        <span><svg viewBox="0 0 24 24"><path d="M3 14v-2a9 9 0 0 1 18 0v2M5 16h1v-5H5a2 2 0 0 0 0 5zM19 16h-1v-5h1a2 2 0 0 1 0 5zM18 16v1a4 4 0 0 1-4 4h-2"/></svg>Support francophone humain</span>
+      </div>
+    </div>
+  </main>
+
+<script>
+  (function(){
+    var ticks=document.getElementById('ticks');
+    for(var i=0;i<12;i++){var a=i*30*Math.PI/180,x1=120+92*Math.cos(a),y1=120+92*Math.sin(a),x2=120+100*Math.cos(a),y2=120+100*Math.sin(a);
+      var l=document.createElementNS('http://www.w3.org/2000/svg','line');
+      l.setAttribute('x1',x1.toFixed(1));l.setAttribute('y1',y1.toFixed(1));l.setAttribute('x2',x2.toFixed(1));l.setAttribute('y2',y2.toFixed(1));ticks.appendChild(l);}
+
+    var start=new Date('2026-06-01T00:00:00'),end=new Date('2026-08-31T23:59:59');
+    var C=2*Math.PI*100;
+    var prog=document.getElementById('prog'),days=document.getElementById('days'),H=document.getElementById('h'),M=document.getElementById('m'),S=document.getElementById('s');
+    function p2(n){return(n<10?'0':'')+n;}
+    function tick(){
+      var now=new Date(),diff=Math.max(0,end-now);
+      days.textContent=Math.floor(diff/86400000);
+      H.textContent=p2(Math.floor(diff%86400000/3600000));
+      M.textContent=p2(Math.floor(diff%3600000/60000));
+      S.textContent=p2(Math.floor(diff%60000/1000));
+      var pct=Math.min(1,Math.max(0,(now-start)/(end-start)));
+      prog.style.strokeDashoffset=(C*pct).toFixed(1);
+    }
+    tick();setTimeout(tick,60);setInterval(tick,1000);
+  })();
+</script>
+</body>
+</html>

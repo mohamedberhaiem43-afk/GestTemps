@@ -125,6 +125,11 @@ export interface PlanFeatures {
   // Assistant IA conversationnel (addon « Assistant RH IA » / aiAssistantRh). Distinct du RAG
   // documentaire (ragAi, sur devis). Contrôle l'affichage du chatbot flottant (onglet Assistant).
   aiChatbot: boolean;
+  // 2026-06 — Connecteur pointeuses biométriques / compatibilité terminaux de pointage.
+  // EXCLUSIF Premium (aucun addon ne le débloque) : gate l'entrée de menu et la page
+  // « Liste des pointeuses » (cf. Navigation + Pointeuse.tsx). Côté API, le
+  // PointeuseController est protégé par [RequirePlanFeature(BiometricDevices)] → 402.
+  biometricDevices: boolean;
 }
 
 /** Couleurs de base personnalisables via l'option « Branding personnalisé ». */

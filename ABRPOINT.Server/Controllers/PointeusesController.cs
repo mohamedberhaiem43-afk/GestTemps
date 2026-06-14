@@ -6,6 +6,7 @@ using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
 using ABRPOINT.Server.Models;
 using ABRPOINT.Server.Services;
+using ABRPOINT.Server.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,6 +19,11 @@ namespace ABRPOINT.Server.Controllers
     // sans authentification. Hardening : authent requise + soccod restreint au tenant.
     [Authorize]
     [ValidateSoccod]
+    // 2026-06 — La gestion des pointeuses physiques (liste, connexion, logs) est une
+    // fonctionnalité EXCLUSIVE au pack Premium (BiometricDevices). Tout le contrôleur
+    // renvoie 402 plan_feature_locked si le tenant n'est pas Premium → l'UI affiche le
+    // pop-up d'upgrade. Aligné sur le gating front (nav + page « Liste des pointeuses »).
+    [RequirePlanFeature(nameof(PlanFeatures.BiometricDevices))]
     public class PointeuseController : ControllerBase
     {
         private readonly IPointeuseRepository _pointeuseRepository;

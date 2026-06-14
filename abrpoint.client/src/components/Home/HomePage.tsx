@@ -105,6 +105,31 @@ interface Dict {
   flPricing: string; flMobile: string; flContact: string; flLogin: string; flSignup: string;
   flPointage: string; flConges: string; flPersonnel: string;
   copyright: string; privacy: string; cgu: string; legal: string; cookies: string; accountDeletion: string;
+  // ── MISE À JOUR MAQUETTE v2-2 ──────────────────────────────────────────────
+  // HERO : 2e paragraphe, mention « sans CB », encart compatibilité pointeuse, 5e gage.
+  heroLead2: string; heroNoCard: string;
+  heroCompatTitle: string; heroCompatDesc: string; heroCompatCta: string; t5: string;
+  // DOWNLOAD enrichi (sous-titre en gras + texte, liste de fonctionnalités, conclusion, 3 stores).
+  dlSubBold: string; dlSubText: string; dlFeatsTitle: string; dlFeats: string[];
+  dlOutroBold: string; dlOutroText: string;
+  stApkSmall: string; stApkLarge: string; stGoogleSmall: string; stGoogleLarge: string;
+  stAppleSmall: string; stAppleLarge: string;
+  // PRICING : note de bas de carte Premium (compatibilité fabricants).
+  premiumFootnote: string;
+  // ENTERPRISE PLUS — panneau « Entreprises sur mesure » (remplace la 4e carte).
+  epxRibbon: string; epxEyebrow: string; epxTitleA: string; epxTitleB: string;
+  epxLeadPre: string; epxLeadBold: string; epxDesc: string;
+  epxFeats: Avantage[]; epxAccoTitle: string; epxAccoItems: string[];
+  epxSlaStrong: string; epxSlaSpan: string;
+  epxContactStrong: string; epxContactSpan: string; epxContactBtn: string;
+  epxRightHead: string; epxCaps: Avantage[]; epxPartnerStrong: string; epxPartnerSpan: string;
+  // ── OFFRE FONDATEUR — maquette claire « offre-fondateur-clair » (jauge radiale) ──
+  fdrEyebrow: string; fdrTitlePre: string; fdrTitleAccent: string;
+  fdrSubExcl: string; fdrSubClose: string;
+  fdrCta: string; fdrReassureBold: string; fdrReassureRest: string;
+  fdrDaysLabel: string; fdrBadge: string;
+  // 6 avantages (icône SVG fixe rendue par index) + 4 gages de confiance.
+  fdrBenefits: { t: string; d: string }[]; fdrTrust: string[];
 }
 
 const FR: Dict = {
@@ -121,12 +146,11 @@ const FR: Dict = {
   promoSubPre: 'Du', promoDate1: '1er juin', promoMid: 'au', promoDate2: '31 août 2026', promoSuf: '— une fenêtre exclusive.',
   cdLabel: "L'offre se termine dans", cdDays: 'jours', cdHours: 'heures', cdMin: 'min', cdSec: 'sec',
   avantages: [
-    { icon: '🎁', t: '1 mois offert', d: 'Sans carte bancaire' },
-    { icon: '🚀', t: 'Activation rapide', d: 'Opérationnel en 48h' },
-    { icon: '🎓', t: 'Onboarding inclus', d: 'Accompagnement expert' },
-    { icon: '🎧', t: 'Support prioritaire', d: 'Accès file prioritaire' },
-    { icon: '⚡', t: 'Accès anticipé', d: 'Nouvelles fonctionnalités' },
-    { icon: '📅', t: 'Sans engagement', d: "Vous décidez après l'essai" },
+    { icon: '🎁', t: "30 jours d'essai gratuit", d: 'Toutes les fonctionnalités' },
+    { icon: '💳', t: 'Sans carte bancaire', d: 'Aucun engagement requis' },
+    { icon: '🎓', t: 'Accompagnement au démarrage', d: 'Mise en route guidée' },
+    { icon: '🏷️', t: "−20 % sur l'engagement annuel", d: 'Tarif préférentiel Fondateur' },
+    { icon: '⚡', t: 'Mise en service rapide', d: 'Opérationnel sans délai' },
   ],
   promoCta: "🌟 Rejoindre l'offre Fondateur →",
   pt1: '🛡 Sécurisé & conforme RGPD', pt2: '🏦 Hébergement France OVH', pt3: '⚡ Mise en place en 48h', pt4: '🎧 Support francophone humain',
@@ -160,9 +184,9 @@ const FR: Dict = {
   pi2: '25 collaborateurs inclus · 50 Go stockage sécurisé',
   pi3: '50 collaborateurs inclus · 200 Go stockage sécurisé',
   extraCollab: 'puis +{price} € HT / mois par collaborateur supplémentaire',
-  starterFeatures: ['Pointage web (navigateur)', 'Gestion RH essentielle (fiches, contrats)', 'Gestion congés & absences', 'Tableau de bord simplifié · exports PDF / Excel', 'Notifications essentielles', '10 Go stockage sécurisé · Hébergement France OVH', 'Multi utilisateurs'],
-  standardFeatures: ['Tout le pack Starter', 'Application mobile + géolocalisation', 'Coffre numérique & signature électronique', 'Import Excel en masse (employés, services, fonctions, rubriques…)', 'Préparation paie · export paie · Multi-sites simple', 'Congés, RTT, CET, sanctions · Notifications push / email', 'Reporting avancé · 50 Go stockage sécurisé', 'Hébergement France OVH · Multi utilisateurs', 'Idéal : PME en croissance · équipes terrain · structures multi-sites · gestion RH centralisée'],
-  businessFeatures: ['Tout le pack Standard', 'Multi-filiales · tableaux de bord avancés', 'Sécurité renforcée · Audit logs avancés', 'Supervision avancée · 200 Go stockage sécurisé', 'Hébergement France OVH · Administrateurs illimités', 'Onboarding accompagné · SLA prioritaire', 'Idéal : PME structurées · groupes multi-sites · conformité & sécurité avancées · organisations en croissance'],
+  starterFeatures: ["Jusqu'à 10 collaborateurs", '1 administrateur', 'Pointage Web', 'Gestion RH essentielle', 'Fiches salariés', 'Congés et absences', 'Tableau de bord RH', 'Notifications e-mail', 'Export Excel', 'Hébergement sécurisé France (OVH)', '10 Go stockage sécurisé', 'Support standard'],
+  standardFeatures: ['Tout le pack Starter', "Jusqu'à 25 collaborateurs", '3 administrateurs', 'Application mobile Workly', 'Pointage mobile', 'Géolocalisation optionnelle', 'Signature électronique', 'Coffre numérique salarié', 'Import Excel en masse', 'Préparation paie', 'Export paie', 'Congés, RTT et CET', 'Notifications push et e-mail', 'Reporting RH avancé', 'Multi-sites simple', '50 Go stockage sécurisé', 'Support prioritaire'],
+  businessFeatures: ['Tout le pack Standard', "Jusqu'à 50 collaborateurs", 'Administrateurs illimités', 'Multi-sites avancé', 'Workflow de validation avancé', 'Tableaux de bord RH avancés', 'Exports personnalisés', 'Connecteur pointeuses biométriques', 'Compatibilité terminaux de pointage existants', 'Assistant IA RH', 'Audit et journaux avancés', 'Supervision avancée', '200 Go stockage sécurisé', 'SLA prioritaire', 'Onboarding accompagné'],
   entFeatures: ['IA RH avancée', 'Recherche documentaire', 'Workflows intelligents', 'API avancées & SSO', 'Hébergement dédié', 'Architecture sur mesure'],
   entPriceLabel: 'Sur devis', entAmount: 'Tarification', entAmountSuffix: ' personnalisée',
   entCommit: 'selon votre structure & volume', entSub: 'Administrateurs illimités · Onboarding accompagné', entCta: 'Demander un devis →',
@@ -254,6 +278,90 @@ const FR: Dict = {
   copyright: '© 2026 Concorde Workforce · Tous droits réservés',
   privacy: 'Confidentialité', cgu: 'CGUS', legal: 'Mentions légales', cookies: 'Cookies',
   accountDeletion: 'Suppression de compte',
+
+  heroLead2: "Conservez votre matériel actuel ou passez au pointage mobile Workly. Concorde Workforce s'adapte à votre organisation.",
+  heroNoCard: 'Sans carte bancaire',
+  heroCompatTitle: 'Vous possédez déjà une pointeuse ?',
+  heroCompatDesc: "Notre équipe étudie gratuitement les possibilités d'intégration avec votre matériel existant.",
+  heroCompatCta: 'Vérifier la compatibilité de ma pointeuse',
+  t5: 'Assurance Cyber Professionnelle',
+
+  dlSubBold: 'Le compagnon mobile de vos collaborateurs.',
+  dlSubText: 'Pointage mobile, géolocalisation optionnelle, signature électronique, transfert sécurisé de documents, coffre-fort numérique RH, gestion des horaires, congés et absences — tout est accessible depuis une seule application.',
+  dlFeatsTitle: 'Fonctionnalités principales',
+  dlFeats: [
+    'Pointage mobile en temps réel',
+    'Géolocalisation optionnelle pour les équipes terrain',
+    'Demandes et validation des congés',
+    'Gestion des horaires et suivi du temps de travail',
+    'Signature électronique des documents RH',
+    'Transfert sécurisé de documents',
+    'Coffre-fort numérique salarié',
+    'Consultation des bulletins et documents RH',
+    'Notifications et alertes en temps réel',
+    'Mode hors connexion (Offline)',
+  ],
+  dlOutroBold: 'Workly simplifie le quotidien des salariés et des managers.',
+  dlOutroText: " Depuis leur smartphone, les collaborateurs peuvent pointer, consulter leurs horaires, transmettre des documents, signer électroniquement des formulaires RH et accéder à leur coffre-fort numérique sécurisé.",
+  stApkSmall: 'APK direct', stApkLarge: 'concorde-work-force.com',
+  stGoogleSmall: 'Disponible sur', stGoogleLarge: 'Google Play',
+  stAppleSmall: "Télécharger dans l'", stAppleLarge: 'App Store',
+
+  premiumFootnote: '* Compatible avec les principaux fabricants (ZKTeco, Hikvision, Suprema, Anviz, etc.). Intégration spécifique sur étude.',
+
+  epxRibbon: 'OFFRE GRANDS COMPTES',
+  epxEyebrow: 'Enterprise Plus',
+  epxTitleA: 'Entreprises', epxTitleB: 'sur mesure',
+  epxLeadPre: 'Une solution RH construite pour ', epxLeadBold: 'les organisations ambitieuses',
+  epxDesc: "Concorde Workforce s'adapte à votre organisation, vos processus et vos enjeux. Une plateforme évolutive, sécurisée et 100 % modulable.",
+  epxFeats: [
+    { icon: '👥', t: '+500 salariés', d: 'Idéal pour les grandes entreprises' },
+    { icon: '🏢', t: 'Multi-filiales & multi-sociétés', d: 'Centralisez toutes vos entités' },
+    { icon: '🌍', t: 'Déploiement national ou international', d: 'Une solution sans frontières' },
+    { icon: '🎚️', t: 'Tarification sur mesure', d: 'Selon votre structure, vos volumes et vos besoins' },
+  ],
+  epxAccoTitle: 'Accompagnement Premium',
+  epxAccoItems: ['Chef de projet dédié', 'Onboarding personnalisé', 'Formation et transfert de compétences', 'Support prioritaire 24/7'],
+  epxSlaStrong: 'SLA Entreprise garanti', epxSlaSpan: 'Engagement de service et réactivité maximale',
+  epxContactStrong: 'Parlons de votre projet',
+  epxContactSpan: 'Nos experts vous proposent une étude personnalisée et une démonstration adaptée à vos besoins.',
+  epxContactBtn: 'Demander une étude personnalisée →',
+  epxRightHead: 'Votre solution 100 % personnalisée',
+  epxCaps: [
+    { icon: '✓', t: 'Administrateurs illimités', d: 'Gestion des accès avancée et sécurisée' },
+    { icon: '✓', t: 'Salariés illimités', d: 'Aucun plafond, aucune contrainte' },
+    { icon: '✓', t: 'Multi-filiales & multi-entités', d: 'Gestion centralisée ou décentralisée' },
+    { icon: '✓', t: 'Multi-sites avancé', d: 'Organisation, géolocalisation et reporting global' },
+    { icon: '✓', t: 'IA RH avancée & recherche documentaire', d: 'Automatisez, analysez, décidez' },
+    { icon: '✓', t: 'Workflows intelligents', d: 'Processus sur mesure et automatisations' },
+    { icon: '✓', t: 'API avancées & SSO', d: 'Azure AD, Google, Microsoft 365, Okta, …' },
+    { icon: '✓', t: 'Connecteurs ERP & Paie', d: 'SAP, Sage, Cegid, ADP, et plus encore' },
+    { icon: '✓', t: 'Compatibilité terminaux de pointage', d: 'Intégration avec de nombreux terminaux' },
+    { icon: '✓', t: 'Hébergement dédié & sécurité renforcée', d: 'Infrastructure dédiée en France ou UE' },
+    { icon: '✓', t: 'Architecture sur mesure', d: 'Développements spécifiques & évolutifs' },
+    { icon: '✓', t: 'SLA Entreprise & support prioritaire 24/7', d: 'Engagement de service et réactivité maximale' },
+  ],
+  epxPartnerStrong: "Plus qu'un logiciel, un partenaire de croissance",
+  epxPartnerSpan: "Concorde Workforce vous accompagne aujourd'hui et à chaque étape de votre développement.",
+
+  fdrEyebrow: 'Offre Fondateur · Été 2026',
+  fdrTitlePre: 'Conditions tarifaires préférentielles ',
+  fdrTitleAccent: 'Fondateur',
+  fdrSubExcl: 'une fenêtre exclusive',
+  fdrSubClose: ', puis on referme.',
+  fdrCta: "Rejoindre l'offre Fondateur",
+  fdrReassureBold: 'Sans carte bancaire', fdrReassureRest: ' · sans engagement',
+  fdrDaysLabel: 'jours restants',
+  fdrBadge: 'Fenêtre Fondateur · 1 juin → 31 août',
+  fdrBenefits: [
+    { t: '1 mois offert', d: 'Sans carte bancaire' },
+    { t: 'Activation rapide', d: 'Opérationnel en 48 h' },
+    { t: 'Onboarding inclus', d: 'Accompagnement expert' },
+    { t: 'Support prioritaire', d: 'Accès file prioritaire' },
+    { t: 'Accès anticipé', d: 'Nouvelles fonctionnalités' },
+    { t: 'Sans engagement', d: "Vous décidez après l'essai" },
+  ],
+  fdrTrust: ['Sécurisé & conforme RGPD', 'Hébergement France · OVH', 'Mise en place en 48 h', 'Support francophone humain'],
 };
 
 const EN: Dict = {
@@ -270,12 +378,11 @@ const EN: Dict = {
   promoSubPre: 'From', promoDate1: 'June 1st', promoMid: 'to', promoDate2: 'August 31, 2026', promoSuf: '— an exclusive window.',
   cdLabel: 'The offer ends in', cdDays: 'days', cdHours: 'hours', cdMin: 'min', cdSec: 'sec',
   avantages: [
-    { icon: '🎁', t: '1 month free', d: 'No credit card' },
-    { icon: '🚀', t: 'Fast activation', d: 'Up and running in 48h' },
-    { icon: '🎓', t: 'Onboarding included', d: 'Expert guidance' },
-    { icon: '🎧', t: 'Priority support', d: 'Priority queue access' },
-    { icon: '⚡', t: 'Early access', d: 'New features' },
-    { icon: '📅', t: 'No commitment', d: 'You decide after the trial' },
+    { icon: '🎁', t: '30-day free trial', d: 'All features' },
+    { icon: '💳', t: 'No credit card', d: 'No commitment required' },
+    { icon: '🎓', t: 'Start-up guidance', d: 'Guided onboarding' },
+    { icon: '🏷️', t: '−20% on annual commitment', d: 'Preferential Founder rate' },
+    { icon: '⚡', t: 'Fast go-live', d: 'Operational without delay' },
   ],
   promoCta: '🌟 Join the Founder offer →',
   pt1: '🛡 Secure & GDPR compliant', pt2: '🏦 Hosted in France OVH', pt3: '⚡ Set up in 48h', pt4: '🎧 Human French-speaking support',
@@ -309,9 +416,9 @@ const EN: Dict = {
   pi2: '25 users included · 50 GB secure storage',
   pi3: '50 users included · 200 GB secure storage',
   extraCollab: 'then +€{price} excl. tax / mo per additional employee',
-  starterFeatures: ['Web time tracking (browser)', 'Essential HR management (records, contracts)', 'Leave & absence management', 'Simplified dashboard · PDF / Excel exports', 'Essential notifications', '10 GB secure storage · Hosted in France OVH', 'Multi-user'],
-  standardFeatures: ['Everything in Starter', 'Mobile app + geolocation', 'Digital vault & e-signature', 'Bulk Excel import (employees, services, roles, items…)', 'Payroll preparation · payroll export · simple multi-site', 'Leave, RTT, time-off, sanctions · push / email notifications', 'Advanced reporting · 50 GB secure storage', 'Hosted in France OVH · Multi-user', 'Ideal for: growing SMEs · field teams · multi-site structures · centralized HR management'],
-  businessFeatures: ['Everything in Standard', 'Multi-subsidiary on quote · advanced dashboards', 'Enhanced security · advanced audit logs', 'Advanced supervision · 200 GB secure storage', 'Hosted in France OVH · Unlimited administrators', 'Guided onboarding · priority SLA', 'Ideal for: structured SMEs · multi-site groups · advanced compliance & security · growing organizations'],
+  starterFeatures: ['Up to 10 employees', '1 administrator', 'Web clocking', 'Essential HR management', 'Employee records', 'Leave and absences', 'HR dashboard', 'Email notifications', 'Excel export', 'Secure hosting in France (OVH)', '10 GB secure storage', 'Standard support'],
+  standardFeatures: ['Everything in Starter', 'Up to 25 employees', '3 administrators', 'Workly mobile app', 'Mobile clocking', 'Optional geolocation', 'Electronic signature', 'Employee digital vault', 'Bulk Excel import', 'Payroll preparation', 'Payroll export', 'Leave, RTT and time-off account', 'Push and email notifications', 'Advanced HR reporting', 'Simple multi-site', '50 GB secure storage', 'Priority support'],
+  businessFeatures: ['Everything in Standard', 'Up to 50 employees', 'Unlimited administrators', 'Advanced multi-site', 'Advanced approval workflow', 'Advanced HR dashboards', 'Custom exports', 'Biometric time-clock connector', 'Compatibility with existing clocking terminals', 'HR AI Assistant', 'Advanced audit and logs', 'Advanced supervision', '200 GB secure storage', 'Priority SLA', 'Guided onboarding'],
   entFeatures: ['Advanced HR AI', 'Document search', 'Smart workflows', 'Advanced APIs & SSO', 'Dedicated hosting', 'Tailor-made architecture'],
   entPriceLabel: 'Custom quote', entAmount: 'Custom', entAmountSuffix: ' pricing',
   entCommit: 'based on your structure & volume', entSub: 'Unlimited administrators · Guided onboarding', entCta: 'Request a quote →',
@@ -403,12 +510,128 @@ const EN: Dict = {
   copyright: '© 2026 Concorde Workforce · All rights reserved',
   privacy: 'Privacy', cgu: 'Terms', legal: 'Legal notice', cookies: 'Cookies',
   accountDeletion: 'Account deletion',
+
+  heroLead2: 'Keep your current hardware or switch to Workly mobile clocking. Concorde Workforce adapts to your organization.',
+  heroNoCard: 'No credit card',
+  heroCompatTitle: 'Already have a time clock?',
+  heroCompatDesc: 'Our team assesses integration options with your existing hardware free of charge.',
+  heroCompatCta: "Check my time clock's compatibility",
+  t5: 'Professional Cyber Insurance',
+
+  dlSubBold: "Your employees' mobile companion.",
+  dlSubText: 'Mobile clocking, optional geolocation, electronic signature, secure document transfer, HR digital vault, schedule management, leave and absences — all from a single app.',
+  dlFeatsTitle: 'Key features',
+  dlFeats: [
+    'Real-time mobile clocking',
+    'Optional geolocation for field teams',
+    'Leave requests and approvals',
+    'Schedule management and working-time tracking',
+    'Electronic signature of HR documents',
+    'Secure document transfer',
+    'Employee digital vault',
+    'Access to payslips and HR documents',
+    'Real-time notifications and alerts',
+    'Offline mode',
+  ],
+  dlOutroBold: 'Workly simplifies everyday life for employees and managers.',
+  dlOutroText: ' From their smartphone, employees can clock in, view their schedules, submit documents, electronically sign HR forms and access their secure digital vault.',
+  stApkSmall: 'Direct APK', stApkLarge: 'concorde-work-force.com',
+  stGoogleSmall: 'Available on', stGoogleLarge: 'Google Play',
+  stAppleSmall: 'Download on the', stAppleLarge: 'App Store',
+
+  premiumFootnote: '* Compatible with major manufacturers (ZKTeco, Hikvision, Suprema, Anviz, etc.). Specific integration upon assessment.',
+
+  epxRibbon: 'KEY ACCOUNTS OFFER',
+  epxEyebrow: 'Enterprise Plus',
+  epxTitleA: 'Tailor-made', epxTitleB: 'enterprises',
+  epxLeadPre: 'An HR solution built for ', epxLeadBold: 'ambitious organizations',
+  epxDesc: 'Concorde Workforce adapts to your organization, your processes and your challenges. A scalable, secure and 100% modular platform.',
+  epxFeats: [
+    { icon: '👥', t: '500+ employees', d: 'Ideal for large enterprises' },
+    { icon: '🏢', t: 'Multi-subsidiary & multi-company', d: 'Centralize all your entities' },
+    { icon: '🌍', t: 'National or international rollout', d: 'A borderless solution' },
+    { icon: '🎚️', t: 'Custom pricing', d: 'Based on your structure, volumes and needs' },
+  ],
+  epxAccoTitle: 'Premium support',
+  epxAccoItems: ['Dedicated project manager', 'Personalized onboarding', 'Training and skills transfer', '24/7 priority support'],
+  epxSlaStrong: 'Guaranteed Enterprise SLA', epxSlaSpan: 'Service commitment and maximum responsiveness',
+  epxContactStrong: "Let's talk about your project",
+  epxContactSpan: 'Our experts offer a personalized assessment and a demo tailored to your needs.',
+  epxContactBtn: 'Request a personalized assessment →',
+  epxRightHead: 'Your 100% personalized solution',
+  epxCaps: [
+    { icon: '✓', t: 'Unlimited administrators', d: 'Advanced, secure access management' },
+    { icon: '✓', t: 'Unlimited employees', d: 'No cap, no constraint' },
+    { icon: '✓', t: 'Multi-subsidiary & multi-entity', d: 'Centralized or decentralized management' },
+    { icon: '✓', t: 'Advanced multi-site', d: 'Organization, geolocation and global reporting' },
+    { icon: '✓', t: 'Advanced HR AI & document search', d: 'Automate, analyze, decide' },
+    { icon: '✓', t: 'Smart workflows', d: 'Custom processes and automations' },
+    { icon: '✓', t: 'Advanced APIs & SSO', d: 'Azure AD, Google, Microsoft 365, Okta, …' },
+    { icon: '✓', t: 'ERP & Payroll connectors', d: 'SAP, Sage, Cegid, ADP, and more' },
+    { icon: '✓', t: 'Time-clock terminal compatibility', d: 'Integration with many terminals' },
+    { icon: '✓', t: 'Dedicated hosting & enhanced security', d: 'Dedicated infrastructure in France or EU' },
+    { icon: '✓', t: 'Tailor-made architecture', d: 'Specific & scalable developments' },
+    { icon: '✓', t: 'Enterprise SLA & 24/7 priority support', d: 'Service commitment and maximum responsiveness' },
+  ],
+  epxPartnerStrong: 'More than software, a growth partner',
+  epxPartnerSpan: 'Concorde Workforce supports you today and at every stage of your development.',
+
+  fdrEyebrow: 'Founder Offer · Summer 2026',
+  fdrTitlePre: 'Preferential Founder ',
+  fdrTitleAccent: 'pricing',
+  fdrSubExcl: 'an exclusive window',
+  fdrSubClose: ', then it closes.',
+  fdrCta: 'Join the Founder offer',
+  fdrReassureBold: 'No credit card', fdrReassureRest: ' · no commitment',
+  fdrDaysLabel: 'days left',
+  fdrBadge: 'Founder window · Jun 1 → Aug 31',
+  fdrBenefits: [
+    { t: '1 month free', d: 'No credit card' },
+    { t: 'Fast activation', d: 'Up and running in 48h' },
+    { t: 'Onboarding included', d: 'Expert guidance' },
+    { t: 'Priority support', d: 'Priority queue access' },
+    { t: 'Early access', d: 'New features' },
+    { t: 'No commitment', d: 'You decide after the trial' },
+  ],
+  fdrTrust: ['Secure & GDPR compliant', 'Hosted in France · OVH', 'Set up in 48h', 'French-speaking human support'],
 };
 
 const LANG: Record<Lang, Dict> = { fr: FR, en: EN };
 
 // ─── OFFRE FONDATEUR ÉTÉ 2026 — compte à rebours live (1er juin → 31 août 2026) ──
+const FOUNDER_OFFER_START = new Date('2026-06-01T00:00:00+02:00');
 const FOUNDER_OFFER_END = new Date('2026-09-01T00:00:00+02:00');
+
+// Jauge radiale (maquette « offre-fondateur-clair ») : 12 graduations réparties sur le
+// cercle (r=100, viewBox 240×240) + circonférence pour le calcul du stroke-dashoffset.
+const GAUGE_CIRCUMFERENCE = 2 * Math.PI * 100; // ≈ 628.3
+const GAUGE_TICKS = Array.from({ length: 12 }, (_, i) => {
+  const a = (i * 30 * Math.PI) / 180;
+  return {
+    x1: (120 + 92 * Math.cos(a)).toFixed(1),
+    y1: (120 + 92 * Math.sin(a)).toFixed(1),
+    x2: (120 + 100 * Math.cos(a)).toFixed(1),
+    y2: (120 + 100 * Math.sin(a)).toFixed(1),
+  };
+});
+
+// Icônes SVG (indépendantes de la langue) des 6 avantages Fondateur, dans l'ordre de fdrBenefits.
+const FDR_BENEFIT_ICONS: React.ReactNode[] = [
+  <svg key="b0" viewBox="0 0 24 24"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></svg>,
+  <svg key="b1" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2 0-2.8a2 2 0 0 0-3 0zM12 15l-3-3a22 22 0 0 1 8-10c2 0 4 0 6 2s2 4 2 6a22 22 0 0 1-10 8zM9 12H4l2.5-4h4M12 15v5l4-2.5v-4" /></svg>,
+  <svg key="b2" viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5zM6 12v5c0 1 2.7 3 6 3s6-2 6-3v-5M22 10v6" /></svg>,
+  <svg key="b3" viewBox="0 0 24 24"><path d="M3 14v-2a9 9 0 0 1 18 0v2M3 14a2 2 0 0 0 2 2h1v-5H5a2 2 0 0 0-2 2zM21 14a2 2 0 0 1-2 2h-1v-5h1a2 2 0 0 1 2 2zM18 16v1a4 4 0 0 1-4 4h-2" /></svg>,
+  <svg key="b4" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z" /></svg>,
+  <svg key="b5" viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 9h18M8 3v3M16 3v3M9 15l2 2 4-4" /></svg>,
+];
+
+// Icônes SVG des 4 gages de confiance Fondateur, dans l'ordre de fdrTrust.
+const FDR_TRUST_ICONS: React.ReactNode[] = [
+  <svg key="t0" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>,
+  <svg key="t1" viewBox="0 0 24 24"><path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6" /></svg>,
+  <svg key="t2" viewBox="0 0 24 24"><path d="M12 8v4l3 2M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z" /></svg>,
+  <svg key="t3" viewBox="0 0 24 24"><path d="M3 14v-2a9 9 0 0 1 18 0v2M5 16h1v-5H5a2 2 0 0 0 0 5zM19 16h-1v-5h1a2 2 0 0 1 0 5zM18 16v1a4 4 0 0 1-4 4h-2" /></svg>,
+];
 
 function useFounderCountdown() {
   const calc = () => {
@@ -497,6 +720,16 @@ export default function HomePage() {
 
   const countdown = useFounderCountdown();
   const pad = (n: number) => String(n).padStart(2, '0');
+
+  // Jauge radiale Offre Fondateur : fraction écoulée de la fenêtre (start → end). Recalculée
+  // à chaque tick du compte à rebours (re-render 1/s) → l'anneau se remplit en continu.
+  const founderElapsedPct = (() => {
+    const total = FOUNDER_OFFER_END.getTime() - FOUNDER_OFFER_START.getTime();
+    if (total <= 0) return 0;
+    const elapsed = Date.now() - FOUNDER_OFFER_START.getTime();
+    return Math.min(1, Math.max(0, elapsed / total));
+  })();
+  const founderDashoffset = (GAUGE_CIRCUMFERENCE * founderElapsedPct).toFixed(1);
 
   // Rotation automatique de l'étape illustrée (4 étapes × 3,5 s).
   useEffect(() => {
@@ -651,7 +884,7 @@ export default function HomePage() {
   // Styles partagés des nouvelles sections (modules optionnels / services / sur devis).
   const secHeading: React.CSSProperties = { fontFamily: 'inherit', fontSize: 18, fontWeight: 800, color: '#0040a1', letterSpacing: '.06em', textTransform: 'uppercase', textAlign: 'center', margin: '0 0 8px' };
   const secSub: React.CSSProperties = { textAlign: 'center', color: '#64748b', maxWidth: 720, margin: '0 auto 28px', fontSize: 15, lineHeight: 1.55 };
-  const tblWrap: React.CSSProperties = { overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: 14, background: '#fff' };
+  const tblWrap: React.CSSProperties = { overflowX: 'auto', border: '2px solid #0040A1', borderRadius: 14, background: '#fff', boxShadow: '0 6px 22px rgba(15,23,42,.06)' };
   const tbl: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', fontSize: 14 };
   const thS: React.CSSProperties = { padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#0f172a', background: '#f7f9fb', borderBottom: '2px solid #e5e7eb' };
   const tdS: React.CSSProperties = { padding: '14px 16px', color: '#334155', borderBottom: '1px solid #e5e7eb', verticalAlign: 'top', lineHeight: 1.5 };
@@ -714,19 +947,32 @@ export default function HomePage() {
       <section className="hero" id="hero">
         <div className="hero-left">
           <h1>{d.heroTitle}<br />{d.heroTitle2} <span className="accent">{d.heroAccent}</span></h1>
-          <p>{d.heroSub}</p>
+          <p className="lead">{d.heroSub}</p>
+          <p className="lead2">{d.heroLead2}</p>
           <div className="hero-cta">
             <button type="button" className="btn-hp" onClick={goToSignup}>{d.btnHero1}</button>
             <button type="button" className="btn-hs" onClick={() => scrollToId('contact')}><span>🎬</span> {d.btnHero2}</button>
           </div>
+          <div className="hero-nocard">✓ {d.heroNoCard}</div>
+          {/* Encart compatibilité pointeuse — relié thématiquement à la fonctionnalité
+              « Liste des pointeuses » réservée au Premium (cf. PointeuseController). */}
+          <div className="hero-compat">
+            <div className="hero-compat-body">
+              <strong>{d.heroCompatTitle}</strong>
+              <span>{d.heroCompatDesc}</span>
+            </div>
+            <button type="button" className="hero-compat-cta" onClick={() => scrollToId('contact')}>{d.heroCompatCta} <span>→</span></button>
+          </div>
           <div className="trust">
-            <div><span className="ti">✓</span><span>{d.t1}</span></div>
+            <div className="t"><span className="ti">✓</span><span>{d.t1}</span></div>
             <div className="tsep" />
-            <div><span className="ti">✓</span><span>{d.t2}</span></div>
+            <div className="t"><span className="ti">✓</span><span>{d.t2}</span></div>
             <div className="tsep" />
-            <div><span className="ti">✓</span><span>{d.t3}</span></div>
+            <div className="t"><span className="ti">✓</span><span>{d.t3}</span></div>
             <div className="tsep" />
-            <div><span className="ti">✓</span><span>{d.t4}</span></div>
+            <div className="t"><span className="ti">✓</span><span>{d.t4}</span></div>
+            <div className="tsep" />
+            <div className="t"><span className="ti">✓</span><span>{d.t5}</span></div>
           </div>
         </div>
         <div className="hero-right">
@@ -734,47 +980,108 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* PROMO FONDATEUR NAVY */}
+      {/* OFFRE FONDATEUR — maquette claire « offre-fondateur-clair » (jauge radiale).
+          Portée fidèle de la maquette, classes préfixées .fdr-* pour éviter les
+          collisions avec .hero/.trust de la landing. L'espace blanc en haut de la
+          maquette d'origine (padding body + flex centré) est neutralisé via le CSS. */}
       {!countdown.expired && (
-        <section className="promo" aria-label="Offre Fondateur Été 2026">
-          <div className="promo-inner">
-            <span className="promo-pill">{d.promoPill}</span>
-            <div className="promo-row">
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <h2 className="promo-title">{d.promoTitleA}<br /><span className="promo-accent">{d.promoAccent}</span></h2>
-                <p className="promo-sub">
-                  {d.promoSubPre} <span className="promo-sub-hl">{d.promoDate1}</span> {d.promoMid}{' '}
-                  <span className="promo-sub-hl">{d.promoDate2}</span> {d.promoSuf}
-                </p>
-              </div>
-              <div className="countdown" aria-label={d.cdLabel}>
-                <div className="countdown-label">{d.cdLabel}</div>
-                <div className="countdown-grid">
-                  <div className="cu"><span className="cn">{pad(countdown.jours)}</span><span className="cs">{d.cdDays}</span></div>
-                  <span className="csep">:</span>
-                  <div className="cu"><span className="cn">{pad(countdown.heures)}</span><span className="cs">{d.cdHours}</span></div>
-                  <span className="csep">:</span>
-                  <div className="cu"><span className="cn">{pad(countdown.minutes)}</span><span className="cs">{d.cdMin}</span></div>
-                  <span className="csep">:</span>
-                  <div className="cu"><span className="cn">{pad(countdown.secondes)}</span><span className="cs">{d.cdSec}</span></div>
+        <section className="fdr" aria-label="Offre Fondateur Été 2026">
+          <div className="fdr-hero">
+            <div className="fdr-aurora fdr-a" />
+            <div className="fdr-aurora fdr-b" />
+            <div className="fdr-inner">
+              <div className="fdr-top">
+                <div>
+                  <span className="fdr-eyebrow"><i />{d.fdrEyebrow}</span>
+                  <h1 className="fdr-h1">{d.fdrTitlePre}<span className="fdr-accent">{d.fdrTitleAccent}</span></h1>
+                  <p className="fdr-sub">
+                    {d.promoSubPre} <b>{d.promoDate1}</b> {d.promoMid} <b>{d.promoDate2}</b> — <span className="fdr-c">{d.fdrSubExcl}</span>{d.fdrSubClose}
+                  </p>
+                  <div className="fdr-actions">
+                    <button type="button" className="fdr-cta" onClick={goToSignup}>
+                      <span className="fdr-shine" />{d.fdrCta}
+                      <span className="fdr-arr"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span>
+                    </button>
+                    <span className="fdr-reassure"><b>{d.fdrReassureBold}</b>{d.fdrReassureRest}</span>
+                  </div>
+                </div>
+
+                <div className="fdr-gauge" role="img" aria-label={d.cdLabel}>
+                  <div className="fdr-sweep" />
+                  <svg viewBox="0 0 240 240" aria-hidden="true">
+                    <defs><linearGradient id="fdrG" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0" stopColor="#0C53D6" /><stop offset="0.5" stopColor="#1E7BFF" /><stop offset="1" stopColor="#19C5F5" />
+                    </linearGradient></defs>
+                    <circle className="fdr-track" cx="120" cy="120" r="100" />
+                    <circle className="fdr-chrome-ring" cx="120" cy="120" r="112" />
+                    <circle
+                      className="fdr-prog" cx="120" cy="120" r="100"
+                      strokeDasharray={GAUGE_CIRCUMFERENCE.toFixed(1)}
+                      strokeDashoffset={founderDashoffset}
+                    />
+                    <g className="fdr-ticks">
+                      {GAUGE_TICKS.map((t, i) => <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} />)}
+                    </g>
+                  </svg>
+                  <div className="fdr-center">
+                    <div className="fdr-big">{countdown.jours}</div>
+                    <div className="fdr-big-lab">{d.fdrDaysLabel}</div>
+                    <div className="fdr-hms"><b>{pad(countdown.heures)}</b>h <b>{pad(countdown.minutes)}</b>m <b>{pad(countdown.secondes)}</b>s</div>
+                  </div>
+                  <span className="fdr-badge">{d.fdrBadge}</span>
                 </div>
               </div>
-            </div>
-            <ul className="avantages">
-              {d.avantages.map((a) => (
-                <li key={a.t} className="av">
-                  <div className="av-icon">{a.icon}</div>
-                  <div className="av-text"><strong>{a.t}</strong><span>{a.d}</span></div>
-                </li>
-              ))}
-            </ul>
-            <button type="button" className="promo-cta" onClick={goToSignup}>{d.promoCta}</button>
-            <div className="promo-trust">
-              <span>{d.pt1}</span><span>{d.pt2}</span><span>{d.pt3}</span><span>{d.pt4}</span>
+
+              <div className="fdr-divider" />
+
+              <section className="fdr-benefits" aria-label="Avantages">
+                {d.fdrBenefits.map((b, i) => (
+                  <div key={b.t} className="fdr-b">
+                    <div className="fdr-ic">{FDR_BENEFIT_ICONS[i]}</div>
+                    <div><h3>{b.t}</h3><p>{b.d}</p></div>
+                  </div>
+                ))}
+              </section>
+
+              <div className="fdr-trust">
+                {d.fdrTrust.map((t, i) => (
+                  <span key={t}>{FDR_TRUST_ICONS[i]}{t}</span>
+                ))}
+              </div>
             </div>
           </div>
         </section>
       )}
+
+      {/* DOWNLOAD — application mobile Workly (enrichi maquette v2-2, placé avant les stats) */}
+      <div id="download" className="download">
+        <div className="dl-info">
+          <div className="dl-tag">{d.dlTag}</div>
+          <div className="dl-title">{d.dlTitle}</div>
+          <div className="dl-sub"><strong>{d.dlSubBold}</strong><br />{d.dlSubText}</div>
+          <div className="dl-feats-title">{d.dlFeatsTitle}</div>
+          <ul className="dl-feats">
+            {d.dlFeats.map((f) => (
+              <li key={f}><span className="fi">✅</span><span>{f}</span></li>
+            ))}
+          </ul>
+          <div className="dl-outro"><strong>{d.dlOutroBold}</strong>{d.dlOutroText}</div>
+        </div>
+        <div className="dl-stores">
+          <a className="store-btn" href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">
+            <div className="store-icon">⬇</div>
+            <div><span className="store-small">{d.stApkSmall}</span><span className="store-large">{d.stApkLarge}</span></div>
+          </a>
+          <a className="store-btn" href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">
+            <div className="store-icon"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3.063 1.94C2.84 2.17 2.71 2.53 2.71 3v18c0 .47.13.83.353 1.06l.06.06L13.2 12.07v-.14L3.123 1.88z" fill="#00d2ff" /><path d="M16.81 15.4l-3.61-3.33v-.14l3.62-3.34.08.05L21.2 10.7c1.23.7 1.23 1.85 0 2.55l-4.3 2.05z" fill="#ffce00" /><path d="M16.89 15.35L13.2 12 3.06 22.06c.41.43 1.07.48 1.83.05l11.99-6.76z" fill="#fd3b4a" /><path d="M16.89 8.65L4.89 1.89C4.13 1.46 3.47 1.51 3.06 1.94L13.2 12z" fill="#00f076" /></svg></div>
+            <div><span className="store-small">{d.stGoogleSmall}</span><span className="store-large">{d.stGoogleLarge}</span></div>
+          </a>
+          <a className="store-btn" href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">
+            <div className="store-icon"><svg viewBox="0 0 384 512" width="22" height="22" fill="#fff" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zM262.1 104.5c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" /></svg></div>
+            <div><span className="store-small">{d.stAppleSmall}</span><span className="store-large">{d.stAppleLarge}</span></div>
+          </a>
+        </div>
+      </div>
 
       {/* STATS */}
       <div className="stats">
@@ -783,74 +1090,6 @@ export default function HomePage() {
         <div className="stat"><div className="stat-num">−34%</div><div className="stat-label">{d.sl3}</div></div>
         <div className="stat"><div className="stat-num">2 {lang === 'fr' ? 'sem.' : 'wks'}</div><div className="stat-label">{d.sl4}</div></div>
       </div>
-
-      {/* DOWNLOAD */}
-      <div id="download" className="download">
-        <div>
-          <div className="dl-tag">{d.dlTag}</div>
-          <div className="dl-title">{d.dlTitle}</div>
-          <div className="dl-sub">
-            {d.dlSubA} <a className="dl-link" href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">concorde-work-force.com</a> {d.dlSubB}
-          </div>
-        </div>
-        <div className="store-btns">
-          <a className="store-btn" href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">
-            <div className="store-icon">⬇</div>
-            <div><span className="store-small">APK direct</span><span className="store-large">concorde-work-force.com</span></div>
-          </a>
-        </div>
-      </div>
-
-      {/* HOW — DÉCOUVRIR LA PLATEFORME */}
-      <section className="how" id="how">
-        <div className="section-tag">{d.howTag}</div>
-        <h2 className="section-title"><span>{d.howTitle}</span> <span className="accent">{d.howAccent}</span></h2>
-        <p className="section-sub">{d.howSub}</p>
-        <div className="how-layout">
-          <div className="steps">
-            {d.steps.map((s, i) => (
-              <div
-                key={s.title}
-                className={`step${activeStep === i ? ' active' : ''}`}
-                onClick={() => setActiveStep(i as StepIndex)}
-              >
-                <div className="step-num">{pad(i + 1)}</div>
-                <div>
-                  <div className="step-title">{s.title}</div>
-                  <div className="step-desc">{s.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="how-detail">
-            <div className="detail-badge">{pad(stepNum)}</div>
-            <div className="detail-step-label">{d.stepLabel.replace('{n}', String(stepNum))}</div>
-            <div className="detail-title">{d.steps[activeStep].title}</div>
-            <div className="detail-desc">{d.steps[activeStep].long}</div>
-            <div className="detail-slider-wrap">
-              <div className="detail-slider-head">
-                <span>{d.slideStart}</span>
-                <span>{d.slideEnd}</span>
-              </div>
-              <input
-                type="range" min={0} max={3} step={1} value={activeStep}
-                className="detail-slider"
-                style={{ '--fill': `${(activeStep / 3) * 100}%` } as React.CSSProperties}
-                onChange={(e) => setActiveStep(Number(e.target.value) as StepIndex)}
-              />
-              <div className="detail-dots">
-                {[0, 1, 2, 3].map((i) => (
-                  <span
-                    key={i}
-                    className={`detail-dot${activeStep === i ? ' active' : ''}`}
-                    onClick={() => setActiveStep(i as StepIndex)}
-                  >{pad(i + 1)}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* PRICING */}
       <section id="pricing" className="pricing">
@@ -876,21 +1115,21 @@ export default function HomePage() {
           <button type="button" className={`toggle-btn${!monthly ? ' active' : ''}`} onClick={() => setBillingCycle('annual')}>{d.btnAnnual}</button>
         </div>
 
-        <div className="pricing-grid">
-          {/* STARTER */}
-          <div className="price-card">
-            <div className="price-tier">Starter</div>
+        <div className="pricing-grid pricing-grid-3">
+          {/* STARTER — couleur VERTE (maquette v2-2) */}
+          <div className="price-card" style={{ border: '2px solid #0a8a4f', background: 'linear-gradient(180deg,#f1faf4,#fff)' }}>
+            <div className="price-tier" style={{ color: '#0a8a4f' }}>Starter</div>
             <div className="price-from">{d.from}</div>
             <div className="price-amount"><span className="cu">€</span>{fmt(prices.starter)}<span className="pe">{d.perMonth}</span></div>
-            {!monthly && <div className="price-commit">{d.commitAnnual}</div>}
+            {!monthly && <div className="price-commit" style={{ color: '#0a8a4f' }}>{d.commitAnnual}</div>}
             {!monthly && <div className="price-cross">{fmt(monthlyBase.starter)}{d.crossSuffix}</div>}
             {!monthly && <div className="price-save">{d.savePrefix}{fmt(annualSavings.starter)}{d.saveSuffix}</div>}
-            <div className="price-incl">{d.pi1}</div>
+            <div className="price-incl" style={{ color: '#0a8a4f' }}>{d.pi1}</div>
             <div className="price-extra" style={{ fontSize: 12.5, color: '#64748b', margin: '4px 0 2px' }}>{d.extraCollab.replace('{price}', fmt(overageRates.starter))}</div>
             <div className="price-per">{d.annualBill}</div>
-            <button type="button" className="btn-trial" onClick={() => goToCheckout('starter')}>{d.trialBtn}</button>
+            <button type="button" className="btn-trial" style={{ background: 'linear-gradient(135deg,#0a8a4f,#13b06a)', boxShadow: '0 6px 18px rgba(10,138,79,.3)' }} onClick={() => goToCheckout('starter')}>{d.trialBtn}</button>
             <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--on-v)', margin: '10px 0', fontWeight: 500 }}>✓ {d.noCard}</div>
-            <button type="button" className="btn-demo-card" onClick={() => scrollToId('contact')}>{d.demoCard}</button>
+            <button type="button" className="btn-demo-card" style={{ borderColor: '#0a8a4f', color: '#0a8a4f' }} onClick={() => scrollToId('contact')}>{d.demoCard}</button>
             <ul className="price-list">{d.starterFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
           </div>
 
@@ -912,8 +1151,7 @@ export default function HomePage() {
             <ul className="price-list">{d.standardFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
           </div>
 
-          {/* BUSINESS / PREMIUM — couleur OR (2026-06) : aligné sur le ton doré du
-              comparatif (#b8860b). Dégradés gold : #b8860b (texte) → #d4af37 (accent). */}
+          {/* PREMIUM — couleur OR. 50 collaborateurs inclus (aligné PlanCatalog, cf. pi3). */}
           <div className="price-card" style={{ border: '2px solid #b8860b', background: 'linear-gradient(180deg,#fdf8ec,#fff)' }}>
             <div style={{ position: 'absolute', top: -12, right: 20, background: 'linear-gradient(135deg,#b8860b,#d4af37)', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 999, letterSpacing: '.08em', textTransform: 'uppercase' }}>{d.premiumBadge}</div>
             <div className="price-tier" style={{ color: '#b8860b' }}>Premium</div>
@@ -929,22 +1167,105 @@ export default function HomePage() {
             <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--on-v)', margin: '10px 0', fontWeight: 500 }}>✓ {d.noCard}</div>
             <button type="button" className="btn-demo-card" style={{ borderColor: '#b8860b', color: '#b8860b' }} onClick={() => scrollToId('contact')}>{d.demoCard}</button>
             <ul className="price-list">{d.businessFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
-          </div>
-
-          {/* ENTERPRISE PLUS */}
-          <div className="price-card" style={{ border: '2px solid #43466B', background: 'linear-gradient(135deg,#43466B 0%,#505880 100%)', color: '#fff', boxShadow: '0 8px 32px rgba(67,70,107,.4)' }}>
-            <div style={{ position: 'absolute', top: -12, right: 20, background: '#43466B', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderRadius: 999, letterSpacing: '.08em', textTransform: 'uppercase' }}>{d.entBadge}</div>
-            <div className="price-tier" style={{ color: '#7dd3fc' }}>Enterprise Plus</div>
-            <div className="price-from" style={{ color: '#fff' }}>{d.entPriceLabel}</div>
-            <div className="price-amount" style={{ color: '#fff' }}>{d.entAmount}<span className="pe" style={{ color: '#fff', fontSize: 13 }}>{d.entAmountSuffix}</span></div>
-            <div className="price-commit" style={{ color: '#fff', fontSize: 12 }}>{d.entCommit}</div>
-            <div style={{ color: '#fff', marginTop: 14, marginBottom: 18 }}>{d.entSub}</div>
-            <button type="button" className="btn-trial" style={{ background: '#fff', color: '#43466B', fontWeight: 600, boxShadow: '0 6px 18px rgba(67,70,107,.32)', marginBottom: 16 }} onClick={() => scrollToId('contact')}>{d.entCta}</button>
-            <ul className="price-list" style={{ color: '#fff' }}>{d.entFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
+            <div style={{ fontSize: 11, lineHeight: 1.4, color: '#a67c00', marginTop: 10, textAlign: 'left' }}>{d.premiumFootnote}</div>
           </div>
         </div>
 
         <p style={{ textAlign: 'center', marginTop: 28, fontSize: 14, color: '#64748b' }}>{d.pricingFoot}</p>
+
+        {/* ENTERPRISE PLUS — panneau « Entreprises sur mesure » (remplace la 4e carte). */}
+        <section className="epx" id="ent-sur-mesure" aria-label="Enterprise Plus — Entreprises sur mesure">
+          <div className="epx-panel">
+            <div className="epx-left">
+              <div className="epx-head">
+                <div className="epx-ribbon">
+                  <svg viewBox="0 0 576 512" aria-hidden="true"><path d="M309 106c11.4-7 19-19.7 19-34c0-22.1-17.9-40-40-40s-40 17.9-40 40c0 14.4 7.6 27 19 34L209.7 220.6c-9.1 18.2-32.7 23.4-48.6 10.7L72 160c5-6.7 8-15 8-24c0-22.1-17.9-40-40-40S0 113.9 0 136s17.9 40 40 40c.2 0 .5 0 .7 0L86.4 427.4c5.5 30.4 32 52.6 63 52.6H426.6c30.9 0 57.4-22.1 63-52.6L535.3 176c.2 0 .5 0 .7 0c22.1 0 40-17.9 40-40s-17.9-40-40-40s-40 17.9-40 40c0 9 3 17.3 8 24l-89.1 71.3c-15.9 12.7-39.5 7.5-48.6-10.7L309 106z" /></svg>
+                  <b>{d.epxRibbon}</b>
+                </div>
+                <div className="epx-photo" aria-hidden="true">
+                  <svg viewBox="0 0 230 215" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="epxSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#cfe0f7" /><stop offset="1" stopColor="#8fb2e2" /></linearGradient>
+                      <linearGradient id="epxG1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#5a86cf" /><stop offset="1" stopColor="#21407e" /></linearGradient>
+                      <linearGradient id="epxG2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#3f6cbf" /><stop offset="1" stopColor="#1a346b" /></linearGradient>
+                      <linearGradient id="epxG3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#6f97d6" /><stop offset="1" stopColor="#2c4f8c" /></linearGradient>
+                    </defs>
+                    <rect width="230" height="215" fill="url(#epxSky)" />
+                    <rect x="14" y="58" width="58" height="157" fill="url(#epxG2)" />
+                    <rect x="70" y="18" width="96" height="197" fill="url(#epxG1)" />
+                    <rect x="160" y="78" width="60" height="137" fill="url(#epxG3)" />
+                    <polygon points="50.6,0 60,0 9,215 0,215" fill="#d4af37" />
+                  </svg>
+                </div>
+                <span className="epx-eyebrow">{d.epxEyebrow}</span>
+                <h2 className="epx-title">{d.epxTitleA}<br />{d.epxTitleB}</h2>
+                <p className="epx-lead">{d.epxLeadPre}<b>{d.epxLeadBold}</b></p>
+                <p className="epx-desc">{d.epxDesc}</p>
+              </div>
+
+              <div className="epx-card">
+                <div className="epx-feats">
+                  {d.epxFeats.map((f) => (
+                    <div key={f.t} className="epx-feat">
+                      <div className="epx-feat-ic">{f.icon}</div>
+                      <strong>{f.t}</strong><span>{f.d}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="epx-card">
+                <div className="epx-acco">
+                  <div className="epx-acco-l">
+                    <div className="epx-acco-badge">🎧</div>
+                    <div>
+                      <p className="epx-acco-title">{d.epxAccoTitle}</p>
+                      <ul>{d.epxAccoItems.map((it) => <li key={it}>{it}</li>)}</ul>
+                    </div>
+                  </div>
+                  <div className="epx-acco-r">
+                    <div className="epx-acco-shield">🛡️</div>
+                    <strong>{d.epxSlaStrong}</strong>
+                    <span>{d.epxSlaSpan}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="epx-card">
+                <div className="epx-contact">
+                  <div className="epx-contact-ic">📞</div>
+                  <div className="epx-contact-tx">
+                    <strong>{d.epxContactStrong}</strong>
+                    <span>{d.epxContactSpan}</span>
+                  </div>
+                  <button type="button" className="epx-contact-btn" onClick={() => scrollToId('contact')}>{d.epxContactBtn}</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="epx-right">
+              <div className="epx-right-head">
+                <div className="epx-rh-ic">🏢</div>
+                <b>{d.epxRightHead}</b>
+              </div>
+              <ul className="epx-caps2">
+                {d.epxCaps.map((c) => (
+                  <li key={c.t} className="epx-cap2">
+                    <span className="epx-cap2-ic">✓</span>
+                    <div><strong>{c.t}</strong><span>{c.d}</span></div>
+                  </li>
+                ))}
+              </ul>
+              <div className="epx-partner">
+                <div className="epx-partner-ic">📈</div>
+                <div>
+                  <strong>{d.epxPartnerStrong}</strong>
+                  <span>{d.epxPartnerSpan}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* MODULES OPTIONNELS — juste sous les 4 packs. Bouton « Ajouter » → Payment Link
             Stripe du module (rattaché au tenant via client_reference_id ; visiteur anonyme
@@ -1111,6 +1432,57 @@ export default function HomePage() {
         </div>
         <button type="button" className="btn-cta-light" onClick={goToSignup}>{d.pctaBtn}</button>
       </div>
+
+      {/* HOW — DÉCOUVRIR LA PLATEFORME (déplacé après le CTA promo, cf. maquette v2-2) */}
+      <section className="how" id="how">
+        <div className="section-tag">{d.howTag}</div>
+        <h2 className="section-title"><span>{d.howTitle}</span> <span className="accent">{d.howAccent}</span></h2>
+        <p className="section-sub">{d.howSub}</p>
+        <div className="how-layout">
+          <div className="steps">
+            {d.steps.map((s, i) => (
+              <div
+                key={s.title}
+                className={`step${activeStep === i ? ' active' : ''}`}
+                onClick={() => setActiveStep(i as StepIndex)}
+              >
+                <div className="step-num">{pad(i + 1)}</div>
+                <div>
+                  <div className="step-title">{s.title}</div>
+                  <div className="step-desc">{s.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="how-detail">
+            <div className="detail-badge">{pad(stepNum)}</div>
+            <div className="detail-step-label">{d.stepLabel.replace('{n}', String(stepNum))}</div>
+            <div className="detail-title">{d.steps[activeStep].title}</div>
+            <div className="detail-desc">{d.steps[activeStep].long}</div>
+            <div className="detail-slider-wrap">
+              <div className="detail-slider-head">
+                <span>{d.slideStart}</span>
+                <span>{d.slideEnd}</span>
+              </div>
+              <input
+                type="range" min={0} max={3} step={1} value={activeStep}
+                className="detail-slider"
+                style={{ '--fill': `${(activeStep / 3) * 100}%` } as React.CSSProperties}
+                onChange={(e) => setActiveStep(Number(e.target.value) as StepIndex)}
+              />
+              <div className="detail-dots">
+                {[0, 1, 2, 3].map((i) => (
+                  <span
+                    key={i}
+                    className={`detail-dot${activeStep === i ? ' active' : ''}`}
+                    onClick={() => setActiveStep(i as StepIndex)}
+                  >{pad(i + 1)}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* CONTACT */}
       <section id="contact" className="contact">

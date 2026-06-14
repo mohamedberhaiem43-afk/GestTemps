@@ -20,6 +20,40 @@ networks:
   app-network:
 
 services:
+  # ── Bootstrap des certificats TLS ─────────────────────────────────────────
+  # nginx refuse de démarrer si un `ssl_certificate` pointe vers un fichier absent.
+  # Ce service one-shot crée, AVANT nginx, un certificat AUTO-SIGNÉ TEMPORAIRE pour
+  # chaque domaine dont le vrai certificat Let's Encrypt n'existe pas encore. nginx
+  # démarre alors normalement avec TOUS les blocs HTTPS actifs (y compris blog.),
+  # et scripts/init-letsencrypt.sh remplace ensuite ces faux certs par les vrais.
+  # Idempotent : si un vrai cert est déjà là, on n'y touche pas (aucun écrasement).
+  # => Plus jamais besoin de commenter/décommenter le bloc SSL dans nginx.conf.
+  init-certs:
+    image: alpine:3
+    volumes:
+      - letsencrypt_data:/etc/letsencrypt
+    entrypoint: ["/bin/sh", "-c"]
+    # IMPORTANT : le script est UN SEUL élément de liste (`- |`), sinon compose
+    # tokenise la chaîne en mots et `sh -c` n'exécute que le premier (« set »).
+    command:
+      - |
+        set -e
+        apk add --no-cache openssl >/dev/null
+        for d in concorde-work-force.com blog.concorde-work-force.com; do
+          if [ ! -f "/etc/letsencrypt/live/$$d/fullchain.pem" ]; then
+            echo "init-certs: certificat auto-signé temporaire pour $$d"
+            mkdir -p "/etc/letsencrypt/live/$$d"
+            openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+              -keyout "/etc/letsencrypt/live/$$d/privkey.pem" \
+              -out "/etc/letsencrypt/live/$$d/fullchain.pem" \
+              -subj "/CN=$$d" >/dev/null 2>&1
+          else
+            echo "init-certs: certificat déjà présent pour $$d — rien à faire"
+          fi
+        done
+    networks:
+      - app-network
+
   nginx-proxy:
     image: nginx:alpine
     ports:
@@ -32,8 +66,14 @@ services:
       - /var/www/certbot:/var/www/certbot:ro
       - nginx_logs:/var/log/nginx
     depends_on:
-      - abrpoint.server
-      - abrpoint.client
+      # Attend que les certs (vrais ou temporaires) soient en place AVANT de démarrer,
+      # sinon nginx crashe sur un ssl_certificate manquant.
+      init-certs:
+        condition: service_completed_successfully
+      abrpoint.server:
+        condition: service_started
+      abrpoint.client:
+        condition: service_started
     networks:
       - app-network
 
@@ -52,10 +92,11 @@ services:
       - app-network
 
   certbot:
-    # Premier setup (à lancer une seule fois manuellement) :
-    #   docker compose -f docker-compose.app.yml run --rm certbot certonly --webroot \
-    #     -w /var/www/certbot -d concorde-work-force.com -d www.concorde-work-force.com \
-    #     --email mohamedberhaiem43@gmail.com --agree-tos --non-interactive
+    # Premier setup (émission initiale de TOUS les certs, à lancer une seule fois) :
+    #   ./scripts/init-letsencrypt.sh
+    # Le script pose des certs temporaires (via init-certs), émet les vrais en
+    # --webroot, puis recharge nginx — sans jamais commenter le bloc SSL.
+    # Ce service-ci ne gère QUE le renouvellement automatique (boucle 12h ci-dessous).
     image: certbot/certbot
     volumes:
       - letsencrypt_data:/etc/letsencrypt

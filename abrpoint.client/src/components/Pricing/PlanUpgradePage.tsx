@@ -59,6 +59,9 @@ const MINIMUM_PLAN_FOR_FEATURE: Record<keyof PlanFeatures, PlanKey | null> = {
   prioritySupport: null,
   // Assistant IA conversationnel : inclus nativement en Premium, sinon via l'addon aiAssistantRh.
   aiChatbot: 'Premium',
+  // 2026-06 — Gestion des pointeuses physiques : EXCLUSIF Premium (aucun addon). Le prompt
+  // d'upgrade pointe donc vers le pack Premium.
+  biometricDevices: 'Premium',
 };
 
 // Le backend renvoie la feature en PascalCase (cf. RequirePlanFeatureAttribute) ; on

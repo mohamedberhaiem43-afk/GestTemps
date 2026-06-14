@@ -416,13 +416,15 @@ RAG_SIDECAR_KEY=<openssl rand -base64 32>
 ADMIN_BOOTSTRAP_PASSWORD=<mot de passe initial admin>
 EOF
 
-# Bootstrap Let's Encrypt (une seule fois)
-docker compose -f docker-compose.app.yml run --rm certbot certonly --webroot \
-  -w /var/www/certbot -d concorde-work-force.com -d www.concorde-work-force.com \
-  --email mohamedberhaiem43@gmail.com --agree-tos --non-interactive
-
-# Démarrage de la stack
+# Démarrage de la stack. nginx démarre directement avec TOUS les blocs HTTPS
+# actifs (y compris blog.) : le service `init-certs` pose des certificats
+# auto-signés temporaires pour tout domaine sans vrai cert, donc nginx ne crashe
+# jamais. Aucune édition de nginx.conf (plus de commenter/décommenter le bloc SSL).
 docker compose -f docker-compose.app.yml --env-file .env.app up -d
+
+# Bootstrap Let's Encrypt (une seule fois) : remplace les certs temporaires par
+# les vrais (--webroot) et recharge nginx. Idempotent + auto-renouvellement ensuite.
+LE_EMAIL=contact@concorde-tech.fr ./scripts/init-letsencrypt.sh
 
 # CrowdSec bouncer (post go-live)
 sudo apt install crowdsec-firewall-bouncer-iptables

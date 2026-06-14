@@ -2950,6 +2950,7 @@
       "title": "Clocking Reading",
       "subtitle": "List and details of clocking operations",
       "noConsultRight": "You do not have the right to view the clocking list.",
+      "premiumOnly": "Clocking device management (connecting biometric terminals and compatibility with your existing hardware) is included in the Premium plan. Your current plan does not cover this feature.",
       "msgUpdated": "Clocking device updated successfully",
       "msgAdded": "Clocking device added successfully",
       "msgSaveError": "Error while saving",

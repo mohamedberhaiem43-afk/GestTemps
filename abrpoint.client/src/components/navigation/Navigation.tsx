@@ -350,7 +350,10 @@ const useNavigationItems = (): NavGroup[] => {
         href: '/dashboard/pointage',
         icon: Fingerprint,
         items: [
-          ...(canSee('liste-pointeuse') ? [{ label: t('navigation.clockingList'), href: '/dashboard/liste-pointeuse', icon: MonitorDot }] : []),
+          // 2026-06 : la « Liste des pointeuses » (gestion des terminaux physiques) est
+          // EXCLUSIVE au pack Premium (planAllows('biometricDevices')). Hors Premium,
+          // l'entrée disparaît de la nav ET l'API renvoie 402 (PointeuseController gaté).
+          ...(canSee('liste-pointeuse') && planAllows('biometricDevices') ? [{ label: t('navigation.clockingList'), href: '/dashboard/liste-pointeuse', icon: MonitorDot }] : []),
           // 2026-05-12 : état périodique disponible sur tous les plans (y compris Starter)
           // — c'est le rapport de base du pointage. Le gating `!isTrialing` précédent
           // partait du principe que trial = Premium-pour-tous ; désormais le plan

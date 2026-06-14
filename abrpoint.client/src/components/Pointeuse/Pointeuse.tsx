@@ -18,7 +18,7 @@ import { useTranslation, Trans } from "react-i18next";
 import BreadcrumbNavigation from "../helper/BreadcrumbNavigation";
 
 export default function Pointeuse() {
-  const { hasPermission, soccod } = useAuth();
+  const { hasPermission, soccod, planAllows } = useAuth();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const { t } = useTranslation();
@@ -163,6 +163,23 @@ export default function Pointeuse() {
 
   if (!hasPermission("Pointage et Temps", "consult")) {
     return <AccessDenied message={t("pointeuse.list.noConsultRight")} />;
+  }
+
+  // 2026-06 — Garde de plan : la gestion des pointeuses physiques est réservée au pack
+  // Premium (biometricDevices). On bloque l'accès direct par URL même si l'entrée de
+  // menu est masquée. Fail-closed : tant que /me n'a pas hydraté planFeatures, planAllows
+  // renvoie false → on n'expose pas l'interface (cohérent avec le 402 côté API).
+  if (!planAllows("biometricDevices")) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="info" sx={{ borderRadius: 2 }}>
+          {t("pointeuse.list.premiumOnly", {
+            defaultValue:
+              "La gestion des pointeuses (connexion des terminaux biométriques et compatibilité du matériel existant) est incluse dans le pack Premium. Votre pack actuel ne couvre pas cette fonctionnalité.",
+          })}
+        </Alert>
+      </Box>
+    );
   }
 
   const paginatedData = pointeuses.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);

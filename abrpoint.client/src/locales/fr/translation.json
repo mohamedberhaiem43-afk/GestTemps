@@ -2949,6 +2949,7 @@
       "title": "Lecture des Pointeuses",
       "subtitle": "Liste et détails des opérations de pointage",
       "noConsultRight": "Vous n'avez pas le droit de consulter la liste des pointeuses.",
+      "premiumOnly": "La gestion des pointeuses (connexion des terminaux biométriques et compatibilité du matériel existant) est incluse dans le pack Premium. Votre pack actuel ne couvre pas cette fonctionnalité.",
       "msgUpdated": "Pointeuse modifiée avec succès",
       "msgAdded": "Pointeuse ajoutée avec succès",
       "msgSaveError": "Erreur lors de l'enregistrement",

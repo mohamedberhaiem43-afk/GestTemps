@@ -118,7 +118,13 @@ public sealed record PlanFeatures(
     // présence, congés, navigation). C'est l'addon self-service « Assistant RH IA » (aiAssistantRh),
     // DISTINCT du RAG documentaire (RagAi, /ChatRag/ask) qui reste « sur devis » (iaDocumentaireAvancee).
     // Défaut false → Starter/Standard ne l'ont pas sans l'addon. Premium l'inclut.
-    bool AiChatbot = false);
+    bool AiChatbot = false,
+    // 2026-06 — Connecteur pointeuses biométriques & compatibilité des terminaux de
+    // pointage existants. Différenciateur EXCLUSIF Premium : la liste/gestion des
+    // pointeuses physiques (PointeuseController) et l'interface « Liste des pointeuses »
+    // côté front ne sont accessibles qu'au pack Premium. Aucun addon ne le débloque —
+    // c'est un avantage de plan pur (cf. GetEffectiveFeatures : pas d'OR-merge addon).
+    bool BiometricDevices = false);
 
 /// <summary>
 /// Catalogue des plans commerciaux (Starter / Standard / Premium) et des
@@ -323,7 +329,9 @@ public static class PlanCatalog
             ApiAccess: false,
             PrioritySupport: false,
             // Premium inclut l'assistant IA conversationnel (aiAssistantRh bundlé).
-            AiChatbot: true));
+            AiChatbot: true,
+            // Liste/gestion des pointeuses physiques réservée au Premium (exclusif plan).
+            BiometricDevices: true));
 
     /// <summary>Retourne la définition pour un code donné, ou null si inconnu.</summary>
     public static PlanDefinition? GetPlan(string? rawCode)
