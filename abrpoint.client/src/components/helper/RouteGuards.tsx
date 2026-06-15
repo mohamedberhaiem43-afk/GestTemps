@@ -84,6 +84,9 @@ export const PUBLIC_PATHS = new Set<string>([
   // Idem `/payment` : redirection post-Checkout Stripe avant que la session
   // côté front ne soit ré-établie.
   '/download',
+  // Calculateur ROI : page marketing publique (partageable / indexable), consultable
+  // sans compte avant toute inscription.
+  '/roi',
   '/payment',
   // Mentions légales : OBLIGATOIREMENT publiques. Apple/Google reviewers les
   // vérifient anonymement, et les visiteurs candidats à l'inscription doivent
@@ -101,6 +104,7 @@ export const PUBLIC_PATHS = new Set<string>([
   '/en/suppression-compte',
   '/en/download',
   '/en/contact-sales',
+  '/en/roi',
 ]);
 
 /**

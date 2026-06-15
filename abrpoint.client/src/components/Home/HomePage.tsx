@@ -1174,6 +1174,23 @@ export default function HomePage() {
 
         <p style={{ textAlign: 'center', marginTop: 28, fontSize: 14, color: '#64748b' }}>{d.pricingFoot}</p>
 
+        {/* Lien vers la page dédiée au calculateur ROI (hors home, cf. RoiPage). */}
+        <div style={{ textAlign: 'center', marginTop: 18 }}>
+          <button
+            type="button"
+            onClick={() => navigate(lang === 'en' ? '/en/roi' : '/roi')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+              background: 'linear-gradient(135deg,#0040A1,#2DD4BF)', color: '#fff',
+              border: 'none', borderRadius: 999, padding: '12px 26px',
+              fontSize: 14.5, fontWeight: 700, letterSpacing: '.01em',
+              boxShadow: '0 6px 20px rgba(0,64,161,.28)',
+            }}
+          >
+            🧮 {lang === 'en' ? 'Calculate your ROI' : 'Calculez votre ROI'} <span>→</span>
+          </button>
+        </div>
+
         {/* ENTERPRISE PLUS — panneau « Entreprises sur mesure » (remplace la 4e carte). */}
         <section className="epx" id="ent-sur-mesure" aria-label="Enterprise Plus — Entreprises sur mesure">
           <div className="epx-panel">

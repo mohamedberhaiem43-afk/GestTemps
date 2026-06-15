@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Calculateur ROI — Concorde Workforce</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;font-family:'Inter',sans-serif;background:#F7F9FB;color:#0D1B3E;}
+/* Bandeau retour */
+.roi-topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 24px;background:#fff;border-bottom:1px solid #d4dff5;}
+.roi-topbar .brand{display:flex;align-items:center;gap:10px;font-weight:700;color:#0040A1;font-size:16px;text-decoration:none;}
+.roi-topbar .brand .dot{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#0040A1,#2DD4BF);}
+.roi-topbar .back{color:#5a6e99;font-size:14px;font-weight:600;text-decoration:none;}
+.roi-topbar .back:hover{color:#0040A1;}
+.roi-cta-wrap{text-align:center;padding:0 20px 64px;}
+.roi-cta{display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:linear-gradient(135deg,#0040A1,#2DD4BF);color:#fff;border:none;border-radius:999px;padding:14px 30px;font-size:15px;font-weight:700;text-decoration:none;box-shadow:0 6px 20px rgba(0,64,161,.28);}
+
+.roi-calc{--navy:#0040A1;--navy-deep:#001f54;--navy-mid:#002d73;--teal:#2DD4BF;--teal-light:rgba(45,212,191,0.12);--amber:#F59E0B;--amber-light:rgba(245,158,11,0.12);--roi-bg:#F7F9FB;--roi-text:#0D1B3E;--roi-muted:#5a6e99;--roi-border:#d4dff5;--roi-white:#fff;--shadow-card:0 8px 40px rgba(0,64,161,0.10);--shadow-result:0 16px 60px rgba(0,64,161,0.22);font-family:'Inter',sans-serif;background:var(--roi-bg);color:var(--roi-text);display:block;}
+.roi-calc *,.roi-calc *::before,.roi-calc *::after{box-sizing:border-box;}
+.roi-calc .roi-hero{background:linear-gradient(160deg,var(--navy-deep) 0%,var(--navy) 50%,var(--navy-mid) 100%);position:relative;overflow:hidden;padding:56px 24px 64px;text-align:center;}
+.roi-calc .roi-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 20% 80%,rgba(45,212,191,0.08) 0%,transparent 60%),radial-gradient(ellipse 60% 60% at 80% 20%,rgba(59,130,246,0.12) 0%,transparent 60%);pointer-events:none;}
+.roi-calc .hero-ring{position:absolute;width:500px;height:500px;border-radius:50%;border:1px solid rgba(45,212,191,0.1);top:50%;left:50%;transform:translate(-50%,-50%);animation:roiRingPulse 4s ease-in-out infinite;}
+.roi-calc .hero-ring:nth-child(2){width:700px;height:700px;border-color:rgba(0,64,161,0.15);animation-delay:1.5s;animation-duration:5s;}
+@keyframes roiRingPulse{0%,100%{opacity:.4;transform:translate(-50%,-50%) scale(1);}50%{opacity:1;transform:translate(-50%,-50%) scale(1.03);}}
+.roi-calc .hero-content{position:relative;z-index:1;}
+.roi-calc .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(45,212,191,0.12);border:1px solid rgba(45,212,191,0.25);color:var(--teal);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:6px 16px;border-radius:30px;margin-bottom:22px;}
+.roi-calc .roi-hero h2{font-family:'Playfair Display',serif;font-size:38px;font-weight:700;color:var(--roi-white);line-height:1.2;letter-spacing:-.02em;margin-bottom:16px;}
+.roi-calc .roi-hero h2 em{font-style:italic;color:var(--teal);position:relative;}
+.roi-calc .roi-hero h2 em::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--teal),transparent);border-radius:2px;}
+.roi-calc .hero-sub{font-size:15px;color:rgba(255,255,255,0.55);font-weight:300;line-height:1.7;max-width:480px;margin:0 auto;}
+.roi-calc .roi-main{max-width:620px;margin:-28px auto 0;padding:0 20px 64px;position:relative;z-index:2;}
+.roi-calc .card{background:var(--roi-white);border-radius:20px;border:1px solid var(--roi-border);box-shadow:var(--shadow-card);overflow:hidden;}
+.roi-calc .card-body{padding:36px;}
+.roi-calc .fields{display:flex;flex-direction:column;gap:22px;margin-bottom:32px;}
+.roi-calc .field label{display:block;font-size:11px;font-weight:600;color:var(--roi-muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
+.roi-calc .input-wrap{position:relative;}
+.roi-calc .input-wrap input{width:100%;height:54px;border:1.5px solid var(--roi-border);border-radius:12px;padding:0 52px 0 18px;font-size:20px;font-weight:500;font-family:'Inter',sans-serif;color:var(--roi-text);background:var(--roi-bg);transition:border-color .25s,box-shadow .25s,background .25s;-moz-appearance:textfield;}
+.roi-calc .input-wrap input::-webkit-inner-spin-button,.roi-calc .input-wrap input::-webkit-outer-spin-button{-webkit-appearance:none;}
+.roi-calc .input-wrap input::placeholder{color:#c0cce8;font-size:16px;font-weight:400;}
+.roi-calc .input-wrap input:focus{outline:none;border-color:var(--navy);background:var(--roi-white);box-shadow:0 0 0 3px rgba(0,64,161,0.1),0 2px 12px rgba(0,64,161,0.08);}
+.roi-calc .input-wrap input:focus + .input-unit{color:var(--navy);}
+.roi-calc .input-wrap input:not(:placeholder-shown){border-color:rgba(0,64,161,0.35);background:var(--roi-white);}
+.roi-calc .input-unit{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:14px;font-weight:600;color:var(--roi-muted);pointer-events:none;transition:color .25s;}
+.roi-calc .field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.roi-calc .state-empty{border:1.5px dashed var(--roi-border);border-radius:16px;padding:40px 24px;text-align:center;margin-bottom:28px;background:linear-gradient(135deg,rgba(247,249,251,0.8),rgba(232,239,252,0.5));}
+.roi-calc .empty-icon{font-size:32px;margin-bottom:12px;opacity:.45;display:block;animation:roiGentleBob 3s ease-in-out infinite;}
+@keyframes roiGentleBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+.roi-calc .empty-text{font-size:13px;color:var(--roi-muted);font-weight:400;line-height:1.6;}
+.roi-calc .state-result{display:none;margin-bottom:28px;border-radius:16px;overflow:hidden;box-shadow:var(--shadow-result);}
+.roi-calc .state-result.visible{display:block;animation:roiResultReveal .7s cubic-bezier(0.34,1.56,0.64,1) both;}
+@keyframes roiResultReveal{from{opacity:0;transform:scale(.92) translateY(16px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.roi-calc .result-top{background:linear-gradient(135deg,var(--navy-deep) 0%,var(--navy) 55%,#1a5fc8 100%);background-size:200% 200%;animation:roiGradMove 6s ease infinite;padding:32px 30px 28px;position:relative;overflow:hidden;}
+@keyframes roiGradMove{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+.roi-calc .result-top::before{content:'';position:absolute;top:0;left:-100%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent);animation:roiShimmer 3.5s ease-in-out infinite;}
+@keyframes roiShimmer{0%{left:-50%;}100%{left:150%;}}
+.roi-calc .result-top::after{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,0.15) 0%,transparent 70%);pointer-events:none;}
+.roi-calc .result-label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:14px;position:relative;z-index:1;}
+.roi-calc .result-amount{display:flex;align-items:baseline;gap:6px;margin-bottom:8px;position:relative;z-index:1;}
+.roi-calc .result-euro{font-family:'Playfair Display',serif;font-size:36px;color:rgba(255,255,255,0.6);font-weight:600;}
+.roi-calc .result-num{font-family:'Playfair Display',serif;font-size:64px;font-weight:700;color:var(--roi-white);letter-spacing:-.03em;line-height:1;}
+.roi-calc .result-peryear{font-size:15px;color:rgba(255,255,255,0.45);font-weight:400;align-self:flex-end;padding-bottom:6px;}
+.roi-calc .savings-bar-wrap{margin:18px 0 14px;position:relative;z-index:1;}
+.roi-calc .savings-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,0.35);margin-bottom:7px;font-weight:500;}
+.roi-calc .savings-bar-bg{height:6px;background:rgba(255,255,255,0.12);border-radius:3px;overflow:hidden;}
+.roi-calc .savings-bar-fill{height:100%;background:linear-gradient(90deg,var(--teal),#60efdf);border-radius:3px;width:0%;transition:width 1.2s cubic-bezier(0.22,1,0.36,1);position:relative;}
+.roi-calc .savings-bar-fill::after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);}
+.roi-calc .result-message{font-size:13px;color:rgba(255,255,255,0.65);font-weight:300;line-height:1.6;margin-bottom:18px;position:relative;z-index:1;}
+.roi-calc .emotion-pills{display:flex;flex-wrap:wrap;gap:8px;position:relative;z-index:1;}
+.roi-calc .epill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:30px;padding:6px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,0.8);opacity:0;transform:translateY(10px) scale(.95);transition:opacity .4s,transform .4s;}
+.roi-calc .epill.show{opacity:1;transform:translateY(0) scale(1);}
+.roi-calc .epill.teal{background:var(--teal-light);border-color:rgba(45,212,191,0.3);color:var(--teal);}
+.roi-calc .epill.amber{background:var(--amber-light);border-color:rgba(245,158,11,0.3);color:var(--amber);}
+.roi-calc .result-breakdown{display:grid;grid-template-columns:repeat(3,1fr);background:var(--navy-deep);border-top:1px solid rgba(255,255,255,0.06);}
+.roi-calc .bk-item{padding:16px 20px;border-right:1px solid rgba(255,255,255,0.05);opacity:0;transition:opacity .4s;}
+.roi-calc .bk-item:last-child{border-right:none;}
+.roi-calc .bk-item.show{opacity:1;}
+.roi-calc .bk-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:5px;}
+.roi-calc .bk-val{font-size:17px;font-weight:600;color:rgba(255,255,255,0.85);}
+.roi-calc .wow-panel{background:linear-gradient(135deg,var(--amber-light),rgba(245,158,11,0.06));border:1px solid rgba(245,158,11,0.2);border-radius:14px;padding:20px 22px;margin-bottom:28px;display:flex;gap:14px;align-items:flex-start;opacity:0;transform:translateY(12px);transition:opacity .5s .8s,transform .5s .8s;}
+.roi-calc .wow-panel.show{opacity:1;transform:translateY(0);}
+.roi-calc .wow-icon{font-size:22px;flex-shrink:0;margin-top:2px;}
+.roi-calc .wow-text{font-size:13px;font-weight:400;color:var(--roi-text);line-height:1.65;}
+.roi-calc .wow-text strong{color:var(--navy);font-weight:600;}
+.roi-calc .progress-ring-wrap{text-align:center;padding:28px 20px;background:var(--roi-white);border-radius:16px;border:1px solid var(--roi-border);position:relative;overflow:hidden;opacity:0;height:0;padding-top:0;padding-bottom:0;border-width:0;margin-bottom:0;transition:opacity .5s;}
+.roi-calc .progress-ring-wrap.show{opacity:1;height:auto;padding:28px 20px;border-width:1px;margin-bottom:28px;}
+.roi-calc .progress-ring-wrap::before{content:'';position:absolute;top:-1px;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--teal),var(--navy));border-radius:3px 3px 0 0;}
+.roi-calc .ring-label{font-size:11px;font-weight:600;color:var(--roi-muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px;}
+.roi-calc .ring-svg{display:block;margin:0 auto 16px;}
+.roi-calc .ring-center-text{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;fill:var(--navy);}
+.roi-calc .ring-center-sub{font-size:11px;fill:var(--roi-muted);font-weight:400;}
+.roi-calc .ring-caption{font-size:13px;color:var(--roi-muted);font-weight:300;line-height:1.6;}
+.roi-calc .ring-caption strong{color:var(--navy);font-weight:600;}
+.roi-calc .roi-note{font-size:11px;color:var(--roi-muted);line-height:1.7;margin-bottom:4px;padding:12px 16px;background:rgba(0,64,161,0.04);border-left:2px solid rgba(0,64,161,0.2);border-radius:0 8px 8px 0;}
+@media(max-width:540px){.roi-calc .roi-hero h2{font-size:28px;}.roi-calc .result-num{font-size:48px;}.roi-calc .card-body{padding:22px 18px;}.roi-calc .field-row{grid-template-columns:1fr;}.roi-calc .result-breakdown{grid-template-columns:1fr 1fr;}.roi-calc .bk-item:last-child{display:none;}}
+</style>
+</head>
+<body>
+
+<header class="roi-topbar">
+  <a class="brand" href="homepage-preview.html"><span class="dot"></span>Concorde Workforce</a>
+  <a class="back" href="homepage-preview.html">← Retour à l'accueil</a>
+</header>
+
+<section class="roi-calc" id="roi" aria-label="Calculateur ROI — Concorde Workforce">
+  <div class="roi-hero">
+    <div class="hero-ring"></div>
+    <div class="hero-ring"></div>
+    <div class="hero-content">
+      <div class="hero-eyebrow">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        Calculateur ROI — Concorde Workforce
+      </div>
+      <h2>Combien vous coûte vraiment<br>votre gestion RH <em>aujourd'hui ?</em></h2>
+      <p class="hero-sub">Entrez vos chiffres. Découvrez ce que vous pourriez récupérer — en temps, en argent, en sérénité d'esprit.</p>
+    </div>
+  </div>
+  <div class="roi-main">
+    <div class="card">
+      <div class="card-body">
+        <div class="fields">
+          <div class="field">
+            <label for="roiCollab">Nombre de collaborateurs</label>
+            <div class="input-wrap"><input type="number" id="roiCollab" placeholder="Ex : 80" min="1" oninput="roiOnInput()"/></div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="roiSalaire">Salaire moyen mensuel</label>
+              <div class="input-wrap"><input type="number" id="roiSalaire" placeholder="Ex : 2 400" min="0" oninput="roiOnInput()" style="padding-right:36px;"/><span class="input-unit">€</span></div>
+            </div>
+            <div class="field">
+              <label for="roiHeures">Heures RH / semaine</label>
+              <div class="input-wrap"><input type="number" id="roiHeures" placeholder="Ex : 10" min="0" max="60" oninput="roiOnInput()" style="padding-right:30px;"/><span class="input-unit">h</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="state-empty" id="roiEmpty">
+          <span class="empty-icon">⏳</span>
+          <p class="empty-text">Vos économies apparaîtront ici.<br>Remplissez les champs ci-dessus pour découvrir votre résultat.</p>
+        </div>
+        <div class="state-result" id="roiResult">
+          <div class="result-top">
+            <div class="result-label">Économie estimée avec Concorde Workforce</div>
+            <div class="result-amount"><span class="result-euro">€</span><span class="result-num" id="roiNum">0</span><span class="result-peryear">/ an</span></div>
+            <div class="savings-bar-wrap">
+              <div class="savings-bar-labels"><span>Coût actuel</span><span id="roiBarLabel">0% automatisable</span></div>
+              <div class="savings-bar-bg"><div class="savings-bar-fill" id="roiBar"></div></div>
+            </div>
+            <div class="result-message" id="roiMsg"></div>
+            <div class="emotion-pills">
+              <span class="epill teal" id="roiPill1"></span>
+              <span class="epill amber" id="roiPill2"></span>
+              <span class="epill" id="roiPill3"></span>
+            </div>
+          </div>
+          <div class="result-breakdown">
+            <div class="bk-item" id="roiBk1"><div class="bk-lbl">Coût horaire RH</div><div class="bk-val" id="roiBkTaux">—</div></div>
+            <div class="bk-item" id="roiBk2"><div class="bk-lbl">Heures perdues / an</div><div class="bk-val" id="roiBkHeures">—</div></div>
+            <div class="bk-item" id="roiBk3"><div class="bk-lbl">Masse salariale RH</div><div class="bk-val" id="roiBkCout">—</div></div>
+          </div>
+        </div>
+        <div class="wow-panel" id="roiWow"><span class="wow-icon">💡</span><p class="wow-text" id="roiWowText"></p></div>
+        <div class="progress-ring-wrap" id="roiRing">
+          <div class="ring-label">Répartition de votre temps RH</div>
+          <svg class="ring-svg" width="140" height="140" viewBox="0 0 140 140">
+            <circle cx="70" cy="70" r="54" fill="none" stroke="#e8effc" stroke-width="12"/>
+            <circle id="roiRingArc" cx="70" cy="70" r="54" fill="none" stroke="url(#roiRingGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="339.3" stroke-dashoffset="339.3" transform="rotate(-90 70 70)" style="transition:stroke-dashoffset 1.3s cubic-bezier(0.22,1,0.36,1)"/>
+            <defs><linearGradient id="roiRingGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#2DD4BF"/><stop offset="100%" stop-color="#0040A1"/></linearGradient></defs>
+            <text id="roiRingPct" class="ring-center-text" x="70" y="68" text-anchor="middle" dominant-baseline="middle">0%</text>
+            <text class="ring-center-sub" x="70" y="86" text-anchor="middle">automatisable</text>
+          </svg>
+          <p class="ring-caption" id="roiRingCaption"></p>
+        </div>
+        <p class="roi-note">Calcul basé sur le coût total employeur (salaire × 1,45) · base légale 151,67 h/mois · 70 % de réduction du temps RH après déploiement de Concorde Workforce · 52 semaines/an.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="roi-cta-wrap">
+  <a class="roi-cta" href="homepage-preview.html#contact">Parler à un expert <span>→</span></a>
+</div>
+
+<script>
+(function(){
+  var prevEco=0, rafId=null, revealed=false;
+  function $(id){return document.getElementById(id);}
+  function fmt(n){return Math.round(n).toLocaleString('fr-FR');}
+  function countUp(target){
+    if(rafId)cancelAnimationFrame(rafId);
+    var start=prevEco,t0=null,dur=Math.min(1400,600+Math.abs(target-start)/80);
+    function ease(t){return 1-Math.pow(1-t,3);}
+    function step(ts){if(!t0)t0=ts;var p=Math.min((ts-t0)/dur,1);var val=Math.round(start+(target-start)*ease(p));$('roiNum').textContent=val.toLocaleString('fr-FR');if(p<1){rafId=requestAnimationFrame(step);}else{prevEco=target;}}
+    requestAnimationFrame(step);
+  }
+  function animateRing(pct){
+    var c=339.3;$('roiRingArc').style.strokeDashoffset=c*(1-pct/100);
+    var t0=null;function stepR(ts){if(!t0)t0=ts;var p=Math.min((ts-t0)/1300,1);var cur=Math.round(p*p*(3-2*p)*pct);$('roiRingPct').textContent=cur+'%';if(p<1)requestAnimationFrame(stepR);}requestAnimationFrame(stepR);
+  }
+  function getEmotions(eco,heuresAn){
+    var hSaved=Math.round(heuresAn*0.7),jSaved=Math.round(hSaved/8),months=(eco/12);
+    if(eco<8000)return{msg:'Même pour une petite équipe, chaque heure libérée est une décision prise plus vite.',pills:['⏱ '+hSaved+'h/an récupérées','📋 Zéro erreur de saisie','🧘 Équipe sereine'],wow:'Ce montant représente <strong>du temps précieux rendu à vos managers</strong>. Chaque heure libérée est une décision prise, un collaborateur écouté, une opportunité saisie.',ring:70,ringCaption:"<strong>70% de vos tâches RH</strong> sont automatisables dès aujourd'hui — sans changer vos habitudes de fond."};
+    if(eco<25000)return{msg:"C'est l'équivalent d'un mi-temps RH supplémentaire — sans recruter, sans onboarder.",pills:['💶 '+fmt(months)+'€ récupérés/mois','⏱ '+jSaved+' jours libérés/an','📈 ROI positif dès J+30'],wow:'Concrètement, <strong>'+fmt(eco)+'€ chaque année</strong> partent aujourd\'hui en tâches manuelles que votre équipe pourrait ne plus jamais faire. Concorde Workforce les automatise — dès la 2ème semaine.',ring:70,ringCaption:'<strong>'+hSaved+' heures par an</strong> passées sur des tâches sans valeur ajoutée. Autant de temps que vos collaborateurs pourraient réinvestir là où ils font vraiment la différence.'};
+    if(eco<70000)return{msg:"C'est un poste RH entier que vous financez chaque année en gestion manuelle.",pills:['🔥 '+fmt(eco)+'€ économisés/an','⏱ '+jSaved+' jours libérés','🚀 Déploiement en 2 semaines'],wow:'<strong>'+fmt(eco)+'€, c\'est le salaire annuel d\'un collaborateur.</strong> Vous le dépensez aujourd\'hui en processus manuels — délais, erreurs, frustrations. Avec Concorde Workforce, cet argent reste dans votre entreprise.',ring:70,ringCaption:'<strong>'+hSaved+' heures libérées par an.</strong> C\'est '+jSaved+' journées complètes que vos équipes récupèrent pour se concentrer sur la croissance, pas sur la paperasse.'};
+    return{msg:'Ce montant dépasse plusieurs salaires annuels — autant de budget réinvesti dans votre croissance.',pills:['💎 '+Math.round(eco/1000)+'k€ récupérés/an','⏱ '+jSaved+' jours libérés','🏆 Impact immédiat et mesurable'],wow:'<strong>'+fmt(eco)+'€ par an.</strong> C\'est considérable. Ce n\'est pas une projection optimiste — c\'est ce que nos clients constatent en moyenne 30 jours après le déploiement. Votre organisation mérite mieux que des tableurs Excel.',ring:70,ringCaption:'À cette échelle, l\'automatisation RH n\'est plus un confort — c\'est <strong>un avantage compétitif direct</strong>. Vos concurrents qui l\'ont adopté avancent plus vite.'};
+  }
+  window.roiOnInput=function(){
+    var collab=parseFloat($('roiCollab').value)||0,salaire=parseFloat($('roiSalaire').value)||0,heures=parseFloat($('roiHeures').value)||0;
+    if(!collab||!salaire||!heures){$('roiEmpty').style.display='block';$('roiResult').classList.remove('visible');$('roiWow').classList.remove('show');$('roiRing').classList.remove('show');revealed=false;prevEco=0;return;}
+    var taux=(salaire*1.45)/151.67,heuresAn=heures*52,coutBrut=taux*heuresAn,eco=coutBrut*0.70;
+    $('roiEmpty').style.display='none';
+    var resEl=$('roiResult');
+    if(!revealed){resEl.classList.add('visible');revealed=true;setTimeout(function(){$('roiBk1').classList.add('show');},400);setTimeout(function(){$('roiBk2').classList.add('show');},550);setTimeout(function(){$('roiBk3').classList.add('show');},700);}
+    countUp(Math.round(eco));
+    setTimeout(function(){$('roiBar').style.width='70%';$('roiBarLabel').textContent='70% automatisable';},300);
+    $('roiBkTaux').textContent=fmt(taux)+' €/h';$('roiBkHeures').textContent=fmt(heuresAn)+' h';$('roiBkCout').textContent=fmt(coutBrut)+' €';
+    var em=getEmotions(eco,heuresAn);
+    $('roiMsg').textContent=em.msg;
+    ['roiPill1','roiPill2','roiPill3'].forEach(function(id,i){var el=$(id);el.textContent=em.pills[i]||'';el.classList.remove('show');setTimeout(function(){el.classList.add('show');},300+i*130);});
+    setTimeout(function(){$('roiWowText').innerHTML=em.wow;$('roiWow').classList.add('show');},600);
+    setTimeout(function(){$('roiRing').classList.add('show');$('roiRingCaption').innerHTML=em.ringCaption;animateRing(em.ring);},900);
+  };
+})();
+</script>
+
+</body>
+</html>

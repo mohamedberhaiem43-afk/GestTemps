@@ -111,6 +111,8 @@ const LegalPdfRedirect = React.lazy(() => import('../Legal/LegalPdfRedirect'));
 // Suppression de compte — page publique (URL Google Play « Data deletion »).
 const AccountDeletionPage = React.lazy(() => import('../Legal/AccountDeletionPage'));
 const ServicesPage = React.lazy(() => import('../Services/ServicesPage'));
+// Calculateur ROI — page publique dédiée (sortie de la HomePage).
+const RoiPage = React.lazy(() => import('../Home/RoiPage'));
 
 /* ── Lucide icons ── */
 import {
@@ -598,6 +600,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/signup': content = <SignupPage />; break;
     case '/verify-email': content = <VerifyEmailPage />; break;
     case '/download': content = <DownloadPage />; break;
+    case '/roi': content = <RoiPage />; break;
     case '/plan-configuration': content = <PlanConfigurationPage />; break;
     case '/contact-sales': content = <ContactSalesPage />; break;
     case '/dashboard': content = <DashboardModernSync />; break;
@@ -1059,10 +1062,10 @@ function DashboardLayoutAccount(_props: DemoProps) {
   // Maintenir cette liste synchronisée avec les `case '/...'` racine du switch ci-dessus.
   const PUBLIC_PATHS = [
     '/', '/login', '/signup', '/verify-email',
-    '/plan-configuration', '/payment', '/contact-sales', '/download',
+    '/plan-configuration', '/payment', '/contact-sales', '/download', '/roi',
     '/confidentialite', '/cgu', '/mentions-legales', '/suppression-compte',
     // Versions anglaises (pages réellement bilingues uniquement).
-    '/en', '/en/suppression-compte', '/en/download', '/en/contact-sales',
+    '/en', '/en/suppression-compte', '/en/download', '/en/contact-sales', '/en/roi',
   ];
   const canonicalPathname = (pathname === '/dashboard' || pathname.startsWith('/dashboard/') || PUBLIC_PATHS.includes(pathname))
     ? pathname
@@ -1082,7 +1085,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   React.useEffect(() => {
     if (isEnRoute) {
       if (i18n.language !== 'en') i18n.changeLanguage('en');
-    } else if (pathname === '/' || pathname === '/suppression-compte' || pathname === '/download' || pathname === '/contact-sales') {
+    } else if (pathname === '/' || pathname === '/suppression-compte' || pathname === '/download' || pathname === '/contact-sales' || pathname === '/roi') {
       if (i18n.language !== 'fr') i18n.changeLanguage('fr');
     }
   }, [pathname, isEnRoute, i18n]);
@@ -1278,7 +1281,7 @@ function DashboardLayoutAccount(_props: DemoProps) {
   ];
 
   // Pages publiques (rendues sans la barre latérale) : landing pricing + login.
-  const isPublicPage = pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download' || pathname === '/suppression-compte' || isEnRoute;
+  const isPublicPage = pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname === '/plan-configuration' || pathname === '/payment' || pathname === '/contact-sales' || pathname === '/download' || pathname === '/roi' || pathname === '/suppression-compte' || isEnRoute;
   const isProfilePage = canonicalPathname === '/dashboard/profil-employe';
 
   if (!authReady) {
