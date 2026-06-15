@@ -218,7 +218,7 @@ public static class PlanCatalog
         FlatPriceMonthlyEur: 219m,
         FlatPriceAnnualMonthlyEur: 119m,
         IncludedEmployees: 25,
-        IncludedAdmins: 3,
+        IncludedAdmins: 2,
         OverageRatePerEmployeeEur: 6.90m,
         MaxEmployees: null,           // 2026-05-23 : plafond supprimé — overage facturé sans plafond
         // Positionnement commercial 2026-05 :

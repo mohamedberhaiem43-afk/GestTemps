@@ -185,8 +185,8 @@ const FR: Dict = {
   pi3: '100 collaborateurs inclus · 200 Go stockage sécurisé',
   extraCollab: 'puis +{price} € HT / mois par collaborateur supplémentaire',
   starterFeatures: ["Jusqu'à 10 collaborateurs", '1 administrateur', 'Pointage Web', 'Gestion RH essentielle', 'Fiches salariés', 'Congés et absences', 'Tableau de bord RH', 'Notifications e-mail', 'Export Excel', 'Hébergement sécurisé France (OVH)', '10 Go stockage sécurisé', 'Support standard'],
-  standardFeatures: ['Tout le pack Starter', "Jusqu'à 25 collaborateurs", '3 administrateurs', 'Application mobile Workly', 'Pointage mobile', 'Géolocalisation optionnelle', 'Signature électronique', 'Coffre numérique salarié', 'Import Excel en masse', 'Préparation paie', 'Export paie', 'Congés, RTT et CET', 'Notifications push et e-mail', 'Reporting RH avancé', 'Multi-sites simple', '50 Go stockage sécurisé', 'Support prioritaire'],
-  businessFeatures: ['Tout le pack Standard', "Jusqu'à 100 collaborateurs", 'Administrateurs illimités', 'Multi-sites avancé', 'Workflow de validation avancé', 'Tableaux de bord RH avancés', 'Exports personnalisés', 'Connecteur pointeuses biométriques', 'Compatibilité terminaux de pointage existants', 'Assistant IA RH', 'Audit et journaux avancés', 'Supervision avancée', '200 Go stockage sécurisé', 'SLA prioritaire', 'Onboarding accompagné'],
+  standardFeatures: ['Tout le pack Starter', "Jusqu'à 25 collaborateurs", '2 administrateurs', 'Application mobile Workly', 'Pointage mobile', 'Géolocalisation optionnelle', 'Signature électronique', 'Coffre numérique salarié', 'Import Excel en masse', 'Préparation paie', 'Export paie', 'Congés, RTT et CET', 'Notifications push et e-mail', 'Reporting RH avancé', 'Multi-sites simple', '50 Go stockage sécurisé', 'Support prioritaire'],
+  businessFeatures: ['Tout le pack Standard', "Jusqu'à 100 collaborateurs", 'Administrateurs illimités', 'Multi-sites avancé', 'Workflow de validation avancé', 'Tableaux de bord RH avancés', 'Exports personnalisés', 'Connecteur pointeuses biométriques', 'Compatibilité terminaux de pointage existants*', 'Assistant IA RH', 'Audit et journaux avancés', 'Supervision avancée', 'API standard', '200 Go stockage sécurisé', 'SLA prioritaire', 'Onboarding accompagné'],
   entFeatures: ['IA RH avancée', 'Recherche documentaire', 'Workflows intelligents', 'API avancées & SSO', 'Hébergement dédié', 'Architecture sur mesure'],
   entPriceLabel: 'Sur devis', entAmount: 'Tarification', entAmountSuffix: ' personnalisée',
   entCommit: 'selon votre structure & volume', entSub: 'Administrateurs illimités · Onboarding accompagné', entCta: 'Demander un devis →',
@@ -418,8 +418,8 @@ const EN: Dict = {
   pi3: '100 users included · 200 GB secure storage',
   extraCollab: 'then +€{price} excl. tax / mo per additional employee',
   starterFeatures: ['Up to 10 employees', '1 administrator', 'Web clocking', 'Essential HR management', 'Employee records', 'Leave and absences', 'HR dashboard', 'Email notifications', 'Excel export', 'Secure hosting in France (OVH)', '10 GB secure storage', 'Standard support'],
-  standardFeatures: ['Everything in Starter', 'Up to 25 employees', '3 administrators', 'Workly mobile app', 'Mobile clocking', 'Optional geolocation', 'Electronic signature', 'Employee digital vault', 'Bulk Excel import', 'Payroll preparation', 'Payroll export', 'Leave, RTT and time-off account', 'Push and email notifications', 'Advanced HR reporting', 'Simple multi-site', '50 GB secure storage', 'Priority support'],
-  businessFeatures: ['Everything in Standard', 'Up to 100 employees', 'Unlimited administrators', 'Advanced multi-site', 'Advanced approval workflow', 'Advanced HR dashboards', 'Custom exports', 'Biometric time-clock connector', 'Compatibility with existing clocking terminals', 'HR AI Assistant', 'Advanced audit and logs', 'Advanced supervision', '200 GB secure storage', 'Priority SLA', 'Guided onboarding'],
+  standardFeatures: ['Everything in Starter', 'Up to 25 employees', '2 administrators', 'Workly mobile app', 'Mobile clocking', 'Optional geolocation', 'Electronic signature', 'Employee digital vault', 'Bulk Excel import', 'Payroll preparation', 'Payroll export', 'Leave, RTT and time-off account', 'Push and email notifications', 'Advanced HR reporting', 'Simple multi-site', '50 GB secure storage', 'Priority support'],
+  businessFeatures: ['Everything in Standard', 'Up to 100 employees', 'Unlimited administrators', 'Advanced multi-site', 'Advanced approval workflow', 'Advanced HR dashboards', 'Custom exports', 'Biometric time-clock connector', 'Compatibility with existing clocking terminals', 'HR AI Assistant', 'Advanced audit and logs', 'Advanced supervision', 'Standard API', '200 GB secure storage', 'Priority SLA', 'Guided onboarding'],
   entFeatures: ['Advanced HR AI', 'Document search', 'Smart workflows', 'Advanced APIs & SSO', 'Dedicated hosting', 'Tailor-made architecture'],
   entPriceLabel: 'Custom quote', entAmount: 'Custom', entAmountSuffix: ' pricing',
   entCommit: 'based on your structure & volume', entSub: 'Unlimited administrators · Guided onboarding', entCta: 'Request a quote →',
@@ -873,7 +873,7 @@ export default function HomePage() {
     // Sites & administrateurs : contraintes dures réellement gatées côté serveur
     // (SitesController → MaxSites 1/5/∞ ; UtilisateursController → IncludedAdmins 1/3/∞).
     { type: 'feature', label: d.cfSites, s: '1', st: '5', b: d.cvUnlimited },
-    { type: 'feature', label: d.cfAdmins, s: '1', st: '3', b: d.cvUnlimited },
+    { type: 'feature', label: d.cfAdmins, s: '1', st: '2', b: d.cvUnlimited },
     { type: 'feature', label: d.cfStockage, s: '10 Go', st: '50 Go', b: '200 Go' },
     { type: 'feature', label: d.cfSupport, s: d.cvSup1, st: d.cvSup2, b: d.cvSup3 },
   ];
@@ -1496,7 +1496,7 @@ export default function HomePage() {
                 <div className="form-field"><label>{d.flEmail}</label><input name="email" type="email" placeholder="marie.dupont@entreprise.fr" /></div>
                 <div className="form-field"><label>{d.flEnt}</label><input name="entreprise" type="text" placeholder={d.flEnt} /></div>
                 <div className="form-field"><label>{d.flEmp}</label>
-                  <select name="effectif" defaultValue=""><option value="" disabled>{d.flEmpSel}</option><option>1 – 10</option><option>11 – 50</option><option>51 – 200</option></select>
+                  <select name="effectif" defaultValue=""><option value="" disabled>{d.flEmpSel}</option><option>1 – 10</option><option>11 – 50</option><option>51 – 200</option><option>201 – 500</option><option>+500</option></select>
                 </div>
                 <div className="form-field"><label>{d.flObj}</label>
                   <select name="objet" defaultValue=""><option value="" disabled>{d.flObjSel}</option><option>{d.flObjDemo}</option><option>{d.flObjEnt}</option><option>{d.flObjRec}</option><option>{d.flObjAut}</option></select>
