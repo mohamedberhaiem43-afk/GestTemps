@@ -24,7 +24,7 @@ import PageSeo from '../helper/PageSeo';
  * Doit rester PUBLIQUE (cf. PUBLIC_PATHS dans RouteGuards). Bilingue FR/EN.
  */
 
-const SUPPORT_EMAIL = 'contact@concorde-tech.fr';
+const SUPPORT_EMAIL = 'postmaster@concorde-work-force.com';
 const PRIVACY_URL = '/docs/politique-confidentialite.pdf';
 
 type Lang = 'fr' | 'en';

@@ -33,7 +33,7 @@ namespace ABRPOINT.Server.Controllers
     public class AccountController : ControllerBase
     {
         // Boîte support / DPO — même destinataire que ContactController.
-        private const string SupportInbox = "contact@concorde-tech.fr";
+        private const string SupportInbox = "postmaster@concorde-work-force.com";
         private const int CodeTtlMinutes = 15;
         private const int MaxConfirmAttempts = 5;
 

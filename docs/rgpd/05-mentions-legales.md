@@ -21,7 +21,7 @@
 | Numéro de TVA intracommunautaire | [À COMPLÉTER — format FRxx xxxxxxxxx] |
 | Représentant légal (directeur de la publication) | [À COMPLÉTER — Nom, fonction] |
 | Téléphone | [À COMPLÉTER] |
-| Email général | contact@concorde-tech.fr |
+| Email général | postmaster@concorde-work-force.com |
 | Email DPO | dpo@concorde-tech.fr |
 
 Pour les activités réglementées (le cas échéant) :

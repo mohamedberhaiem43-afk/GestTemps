@@ -149,7 +149,7 @@ const ContactSalesPage: React.FC = () => {
                 <CheckCircle2 className="text-tertiary mx-auto mb-4" size={56} />
                 <h3 className="text-2xl font-black mb-3 font-headline">{L.sentTitle}</h3>
                 <p className="text-on-surface-variant mb-6 leading-relaxed">
-                  {L.sentBody}<strong className="text-primary">contact@concorde-tech.fr</strong>.
+                  {L.sentBody}<strong className="text-primary">postmaster@concorde-work-force.com</strong>.
                 </p>
                 <button
                   onClick={() => navigate('/')}
@@ -266,7 +266,7 @@ const ContactSalesPage: React.FC = () => {
               <div className="pt-5 border-t border-outline-variant/30 space-y-3">
                 <div className="flex items-center gap-2.5 text-sm text-on-surface-variant">
                   <Mail size={16} className="text-primary" />
-                  <strong className="text-on-surface">contact@concorde-tech.fr</strong>
+                  <strong className="text-on-surface">postmaster@concorde-work-force.com</strong>
                 </div>
                 <div className="flex items-center gap-2.5 text-sm text-on-surface-variant">
                   <Phone size={16} className="text-primary" />

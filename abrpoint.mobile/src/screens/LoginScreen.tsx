@@ -500,7 +500,7 @@ export default function LoginScreen() {
                   style={styles.footerLink}
                   onPress={() =>
                     Linking.openURL(
-                      'mailto:contact@concorde-tech.fr?subject=Demande%20d%27assistance%20%E2%80%94%20Concorde%20Workforce'
+                      'mailto:postmaster@concorde-work-force.com?subject=Demande%20d%27assistance%20%E2%80%94%20Concorde%20Workforce'
                     ).catch(() => { /* noop */ })
                   }
                 >

@@ -34,7 +34,7 @@ public class SignupController : ControllerBase
     // commerciale/produit ait une visibilité temps réel sur les nouveaux clients
     // (lead qualification, suivi onboarding, détection d'abus). Hardcodé volontairement —
     // c'est un détail opérationnel Concorde, pas un paramètre tenant.
-    private const string SignupNotificationRecipient = "contact@concorde-tech.fr";
+    private const string SignupNotificationRecipient = "postmaster@concorde-work-force.com";
 
     // Note 2026-05 — Liste des domaines d'emails personnels/jetables RETIRÉE : la contrainte
     // « adresse pro uniquement » bloquait trop de prospects légitimes (indépendants, asso,

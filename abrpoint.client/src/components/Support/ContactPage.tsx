@@ -54,7 +54,7 @@ const ContactPage: React.FC = () => {
   };
 
   const cards = [
-    { icon: <EmailIcon />, label: t('support.contact.email'), value: 'contact@concorde-tech.fr', color: '#16a34a' },
+    { icon: <EmailIcon />, label: t('support.contact.email'), value: 'postmaster@concorde-work-force.com', color: '#16a34a' },
     { icon: <PhoneIcon />, label: t('support.contact.phone'), value: '+33 7 55 61 71 54', color: '#0040a1' },
     { icon: <ChatBubbleIcon />, label: t('support.contact.chat'), value: t('support.contact.chatValue'), color: '#7c3aed' },
   ];

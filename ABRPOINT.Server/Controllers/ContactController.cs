@@ -18,8 +18,8 @@ namespace ABRPOINT.Server.Controllers
     [EnableRateLimiting("public-form")]
     public class ContactController : ControllerBase
     {
-        private const string SupportInbox = "contact@concorde-tech.fr";
-        private const string SalesInbox = "contact@concorde-tech.fr";
+        private const string SupportInbox = "postmaster@concorde-work-force.com";
+        private const string SalesInbox = "postmaster@concorde-work-force.com";
 
         private readonly IEmailService _emailService;
         private readonly ILogger<ContactController> _log;

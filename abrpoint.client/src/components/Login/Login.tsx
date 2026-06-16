@@ -639,7 +639,7 @@ export default function CredentialsSignInPage() {
               {t('login.needHelp')}{' '}
               <a
                 className="login-footer-link"
-                href="mailto:contact@concorde-tech.fr?subject=Demande%20d%27assistance%20%E2%80%94%20Concorde%20Workforce"
+                href="mailto:postmaster@concorde-work-force.com?subject=Demande%20d%27assistance%20%E2%80%94%20Concorde%20Workforce"
                 rel="noopener noreferrer"
               >
                 {t('login.contactSupport')}

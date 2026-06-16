@@ -297,7 +297,7 @@ export const en = {
     deleteTitle: 'Delete my account',
     deleteBody: "A confirmation code will be sent to your email address. After confirmation, your request will be forwarded to support and to your company's administrator; access will be suspended and your personal data deleted / anonymized within 30 days (some data is retained if required by law: payroll, attendance, contracts).\n\nSend the confirmation code?",
     sendCode: 'Send code',
-    sendFail: 'Sending failed. Please email contact@concorde-tech.fr (subject: "Account deletion").',
+    sendFail: 'Sending failed. Please email postmaster@concorde-work-force.com (subject: "Account deletion").',
     codeRequired: 'Code required',
     enterCodeEmail: 'Enter the code received by email.',
     deletionConfirmed: 'Request confirmed',

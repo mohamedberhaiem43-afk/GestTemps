@@ -26,7 +26,7 @@
 # présent) est sauté. Pour forcer la ré-émission : LE_FORCE=1 ./scripts/init-letsencrypt.sh
 #
 # Variables d'environnement :
-#   LE_EMAIL    E-mail d'enregistrement Let's Encrypt (défaut: contact@concorde-tech.fr)
+#   LE_EMAIL    E-mail d'enregistrement Let's Encrypt (défaut: postmaster@concorde-work-force.com)
 #   LE_STAGING  1 = environnement de TEST LE (certs non fiables mais sans rate-limit).
 #               À utiliser pour valider la chaîne avant le vrai run. Défaut: 0.
 #   LE_FORCE    1 = ré-émettre même si un vrai cert existe déjà. Défaut: 0.
@@ -34,7 +34,7 @@
 set -euo pipefail
 
 COMPOSE="docker compose -f docker-compose.app.yml"
-EMAIL="${LE_EMAIL:-contact@concorde-tech.fr}"
+EMAIL="${LE_EMAIL:-postmaster@concorde-work-force.com}"
 STAGING="${LE_STAGING:-0}"
 FORCE="${LE_FORCE:-0}"
 

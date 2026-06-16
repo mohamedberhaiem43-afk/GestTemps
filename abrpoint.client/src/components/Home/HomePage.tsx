@@ -951,6 +951,20 @@ export default function HomePage() {
           <div className="hero-cta">
             <button type="button" className="btn-hp" onClick={goToSignup}>{d.btnHero1}</button>
             <button type="button" className="btn-hs" onClick={() => scrollToId('contact')}><span>🎬</span> {d.btnHero2}</button>
+            {/* Calculateur ROI déplacé ici, à côté des CTA du hero (page dédiée, cf. RoiPage). */}
+            <button
+              type="button"
+              onClick={() => navigate(lang === 'en' ? '/en/roi' : '/roi')}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+                background: 'linear-gradient(135deg,#0040A1,#2DD4BF)', color: '#fff',
+                border: 'none', borderRadius: 999, padding: '12px 26px',
+                fontSize: 14.5, fontWeight: 700, letterSpacing: '.01em',
+                boxShadow: '0 6px 20px rgba(0,64,161,.28)',
+              }}
+            >
+              🧮 {lang === 'en' ? 'Calculate your ROI' : 'Calculez votre ROI'} <span>→</span>
+            </button>
           </div>
           <div className="hero-nocard">✓ {d.heroNoCard}</div>
           {/* Encart compatibilité pointeuse — relié thématiquement à la fonctionnalité
@@ -1173,23 +1187,6 @@ export default function HomePage() {
         </div>
 
         <p style={{ textAlign: 'center', marginTop: 28, fontSize: 14, color: '#64748b' }}>{d.pricingFoot}</p>
-
-        {/* Lien vers la page dédiée au calculateur ROI (hors home, cf. RoiPage). */}
-        <div style={{ textAlign: 'center', marginTop: 18 }}>
-          <button
-            type="button"
-            onClick={() => navigate(lang === 'en' ? '/en/roi' : '/roi')}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-              background: 'linear-gradient(135deg,#0040A1,#2DD4BF)', color: '#fff',
-              border: 'none', borderRadius: 999, padding: '12px 26px',
-              fontSize: 14.5, fontWeight: 700, letterSpacing: '.01em',
-              boxShadow: '0 6px 20px rgba(0,64,161,.28)',
-            }}
-          >
-            🧮 {lang === 'en' ? 'Calculate your ROI' : 'Calculez votre ROI'} <span>→</span>
-          </button>
-        </div>
 
         {/* ENTERPRISE PLUS — panneau « Entreprises sur mesure » (remplace la 4e carte). */}
         <section className="epx" id="ent-sur-mesure" aria-label="Enterprise Plus — Entreprises sur mesure">
@@ -1479,7 +1476,7 @@ export default function HomePage() {
             <h2 className="contact-title">{d.ctTitle}</h2>
             <p className="contact-sub">{d.ctSub}</p>
             <div className="info-list">
-              <div className="info-item"><div className="info-icon">✉</div><div><div className="info-label">{d.ctEl}</div><a className="info-value" href="mailto:contact@concorde-tech.fr">contact@concorde-tech.fr</a></div></div>
+              <div className="info-item"><div className="info-icon">✉</div><div><div className="info-label">{d.ctEl}</div><a className="info-value" href="mailto:postmaster@concorde-work-force.com">postmaster@concorde-work-force.com</a></div></div>
               <div className="info-item"><div className="info-icon">📍</div><div><div className="info-label">{d.ctAl}</div><div className="info-value">{d.ctAv}</div></div></div>
               <div className="info-item"><div className="info-icon">🕐</div><div><div className="info-label">{d.ctHl}</div><div className="info-value">{d.ctHv}</div></div></div>
               <div className="info-item"><div className="info-icon">🚀</div><div><div className="info-label">{d.ctDl}</div><div className="info-value">{d.ctDv}</div></div></div>
@@ -1552,7 +1549,7 @@ export default function HomePage() {
               <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" className="si" aria-label="YouTube">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>
               </a>
-              <a href="mailto:contact@concorde-tech.fr" className="si" aria-label="Email">
+              <a href="mailto:postmaster@concorde-work-force.com" className="si" aria-label="Email">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" /></svg>
               </a>
             </div>

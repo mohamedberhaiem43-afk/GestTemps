@@ -424,7 +424,7 @@ docker compose -f docker-compose.app.yml --env-file .env.app up -d
 
 # Bootstrap Let's Encrypt (une seule fois) : remplace les certs temporaires par
 # les vrais (--webroot) et recharge nginx. Idempotent + auto-renouvellement ensuite.
-LE_EMAIL=contact@concorde-tech.fr ./scripts/init-letsencrypt.sh
+LE_EMAIL=postmaster@concorde-work-force.com ./scripts/init-letsencrypt.sh
 
 # CrowdSec bouncer (post go-live)
 sudo apt install crowdsec-firewall-bouncer-iptables

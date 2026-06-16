@@ -12,7 +12,7 @@ import { sendSalesRequest } from '../../services/ContactService';
  * (partageable, indexable). On réutilise le composant <RoiCalculator> et on
  * l'habille d'un bandeau de retour + un formulaire de demande de démo (repris
  * de la maquette « calculator ROI concorde .html ») qui envoie un e-mail à
- * contact@concorde-tech.fr via /api/contact/sales. L'estimation calculée est
+ * postmaster@concorde-work-force.com via /api/contact/sales. L'estimation calculée est
  * jointe au message pour qualifier le lead. Bilingue FR/EN via i18n.language.
  */
 
@@ -142,7 +142,7 @@ const RoiPage: React.FC = () => {
       <main style={{ flex: 1 }}>
         <RoiCalculator lang={lang} onEstimate={handleEstimate} />
 
-        {/* Formulaire de demande de démo → e-mail à contact@concorde-tech.fr */}
+        {/* Formulaire de demande de démo → e-mail à postmaster@concorde-work-force.com */}
         <div className="roi-lead">
           <form className="cta-card" onSubmit={onSubmit} noValidate>
             <h3>{tx.ctaTitle}</h3>

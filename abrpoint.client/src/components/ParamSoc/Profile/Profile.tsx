@@ -224,8 +224,8 @@ function ProfilePage() {
       feedback.showError(
         err,
         isFr
-          ? "Échec de l'envoi du code. Écrivez à contact@concorde-tech.fr (objet : « Suppression de compte »)."
-          : 'Failed to send code. Email contact@concorde-tech.fr (subject: “Account deletion”).'
+          ? "Échec de l'envoi du code. Écrivez à postmaster@concorde-work-force.com (objet : « Suppression de compte »)."
+          : 'Failed to send code. Email postmaster@concorde-work-force.com (subject: “Account deletion”).'
       );
     } finally {
       setDelLoading(false);
