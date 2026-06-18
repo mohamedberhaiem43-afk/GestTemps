@@ -14,6 +14,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useNavigate } from 'react-router-dom';
 import apiInstance from '../API/apiInstance';
+import { PACK_PAYMENT_LINKS } from './packPaymentLinks';
 
 /**
  * Modale "Choisissez votre pack" — affichée au clic sur « Voir les tarifs »
@@ -49,25 +50,9 @@ interface PreviewResponse {
   note?: string | null;
 }
 
-// Liens de paiement Stripe par pack × cycle (mêmes liens que la page d'accueil). Permettent
-// de souscrire / changer de pack via le Checkout hébergé Stripe (essai 30 j inclus), en
-// alternative au changement « en un clic » via l'API /billing/change-plan. Le webhook
-// checkout.session.completed reconnaît le pack (price de base) → bascule le PlanCode et
-// REMPLACE la subscription (l'ancien abonnement pack est annulé : pas de double-facturation).
-const PACK_PAYMENT_LINKS: Record<PlanKey, { monthly: string; annual: string }> = {
-  Starter: {
-    monthly: 'https://buy.stripe.com/9B6dR21dX83v9JBcZX00002',
-    annual: 'https://buy.stripe.com/aFa9AMcWFgA14ph2lj00003',
-  },
-  Standard: {
-    monthly: 'https://buy.stripe.com/9B628k09TbfHaNF2lj00004',
-    annual: 'https://buy.stripe.com/00w4gs2i197z7Bt1hf00005',
-  },
-  Premium: {
-    monthly: 'https://buy.stripe.com/8x24gs1dX83v8Fxgc900006',
-    annual: 'https://buy.stripe.com/4gMcMY4q91F7091cZX00007',
-  },
-};
+// Liens de paiement Stripe par pack × cycle : centralisés dans packPaymentLinks.ts
+// (partagés avec TrialBanner). Le webhook checkout.session.completed reconnaît le pack
+// (price de base) → bascule le PlanCode et REMPLACE la subscription (ancien pack annulé).
 
 // Source de vérité côté serveur : PlanCatalog. Fetché à l'ouverture de la modale
 // pour ne plus dupliquer les tarifs en dur dans le frontend (toute mise à jour de
@@ -107,6 +92,11 @@ interface ChangePlanModalProps {
   // Payment Links de pack pour que le webhook rattache le checkout au bon tenant. Repli
   // sur localStorage('tenantSlug') si absent.
   tenantSlug?: string | null;
+  // Pré-sélection à l'ouverture (deep-link depuis la grille tarifaire de la home pour un
+  // utilisateur connecté : /dashboard/mon-abonnement?changePlan=premium&cycle=annual).
+  // La modale s'ouvre alors directement sur le pack/cycle choisi.
+  initialSelected?: 'Starter' | 'Standard' | 'Premium' | null;
+  initialCycle?: 'monthly' | 'annual';
 }
 
 // Aligné avec ABRPOINT.Server.Tenancy.PlanCatalog (source de vérité côté serveur).
@@ -215,7 +205,7 @@ function formatDate(d: string | null | undefined): string {
   catch { return d; }
 }
 
-export default function ChangePlanModal({ open, onClose, currentPlan, canChangeInPlace = true, onViewDevis, tenantSlug }: ChangePlanModalProps) {
+export default function ChangePlanModal({ open, onClose, currentPlan, canChangeInPlace = true, onViewDevis, tenantSlug, initialSelected = null, initialCycle }: ChangePlanModalProps) {
   const navigate = useNavigate();
   const normalizedCurrent = (currentPlan ?? '').trim();
   const currentKey: PlanKey | null = (['Starter', 'Standard', 'Premium'] as PlanKey[]).find(
@@ -235,15 +225,17 @@ export default function ChangePlanModal({ open, onClose, currentPlan, canChangeI
   // l'API plans n'est pas joignable (offline, dev sans backend…).
   const [catalog, setCatalog] = useState<Record<PlanKey, PlanCatalogEntry> | null>(null);
 
-  // Reset state à chaque ouverture (sinon résidus du précédent flow)
+  // Reset state à chaque ouverture (sinon résidus du précédent flow). Si un pack/cycle
+  // de pré-sélection est fourni (deep-link depuis la home), on ouvre directement dessus.
   useEffect(() => {
     if (open) {
-      setSelected(null);
+      setSelected(initialSelected ?? null);
+      if (initialCycle) setCycle(initialCycle);
       setPreview(null);
       setPreviewError(null);
       setSubmitError(null);
     }
-  }, [open]);
+  }, [open, initialSelected, initialCycle]);
 
   // Fetch du catalogue tarifaire backend une fois à l'ouverture. Les prix affichés
   // viennent désormais de PlanCatalog côté serveur — toute mise à jour tarifaire

@@ -101,6 +101,7 @@ interface SubscriptionInfo {
   cancelAtPeriodEnd: boolean;
   cancellationRequestedAt: string | null;
   hasActiveStripeSubscription: boolean;
+  billingCycle?: 'monthly' | 'annual' | null;  // cycle réel dérivé de la subscription Stripe
   plan?: PlanInfo | null;              // null si tenant sans PlanCode défini
   usage?: UsageInfo | null;
 }
@@ -287,6 +288,7 @@ interface Dict {
   addViaStripe: string;
   invoiceImpact: string;
   perMonthHt: string;
+  close: string;
   modulesActiveCount: (n: number) => string;
   save: string;
   // Dialog ajouter sièges
@@ -460,13 +462,14 @@ const FR: Dict = {
   cancel: 'Annuler',
   confirmCancelNow: 'Résilier maintenant',
   scheduleCancel: 'Programmer la résiliation',
-  optionalModulesIntro: 'Cochez les modules que vous souhaitez activer. Les fonctionnalités correspondantes apparaissent immédiatement dans la sidebar après validation. La facturation Stripe n\'est pas modifiée tant qu\'un SKU dédié n\'est pas configuré — vous activez d\'abord l\'accès, votre commercial peut ensuite ajuster votre facture si besoin.',
+  optionalModulesIntro: 'Les modules optionnels s\'activent uniquement via un paiement Stripe sécurisé (essai inclus). Cliquez sur « Ajouter via Stripe » : l\'accès et la fonctionnalité sont débloqués automatiquement dès la confirmation du paiement. Les modules déjà inclus dans votre pack sont signalés et ne sont pas refacturés.',
   includedInPackChip: 'Inclus dans le pack',
   onQuote: 'Sur devis',
   perMonth: '/mois',
   addViaStripe: 'Ajouter via Stripe →',
   invoiceImpact: 'Impact sur votre facture',
   perMonthHt: 'HT /mois',
+  close: 'Fermer',
   modulesActiveCount: (n) => `${n} module${n > 1 ? 's' : ''} actif${n > 1 ? 's' : ''}`,
   save: 'Enregistrer',
   addSeatsTitle: 'Ajouter des collaborateurs',
@@ -639,13 +642,14 @@ const EN: Dict = {
   cancel: 'Cancel',
   confirmCancelNow: 'Cancel now',
   scheduleCancel: 'Schedule cancellation',
-  optionalModulesIntro: 'Tick the modules you want to enable. The matching features appear in the sidebar immediately after saving. Stripe billing is not changed until a dedicated SKU is configured — you enable access first, then your sales contact can adjust your invoice if needed.',
+  optionalModulesIntro: 'Optional modules can only be enabled through a secure Stripe payment (trial included). Click "Add via Stripe": access and the feature are unlocked automatically once the payment is confirmed. Modules already included in your plan are marked and are not billed again.',
   includedInPackChip: 'Included in plan',
   onQuote: 'On quote',
   perMonth: '/mo',
   addViaStripe: 'Add via Stripe →',
   invoiceImpact: 'Impact on your invoice',
   perMonthHt: 'excl. tax /mo',
+  close: 'Close',
   modulesActiveCount: (n) => `${n} active module${n > 1 ? 's' : ''}`,
   save: 'Save',
   addSeatsTitle: 'Add employees',
@@ -723,6 +727,9 @@ export default function MonAbonnementPage() {
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [changePlanOpen, setChangePlanOpen] = useState(false);
+  // Pré-sélection de la modale « Changer de pack » (deep-link depuis la grille tarifaire
+  // de la home pour un utilisateur connecté : ?changePlan=premium&cycle=annual).
+  const [changePlanInitial, setChangePlanInitial] = useState<{ plan: PlanKey | null; cycle: Cycle }>({ plan: null, cycle: 'annual' });
   // Devis affiché en modale par-dessus la liste des packs (Dougs-style).
   // null = fermée ; non-null = ouverte sur le pack/cycle sélectionné.
   const [devisDialog, setDevisDialog] = useState<{ plan: PlanKey; cycle: Cycle } | null>(null);
@@ -758,59 +765,15 @@ export default function MonAbonnementPage() {
   // (LinkPurchasedSeats). Le curseur ci-dessous ne sert plus qu'à simuler le coût mensuel.
 
   // Dialog "Gérer mes modules optionnels" : ouvert depuis la carte "Vos modules actifs".
-  // Le brouillon contient la sélection en cours avant validation — sans toucher au state
-  // global tant que l'admin n'a pas confirmé via le bouton "Enregistrer".
+  // L'activation d'un module est UNIQUEMENT payante via Stripe (bouton « Ajouter via Stripe »
+  // → Payment Link du module ; le webhook checkout.session.completed crédite l'accès au
+  // tenant). Plus d'activation gratuite : ce dialog n'écrit plus dans Tenant.Addons via
+  // /billing/addons — il affiche l'état courant et redirige vers le paiement Stripe.
   const [addonsDialogOpen, setAddonsDialogOpen] = useState(false);
-  const [addonsDraft, setAddonsDraft] = useState<string[]>([]);
-  const [addonsSubmitting, setAddonsSubmitting] = useState(false);
-  const [addonsError, setAddonsError] = useState<string | null>(null);
-  const toggleAddonInDraft = (key: string) => {
-    setAddonsDraft((cur) => cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]);
-  };
-  const openAddonsDialog = () => {
-    setAddonsDraft(subscribedAddons);
-    setAddonsError(null);
-    setAddonsDialogOpen(true);
-  };
-  const saveAddons = async () => {
-    setAddonsSubmitting(true);
-    setAddonsError(null);
-    try {
-      // Vérifie si les addons ont changé
-      const addonsChanged = addonsDraft.sort().join(',') !== subscribedAddons.sort().join(',');
-      
-      // Sauvegarde les addons en base de données
-      await apiInstance.put('/billing/addons', { addons: addonsDraft });
-      
-      // refreshAuth → /me recharge planFeatures (avec les flags fusionnés) ET addons,
-      // ce qui réactualise la sidebar (via Navigation/planAllows) et la carte de récap.
-      await refreshAuth();
-      setAddonsDialogOpen(false);
-      
-      // Message de succès avec détail du changement
-      if (addonsChanged) {
-        setSuccessMsg(
-          d.addonsUpdatedBase +
-          (info?.hasActiveStripeSubscription
-            ? d.addonsUpdatedStripe
-            : d.addonsUpdatedContact)
-        );
-      } else {
-        setSuccessMsg(d.addonsNoChange);
-      }
-    } catch (e: any) {
-      setAddonsError(e?.response?.data?.error || d.addonsUpdateError);
-    } finally {
-      setAddonsSubmitting(false);
-    }
-  };
-  // Récap chiffré pour le total en pied du dialog. Les addons sont facturés mensuellement
-  // côté Stripe ; quand le tenant a un engagement annuel, on affiche aussi le total × 12
-  // (cohérent avec la demande utilisateur 2026-05-26 "× 12 sur plan annuel").
-  // billingCycle n'est pas exposé en /me — on tombe sur 'monthly' par défaut faute de mieux.
-  // Pour ne pas bloquer ce fix sur une refacto plus large, on lit l'info via SubscriptionInfo
-  // si elle est étendue plus tard ; pour l'instant on affiche les deux totaux côte à côte.
-  const draftMonthlyTotal = addonsDraft.reduce((sum, k) => sum + (addonLabels[k]?.priceMonthlyEur ?? 0), 0);
+  const openAddonsDialog = () => setAddonsDialogOpen(true);
+  // Total mensuel des modules optionnels ACTIFS (souscrits via Stripe), à titre informatif
+  // en pied de dialog. Les modules inclus dans le pack ne sont pas comptés (déjà couverts).
+  const activeModulesMonthlyTotal = subscribedAddons.reduce((sum, k) => sum + (addonLabels[k]?.priceMonthlyEur ?? 0), 0);
 
   // Ouvre le Payment Link Stripe d'un module en y injectant ?client_reference_id={slug}
   // pour que le webhook checkout.session.completed rattache l'achat au tenant courant.
@@ -902,6 +865,26 @@ export default function MonAbonnementPage() {
     const url = new URL(window.location.href);
     url.searchParams.delete('checkout');
     url.searchParams.delete('reactivate');
+    window.history.replaceState({}, '', url.toString());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Deep-link depuis la grille tarifaire de la home (utilisateur connecté) :
+  // ?changePlan=premium&cycle=annual → on pré-ouvre la modale « Changer de pack » sur le
+  // pack/cycle choisi (cf. HomePage.goToCheckout — tunnel in-app unique, sans Payment Link
+  // externe rouvrant un 2e essai). On nettoie l'URL ensuite.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const raw = (params.get('changePlan') ?? '').trim();
+    if (!raw) return;
+    const norm = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    const plan = (['Starter', 'Standard', 'Premium'].includes(norm) ? norm : null) as PlanKey | null;
+    const cycle: Cycle = (params.get('cycle') ?? '').toLowerCase() === 'monthly' ? 'monthly' : 'annual';
+    setChangePlanInitial({ plan, cycle });
+    setChangePlanOpen(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('changePlan');
+    url.searchParams.delete('cycle');
     window.history.replaceState({}, '', url.toString());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1792,6 +1775,8 @@ export default function MonAbonnementPage() {
           (info?.status === 'Active' || info?.status === 'Trialing')
         }
         tenantSlug={info?.slug ?? null}
+        initialSelected={changePlanInitial.plan}
+        initialCycle={changePlanInitial.cycle}
         onViewDevis={(plan, cycle) => setDevisDialog({ plan, cycle })}
         onSuccess={async (newPlan) => {
           setChangePlanOpen(false);
@@ -1813,16 +1798,16 @@ export default function MonAbonnementPage() {
       />
 
       {/* ─── Dialog "Gérer mes modules optionnels" ───────────────────────────
-          Permet à l'admin de cocher/décocher les addons disponibles. Au save :
-          PUT /billing/addons → backend met à jour Tenant.Addons → refreshAuth
-          recharge planFeatures (fusion pack+addons via GetEffectiveFeatures).
-          La sidebar reflète immédiatement les nouveaux accès (Navigation utilise
-          planAllows qui lit le contexte useAuth fraîchement rafraîchi).
-          ⚠ Pas de sync Stripe pour l'instant — cf. BillingController.UpdateAddons.
+          Vitrine + souscription PAYANTE des modules optionnels. L'activation se fait
+          UNIQUEMENT via Stripe (bouton « Ajouter via Stripe » → Payment Link du module) :
+          le webhook checkout.session.completed → ApplyCheckoutSubscriptionAsync crédite
+          l'addon au tenant (Tenant.Addons), puis /me recharge planFeatures et la sidebar.
+          Les interrupteurs sont en LECTURE SEULE (statut d'activation), il n'y a plus
+          d'activation gratuite ni d'écriture via PUT /billing/addons.
       */}
       <Dialog
         open={addonsDialogOpen}
-        onClose={() => !addonsSubmitting && setAddonsDialogOpen(false)}
+        onClose={() => setAddonsDialogOpen(false)}
         maxWidth="sm"
         fullWidth
         PaperProps={{ sx: { borderRadius: '16px' } }}
@@ -1834,22 +1819,15 @@ export default function MonAbonnementPage() {
           </Typography>
         </DialogTitle>
         <DialogContent dividers sx={{ p: 0 }}>
-          {addonsError && (
-            <Alert severity="error" sx={{ m: 2, borderRadius: '10px' }} onClose={() => setAddonsError(null)}>
-              {addonsError}
-            </Alert>
-          )}
           <Typography sx={{ px: 3, pt: 2, pb: 1, fontSize: 13, color: '#64748b' }}>
             {d.optionalModulesIntro}
           </Typography>
           <Stack divider={<Divider />}>
             {MODULE_CATALOG.map((m) => {
-              // Inclus par le pack → coché + verrouillé (pas re-facturé). Sinon
-              // activable seulement si c'est un addon backend valide (addonKey).
+              // Inclus par le pack → coché + verrouillé (pas re-facturé). Sinon « actif »
+              // seulement si l'addon a été souscrit via Stripe (présent dans Tenant.Addons).
               const included = moduleIsIncludedByPack(m);
-              // « Sur devis » : non auto-souscrivable depuis l'UI (nécessite un devis commercial).
-              const toggleable = !!m.addonKey && !included && !m.quoteOnly;
-              const checked = included || (m.addonKey ? addonsDraft.includes(m.addonKey) : false);
+              const checked = included || (m.addonKey ? subscribedAddons.includes(m.addonKey) : false);
               const note = mNote(m, lang);
               return (
                 <Stack
@@ -1860,16 +1838,16 @@ export default function MonAbonnementPage() {
                   sx={{
                     px: 3, py: 2,
                     bgcolor: checked ? '#F3EEFE' : 'transparent',
-                    opacity: (!toggleable && !included) ? 0.75 : 1,
+                    opacity: checked ? 1 : 0.85,
                     transition: 'background-color 0.15s',
                   }}
                 >
-                  {/* Interrupteur (variante C). Verrouillé si inclus dans le pack ou
-                      si le module n'est pas un addon activable (stockage / domaine). */}
+                  {/* Interrupteur en LECTURE SEULE : reflète l'état d'activation (inclus dans
+                      le pack ou souscrit via Stripe). L'activation se fait via « Ajouter via
+                      Stripe » ci-contre — aucune activation gratuite depuis cet interrupteur. */}
                   <Switch
                     checked={checked}
-                    disabled={!toggleable}
-                    onChange={() => { if (m.addonKey) toggleAddonInDraft(m.addonKey); }}
+                    disabled
                     sx={{
                       '& .MuiSwitch-switchBase.Mui-checked': { color: '#7C3AED' },
                       '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#7C3AED', opacity: 1 },
@@ -1941,10 +1919,10 @@ export default function MonAbonnementPage() {
               </Typography>
               <Box sx={{ textAlign: 'right' }}>
                 <Typography sx={{ fontWeight: 800, color: '#14346B', fontSize: 19, fontVariantNumeric: 'tabular-nums' }}>
-                  {draftMonthlyTotal > 0 ? '+' : ''}{eur(draftMonthlyTotal, d.locale)} {d.perMonthHt}
+                  {activeModulesMonthlyTotal > 0 ? '+' : ''}{eur(activeModulesMonthlyTotal, d.locale)} {d.perMonthHt}
                 </Typography>
                 <Typography sx={{ fontSize: 11.5, color: '#7C3AED', fontWeight: 700 }}>
-                  {d.modulesActiveCount(addonsDraft.length)}
+                  {d.modulesActiveCount(subscribedAddons.length)}
                 </Typography>
               </Box>
             </Stack>
@@ -1952,22 +1930,14 @@ export default function MonAbonnementPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button
-            onClick={() => setAddonsDialogOpen(false)}
-            disabled={addonsSubmitting}
-            sx={{ textTransform: 'none', fontWeight: 700 }}
-          >
-            {d.cancel}
-          </Button>
-          <Button
             variant="contained"
-            onClick={saveAddons}
-            disabled={addonsSubmitting}
+            onClick={() => setAddonsDialogOpen(false)}
             sx={{
               textTransform: 'none', fontWeight: 700, borderRadius: '10px',
               bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' },
             }}
           >
-            {addonsSubmitting ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : d.save}
+            {d.close}
           </Button>
         </DialogActions>
       </Dialog>

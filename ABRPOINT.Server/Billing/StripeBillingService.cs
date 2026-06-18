@@ -983,6 +983,36 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
         return false;
     }
 
+    public async Task<string?> GetSubscriptionCycleAsync(string? subscriptionId, CancellationToken ct = default)
+    {
+        if (!_opts.IsConfigured || string.IsNullOrWhiteSpace(subscriptionId)) return null;
+        Stripe.StripeConfiguration.ApiKey = _opts.SecretKey;
+        try
+        {
+            var sub = await _subscriptions.GetAsync(
+                subscriptionId,
+                new SubscriptionGetOptions { Expand = new List<string> { "items.data.price" } },
+                cancellationToken: ct);
+            return IsAnnualSubscription(sub) ? "annual" : "monthly";
+        }
+        catch (StripeException ex)
+        {
+            _log.LogWarning(ex, "GetSubscriptionCycle : lecture subscription {Sub} échouée.", subscriptionId);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// True si la subscription est actuellement en période d'essai (Status "trialing" ou
+    /// TrialEnd dans le futur). Utilisé par la garde anti-cumul d'essai d'ApplyCheckoutSubscription.
+    /// </summary>
+    private static bool IsSubscriptionTrialing(Subscription sub)
+    {
+        if (sub == null) return false;
+        if (string.Equals(sub.Status, "trialing", StringComparison.OrdinalIgnoreCase)) return true;
+        return sub.TrialEnd.HasValue && sub.TrialEnd.Value > DateTime.UtcNow;
+    }
+
     /// <summary>
     /// Émet un remboursement prorata temporis sur la dernière facture payée de la subscription.
     /// Le ratio remboursé = secondes restantes jusqu'à CurrentPeriodEnd / durée totale de la
@@ -1513,6 +1543,44 @@ Société : <strong>{System.Net.WebUtility.HtmlEncode(tenant.CompanyName ?? "—
                     _log.LogWarning(ex, "ApplyCheckoutSubscription : échec écriture floor extra_seats={Floor} sur {Sub} (tenant {Slug}).",
                         floor, subscriptionId, tenant.Slug);
                 }
+            }
+        }
+
+        // ── Garde anti-cumul d'essai ────────────────────────────────────────────────
+        // Les Payment Links de pack (buy.stripe.com) sont configurés avec un essai 30 j
+        // dans le Dashboard Stripe. Or l'essai n'est censé être accordé QU'UNE fois, au
+        // signup (CreateCustomerAndTrialAsync). Sans cette garde, un tenant déjà inscrit
+        // qui change de pack via un Payment Link obtiendrait un NOUVEAU mois gratuit — et
+        // pourrait le « farmer » indéfiniment en re-changeant de pack. On neutralise donc
+        // l'essai de la sub issue d'un checkout de PACK :
+        //   • essai d'origine encore en cours (TrialEndsAt futur) → on ANCRE la fin d'essai
+        //     sur la date d'origine : les jours restants sont préservés, mais l'essai n'est
+        //     PAS réinitialisé à 30 j ;
+        //   • essai d'origine déjà consommé (TrialEndsAt passé/nul) → fin d'essai immédiate
+        //     (paiement maintenant via la carte collectée par le Payment Link).
+        // Ne s'applique qu'aux checkouts de PACK (derivedPlan != null) et seulement si la
+        // nouvelle sub est réellement en essai → no-op si l'essai est retiré des Payment
+        // Links côté Dashboard, ou pour un checkout API in-app (créé sans essai). Best-effort.
+        if (derivedPlan != null && IsSubscriptionTrialing(sub))
+        {
+            try
+            {
+                var now = DateTime.UtcNow;
+                // Marge 1h : Stripe exige un trial_end soit "now", soit ≥ ~1h dans le futur.
+                var anchor = tenant.TrialEndsAt;
+                var keepRemaining = anchor.HasValue && anchor.Value > now.AddHours(1);
+                var update = new SubscriptionUpdateOptions { ProrationBehavior = "none" };
+                if (keepRemaining) update.TrialEnd = anchor;            // ancrage sur l'essai d'origine
+                else update.TrialEnd = SubscriptionTrialEnd.Now;        // essai consommé → paiement immédiat
+                await _subscriptions.UpdateAsync(subscriptionId, update, cancellationToken: ct);
+                _log.LogInformation(
+                    "Anti-cumul essai : sub {Sub} (tenant {Slug}) — essai {Action} (TrialEndsAt origine={Origin:yyyy-MM-dd}).",
+                    subscriptionId, tenant.Slug,
+                    keepRemaining ? "ancré sur la date d'origine" : "terminé immédiatement", anchor);
+            }
+            catch (StripeException ex)
+            {
+                _log.LogWarning(ex, "Anti-cumul essai : échec mise à jour trial_end sur {Sub} (tenant {Slug}).", subscriptionId, tenant.Slug);
             }
         }
 

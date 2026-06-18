@@ -79,6 +79,11 @@ services:
       Hosting__RootDomain: "${ROOT_DOMAIN:-localhost}"
       ASPNETCORE_URLS: "http://+:8080"
       ASPNETCORE_ENVIRONMENT: "Staging"
+      # Accès par IP:port en test → le Host (37.x.x.x:8088) n'est pas dans la
+      # liste AllowedHosts d'appsettings.json (concorde-work-force.com;localhost),
+      # ce qui ferait renvoyer 400 à TOUTES les requêtes /api/* (Host Filtering
+      # ASP.NET Core). On désactive le filtrage pour le serveur de test.
+      AllowedHosts: "*"
       # ── Bootstrap admin (créé au 1er démarrage si la base est vide) ──────
       DatabaseInitialization__Enabled: "true"
       DatabaseInitialization__SocieteCode: "01"

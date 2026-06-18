@@ -610,6 +610,16 @@ public class BillingController : ControllerBase
             };
         }
 
+        // Cycle de facturation réel (mensuel / annuel), dérivé de la subscription Stripe.
+        // Best-effort : permet au frontend (TrialBanner « Passer au plan payant », MonAbonnement)
+        // d'ouvrir le bon Payment Link du pack sans deviner le cycle. Null si indéterminable.
+        string? billingCycle = null;
+        if (!string.IsNullOrEmpty(tenant.StripeSubscriptionId))
+        {
+            try { billingCycle = await _billing.GetSubscriptionCycleAsync(tenant.StripeSubscriptionId, ct); }
+            catch { /* best-effort — on laisse null, le frontend retombera sur un défaut */ }
+        }
+
         return Ok(new
         {
             slug = tenant.Slug,
@@ -621,6 +631,7 @@ public class BillingController : ControllerBase
             cancelAtPeriodEnd = tenant.CancelAtPeriodEnd,
             cancellationRequestedAt = tenant.CancellationRequestedAt,
             hasActiveStripeSubscription = !string.IsNullOrEmpty(tenant.StripeSubscriptionId),
+            billingCycle,
             plan = planPayload,
             usage = usagePayload,
         });
@@ -1100,18 +1111,15 @@ public class BillingController : ControllerBase
 
     /// <summary>
     /// Met à jour la liste des addons souscrits par le tenant courant (cf. Tenant.Addons).
-    /// Permet à l'admin de souscrire/désouscrire des modules optionnels APRÈS le signup
-    /// initial, sans repasser par un nouveau parcours Stripe Checkout. Le payload est
-    /// une liste de clés d'addons (cf. <see cref="PlanCatalog.ValidAddonKeys"/>) ; toute
-    /// clé inconnue est silencieusement ignorée. Les addons valides sont sérialisés en
-    /// CSV dédupliqué et persistés sur le Tenant.
+    /// Le payload est une liste de clés d'addons (cf. <see cref="PlanCatalog.ValidAddonKeys"/>) ;
+    /// toute clé inconnue est silencieusement ignorée.
     ///
-    /// IMPORTANT — pas de sync Stripe pour l'instant :
-    /// Les SKU Stripe par addon (price_addon_signature, price_addon_api…) ne sont pas
-    /// encore configurés côté Stripe Dashboard. Cet endpoint active donc UNIQUEMENT la
-    /// dimension fonctionnelle (Tenant.Addons → /me planFeatures via GetEffectiveFeatures
-    /// → sidebar + endpoints gated par RequirePlanFeature). La facturation Stripe reste au
-    /// tarif du pack seul. À brancher avec Subscription items quand les SKU existeront.
+    /// IMPORTANT — activation UNIQUEMENT via Stripe (non gratuit) :
+    /// L'activation payante d'un module passe exclusivement par le Payment Link Stripe du
+    /// module (webhook checkout.session.completed → ApplyCheckoutSubscription crédite
+    /// Tenant.Addons). Cet endpoint ne peut donc PLUS activer un module gratuitement : il
+    /// n'autorise que le RETRAIT d'addons déjà présents (la liste finale doit être un
+    /// sous-ensemble de l'existant ; toute clé nouvelle est rejetée et journalisée).
     /// Auth : admin OU manager du tenant courant (mêmes pré-requis que /billing/cancel
     /// et /billing/change-plan).
     /// </summary>
@@ -1132,15 +1140,30 @@ public class BillingController : ControllerBase
             .Select(a => a.Trim())
             .Where(a => Tenancy.PlanCatalog.ValidAddonKeys.Contains(a))
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(a => a, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        var addonsCsv = requested.Count == 0 ? null : string.Join(",", requested);
 
         await using var master = await _masterFactory.CreateDbContextAsync(ct);
         var tenant = await master.Tenants.FirstOrDefaultAsync(t => t.Slug == slug, ct);
         if (tenant is null)
             return NotFound(new { error = "Tenant introuvable." });
 
+        // Garde « non gratuit » : cet endpoint ne peut PLUS activer un module gratuitement.
+        // L'activation payante passe exclusivement par Stripe (Payment Link du module →
+        // webhook checkout.session.completed → ApplyCheckoutSubscription crédite Tenant.Addons).
+        // On n'autorise donc QUE le RETRAIT d'addons déjà présents : la liste finale doit être
+        // un sous-ensemble de l'existant ; toute clé nouvelle (= activation) est ignorée.
+        var current = Tenancy.PlanCatalog.ParseAddons(tenant.Addons);
+        var effective = requested
+            .Where(a => current.Contains(a))
+            .OrderBy(a => a, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var rejectedAdds = requested.Where(a => !current.Contains(a)).ToList();
+        if (rejectedAdds.Count > 0)
+            _log.LogWarning(
+                "Tenant {Slug} : activation gratuite d'addon(s) refusée (paiement Stripe requis) → [{Keys}]",
+                slug, string.Join(",", rejectedAdds));
+
+        var addonsCsv = effective.Count == 0 ? null : string.Join(",", effective);
         tenant.Addons = addonsCsv;
         await master.SaveChangesAsync(ct);
 
@@ -1150,7 +1173,7 @@ public class BillingController : ControllerBase
 
         _log.LogInformation("Tenant {Slug} addons mis à jour → [{Addons}]", slug, addonsCsv ?? "(none)");
 
-        return Ok(new { addons = requested.ToArray() });
+        return Ok(new { addons = effective.ToArray() });
     }
 
     public sealed record UpdateAddonsRequest(List<string>? Addons);

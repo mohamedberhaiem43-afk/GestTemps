@@ -161,6 +161,13 @@ public interface IBillingService
         Tenant tenant,
         string subscriptionId,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Renvoie le cycle de facturation ("annual" / "monthly") de la subscription Stripe donnée,
+    /// dérivé de l'intervalle du price de base (year → annual). Null si Stripe n'est pas
+    /// configuré, l'id est vide ou la subscription est introuvable. Best-effort (lecture Stripe).
+    /// </summary>
+    Task<string?> GetSubscriptionCycleAsync(string? subscriptionId, CancellationToken ct = default);
 }
 
 /// <summary>

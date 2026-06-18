@@ -668,26 +668,17 @@ function renderComparisonCell(value: CompCell): React.ReactNode {
 const LOGO_SRC = '/concorde-workly-light.jpg';
 const DOWNLOAD_URL = 'https://concorde-work-force.com/download';
 
-// ── Liens de paiement Stripe (Checkout hébergé) ─────────────────────────────
-// Un lien par pack payant × cycle de facturation. Le tunnel Stripe inclut déjà
-// l'essai gratuit 30 jours : le bouton « Essai gratuit 30j » des cartes ouvre
-// donc directement le checkout du pack choisi (cf. cycle mensuel / annuel).
-// Enterprise Plus n'a pas de lien (tarification sur devis → section contact).
+// ── Packs payants (parcours d'abonnement) ───────────────────────────────────
+// L'essai gratuit 30 jours est accordé UNE seule fois, à l'inscription (signup →
+// CreateCustomerAndTrialAsync, sans CB). Les cartes tarifaires ne rouvrent donc PAS
+// de Payment Link Stripe externe depuis la home (un tel lien porte un 2e essai 30 j
+// → cumul/farming) :
+//   • visiteur anonyme     → inscription (essai 30 j) ;
+//   • utilisateur connecté → gestion d'abonnement in-app « Mon abonnement »
+//     (Changer de pack) — tunnel unique, cf. goToCheckout ci-dessous. La garde
+//     serveur ApplyCheckoutSubscription neutralise par ailleurs tout essai dupliqué.
+// Enterprise Plus n'a pas de pack (tarification sur devis → section contact).
 type PaidPack = 'starter' | 'standard' | 'premium';
-const STRIPE_LINKS: Record<PaidPack, Record<BillingCycle, string>> = {
-  starter: {
-    monthly: 'https://buy.stripe.com/9B6dR21dX83v9JBcZX00002',
-    annual: 'https://buy.stripe.com/aFa9AMcWFgA14ph2lj00003',
-  },
-  standard: {
-    monthly: 'https://buy.stripe.com/9B628k09TbfHaNF2lj00004',
-    annual: 'https://buy.stripe.com/00w4gs2i197z7Bt1hf00005',
-  },
-  premium: {
-    monthly: 'https://buy.stripe.com/8x24gs1dX83v8Fxgc900006',
-    annual: 'https://buy.stripe.com/4gMcMY4q91F7091cZX00007',
-  },
-};
 
 // NB : la table « Modules optionnels » (OPTIONAL_MODULE_LINKS) a été retirée de la home
 // et de la page Services & accompagnement (2026-06).
@@ -707,6 +698,10 @@ export default function HomePage() {
 
   const { uticod } = useAuth();
   const isAuthenticated = Boolean(uticod);
+  // Label du CTA des cartes de pack : pour un visiteur anonyme c'est l'essai gratuit
+  // (accordé au signup) ; pour un connecté (essai/tenant déjà existants) c'est un choix
+  // de pack qui mène à « Mon abonnement » — pas un nouvel essai (cf. goToCheckout).
+  const cardCtaLabel = isAuthenticated ? (lang === 'fr' ? 'Choisir ce pack' : 'Choose this plan') : d.trialBtn;
 
   const [signupOpen, setSignupOpen] = useState(false);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('annual');
@@ -768,24 +763,20 @@ export default function HomePage() {
     if (isAuthenticated) { navigate('/dashboard'); return; }
     navigate('/login');
   };
-  // « Essai gratuit 30j » d'une carte payante (Payment Link Stripe, essai 30 j inclus).
-  // Pour que le paiement soit rattaché au bon tenant côté webhook
-  // (checkout.session.completed → ApplyCheckoutSubscriptionAsync), le lien doit porter
-  // ?client_reference_id={slug}. On ne dispose de ce slug qu'une fois le compte créé :
-  //   • visiteur anonyme  → on ouvre d'abord l'inscription (essai 30 j sans CB) ; le
-  //     paiement/abonnement via le lien se fera ensuite depuis l'espace « Mon abonnement ».
-  //   • utilisateur connecté → on ouvre directement le Payment Link avec son slug.
-  // Le cycle actif (mensuel / annuel) sélectionne le bon lien. Nouvel onglet.
+  // CTA d'une carte de pack payant. L'essai 30 j est accordé UNE seule fois (au signup),
+  // donc on ne rouvre jamais de Payment Link externe ici (il porterait un 2e essai) :
+  //   • visiteur anonyme     → inscription (essai 30 j sans CB) ;
+  //   • utilisateur connecté → page « Mon abonnement » (tunnel in-app unique, cohérent
+  //     avec TrialBanner/AjoutEmploye — convention 2026-05-22). Le pack + cycle choisis
+  //     sont transmis en query pour pré-ouvrir la modale « Changer de pack ».
   const goToCheckout = (pack: PaidPack) => {
-    // Conversion : clic « Essai gratuit » sur une carte payante (intention d'achat).
+    // Conversion : clic sur une carte payante (intention d'achat / changement de pack).
     trackEvent('begin_checkout', { pack, cycle: billingCycle });
-    const slug = (typeof window !== 'undefined' && window.localStorage.getItem('tenantSlug')) || '';
-    if (!isAuthenticated || !slug) {
+    if (!isAuthenticated) {
       goToSignup();
       return;
     }
-    const url = `${STRIPE_LINKS[pack][billingCycle]}?client_reference_id=${encodeURIComponent(slug)}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    navigate(`/dashboard/mon-abonnement?changePlan=${pack}&cycle=${billingCycle}`);
   };
   // Ouvre un Payment Link Stripe d'un module / service. On y injecte client_reference_id
   // (slug du tenant) quand il est disponible pour rattacher l'achat au bon tenant côté
@@ -1142,7 +1133,7 @@ export default function HomePage() {
             <div className="price-incl" style={{ color: '#0a8a4f' }}>{d.pi1}</div>
             <div className="price-extra" style={{ fontSize: 12.5, color: '#64748b', margin: '4px 0 2px' }}>{d.extraCollab.replace('{price}', fmt(overageRates.starter))}</div>
             <div className="price-per">{d.annualBill}</div>
-            <button type="button" className="btn-trial" style={{ background: 'linear-gradient(135deg,#0a8a4f,#13b06a)', boxShadow: '0 6px 18px rgba(10,138,79,.3)' }} onClick={() => goToCheckout('starter')}>{d.trialBtn}</button>
+            <button type="button" className="btn-trial" style={{ background: 'linear-gradient(135deg,#0a8a4f,#13b06a)', boxShadow: '0 6px 18px rgba(10,138,79,.3)' }} onClick={() => goToCheckout('starter')}>{cardCtaLabel}</button>
             <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--on-v)', margin: '10px 0', fontWeight: 500 }}>✓ {d.noCard}</div>
             <button type="button" className="btn-demo-card" style={{ borderColor: '#0a8a4f', color: '#0a8a4f' }} onClick={() => scrollToId('contact')}>{d.demoCard}</button>
             <ul className="price-list">{d.starterFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
@@ -1160,7 +1151,7 @@ export default function HomePage() {
             <div className="price-incl">{d.pi2}</div>
             <div className="price-extra" style={{ fontSize: 12.5, color: '#64748b', margin: '4px 0 2px' }}>{d.extraCollab.replace('{price}', fmt(overageRates.standard))}</div>
             <div className="price-per">{d.annualBill}</div>
-            <button type="button" className="btn-trial" onClick={() => goToCheckout('standard')}>{d.trialBtn}</button>
+            <button type="button" className="btn-trial" onClick={() => goToCheckout('standard')}>{cardCtaLabel}</button>
             <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--on-v)', margin: '10px 0', fontWeight: 500 }}>✓ {d.noCard}</div>
             <button type="button" className="btn-demo-card" onClick={() => scrollToId('contact')}>{d.demoCard}</button>
             <ul className="price-list">{d.standardFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
@@ -1178,7 +1169,7 @@ export default function HomePage() {
             <div className="price-incl" style={{ color: '#b8860b' }}>{d.pi3}</div>
             <div className="price-extra" style={{ fontSize: 12.5, color: '#a67c00', margin: '4px 0 2px' }}>{d.extraCollab.replace('{price}', fmt(overageRates.premium))}</div>
             <div className="price-per">{d.annualBill}</div>
-            <button type="button" className="btn-trial" style={{ background: 'linear-gradient(135deg,#b8860b,#d4af37)', boxShadow: '0 6px 18px rgba(184,134,11,.32)' }} onClick={() => goToCheckout('premium')}>{d.trialBtn}</button>
+            <button type="button" className="btn-trial" style={{ background: 'linear-gradient(135deg,#b8860b,#d4af37)', boxShadow: '0 6px 18px rgba(184,134,11,.32)' }} onClick={() => goToCheckout('premium')}>{cardCtaLabel}</button>
             <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--on-v)', margin: '10px 0', fontWeight: 500 }}>✓ {d.noCard}</div>
             <button type="button" className="btn-demo-card" style={{ borderColor: '#b8860b', color: '#b8860b' }} onClick={() => scrollToId('contact')}>{d.demoCard}</button>
             <ul className="price-list">{d.businessFeatures.map((f, i) => <li key={i}>{f}</li>)}</ul>
