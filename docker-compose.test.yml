@@ -142,8 +142,9 @@ services:
     container_name: abrpoint.nginx.test
     restart: unless-stopped
     ports:
-      # Changer "80" en "8088" ci-dessous si le port 80 est déjà pris sur l'hôte.
-      - "80:80"
+      # Port hôte configurable via APP_PORT (.env.test) — défaut 8088 pour ne PAS
+      # entrer en conflit avec une autre app déjà déployée sur le port 80 du serveur.
+      - "${APP_PORT:-8088}:80"
     volumes:
       - ./nginx.test.conf:/etc/nginx/nginx.conf:ro
       - uploads_data:/app/uploads:ro
