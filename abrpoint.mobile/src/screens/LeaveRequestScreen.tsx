@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS, THEME } from '../config/env';
@@ -391,7 +391,7 @@ export default function LeaveRequestScreen({ navigation }: any) {
           <Text style={styles.sectionLabel}>{t('leave.balancesLabel')}</Text>
           <View style={kpiSummary?.rtt ? styles.balancesGrid : undefined}>
             <View style={kpiSummary?.rtt ? styles.balanceCardHalf : styles.balanceCardSolo}>
-              <MaterialCommunityIcons name="beach-access" size={28} color={COLORS.primary} />
+              <MaterialCommunityIcons name="palm-tree" size={28} color={COLORS.primary} />
               <View style={styles.balanceContent}>
                 <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
                   <Text style={styles.balanceValue}>{(kpiSummary?.soldeConge ?? 0).toFixed(1)}</Text>
@@ -407,7 +407,7 @@ export default function LeaveRequestScreen({ navigation }: any) {
 
             {kpiSummary?.rtt && (
               <View style={styles.balanceCardHalf}>
-                <MaterialCommunityIcons name="work-history" size={28} color="#10b981" />
+                <MaterialCommunityIcons name="briefcase-clock-outline" size={28} color="#10b981" />
                 <View style={styles.balanceContent}>
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
                     <Text style={[styles.balanceValue, { color: '#065f46' }]}>{kpiSummary.rtt.solde.toFixed(1)}</Text>

@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { COLORS, THEME } from '../config/env';
 import { useSecureScreen } from '../hooks/useSecureScreen';
@@ -381,7 +381,7 @@ export default function SignatureScreen({ navigation, route }: any) {
           <Text style={styles.navLabel}>{t('signature.navLeave')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('DigitalVault')}>
-          <MaterialCommunityIcons name="folder-shared-outline" size={24} color="#94a3b8" />
+          <MaterialCommunityIcons name="folder-lock-outline" size={24} color="#94a3b8" />
           <Text style={styles.navLabel}>{t('signature.navVault')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => {}}>

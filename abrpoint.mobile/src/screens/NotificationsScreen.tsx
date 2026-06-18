@@ -4,7 +4,7 @@ import {
   TouchableOpacity, ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
 import { useI18n } from '../i18n';
@@ -21,7 +21,11 @@ type NotifItem = {
 
 type Filter = 'all' | 'unread';
 
-const CATEGORY_META: Record<string, { color: string; bg: string; icon: string; labelKey: string }> = {
+// Nom de glyphe MaterialCommunityIcons (typage strict apporté par @expo/vector-icons).
+type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+type NotifMeta = { color: string; bg: string; icon: MCIName; labelKey: string };
+
+const CATEGORY_META: Record<string, NotifMeta> = {
   reminder_in:           { color: COLORS.primary,   bg: COLORS.primaryFixed,    icon: 'login',           labelKey: 'notif.catReminderIn' },
   reminder_out:          { color: COLORS.warning,   bg: '#fff1c2',              icon: 'logout',          labelKey: 'notif.catReminderOut' },
   leave_request_created: { color: COLORS.accent,    bg: COLORS.secondaryFixed,  icon: 'inbox-arrow-down',labelKey: 'notif.catLeaveCreated' },
@@ -33,7 +37,7 @@ const CATEGORY_META: Record<string, { color: string; bg: string; icon: string; l
   test_push:             { color: COLORS.secondary, bg: COLORS.surfaceContainerLow, icon: 'flask',       labelKey: 'notif.catTest' },
 };
 
-const FALLBACK_META = { color: COLORS.secondary, bg: COLORS.surfaceContainerLow, icon: 'bell-outline', labelKey: 'notif.catDefault' };
+const FALLBACK_META: NotifMeta = { color: COLORS.secondary, bg: COLORS.surfaceContainerLow, icon: 'bell-outline', labelKey: 'notif.catDefault' };
 
 type TFunc = (key: string, vars?: Record<string, string | number>) => string;
 

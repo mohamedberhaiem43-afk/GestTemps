@@ -210,7 +210,10 @@ export default function App() {
           <BackgroundShield>
             <ActivityTracker>
               <NavigationContainer ref={navigationRef}>
-                <StatusBar style="light" />
+                {/* Écrans connectés sur fond clair (#f7f9fb) → contenu de la barre
+                    de statut en sombre pour rester lisible sur iOS. L'écran de
+                    login (fond bleu #001a41) pose sa propre StatusBar claire. */}
+                <StatusBar style="dark" />
                 <RootNavigator />
               </NavigationContainer>
             </ActivityTracker>

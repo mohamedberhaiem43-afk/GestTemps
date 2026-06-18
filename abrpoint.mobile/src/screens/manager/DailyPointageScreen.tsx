@@ -293,6 +293,7 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1, backgroundColor: '#fff', borderRadius: 10, padding: 10,
     borderLeftWidth: 3, elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4,
   },
   statValue: { fontSize: 20, fontWeight: 'bold', color: COLORS.text },
   statLabel: { fontSize: 9, color: '#64748b', fontWeight: '600', textTransform: 'uppercase', marginTop: 2 },
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
     fontSize: 14, borderWidth: 1, borderColor: '#e8ecf0',
   },
-  row: { backgroundColor: '#fff', marginHorizontal: 12, marginBottom: 6, borderRadius: 10, padding: 12, elevation: 1 },
+  row: { backgroundColor: '#fff', marginHorizontal: 12, marginBottom: 6, borderRadius: 10, padding: 12, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
   rowEven: { backgroundColor: '#f8fafc' },
   rowMain: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   empInfo: { flex: 1 },

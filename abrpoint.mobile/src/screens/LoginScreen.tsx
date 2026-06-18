@@ -20,7 +20,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { COLORS } from '../config/env';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/env';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   enableBiometricLogin,
   getBiometricCapabilities,

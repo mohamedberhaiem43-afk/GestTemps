@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import apiService from '../services/api';
@@ -607,6 +607,7 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1, backgroundColor: COLORS.surfaceContainerLowest, borderRadius: 10,
     padding: 12, borderLeftWidth: 4, elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4,
   },
   statValue: { fontSize: 22, fontWeight: 'bold' },
   statLabel: { fontSize: 10, color: COLORS.outline, marginTop: 2 },

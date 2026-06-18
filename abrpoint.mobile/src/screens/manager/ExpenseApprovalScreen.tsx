@@ -218,7 +218,7 @@ export default function ExpenseApprovalScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff', elevation: 2 },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 6 },
   backBtn: { fontSize: 16, color: COLORS.primary, fontWeight: '600', marginRight: 16 },
   title: { fontSize: 20, fontWeight: 'bold', color: COLORS.text },
   statusFilterRow: { flexDirection: 'row', padding: 12, gap: 6, backgroundColor: '#fff', flexWrap: 'wrap' },
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyText: { fontSize: 16, color: COLORS.textSecondary },
-  expCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 8, elevation: 1 },
+  expCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 8, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
   expHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   expTitle: { fontSize: 15, fontWeight: 'bold', color: COLORS.text },
   expEmp: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },

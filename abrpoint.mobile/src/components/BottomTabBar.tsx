@@ -1,17 +1,20 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../config/env';
 import { useAuth, PlanFeatures } from '../contexts/AuthContext';
 import { useT } from '../i18n';
 
 export type TabKey = 'home' | 'history' | 'requests' | 'profile';
 
+// Nom de glyphe MaterialCommunityIcons (typage strict apporté par @expo/vector-icons).
+type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
 interface TabSpec {
   key: TabKey;
   labelKey: string;
-  icon: string;
+  icon: MCIName;
   route: string;
   /** Si défini, la tab disparaît quand la feature n'est pas active sur le pack. */
   requires?: keyof PlanFeatures;

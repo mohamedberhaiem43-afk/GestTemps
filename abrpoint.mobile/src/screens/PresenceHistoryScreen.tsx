@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, ActivityIndicator, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { COLORS } from '../config/env';
@@ -13,13 +13,16 @@ import { useI18n } from '../i18n';
 
 type DayStatus = 'present' | 'late' | 'absent' | 'repos' | 'conge' | 'ferier' | 'partial';
 
+// Nom de glyphe MaterialCommunityIcons (typage strict apporté par @expo/vector-icons).
+type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
 interface DayInfo {
   date: Date;
   raw: any | null;
   status: DayStatus;
   totalMinutes: number;
   hasLate: boolean;
-  events: { type: 'IN' | 'OUT'; label: string; time: string; color: string; icon: string }[];
+  events: { type: 'IN' | 'OUT'; label: string; time: string; color: string; icon: MCIName }[];
   // Catégories visuelles superposées au statut de présence — utilisées par la grille
   // mensuelle pour appliquer une couleur de fond distincte (cf. maquette transmise
   // par le produit le 2026-05-22 : férié, congé approuvé, congé en attente,
@@ -92,7 +95,7 @@ function deriveStatus(p: any): DayStatus {
   return 'absent';
 }
 
-function statusMeta(s: DayStatus): { labelKey: string; color: string; bg: string; icon: string } {
+function statusMeta(s: DayStatus): { labelKey: string; color: string; bg: string; icon: MCIName } {
   switch (s) {
     case 'present': return { labelKey: 'presence.statusPresent', color: COLORS.tertiary, bg: COLORS.tertiaryFixed, icon: 'check-circle' };
     case 'late':    return { labelKey: 'presence.statusLate', color: COLORS.warning, bg: '#fff1c2', icon: 'clock-alert' };

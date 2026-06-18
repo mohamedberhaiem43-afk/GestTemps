@@ -14,6 +14,10 @@ docker-compose.override.yml
 .env.local
 .env.production
 .env.*.local
+# Fichiers d'env réels par cible de déploiement (templates *.example versionnés).
+.env.app
+.env.db
+.env.test
 !**/.env.example
 abrpoint.client/.env
 abrpoint.client/.env.local

@@ -170,10 +170,10 @@ export default function AddEmployeeScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff', elevation: 2 },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 6 },
   backBtn: { fontSize: 16, color: COLORS.primary, fontWeight: '600', marginRight: 16 },
   title: { fontSize: 20, fontWeight: 'bold', color: COLORS.text },
-  aiButton: { backgroundColor: '#6a1b9a', borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 20, elevation: 3 },
+  aiButton: { backgroundColor: '#6a1b9a', borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 20, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6 },
   aiButtonText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.primary, marginTop: 16, marginBottom: 8 },
   fieldContainer: { marginBottom: 12 },

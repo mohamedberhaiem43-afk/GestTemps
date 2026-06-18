@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "icon": "./assets/concorde-workly-light.png",
+    "icon": "./assets/logo_concorde_workly_dark.png",
     "splash": {
       "image": "./assets/concorde-workly-logo.png",
       "resizeMode": "contain",
@@ -16,8 +16,8 @@
       "googleServicesFile": "./google-services.json",
       "usesCleartextTraffic": false,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/concorde-workly-light.png",
-        "backgroundColor": "#43466b"
+        "foregroundImage": "./assets/adaptive-foreground-dark.png",
+        "backgroundColor": "#42466b"
       },
       "permissions": [
         "android.permission.CAMERA",

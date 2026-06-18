@@ -1,0 +1,197 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Stack TOUT-EN-UN — serveur de TEST mono-machine.
+#
+# Contrairement à la prod (docker-compose.app.yml = serveur applicatif +
+# docker-compose.db.yml = serveur DB séparé), ce fichier déploie TOUT sur
+# une seule machine de test : base Postgres embarquée + serveur + client +
+# RAG (qdrant + sidecar) + reverse-proxy nginx HTTP.
+#
+# Volontairement simplifié pour du test :
+#   - Pas de TLS / Let's Encrypt / certbot (HTTP simple sur le port 80).
+#   - Pas de CrowdSec ni de blog Ghost.
+#   - Postgres embarqué (données dans le volume nommé pg_test_data).
+#
+# Démarrage :
+#   cp .env.test.example .env.test   # puis remplir les valeurs
+#   docker compose -f docker-compose.test.yml --env-file .env.test up -d
+#
+# Accès : http://<IP_DU_SERVEUR_DE_TEST>/      (login admin via .env.test)
+#
+# Arrêt + purge complète (efface AUSSI la base) :
+#   docker compose -f docker-compose.test.yml down -v
+# ─────────────────────────────────────────────────────────────────────────
+
+volumes:
+  pg_test_data:
+  uploads_data:
+  vault_templates_data:
+  qdrant_data:
+  # Cache du modèle d'embeddings e5-large (~2,2 Go) téléchargé au 1er démarrage
+  # de rag-svc. Volume nommé → téléchargé UNE fois, conservé ensuite.
+  rag_models:
+
+networks:
+  app-network:
+
+services:
+  # ── Base de données embarquée (test uniquement) ──────────────────────────
+  abrpoint.database:
+    image: postgres:16-alpine
+    container_name: abrpoint.database.test
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-abrpoint}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant}"
+      POSTGRES_DB: "abrpoint_master"
+      LANG: "fr_FR.utf8"
+    volumes:
+      - pg_test_data:/var/lib/postgresql/data
+    ports:
+      # Exposé en local uniquement (psql / pg_dump diagnostic depuis l'hôte).
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d abrpoint_master || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      - app-network
+
+  # ── Serveur applicatif (.NET) ────────────────────────────────────────────
+  abrpoint.server:
+    container_name: abrpoint.server.test
+    image: mohamedbenrhaiem2003/abrpoint-server:latest
+    restart: unless-stopped
+    volumes:
+      - uploads_data:/app/uploads
+      - vault_templates_data:/app/VaultTemplates
+    environment:
+      DB_HOST: "abrpoint.database"
+      DB_PORT: "5432"
+      DB_NAME: "abrpoint_master"
+      DB_USER: "${POSTGRES_USER:-abrpoint}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD}"
+      ConnectionStrings__MasterConnection: "Host=abrpoint.database;Port=5432;Database=abrpoint_master;Username=${POSTGRES_USER:-abrpoint};Password=${POSTGRES_PASSWORD};Pooling=true;Maximum Pool Size=100"
+      ConnectionStrings__TenantTemplate: "Host=abrpoint.database;Port=5432;Database={DbName};Username=${POSTGRES_USER:-abrpoint};Password=${POSTGRES_PASSWORD};Pooling=true;Maximum Pool Size=100"
+      ConnectionStrings__DefaultConnection: "Host=abrpoint.database;Port=5432;Database=abrpoint_master;Username=${POSTGRES_USER:-abrpoint};Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__FastReportConnection: "Host=abrpoint.database;Port=5432;Database=abrpoint_master;Username=${POSTGRES_USER:-abrpoint};Password=${POSTGRES_PASSWORD}"
+      Hosting__RootDomain: "${ROOT_DOMAIN:-localhost}"
+      ASPNETCORE_URLS: "http://+:8080"
+      ASPNETCORE_ENVIRONMENT: "Staging"
+      # ── Bootstrap admin (créé au 1er démarrage si la base est vide) ──────
+      DatabaseInitialization__Enabled: "true"
+      DatabaseInitialization__SocieteCode: "01"
+      DatabaseInitialization__SocieteName: "Default Company"
+      DatabaseInitialization__SiteCode: "01"
+      DatabaseInitialization__SiteName: "Main Site"
+      DatabaseInitialization__AdminCode: "AD"
+      DatabaseInitialization__AdminFirstName: "Admin"
+      DatabaseInitialization__AdminLastName: "System"
+      DatabaseInitialization__AdminEmail: "${ADMIN_EMAIL:-admin@abrpoint.local}"
+      DatabaseInitialization__AdminPassword: "${ADMIN_BOOTSTRAP_PASSWORD:?Définir un mot de passe admin initial}"
+      DatabaseInitialization__ApplicationCode: "GRH"
+      # ── Secrets applicatifs ──────────────────────────────────────────────
+      Jwt__Key: "${JWT_SECRET:?JWT_SECRET manquant (>= 32 chars aléatoires)}"
+      Encryption__AesKey: "${AES_KEY:?AES_KEY manquant (16/24/32 chars)}"
+      # ── RAG / IA ─────────────────────────────────────────────────────────
+      Rag__Enabled: "${RAG_ENABLED:-true}"
+      Rag__Sidecar__BaseUrl: "http://rag-svc:8080"
+      Rag__Sidecar__ApiKey: "${RAG_SIDECAR_KEY:-}"
+      Rag__Anthropic__ApiKey: "${ANTHROPIC_API_KEY:-}"
+      Rag__Anthropic__UseOpenRouter: "true"
+      Rag__Anthropic__OpenRouterModel: "google/gemini-2.0-flash-001"
+      OpenRouter__ApiKey: "${OPENROUTER_API_KEY:-}"
+      Gemini__ApiKey: "${GEMINI_API_KEY:-}"
+      # ── SMTP (optionnel en test) ─────────────────────────────────────────
+      Smtp__Host: "${SMTP_HOST:-ssl0.ovh.net}"
+      Smtp__Port: "${SMTP_PORT:-587}"
+      Smtp__Username: "${SMTP_USERNAME:-}"
+      Smtp__Password: "${SMTP_PASSWORD:-}"
+      Smtp__FromName: "${SMTP_FROM_NAME:-Concorde Work Force (TEST)}"
+      Smtp__FromEmail: "${SMTP_FROM_EMAIL:-}"
+      Smtp__EnableSsl: "true"
+      # ── Stripe (optionnel en test) ───────────────────────────────────────
+      Stripe__SecretKey: "${STRIPE_SECRET_KEY:-}"
+      Stripe__WebhookSecret: "${STRIPE_WEBHOOK_SECRET:-}"
+    depends_on:
+      abrpoint.database:
+        condition: service_healthy
+      rag-svc:
+        condition: service_healthy
+    networks:
+      - app-network
+    expose:
+      - "8080"
+
+  # ── Client web (SPA React servie par nginx, buildée avec API_URL=/api) ────
+  abrpoint.client:
+    container_name: abrpoint.client.test
+    image: mohamedbenrhaiem2003/abrpoint-client:latest
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      - abrpoint.server
+    networks:
+      - app-network
+
+  # ── Reverse-proxy HTTP (fusionne / et /api sur le port 80) ────────────────
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: abrpoint.nginx.test
+    restart: unless-stopped
+    ports:
+      # Changer "80" en "8088" ci-dessous si le port 80 est déjà pris sur l'hôte.
+      - "80:80"
+    volumes:
+      - ./nginx.test.conf:/etc/nginx/nginx.conf:ro
+      - uploads_data:/app/uploads:ro
+    depends_on:
+      - abrpoint.server
+      - abrpoint.client
+    networks:
+      - app-network
+
+  # ── RAG : base vectorielle Qdrant ─────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:v1.12.0
+    container_name: abrpoint.qdrant.test
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    expose:
+      - "6333"
+      - "6334"
+    networks:
+      - app-network
+
+  # ── RAG : sidecar d'embeddings ────────────────────────────────────────────
+  # Télécharge ~2,2 Go (e5-large) au 1er démarrage → prévoir ~2 min avant
+  # que le serveur ne démarre (depends_on: service_healthy).
+  # Pour un test léger sans IA : mettre RAG_ENABLED=false dans .env.test et
+  # commenter ce service + qdrant + le bloc rag-svc de depends_on du serveur.
+  rag-svc:
+    container_name: abrpoint.rag-svc.test
+    image: mohamedbenrhaiem2003/abrpoint-rag-svc:latest
+    restart: unless-stopped
+    environment:
+      QDRANT_URL: "http://qdrant:6333"
+      EMBED_MODEL: "intfloat/multilingual-e5-large"
+      EMBED_DEVICE: "cpu"
+      SIDECAR_KEY: "${RAG_SIDECAR_KEY:-}"
+      LOG_LEVEL: "INFO"
+    depends_on:
+      - qdrant
+    expose:
+      - "8080"
+    volumes:
+      - rag_models:/models
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,json,sys; r=json.load(urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=30)); sys.exit(0 if r.get('model_loaded') else 1)"]
+      interval: 30s
+      timeout: 40s
+      retries: 5
+      start_period: 300s
+    networks:
+      - app-network
