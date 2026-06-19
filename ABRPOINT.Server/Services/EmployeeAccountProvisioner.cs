@@ -242,8 +242,10 @@ namespace ABRPOINT.Server.Services
 
         private string BuildDownloadUrl()
         {
-            var rootDomain = _configuration["Hosting:RootDomain"] ?? "concorde.com";
-            return $"https://{rootDomain}/download";
+            // Page publique de téléchargement de l'app mobile — destination FIXE (Download:PageUrl),
+            // indépendante de Hosting:RootDomain (qui peut valoir localhost en dev/staging → lien
+            // cassé https://localhost/download dans l'email du nouvel utilisateur).
+            return _configuration["Download:PageUrl"] ?? "https://concorde-work-force.com/download";
         }
 
         private string BuildSetupPasswordUrl(string email, string token)

@@ -90,16 +90,15 @@ namespace ABRPOINT.Server.Controllers
         }
 
         /// <summary>
-        /// URL de la page publique de téléchargement de l'app mobile. La page propose
-        /// iOS, Android et APK direct avec auto-détection de l'OS. À terme, le domaine
-        /// canonique concordeworkly.com (redirection OVH) pointe ici aussi — mais on
-        /// génère le lien sur RootDomain pour ne pas dépendre d'une redirection externe
-        /// qui pourrait ne pas être active dans tous les environnements (staging, dev).
+        /// URL de la page publique de téléchargement de l'app mobile (iOS, Android, APK direct
+        /// avec auto-détection de l'OS), insérée dans l'email de provisioning collaborateur.
+        /// Destination publique FIXE (Download:PageUrl) : on ne la dérive PAS de RootDomain,
+        /// qui peut valoir localhost en dev/staging et produit alors un lien cassé
+        /// (https://localhost/download) dans l'email reçu par le nouvel utilisateur.
         /// </summary>
         private string BuildDownloadUrl()
         {
-            var rootDomain = _configuration["Hosting:RootDomain"] ?? "concorde.com";
-            return $"https://{rootDomain}/download";
+            return _configuration["Download:PageUrl"] ?? "https://concorde-work-force.com/download";
         }
 
         /// <summary>

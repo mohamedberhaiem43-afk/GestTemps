@@ -594,7 +594,10 @@ public class SignupController : ControllerBase
             var trialEndStr = tenant.TrialEndsAt?.ToLocalTime().ToString("d MMMM yyyy",
                 new System.Globalization.CultureInfo("fr-FR")) ?? "";
             var safeTrialEnd = System.Net.WebUtility.HtmlEncode(trialEndStr);
-            var downloadUrl = $"https://{rootDomain}/download";
+            // Lien de téléchargement de l'app mobile : destination publique FIXE (cf.
+            // Download:PageUrl) — surtout PAS dérivée de RootDomain qui peut valoir localhost
+            // hors prod → lien cassé dans l'email (https://localhost/download).
+            var downloadUrl = _cfg["Download:PageUrl"] ?? "https://concorde-work-force.com/download";
 
             var planLabel = string.IsNullOrWhiteSpace(req.PlanCode) ? "Essai 30 jours"
                 : char.ToUpper(req.PlanCode.Trim()[0]) + req.PlanCode.Trim()[1..].ToLower();

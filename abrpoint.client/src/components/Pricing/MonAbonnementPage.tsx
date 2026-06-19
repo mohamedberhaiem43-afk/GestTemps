@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Box, Paper, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
   RadioGroup, FormControlLabel, Radio, TextField, Alert, CircularProgress, Stack, Divider,
@@ -715,11 +715,19 @@ export default function MonAbonnementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Cycle affiché dans la carte « facture en direct » (variante A). Le cycle réellement
-  // souscrit n'est pas exposé par /billing/subscription : ce toggle sert donc à prévisualiser
-  // le tarif de base mensuel vs annuel-mensualisé dans le total ESTIMÉ. Les autres lignes
-  // (overage, modules) reflètent l'usage réel. Défaut : mensuel (= tarif catalogue de base).
+  // Cycle affiché dans la carte « facture en direct » (variante A). Le toggle reste ajustable
+  // pour prévisualiser le tarif mensuel vs annuel-mensualisé, mais on l'initialise sur le
+  // cycle RÉELLEMENT souscrit (info.billingCycle, dérivé de la subscription Stripe) une fois
+  // les infos chargées — au lieu de figer « mensuel » par défaut. Repli mensuel si inconnu.
   const [cycleA, setCycleA] = useState<Cycle>('monthly');
+  const cycleInitDone = useRef(false);
+  useEffect(() => {
+    if (cycleInitDone.current) return;
+    if (info?.billingCycle === 'annual' || info?.billingCycle === 'monthly') {
+      setCycleA(info.billingCycle);
+      cycleInitDone.current = true;
+    }
+  }, [info?.billingCycle]);
 
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelMode, setCancelMode] = useState<'period_end' | 'immediate'>('period_end');

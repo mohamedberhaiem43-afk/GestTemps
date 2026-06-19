@@ -522,9 +522,11 @@ const useNavigationItems = (): NavGroup[] => {
           // (mêmes endpoints /api/Templates côté backend qui posent le 402 sur Starter).
           ...(planAllows('contractManagement') ? [{ label: t('navigation.contractTemplates'), href: '/dashboard/template-builder', icon: FileText }] : []),
           // Documents juridiques (coffre-fort doc) : même feature commerciale que le Coffre-fort
-          // (DocumentsController gated RequirePlanFeature(DigitalVault)). On masque donc l'entrée
-          // si le pack n'inclut pas le coffre-fort — sinon clic → 402 → redirection.
-          ...(planAllows('digitalVault') ? [{ label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText }] : []),
+          // (DocumentsController gated RequirePlanFeature(DigitalVault)). On masque normalement
+          // l'entrée si le pack n'inclut pas le coffre-fort — sinon clic → 402 → redirection.
+          // 2026-06 — MASQUÉ TEMPORAIREMENT : fonctionnalité « sur devis » pour l'instant.
+          // Pour réactiver : retirer le `false &&` ci-dessous (condition d'origine conservée).
+          ...(false && planAllows('digitalVault') ? [{ label: t('navigation.legalDocuments'), href: '/dashboard/documents', icon: FileText }] : []),
           // Courriers IA : la génération de lettres passe par le pipeline RAG
           // (cf. LetterGenerationService) — gated sur PlanFeatures.ragAi
           // (Premium uniquement). Le composant LetterTemplatesModern appelle
