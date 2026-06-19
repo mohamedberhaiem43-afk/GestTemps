@@ -72,6 +72,8 @@ export default function HomeScreen({ navigation }: any) {
   const [silentUntil, setSilentUntil] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [teletravailToday, setTeletravailToday] = useState(false);
+  // Nombre de documents en attente de MA signature (boîte « À signer »).
+  const [signCount, setSignCount] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -85,16 +87,28 @@ export default function HomeScreen({ navigation }: any) {
       loadRecentDocs();
       loadUnreadCount();
       loadTeletravailToday();
+      loadSignCount();
     }
   }, [user]);
 
-  // Refresh le badge à chaque retour sur le HomeScreen (focus event de React Navigation).
+  // Refresh le badge + la boîte « À signer » à chaque retour sur le HomeScreen
+  // (focus event de React Navigation) — ex : après avoir signé un document.
   useEffect(() => {
     const unsub = navigation?.addListener?.('focus', () => {
-      if (user?.soccod && user?.uticod) loadUnreadCount();
+      if (user?.soccod && user?.uticod) { loadUnreadCount(); loadSignCount(); }
     });
     return unsub;
   }, [navigation, user]);
+
+  // Documents en attente de signature du salarié. Gated sur la feature (l'endpoint
+  // /Signatures/* renvoie 402 sans ElectronicSignature) → inutile d'appeler sinon.
+  const loadSignCount = async () => {
+    if (!planAllows('electronicSignature')) { setSignCount(0); return; }
+    try {
+      const data = await apiService.getSignatureInbox();
+      setSignCount(Array.isArray(data) ? data.length : 0);
+    } catch { /* best-effort : pas de carte si l'appel échoue */ }
+  };
 
   // Live tracking — démarre le heartbeat dès que le salarié est marqué « pointé »
   // (entrée OK, pas encore de sortie) et l'arrête au pointage de sortie ou à la
@@ -399,6 +413,31 @@ export default function HomeScreen({ navigation }: any) {
               </View>
               <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
             </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        {/* Carte « À signer » : visible uniquement quand le salarié a au moins un
+            document en attente de sa signature. Point d'entrée permanent vers la
+            boîte de signature, indépendant de la notification push. */}
+        {signCount > 0 && (
+          <TouchableOpacity
+            style={styles.signCta}
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate('SignatureInbox')}
+          >
+            <View style={styles.signCtaIcon}>
+              <MaterialCommunityIcons name="file-sign" size={22} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.signCtaTitle}>{t('home.toSignTitle')}</Text>
+              <Text style={styles.signCtaSub}>
+                {t(signCount > 1 ? 'home.toSignSubMany' : 'home.toSignSubOne', { n: signCount })}
+              </Text>
+            </View>
+            <View style={styles.signCtaBadge}>
+              <Text style={styles.signCtaBadgeText}>{signCount}</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={22} color="#92400e" />
           </TouchableOpacity>
         )}
 
@@ -896,6 +935,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   silentChipText: { fontSize: 11, color: '#92400e', fontWeight: '700', flex: 1 },
+  signCta: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#fffbeb', borderColor: '#fde68a', borderWidth: 1,
+    borderRadius: 14, padding: 14, marginBottom: 18,
+  },
+  signCtaIcon: {
+    width: 38, height: 38, borderRadius: 10, backgroundColor: '#f59e0b',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  signCtaTitle: { fontSize: 14, fontWeight: '800', color: '#92400e', letterSpacing: 0.2 },
+  signCtaSub: { fontSize: 11, color: '#b45309', fontWeight: '500', marginTop: 2 },
+  signCtaBadge: {
+    minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6,
+    backgroundColor: '#f59e0b', justifyContent: 'center', alignItems: 'center',
+  },
+  signCtaBadgeText: { color: '#fff', fontSize: 11, fontWeight: '900' },
   quickActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',

@@ -34,12 +34,22 @@ const CATEGORY_META: Record<string, NotifMeta> = {
   auth_request_created:  { color: COLORS.accent,    bg: COLORS.secondaryFixed,  icon: 'inbox-arrow-down',labelKey: 'notif.catAuthCreated' },
   auth_request_accepted: { color: COLORS.tertiary,  bg: COLORS.tertiaryFixed,   icon: 'check-circle',    labelKey: 'notif.catAuthAccepted' },
   auth_request_refused:  { color: COLORS.error,     bg: COLORS.errorContainer,  icon: 'close-circle',    labelKey: 'notif.catAuthRefused' },
+  signature_pending:     { color: '#b45309',        bg: '#fef3c7',              icon: 'file-sign',       labelKey: 'notif.catSignaturePending' },
+  signature_completed:   { color: COLORS.tertiary,  bg: COLORS.tertiaryFixed,   icon: 'check-decagram',  labelKey: 'notif.catSignatureCompleted' },
+  signature_rejected:    { color: COLORS.error,     bg: COLORS.errorContainer,  icon: 'file-cancel',     labelKey: 'notif.catSignatureRejected' },
   test_push:             { color: COLORS.secondary, bg: COLORS.surfaceContainerLow, icon: 'flask',       labelKey: 'notif.catTest' },
 };
 
 const FALLBACK_META: NotifMeta = { color: COLORS.secondary, bg: COLORS.surfaceContainerLow, icon: 'bell-outline', labelKey: 'notif.catDefault' };
 
 type TFunc = (key: string, vars?: Record<string, string | number>) => string;
+
+// Le backend persiste le payload de la notification dans `dataJson` (cf.
+// UserNotificationService). On le parse en best-effort pour le deep-link.
+function parseData(json?: string | null): any | null {
+  if (!json) return null;
+  try { return JSON.parse(json); } catch { return null; }
+}
 
 function formatRelative(dateStr: string, t: TFunc, locale: string): string {
   const d = new Date(dateStr);
@@ -93,7 +103,23 @@ export default function NotificationsScreen({ navigation }: any) {
     }
     // Deep-link basique selon la catégorie.
     const cat = n.category || '';
-    if (cat.startsWith('leave_request')) navigation.navigate('LeaveRequest');
+    if (cat === 'signature_pending') {
+      // Si le payload porte requestId + stepId, on ouvre directement la signature ;
+      // sinon on retombe sur la boîte « À signer » (le salarié choisit son document).
+      const data = parseData(n.dataJson);
+      if (data?.requestId != null && data?.stepId != null) {
+        navigation.navigate('Signature', {
+          workflow: true,
+          requestId: Number(data.requestId),
+          stepId: Number(data.stepId),
+          documentId: data.documentVaultId != null ? Number(data.documentVaultId) : undefined,
+        });
+      } else {
+        navigation.navigate('SignatureInbox');
+      }
+    }
+    else if (cat === 'signature_completed' || cat === 'signature_rejected') navigation.navigate('DigitalVault');
+    else if (cat.startsWith('leave_request')) navigation.navigate('LeaveRequest');
     else if (cat.startsWith('auth_request')) navigation.navigate('DemandeAutorisation');
     else if (cat.startsWith('reminder')) navigation.navigate('Home');
   };

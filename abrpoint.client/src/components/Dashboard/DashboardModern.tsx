@@ -286,7 +286,9 @@ function DashboardModernAdmin() {
   // sans casser le dashboard.
   const [teletravailToday, setTeletravailToday] = useState(0);
   useEffect(() => {
-    if (!soccod) return;
+    // Gated leaveManagement : sans ce pack, l'endpoint /Teletravail/* renvoie 402 —
+    // inutile d'appeler (le chip télétravail est de toute façon masqué).
+    if (!soccod || !planAllows('leaveManagement')) { setTeletravailToday(0); return; }
     let cancelled = false;
     apiInstance.get(`/Teletravail/on-date/${soccod}`)
       .then(({ data }) => {
@@ -818,20 +820,26 @@ function DashboardModernAdmin() {
             secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Créer une fiche employé</Typography>}
           />
         </MenuItem>
-        <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/contrat'); }}>
-          <ListItemIcon><DescriptionIcon fontSize="small" sx={{ color: '#005136' }} /></ListItemIcon>
-          <ListItemText
-            primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Gérer les contrats</Typography>}
-            secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Nouveau contrat ou avenant</Typography>}
-          />
-        </MenuItem>
-        <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/courriers'); }}>
-          <ListItemIcon><ArticleIcon fontSize="small" sx={{ color: '#6d28d9' }} /></ListItemIcon>
-          <ListItemText
-            primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Générer un courrier</Typography>}
-            secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Attestation, lettre, avenant…</Typography>}
-          />
-        </MenuItem>
+        {/* Gérer les contrats — gated contractManagement (aligné sur la sidebar). */}
+        {planAllows('contractManagement') && (
+          <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/contrat'); }}>
+            <ListItemIcon><DescriptionIcon fontSize="small" sx={{ color: '#005136' }} /></ListItemIcon>
+            <ListItemText
+              primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Gérer les contrats</Typography>}
+              secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Nouveau contrat ou avenant</Typography>}
+            />
+          </MenuItem>
+        )}
+        {/* Générer un courrier — gated ragAi (modèles de courrier, aligné sur la sidebar). */}
+        {planAllows('ragAi') && (
+          <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/courriers'); }}>
+            <ListItemIcon><ArticleIcon fontSize="small" sx={{ color: '#6d28d9' }} /></ListItemIcon>
+            <ListItemText
+              primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Générer un courrier</Typography>}
+              secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Attestation, lettre, avenant…</Typography>}
+            />
+          </MenuItem>
+        )}
         <Divider />
         <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/etat-periodique'); }}>
           <ListItemIcon><EditCalendarIcon fontSize="small" sx={{ color: '#b45309' }} /></ListItemIcon>
@@ -840,13 +848,16 @@ function DashboardModernAdmin() {
             secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Corriger entrée/sortie</Typography>}
           />
         </MenuItem>
-        <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/documents'); }}>
-          <ListItemIcon><UploadFileIcon fontSize="small" sx={{ color: '#0e7490' }} /></ListItemIcon>
-          <ListItemText
-            primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Téléverser un document</Typography>}
-            secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Convention, règlement, accord</Typography>}
-          />
-        </MenuItem>
+        {/* Téléverser un document — gated digitalVault (même feature que le coffre-fort). */}
+        {planAllows('digitalVault') && (
+          <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/documents'); }}>
+            <ListItemIcon><UploadFileIcon fontSize="small" sx={{ color: '#0e7490' }} /></ListItemIcon>
+            <ListItemText
+              primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Téléverser un document</Typography>}
+              secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Convention, règlement, accord</Typography>}
+            />
+          </MenuItem>
+        )}
       </Menu>
 
       {/* Guide d'onboarding interactif : 5 étapes ordonnées (Poste → Classe →
@@ -880,7 +891,8 @@ function DashboardModernAdmin() {
             // (count tenant-wide vs liste filtrée par période). Maintenant que la
             // fenêtre de fetch est large (cf. pendingDemandesDebut/Fin), le compteur
             // reste fiable et le modal montre exactement les mêmes éléments.
-            const pendingLeaves = demandesData?.length ?? 0;
+            // Congés — chip gated leaveManagement (pas de gestion de congé hors pack).
+            const pendingLeaves = planAllows('leaveManagement') ? (demandesData?.length ?? 0) : 0;
             if (pendingLeaves > 0) {
               items.push({
                 label: `${pendingLeaves} demande(s) de congé à valider`,
@@ -889,7 +901,9 @@ function DashboardModernAdmin() {
               });
             }
 
-            const urgentContracts = expiringContracts.filter((c: any) => {
+            // Contrats — chips gated contractManagement (alertes d'échéance hors pack masquées).
+            const contractsForRecap = planAllows('contractManagement') ? expiringContracts : [];
+            const urgentContracts = contractsForRecap.filter((c: any) => {
               const d = c.empsort ? Math.ceil((new Date(c.empsort).getTime() - Date.now()) / 86400000) : Infinity;
               return d <= 7;
             }).length;
@@ -899,9 +913,9 @@ function DashboardModernAdmin() {
                 color: '#991b1b', bg: '#fee2e2', emoji: '⚠️',
                 onClick: () => setOpenContractDialog(true),
               });
-            } else if (expiringContracts.length > 0) {
+            } else if (contractsForRecap.length > 0) {
               items.push({
-                label: `${expiringContracts.length} contrat(s) à renouveler ce mois`,
+                label: `${contractsForRecap.length} contrat(s) à renouveler ce mois`,
                 color: '#92400e', bg: '#fef3c7', emoji: '📝',
                 onClick: () => setOpenContractDialog(true),
               });
@@ -932,7 +946,8 @@ function DashboardModernAdmin() {
               });
             }
 
-            if (teletravailToday > 0) {
+            // Télétravail — chip gated leaveManagement (le télétravail vit sous ce pack).
+            if (planAllows('leaveManagement') && teletravailToday > 0) {
               items.push({
                 label: `${teletravailToday} en télétravail`,
                 color: '#9d174d', bg: '#fce7f3', emoji: '🏠',

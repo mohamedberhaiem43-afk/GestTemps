@@ -177,6 +177,10 @@ export const fr = {
     relYesterday: 'Hier',
     relDays: 'Il y a {n} jours',
     relWeeks: 'Il y a {n} sem.',
+    // Carte « À signer »
+    toSignTitle: 'Documents à signer',
+    toSignSubOne: '1 document attend votre signature',
+    toSignSubMany: '{n} documents attendent votre signature',
   },
 
   dashboard: {
@@ -227,8 +231,19 @@ export const fr = {
     catAuthCreated: 'Nouvelle autorisation',
     catAuthAccepted: 'Autorisation acceptée',
     catAuthRefused: 'Autorisation refusée',
+    catSignaturePending: 'Document à signer',
+    catSignatureCompleted: 'Document signé',
+    catSignatureRejected: 'Document rejeté',
     catTest: 'Test',
     catDefault: 'Notification',
+  },
+
+  signatureInbox: {
+    title: 'À signer',
+    subtitle: 'Documents qui attendent votre signature.',
+    receivedOn: 'Reçu le {date}',
+    pendingBadge: 'EN ATTENTE',
+    empty: 'Aucun document à signer pour le moment.',
   },
 
   notifPrefs: {

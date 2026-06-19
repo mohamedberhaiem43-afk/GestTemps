@@ -64,16 +64,31 @@ const AdminVaultModern = () => {
     }
   };
 
-  const handleDownload = async (docId: number, fileName: string) => {
+  const handleDownload = async (doc: DocumentVault) => {
     try {
-      const response = await apiInstance.get(`/Vault/download/${docId}`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const response = await apiInstance.get(`/Vault/download/${doc.id}`, { responseType: 'blob' });
+      // On conserve le Blob renvoyé par l'API (avec son Content-Type) — wrapper dans
+      // `new Blob([...])` effacerait le type MIME et le navigateur sauverait en .txt.
+      const blob: Blob = response.data;
+      const url = window.URL.createObjectURL(blob);
+      // docName est un libellé sans extension : on la rétablit via le type MIME, sinon
+      // via l'extension du chemin stocké (docPath).
+      let fileName = doc.docName || 'document';
+      if (!/\.[a-z0-9]{2,5}$/i.test(fileName)) {
+        const ext =
+          blob.type === 'application/pdf' ? 'pdf'
+          : blob.type === 'image/png' ? 'png'
+          : blob.type === 'image/jpeg' ? 'jpg'
+          : ((doc.docPath || '').split(/[\\/]/).pop() || '').split('.').slice(1).pop()?.toLowerCase() || '';
+        if (ext) fileName = `${fileName}.${ext}`;
+      }
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', fileName);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Erreur téléchargement', err);
     }
@@ -87,11 +102,14 @@ const AdminVaultModern = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
-  const getDocIcon = (name: string) => {
-    const ext = name?.split('.').pop()?.toLowerCase();
+  const getDocIcon = (doc: DocumentVault) => {
+    // L'extension vit dans docPath (« …/xxx.pdf »), pas dans docName qui est un libellé.
+    const base = (doc.docPath || '').split(/[\\/]/).pop() || '';
+    const dot = base.lastIndexOf('.');
+    const ext = dot > 0 ? base.slice(dot + 1).toLowerCase() : '';
     if (ext === 'pdf') return 'picture_as_pdf';
-    if (['doc', 'docx'].includes(ext || '')) return 'description';
-    if (['xls', 'xlsx'].includes(ext || '')) return 'table_chart';
+    if (['doc', 'docx'].includes(ext)) return 'description';
+    if (['xls', 'xlsx'].includes(ext)) return 'table_chart';
     return 'insert_drive_file';
   };
 
@@ -275,7 +293,7 @@ const AdminVaultModern = () => {
                     <td>
                       <div className="avlt-doc-cell">
                         <div className={`avlt-doc-icon ${doc.docName.endsWith('.pdf') ? 'pdf' : 'other'}`}>
-                          <span className="material-symbols-outlined">{getDocIcon(doc.docName)}</span>
+                          <span className="material-symbols-outlined">{getDocIcon(doc)}</span>
                         </div>
                         <div>
                           <div className="avlt-doc-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -324,7 +342,7 @@ const AdminVaultModern = () => {
                         <IconButton
                           size="small"
                           className="avlt-btn-dl"
-                          onClick={() => handleDownload(doc.id, doc.docName)}
+                          onClick={() => handleDownload(doc)}
                           title={t('adminVault.tooltip.download')}
                         >
                           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download</span>
@@ -366,7 +384,7 @@ const AdminVaultModern = () => {
                     return (
                       <div key={doc.id} className="avlt-emp-doc-row">
                         <div className={`avlt-emp-doc-icon ${doc.docName.endsWith('.pdf') ? 'pdf' : 'other'}`}>
-                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{getDocIcon(doc.docName)}</span>
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{getDocIcon(doc)}</span>
                         </div>
                         <div className="avlt-emp-doc-info">
                           <div className="avlt-emp-doc-name">{doc.docName}</div>
@@ -382,7 +400,7 @@ const AdminVaultModern = () => {
                               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>draw</span>
                             </button>
                           )}
-                          <IconButton size="small" onClick={() => handleDownload(doc.id, doc.docName)}>
+                          <IconButton size="small" onClick={() => handleDownload(doc)}>
                             <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#0040a1' }}>download</span>
                           </IconButton>
                         </div>
@@ -406,22 +424,6 @@ const AdminVaultModern = () => {
         </div>
       )}
 
-      {/* ── Privacy Guard ── */}
-      <div className="avlt-privacy-bar">
-        <div className="avlt-privacy-left">
-          <div className="avlt-privacy-icon">
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>lock</span>
-          </div>
-          <div>
-            <p className="avlt-privacy-title">{t('adminVault.privacy.title')}</p>
-            <p className="avlt-privacy-sub">{t('adminVault.privacy.subtitle')}</p>
-          </div>
-        </div>
-        <div className="avlt-privacy-actions">
-          <button className="avlt-privacy-btn-sec">{t('adminVault.privacy.activityLog')}</button>
-          <button className="avlt-privacy-btn-pri">{t('adminVault.privacy.syncMasterKey')}</button>
-        </div>
-      </div>
     </div>
   );
 };

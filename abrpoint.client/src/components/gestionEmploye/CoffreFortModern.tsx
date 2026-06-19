@@ -102,18 +102,33 @@ const CoffreFortModern = () => {
     }
   };
 
-  const handleDownload = async (docId: number, fileName: string) => {
+  const handleDownload = async (doc: DocumentVault) => {
     try {
-      const response = await apiInstance.get(`/Vault/download/${docId}`, {
+      const response = await apiInstance.get(`/Vault/download/${doc.id}`, {
         responseType: 'blob',
       });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // Conserver le Blob tel quel (avec son Content-Type) : `new Blob([...])` effacerait
+      // le type MIME → le navigateur sauverait en .txt.
+      const blob: Blob = response.data;
+      const url = window.URL.createObjectURL(blob);
+      // docName est un libellé sans extension : on la rétablit via le type MIME, sinon
+      // via l'extension du chemin stocké (docPath).
+      let fileName = doc.docName || 'document';
+      if (!/\.[a-z0-9]{2,5}$/i.test(fileName)) {
+        const ext =
+          blob.type === 'application/pdf' ? 'pdf'
+          : blob.type === 'image/png' ? 'png'
+          : blob.type === 'image/jpeg' ? 'jpg'
+          : ((doc.docPath || '').split(/[\\/]/).pop() || '').split('.').slice(1).pop()?.toLowerCase() || '';
+        if (ext) fileName = `${fileName}.${ext}`;
+      }
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', fileName);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error("Erreur lors du téléchargement", err);
       // Cas particulier : responseType='blob' fait que err.response.data est aussi
@@ -544,7 +559,7 @@ const CoffreFortModern = () => {
                         )}
                         <IconButton
                           className="download-btn"
-                          onClick={() => handleDownload(doc.id, doc.docName)}
+                          onClick={() => handleDownload(doc)}
                           title={t('coffreFort.actions.download')}
                         >
                           <span className="material-symbols-outlined">download</span>

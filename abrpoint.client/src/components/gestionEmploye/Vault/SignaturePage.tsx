@@ -59,6 +59,41 @@ function useDrawingCanvas() {
   return { canvasRef, startDraw, draw, stopDraw, clearCanvas, getDataURL, getHasDrawn };
 }
 
+/* ─── File helpers ───
+ * docName est un LIBELLÉ (« Contrat CDI »), sans extension. La vraie extension
+ * vit dans docPath (« …/xxx.pdf »). On la déduit de là pour l'aperçu et pour
+ * nommer correctement le fichier téléchargé. */
+const fileExt = (d: DocumentVault): string => {
+  const base = (d.docPath || '').split(/[\\/]/).pop() || '';
+  const dot = base.lastIndexOf('.');
+  return dot > 0 ? base.slice(dot + 1).toLowerCase() : '';
+};
+
+const extFromMime = (mime: string): string => {
+  if (mime === 'application/pdf') return 'pdf';
+  if (mime === 'image/png') return 'png';
+  if (mime === 'image/jpeg') return 'jpg';
+  return '';
+};
+
+// Télécharge en préservant le type MIME du serveur (sinon le navigateur sauve en .txt)
+// et en garantissant une extension sur le nom de fichier.
+const downloadDoc = async (d: DocumentVault) => {
+  const res = await apiInstance.get(`/Vault/download/${d.id}`, { responseType: 'blob' });
+  const blob: Blob = res.data; // conserve le Content-Type renvoyé par l'API
+  const url = URL.createObjectURL(blob);
+  let name = d.docName || 'document';
+  if (!/\.[a-z0-9]{2,5}$/i.test(name)) {
+    const ext = extFromMime(blob.type) || fileExt(d);
+    if (ext) name = `${name}.${ext}`;
+  }
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 /* ══════════════════════════════════════════════════════ */
 const SignaturePage = () => {
   const { t } = useTranslation();
@@ -191,7 +226,7 @@ const SignaturePage = () => {
 
   // Fetch file as blob (sends proper auth headers), then make an object URL for the iframe
   const loadPreviewBlob = async (document: DocumentVault) => {
-    const ext = document.docName?.split('.').pop()?.toLowerCase() ?? '';
+    const ext = fileExt(document);
     const viewable = ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp', 'frx'];
     if (!viewable.includes(ext)) {
       setPreviewError(`Aperçu non disponible pour le format .${ext}. Téléchargez le fichier pour le consulter.`);
@@ -416,11 +451,7 @@ const SignaturePage = () => {
               <button className="sig-icon-btn" onClick={() => window.open(previewUrl ?? '', '_blank')} title="Ouvrir dans un onglet">
                 <span className="material-symbols-outlined">open_in_new</span>
               </button>
-              <button className="sig-icon-btn" onClick={async () => {
-                const res = await apiInstance.get(`/Vault/download/${doc.id}`, { responseType: 'blob' });
-                const url = URL.createObjectURL(new Blob([res.data]));
-                const a = document.createElement('a'); a.href = url; a.download = doc.docName; a.click();
-              }} title="Télécharger">
+              <button className="sig-icon-btn" onClick={() => downloadDoc(doc)} title="Télécharger">
                 <span className="material-symbols-outlined">download</span>
               </button>
             </div>
@@ -837,11 +868,7 @@ const SignaturePage = () => {
                     <span className="material-symbols-outlined" style={{ fontSize: 16 }}>account_balance_wallet</span>
                     Retourner au Coffre-fort
                   </button>
-                  <button className="sig-btn-secondary sig-btn-secondary--full" onClick={async () => {
-                    const res = await apiInstance.get(`/Vault/download/${doc.id}`, { responseType: 'blob' });
-                    const url = URL.createObjectURL(new Blob([res.data]));
-                    const a = document.createElement('a'); a.href = url; a.download = doc.docName; a.click();
-                  }}>
+                  <button className="sig-btn-secondary sig-btn-secondary--full" onClick={() => downloadDoc(doc)}>
                     <span className="material-symbols-outlined" style={{ fontSize: 16 }}>verified</span>
                     Télécharger la preuve signée
                   </button>

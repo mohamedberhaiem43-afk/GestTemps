@@ -61,6 +61,7 @@ import TeletravailScreen from './src/screens/TeletravailScreen';
 import DemandeAbsenceScreen from './src/screens/DemandeAbsenceScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import SignatureScreen from './src/screens/SignatureScreen';
+import SignatureInboxScreen from './src/screens/SignatureInboxScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import NotificationPreferencesScreen from './src/screens/NotificationPreferencesScreen';
 import HolidaysScreen from './src/screens/HolidaysScreen';
@@ -114,6 +115,7 @@ function AppStack() {
       <Stack.Screen name="DemandeAbsence" component={DemandeAbsenceScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Signature" component={SignatureScreen} />
+      <Stack.Screen name="SignatureInbox" component={SignatureInboxScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="NotificationPreferences" component={NotificationPreferencesScreen} />
       <Stack.Screen name="Holidays" component={HolidaysScreen} />

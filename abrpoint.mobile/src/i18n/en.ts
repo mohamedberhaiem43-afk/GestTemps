@@ -176,6 +176,10 @@ export const en = {
     relYesterday: 'Yesterday',
     relDays: '{n} days ago',
     relWeeks: '{n} wk ago',
+    // "To sign" card
+    toSignTitle: 'Documents to sign',
+    toSignSubOne: '1 document is awaiting your signature',
+    toSignSubMany: '{n} documents are awaiting your signature',
   },
 
   dashboard: {
@@ -226,8 +230,19 @@ export const en = {
     catAuthCreated: 'New authorization',
     catAuthAccepted: 'Authorization approved',
     catAuthRefused: 'Authorization refused',
+    catSignaturePending: 'Document to sign',
+    catSignatureCompleted: 'Document signed',
+    catSignatureRejected: 'Document rejected',
     catTest: 'Test',
     catDefault: 'Notification',
+  },
+
+  signatureInbox: {
+    title: 'To sign',
+    subtitle: 'Documents awaiting your signature.',
+    receivedOn: 'Received on {date}',
+    pendingBadge: 'PENDING',
+    empty: 'No documents to sign at the moment.',
   },
 
   notifPrefs: {
