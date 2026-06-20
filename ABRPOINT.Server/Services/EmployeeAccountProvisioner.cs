@@ -135,8 +135,10 @@ namespace ABRPOINT.Server.Services
                     var freshUser = await _db.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == emp.Empcod);
                     if (freshUser != null)
                     {
-                        freshUser.UtiResetCode = setupToken;
+                        // SEC (#13) — token de setup hashé (le clair n'est que dans l'URL de l'email).
+                        freshUser.UtiResetCode = ABRPOINT.Server.Helpers.ResetSecretHelper.Hash(setupToken);
                         freshUser.UtiResetCodeExpiry = DateTime.UtcNow.AddDays(7);
+                        freshUser.UtiResetAttempts = 0;
                         await _db.SaveChangesAsync();
                     }
                 }

@@ -1,5 +1,6 @@
 using ABRPOINT.Server.Annotations.EtatsAttributes;
 using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,10 +16,12 @@ namespace ABRPOINT.Server.Controllers
         private readonly IPointageMoisService _pointageMoisService;
         private readonly ILogger<PointageMoisController>? _logger;
         private readonly IWebHostEnvironment _env;
-        public PointageMoisController(IPointageMoisService pointageMoisService, IWebHostEnvironment env, ILogger<PointageMoisController>? logger = null)
+        private readonly ApplicationDbContext _db;
+        public PointageMoisController(IPointageMoisService pointageMoisService, IWebHostEnvironment env, ApplicationDbContext db, ILogger<PointageMoisController>? logger = null)
         {
             _pointageMoisService = pointageMoisService;
             _env = env;
+            _db = db;
             _logger = logger;
         }
 
@@ -58,6 +61,13 @@ namespace ABRPOINT.Server.Controllers
 
             try
             {
+                // Isolation par site (IDOR) : on restreint les empcods demandés aux employés des
+                // sites du demandeur (admin = tout). Sans ça, un manager du site A pouvait lire les
+                // heures sup d'un employé du site B en injectant son empcod dans la query string.
+                // ScopedEmpcodsAsync substitue une sentinelle si aucun empcod accessible → jamais
+                // de liste vide passée au service (qui l'interpréterait comme « tous les employés »).
+                empcods = await SiteAccess.ScopedEmpcodsAsync(_db, soccod, SiteAccess.CallerUticod(HttpContext) ?? string.Empty, empcods);
+
                 var result = await _pointageMoisService
                     .GetPointageMois(soccod, empcods, mois, annee, semaine);
 

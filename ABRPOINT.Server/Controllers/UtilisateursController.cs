@@ -1244,7 +1244,9 @@ namespace GestionDesTickets.Server.Controllers
                 {
                     // soccod/sitcod (route) + sercod (query) → persistance de l'affectation
                     // site/service de l'utilisateur dans Socuser.
-                    await _utilisateurRepository.UpdateUserAsync(utilisateur, soccod, sitcod, sercod);
+                    // Endpoint [Admin] : autorisé à modifier les champs privilégiés
+                    // (Utirole/Utiadm/Utiactif) — gestion des rôles côté administration.
+                    await _utilisateurRepository.UpdateUserAsync(utilisateur, soccod, sitcod, sercod, allowPrivilegedFields: true);
                     return true;
                 }
 
@@ -1280,6 +1282,10 @@ namespace GestionDesTickets.Server.Controllers
                     if (!isAdmin) return Forbid();
                 }
 
+                // 🔒 Self-service : allowPrivilegedFields reste false (défaut). UpdateUserAsync
+                // n'écrit donc QUE Utinom/Utiprn/Utimail. Utirole/Utiadm/Utiactif fournis dans le
+                // body sont ignorés ici — la gestion des rôles passe par update-user/update-role
+                // ([Admin]). Ne JAMAIS passer allowPrivilegedFields:true sur cet endpoint.
                 await _utilisateurRepository.UpdateUserAsync(utilisateur);
                 return Ok(new { success = true });
             }
@@ -1600,10 +1606,11 @@ namespace GestionDesTickets.Server.Controllers
                     .GetInt32(100000, 1000000) // upper bound exclusif → 999 999 inclus
                     .ToString();
 
-                // Store code in user's UtiTwoFactorSecret temporarily (reuse field)
-                // In production, use a separate table and send via email
-                user.UtiResetCode = resetCode;
+                // SEC (#13) — stockage du HASH du code (jamais le clair), compteur de tentatives
+                // remis à 0. Le code en clair n'est transmis que par email (via /auth/forgot-password).
+                user.UtiResetCode = ABRPOINT.Server.Helpers.ResetSecretHelper.Hash(resetCode);
                 user.UtiResetCodeExpiry = DateTime.UtcNow.AddMinutes(15);
+                user.UtiResetAttempts = 0;
                 await _dbContext.SaveChangesAsync();
 
                 // Le code n'est plus renvoyé dans la réponse : il est envoyé par email via /api/auth/forgot-password
@@ -1635,8 +1642,24 @@ namespace GestionDesTickets.Server.Controllers
                 if (user == null)
                     return BadRequest(new { Message = "Code invalide ou expiré." });
 
-                if (user.UtiResetCode != request.Code || !user.UtiResetCodeExpiry.HasValue || user.UtiResetCodeExpiry < DateTime.UtcNow)
+                if (string.IsNullOrEmpty(user.UtiResetCode) || !user.UtiResetCodeExpiry.HasValue || user.UtiResetCodeExpiry < DateTime.UtcNow)
                     return BadRequest(new { Message = "Code invalide ou expiré." });
+
+                // SEC (#13) — cap de tentatives par compte (invalide le code après 5 essais, toutes
+                // IP confondues) + vérification BCrypt à temps constant. Cf. ResetSecretHelper.
+                if ((user.UtiResetAttempts ?? 0) >= ABRPOINT.Server.Helpers.ResetSecretHelper.MaxAttempts)
+                {
+                    user.UtiResetCode = null;
+                    user.UtiResetCodeExpiry = null;
+                    await _dbContext.SaveChangesAsync();
+                    return BadRequest(new { Message = "Code invalide ou expiré." });
+                }
+                if (!ABRPOINT.Server.Helpers.ResetSecretHelper.Verify(user.UtiResetCode, request.Code))
+                {
+                    user.UtiResetAttempts = (user.UtiResetAttempts ?? 0) + 1;
+                    await _dbContext.SaveChangesAsync();
+                    return BadRequest(new { Message = "Code invalide ou expiré." });
+                }
 
                 // Vérif HIBP : refuse les mots de passe fuités. On préserve l'UX du reset
                 // (code valide → 400 explicite avec count) plutôt que de laisser l'utilisateur
@@ -1653,6 +1676,7 @@ namespace GestionDesTickets.Server.Controllers
                 user.Utimps = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
                 user.UtiResetCode = null;
                 user.UtiResetCodeExpiry = null;
+                user.UtiResetAttempts = 0;
                 await _dbContext.SaveChangesAsync();
 
                 return Ok(new { Message = "Mot de passe réinitialisé avec succès." });

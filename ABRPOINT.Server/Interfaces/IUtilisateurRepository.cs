@@ -6,7 +6,7 @@ namespace ABRPOINT.Server.Interfaces
     public interface IUtilisateurRepository : IRepository<Utilisateur>
     {
         Task<UtilisateurDto> GetUtilisateurAsync(string uticod);
-        Task<bool> UpdateUserAsync(UtilisateurUpdate utilisateur, string? soccod = null, string? sitcod = null, string? sercod = null);
+        Task<bool> UpdateUserAsync(UtilisateurUpdate utilisateur, string? soccod = null, string? sitcod = null, string? sercod = null, bool allowPrivilegedFields = false);
         Task<List<string>> GetSitcodsAccessAsync(string soccod, string uticod);
         Task<List<Utilisateur>> GetAllUsersAsync(string soccod,string uticod);
         Task<UtiProfile?> GetProfileAsync(string soccod,string uticod);

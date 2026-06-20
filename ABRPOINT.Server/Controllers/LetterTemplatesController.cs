@@ -1,5 +1,7 @@
 using System.Security.Claims;
 using ABRPOINT.Server.Annotations.AdminAttributes;
+using ABRPOINT.Server.Authorization;
+using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Services.Rag;
 using ABRPOINT.Server.Tenancy;
@@ -24,10 +26,14 @@ namespace ABRPOINT.Server.Controllers;
 public class LetterTemplatesController : ControllerBase
 {
     private readonly ILetterGenerationService _service;
+    private readonly ApplicationDbContext _db;
+    private readonly ICurrentTenant _currentTenant;
 
-    public LetterTemplatesController(ILetterGenerationService service)
+    public LetterTemplatesController(ILetterGenerationService service, ApplicationDbContext db, ICurrentTenant currentTenant)
     {
         _service = service;
+        _db = db;
+        _currentTenant = currentTenant;
     }
 
     [HttpGet]
@@ -81,9 +87,21 @@ public class LetterTemplatesController : ControllerBase
         if (req == null || req.TemplateId <= 0 || string.IsNullOrWhiteSpace(req.Empcod))
             return BadRequest(new { error = "TemplateId et Empcod requis." });
 
+        var uticod = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        // Isolation par site (IDOR) : le courrier généré contient des PII (nom, adresse, CIN,
+        // téléphone, contrat) de l'employé ciblé. L'endpoint n'a que [Authorize] : sans ce
+        // contrôle, tout utilisateur authentifié générait un courrier pour N'IMPORTE quel
+        // empcod du tenant. On borne donc à : admin = tout, manager = ses sites, employé = soi.
+        var soccod = _currentTenant.Current?.LegacySoccod;
+        if (!string.IsNullOrEmpty(soccod)
+            && !await SiteAccess.CallerCanAccessEmployeeAsync(_db, soccod, req.Empcod!, uticod))
+        {
+            return Forbid();
+        }
+
         try
         {
-            var uticod = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var (bytes, contentType, fileName) = await _service.GenerateAsync(req, uticod, ct);
             return File(bytes, contentType, fileName);
         }

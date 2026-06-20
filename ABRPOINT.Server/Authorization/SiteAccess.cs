@@ -115,6 +115,38 @@ public static class SiteAccess
     ///   - Non-admin → restreint aux employés de SES sites ; si la requête est vide (= « tous »),
     ///     on substitue tous SES employés ; jamais de liste vide renvoyée (sentinelle sinon).
     /// </summary>
+    /// <summary>
+    /// Contrôle d'accès MONO-EMPLOYÉ pour les endpoints prenant un <c>empcod</c> en route
+    /// (fiche, contrat, états, soldes, rapports PDF…). Empêche l'IDOR/BOLA inter-site :
+    ///   - Pas de caller authentifié (test / endpoint sans [Authorize]) → autorisé (cohérent
+    ///     avec <see cref="ScopedEmpcodsAsync"/> / <see cref="FilterEmpcodsByAccessAsync"/>).
+    ///   - <paramref name="allowSelf"/> (défaut true) → un utilisateur accède à SON propre
+    ///     dossier (convention <c>Uticod == Empcod</c>). À passer <c>false</c> pour les
+    ///     opérations de gestion destructives (un salarié ne supprime pas son propre solde).
+    ///   - Admin global → toujours autorisé.
+    ///   - Sinon → l'employé ciblé doit appartenir à un site accessible au demandeur (Socuser).
+    /// Renvoie <c>false</c> si l'employé n'existe pas, n'a pas de site, ou est hors périmètre.
+    /// </summary>
+    public static async Task<bool> CallerCanAccessEmployeeAsync(
+        ApplicationDbContext db, string soccod, string empcod, string? uticod,
+        bool allowSelf = true, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(empcod)) return false;
+        if (string.IsNullOrEmpty(uticod)) return true; // pas de caller (test) → ne pas bloquer
+        if (allowSelf && string.Equals(uticod, empcod, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (await IsAdminAsync(db, uticod, ct)) return true;
+
+        var sitcods = await AccessibleSitcodsAsync(db, soccod, uticod, ct);
+        if (sitcods.Count == 0) return false;
+
+        return await db.Employes.AsNoTracking()
+            .AnyAsync(e => e.Soccod == soccod
+                           && e.Empcod == empcod
+                           && e.Sitcod != null
+                           && sitcods.Contains(e.Sitcod), ct);
+    }
+
     public static async Task<List<string>> ScopedEmpcodsAsync(
         ApplicationDbContext db, string soccod, string uticod, IEnumerable<string>? requested, CancellationToken ct = default)
     {

@@ -1,4 +1,5 @@
 using ABRPOINT.Server.Annotations.CongesAttributes.DemCongeAttributes;
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Interfaces;
@@ -77,6 +78,11 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
+                // Isolation (IDOR) : l'uticod en route n'était jamais comparé à l'identité. Un
+                // non-admin ne peut consulter QUE sa propre file de validation → on force son
+                // uticod authentifié (l'admin garde la liberté de cibler un autre validateur).
+                var caller = SiteAccess.CallerUticod(HttpContext) ?? string.Empty;
+                if (!await SiteAccess.IsAdminAsync(_context, caller)) uticod = caller;
                 return await _demandecongeRepository.GetDemongeWithAbsenceAsync(soccod, uticod);
             }
             catch (Exception)
@@ -119,6 +125,9 @@ namespace ABRPOINT.Server.Controllers
             {
                 datedebut = datedebut.Date;
                 datefin = datefin.Date;
+                // Isolation (IDOR) — cf. get-demconge : non-admin borné à son propre uticod.
+                var caller = SiteAccess.CallerUticod(HttpContext) ?? string.Empty;
+                if (!await SiteAccess.IsAdminAsync(_context, caller)) uticod = caller;
                     var result =  await _demandecongeRepository.GetAllByPeriodAsync(soccod, uticod,datedebut,datefin);
                 return result;
             }
@@ -185,6 +194,9 @@ namespace ABRPOINT.Server.Controllers
             {
                 datedebut = datedebut.Date;
                 datefin = datefin.Date;
+                // Isolation (IDOR) — cf. get-demconge : non-admin borné à son propre uticod.
+                var caller = SiteAccess.CallerUticod(HttpContext) ?? string.Empty;
+                if (!await SiteAccess.IsAdminAsync(_context, caller)) uticod = caller;
                     var result =  await _demandecongeRepository.GetAllEnAttenteByPeriodAsync(soccod, uticod,datedebut,datefin);
                 return result;
             }
@@ -198,6 +210,17 @@ namespace ABRPOINT.Server.Controllers
         [CanAddDemConge]
         public async Task<IActionResult> AcceptDemConge(string soccod, string concod,string empcod)
         {
+            // Isolation par site (IDOR) : on résout le VRAI empcod de la demande (concod) et on
+            // vérifie que l'appelant gère bien son site. Sans ça, un manager du site A validait/
+            // refusait la demande d'un employé du site B (concod prédictible). allowSelf=false :
+            // séparation des tâches (on ne valide pas sa propre demande).
+            var realEmpcod = await _context.Demconges.AsNoTracking()
+                .Where(d => d.Soccod == soccod && d.Concod == concod)
+                .Select(d => d.Empcod)
+                .FirstOrDefaultAsync();
+            if (string.IsNullOrEmpty(realEmpcod)) return NotFound(new { success = false, message = "Demande introuvable." });
+            if (!await SiteAccess.CallerCanAccessEmployeeAsync(_context, soccod, realEmpcod, SiteAccess.CallerUticod(HttpContext), allowSelf: false))
+                return Forbid();
             try
             {
                 var result = await _demandecongeRepository.AcceptDemCongeAsync(soccod, concod,empcod);
@@ -241,6 +264,14 @@ namespace ABRPOINT.Server.Controllers
         [CanAddDemConge]
         public async Task<IActionResult> RefuseDemConge(string soccod, string concod,string empcod)
         {
+            // Isolation par site (IDOR) — cf. AcceptDemConge.
+            var realEmpcod = await _context.Demconges.AsNoTracking()
+                .Where(d => d.Soccod == soccod && d.Concod == concod)
+                .Select(d => d.Empcod)
+                .FirstOrDefaultAsync();
+            if (string.IsNullOrEmpty(realEmpcod)) return NotFound(new { success = false, message = "Demande introuvable." });
+            if (!await SiteAccess.CallerCanAccessEmployeeAsync(_context, soccod, realEmpcod, SiteAccess.CallerUticod(HttpContext), allowSelf: false))
+                return Forbid();
             try
             {
                 var result = await _demandecongeRepository.RefuseDemCongeAsync(soccod, concod,empcod);

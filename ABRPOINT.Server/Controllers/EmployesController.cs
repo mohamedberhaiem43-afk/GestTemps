@@ -80,6 +80,31 @@ namespace ABRPOINT.Server.Controllers
             return u.Utiadm == "1" || ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(u.Utirole);
         }
 
+        /// <summary>
+        /// Garde anti-élévation de privilège sur l'attribution de rôle via la fiche employé.
+        /// <para>
+        /// L'endpoint <c>update-employe</c> (et la création) est ouvert aux rôles métier
+        /// (Manager / ResponsableRH) via <c>[CanUpdatetEmploye]</c>/<c>[CanAddEmploye]</c>.
+        /// Sans cette garde, un de ces comptes pouvait poster <c>Utirole="Administrator"</c>
+        /// sur sa propre fiche (Empcod == son Uticod) et se promouvoir Administrator du tenant.
+        /// </para>
+        /// Règles pour un appelant NON admin : (a) interdiction d'attribuer un rôle
+        /// d'administration ; (b) interdiction de modifier son PROPRE rôle (anti auto-escalade).
+        /// Un appelant admin n'est pas contraint. Retourne <c>true</c> si l'attribution est permise.
+        /// </summary>
+        private async Task<bool> CallerCanAssignRoleAsync(string? requestedRole, string? targetEmpcod)
+        {
+            if (string.IsNullOrWhiteSpace(requestedRole)) return true; // aucun changement de rôle demandé
+            if (await CanAutoPromoteRespAsync()) return true;          // appelant admin → autorisé
+            // --- appelant non-admin ---
+            if (ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(requestedRole))
+                return false; // un non-admin ne peut pas octroyer un rôle d'administration
+            var caller = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(caller) && string.Equals(caller, targetEmpcod, StringComparison.OrdinalIgnoreCase))
+                return false; // un non-admin ne peut pas modifier son propre rôle
+            return true;
+        }
+
         private string BuildLoginUrl()
         {
             // On vise toujours le domaine racine : la page de login retrouve le tenant
@@ -439,6 +464,10 @@ namespace ABRPOINT.Server.Controllers
         [CanGetEmploye]
         public async Task<IActionResult> GetEmpEtatConge(string soccod,string empcod,string moisdeb,string moisfin,string annee)
         {
+            // Isolation par site (IDOR) : empcod vient de la route ; [CanGetEmploye] ne borne
+            // pas le site. Admin = tout, manager = ses sites, self = soi.
+            if (!await Authorization.SiteAccess.CallerCanAccessEmployeeAsync(_db, soccod, empcod, Authorization.SiteAccess.CallerUticod(HttpContext)))
+                return Forbid();
             try
             {
                 EmpEtatConge empEtatConge = await _employeRepository.GetEmpEtatConge(soccod,empcod,moisdeb,moisfin,annee);
@@ -451,12 +480,16 @@ namespace ABRPOINT.Server.Controllers
         }
         [HttpGet("get-emp-horaires/{soccod}/{empcod}")]
         [CanGetEmploye]
-        public async Task<IEnumerable<EmpHoraireDto>> GetEmployesHoraire(string soccod, string empcod)
+        public async Task<IActionResult> GetEmployesHoraire(string soccod, string empcod)
         {
+            // Isolation par site (IDOR) — cf. GetEmpEtatConge. (Variante self-service dédiée :
+            // get-my-horaires ci-dessous.)
+            if (!await Authorization.SiteAccess.CallerCanAccessEmployeeAsync(_db, soccod, empcod, Authorization.SiteAccess.CallerUticod(HttpContext)))
+                return Forbid();
             try
             {
                 var empHoraires = await _employeRepository.GetEmployesHoraire(soccod, empcod);
-                return empHoraires;
+                return Ok(empHoraires);
             }
             catch (Exception)
             {
@@ -578,6 +611,11 @@ namespace ABRPOINT.Server.Controllers
                 Employe employe = new Employe();
                 if (empcod != null && empcod != "null")
                 {
+                    // Isolation par site (IDOR) : cette fiche renvoie CIN/téléphone/salaires
+                    // DÉCHIFFRÉS. [CanGetEmploye] ne borne pas le site → on vérifie l'accès à
+                    // CET employé (admin = tout, manager = ses sites, self = soi).
+                    if (!await Authorization.SiteAccess.CallerCanAccessEmployeeAsync(_db, soccod, empcod, Authorization.SiteAccess.CallerUticod(HttpContext)))
+                        return Forbid();
                     employe = await _employeRepository.GetByEmpcod(soccod, empcod);
                     if (employe == null)
                         return NotFound();
@@ -689,8 +727,11 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("get-report/{soccod}/{empcod}")]
         [CanGetEmploye]
-        public IActionResult GenerateVisiteMedicalReport(string soccod,string empcod)
+        public async Task<IActionResult> GenerateVisiteMedicalReport(string soccod,string empcod)
         {
+            // Isolation par site (IDOR) — rapport RH par empcod.
+            if (!await Authorization.SiteAccess.CallerCanAccessEmployeeAsync(_db, soccod, empcod, Authorization.SiteAccess.CallerUticod(HttpContext)))
+                return Forbid();
             try
             {
                 byte[] pdfBytes = _reportsGenerationService.GenerateVisiteMedicalReport(soccod, empcod);
@@ -704,9 +745,9 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("get-attestation-travail/{soccod}/{empcod}")]
         [CanGetEmploye]
-        public IActionResult GenerateAttestationTravailReport(string soccod, string empcod)
+        public async Task<IActionResult> GenerateAttestationTravailReport(string soccod, string empcod)
         {
-            return BuildDocumentResponse(
+            return await BuildDocumentResponse(
                 () => _reportsGenerationService.GenerateAttestationTravailReport(soccod, empcod),
                 fileName: $"Attestation_Travail_{empcod}.pdf",
                 docLabel: "AttestationTravail",
@@ -715,9 +756,9 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("get-certificat-travail/{soccod}/{empcod}")]
         [CanGetEmploye]
-        public IActionResult GenerateCertificatTravailReport(string soccod, string empcod)
+        public async Task<IActionResult> GenerateCertificatTravailReport(string soccod, string empcod)
         {
-            return BuildDocumentResponse(
+            return await BuildDocumentResponse(
                 () => _reportsGenerationService.GenerateCertificatTravailReport(soccod, empcod),
                 fileName: $"Certificat_Travail_{empcod}.pdf",
                 docLabel: "CertificatTravail",
@@ -726,9 +767,9 @@ namespace ABRPOINT.Server.Controllers
 
         [HttpGet("get-attestation-salaire/{soccod}/{empcod}")]
         [CanGetEmploye]
-        public IActionResult GenerateAttestationSalaireReport(string soccod, string empcod)
+        public async Task<IActionResult> GenerateAttestationSalaireReport(string soccod, string empcod)
         {
-            return BuildDocumentResponse(
+            return await BuildDocumentResponse(
                 () => _reportsGenerationService.GenerateAttestationSalaireReport(soccod, empcod),
                 fileName: $"Attestation_Salaire_{empcod}.pdf",
                 docLabel: "AttestationSalaire",
@@ -749,8 +790,13 @@ namespace ABRPOINT.Server.Controllers
         ///   - Toute autre exception → 500 avec le message racine (Empty/null deref
         ///     sur un champ employé manquant, échec de rendu FastReport, etc.).
         /// </summary>
-        private IActionResult BuildDocumentResponse(Func<byte[]> generate, string fileName, string docLabel, string soccod, string empcod)
+        private async Task<IActionResult> BuildDocumentResponse(Func<byte[]> generate, string fileName, string docLabel, string soccod, string empcod)
         {
+            // Isolation par site (IDOR) : ces documents RH (attestation travail/salaire,
+            // certificat) sont générés par empcod et contiennent PII + salaire. [CanGetEmploye]
+            // ne borne pas le site → admin = tout, manager = ses sites, self = soi.
+            if (!await Authorization.SiteAccess.CallerCanAccessEmployeeAsync(_db, soccod, empcod, Authorization.SiteAccess.CallerUticod(HttpContext)))
+                return Forbid();
             try
             {
                 byte[] pdfBytes = generate();
@@ -917,6 +963,15 @@ namespace ABRPOINT.Server.Controllers
                         }
                     }
                     
+                    // 🔒 Anti-élévation : un appelant non-admin ne peut pas créer un compte doté
+                    // d'un rôle d'administration (sinon il créerait un admin avec un mot de passe
+                    // qu'il connaît — CIN/token). On rétrograde alors le rôle en "Employee".
+                    if (!await CallerCanAssignRoleAsync(employe.Utirole, employe.Empcod))
+                    {
+                        _log.LogWarning("Création de compte : rôle '{Role}' refusé pour un appelant non-admin → rétrogradé en Employee. empcod={Empcod}", employe.Utirole, employe.Empcod);
+                        employe.Utirole = Authorization.PermissionCatalog.Roles.Employee;
+                    }
+
                     // Try to create user account - don't fail the whole request if user creation fails
                     try
                     {
@@ -956,8 +1011,10 @@ namespace ABRPOINT.Server.Controllers
                                 var freshUser = await _db.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == employe.Empcod);
                                 if (freshUser != null)
                                 {
-                                    freshUser.UtiResetCode = setupToken;
+                                    // SEC (#13) — token de setup hashé (le clair n'est que dans l'URL de l'email).
+                                    freshUser.UtiResetCode = Helpers.ResetSecretHelper.Hash(setupToken);
                                     freshUser.UtiResetCodeExpiry = DateTime.UtcNow.AddDays(7);
+                                    freshUser.UtiResetAttempts = 0;
                                     await _db.SaveChangesAsync();
                                 }
                             }
@@ -1147,6 +1204,14 @@ namespace ABRPOINT.Server.Controllers
                             passwordToHash = GenerateRandomPlaceholderPassword();
                         }
 
+                        // 🔒 Anti-élévation (cf. POST single) : un non-admin ne peut pas créer un
+                        // compte au rôle d'administration via l'import en masse → rétrogradé Employee.
+                        if (!await CallerCanAssignRoleAsync(emp.Utirole, emp.Empcod))
+                        {
+                            _log.LogWarning("Import en masse : rôle '{Role}' refusé pour un appelant non-admin → rétrogradé en Employee. empcod={Empcod}", emp.Utirole, emp.Empcod);
+                            emp.Utirole = Authorization.PermissionCatalog.Roles.Employee;
+                        }
+
                         Utilisateur utilisateur = new Utilisateur()
                         {
                             Utiactif = "1",
@@ -1176,8 +1241,10 @@ namespace ABRPOINT.Server.Controllers
                                     var freshUser = await _db.Utilisateurs.FirstOrDefaultAsync(u => u.Uticod == emp.Empcod);
                                     if (freshUser != null)
                                     {
-                                        freshUser.UtiResetCode = setupToken;
+                                        // SEC (#13) — token de setup hashé (le clair n'est que dans l'URL de l'email).
+                                        freshUser.UtiResetCode = Helpers.ResetSecretHelper.Hash(setupToken);
                                         freshUser.UtiResetCodeExpiry = DateTime.UtcNow.AddDays(7);
+                                        freshUser.UtiResetAttempts = 0;
                                         await _db.SaveChangesAsync();
                                     }
                                 }
@@ -1240,10 +1307,24 @@ namespace ABRPOINT.Server.Controllers
                     return Conflict(new { message = "Cet email est déjà utilisé par un autre compte." });
                 }
 
-                // Sync role to utilisateur table if provided
+                // Sync role to utilisateur table if provided.
+                // 🔒 On n'applique la garde que sur un CHANGEMENT réel de rôle : une simple
+                // édition (téléphone, email…) qui renvoie le rôle courant inchangé reste permise
+                // même à un non-admin. En revanche toute MODIFICATION de rôle est soumise à
+                // CallerCanAssignRoleAsync (cf. faille d'auto-promotion Administrator).
                 if (!string.IsNullOrEmpty(employe.Utirole))
                 {
-                    await _utilisateurRepository.UpdateRoleAsync(employe.Empcod, employe.Utirole);
+                    var currentRole = await _utilisateurRepository.GetRoleByUticodAsync(employe.Empcod);
+                    var isRoleChange = !string.Equals(currentRole, employe.Utirole, StringComparison.OrdinalIgnoreCase);
+                    if (isRoleChange)
+                    {
+                        if (!await CallerCanAssignRoleAsync(employe.Utirole, employe.Empcod))
+                        {
+                            _log.LogWarning("Élévation de privilège bloquée (update-employe) : appelant non-admin tente d'attribuer le rôle '{Role}' à empcod={Empcod}.", employe.Utirole, employe.Empcod);
+                            return Forbid();
+                        }
+                        await _utilisateurRepository.UpdateRoleAsync(employe.Empcod, employe.Utirole);
+                    }
                 }
 
                 // Auto-promotion : dès qu'un utilisateur est désigné comme Empresp

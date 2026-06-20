@@ -1,5 +1,6 @@
 using ABRPOINT.Server.Annotations.ContratAttributes;
 using ABRPOINT.Server.Annotations.EtatsAttributes;
+using ABRPOINT.Server.Authorization;
 using ABRPOINT.Server.Data;
 using ABRPOINT.Server.Dtaos;
 using ABRPOINT.Server.Helpers;
@@ -110,8 +111,13 @@ namespace ABRPOINT.Server.Controllers
         // le PDF du contrat de n'importe quel collaborateur.
         [HttpGet("get-contrat-report/{soccod}/{empcod}")]
         [CanGetContrat]
-        public IActionResult GetContratReport(string soccod, string empcod)
+        public async Task<IActionResult> GetContratReport(string soccod, string empcod)
         {
+            // Isolation par site (IDOR) : le PDF de contrat contient le salaire. La permission
+            // [CanGetContrat] ne borne pas le site → on vérifie que l'appelant a accès à CET
+            // employé (admin = tout, manager = ses sites, self = soi).
+            if (!await SiteAccess.CallerCanAccessEmployeeAsync(_dbContext, soccod, empcod, SiteAccess.CallerUticod(HttpContext)))
+                return Forbid();
             try
             {
                 byte[] pdfBytes = _reportsGenerationService.GenerateContratReport(soccod, empcod);

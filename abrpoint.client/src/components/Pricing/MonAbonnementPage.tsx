@@ -2,15 +2,13 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Box, Paper, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
   RadioGroup, FormControlLabel, Radio, TextField, Alert, CircularProgress, Stack, Divider,
-  LinearProgress, Switch, Slider,
+  LinearProgress, Slider,
 } from '@mui/material';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import CancelIcon from '@mui/icons-material/CancelOutlined';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ExtensionIcon from '@mui/icons-material/Extension';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +18,7 @@ import ChangePlanModal from './ChangePlanModal';
 import DevisPackDialog from './DevisPackDialog';
 import StorageUsageCard from './StorageUsageCard';
 import InvoiceReceipt, { type ReceiptSection } from './InvoiceReceipt';
-import { MODULE_CATALOG, getAddonLabels, mLabel, mDesc, mNote, type ModuleDef } from './moduleCatalog';
+import { getAddonLabels } from './moduleCatalog';
 
 /**
  * Libellés user-friendly des feature flags PlanFeatures (cf. PlanCatalog côté backend).
@@ -299,7 +297,8 @@ interface Dict {
   seatsToAdd: string;
   estimatedMonthlyExtra: string;
   addSeatsFootnote: string;
-  continueOnStripe: string;
+  confirmAddSeats: string;
+  processing: string;
 }
 
 const FR: Dict = {
@@ -473,13 +472,14 @@ const FR: Dict = {
   modulesActiveCount: (n) => `${n} module${n > 1 ? 's' : ''} actif${n > 1 ? 's' : ''}`,
   save: 'Enregistrer',
   addSeatsTitle: 'Ajouter des collaborateurs',
-  addSeatsIntro: 'Augmentez votre quota de collaborateurs autorisés via un paiement Stripe sécurisé. Chaque siège supplémentaire est facturé au tarif d\'overage de votre pack. Une fois le paiement validé, les collaborateurs correspondants pourront être créés sans confirmation supplémentaire.',
+  addSeatsIntro: 'Augmentez votre quota de collaborateurs autorisés. Le nombre choisi ci-dessous est appliqué immédiatement à votre abonnement (ajustement Stripe au prorata). Chaque siège supplémentaire est facturé au tarif d\'overage de votre pack ; les collaborateurs correspondants pourront ensuite être créés sans confirmation supplémentaire.',
   overageRateForPack: (name) => `Tarif overage Pack ${name}`,
   perMonthPerEmployee: '/ mois / collaborateur',
   seatsToAdd: 'Sièges à ajouter',
   estimatedMonthlyExtra: 'Surcoût mensuel estimé',
-  addSeatsFootnote: 'Vous finalisez le nombre de collaborateurs et le paiement sur la page Stripe sécurisée. Les sièges sont crédités à votre compte automatiquement, sans double-comptage.',
-  continueOnStripe: 'Continuer sur Stripe →',
+  addSeatsFootnote: 'La quantité est ajustée immédiatement sur votre abonnement (prorata Stripe), sans page de paiement supplémentaire. Les sièges sont crédités à votre compte automatiquement, sans double-comptage.',
+  confirmAddSeats: 'Confirmer l\'ajout →',
+  processing: 'Traitement…',
 };
 
 const EN: Dict = {
@@ -653,26 +653,17 @@ const EN: Dict = {
   modulesActiveCount: (n) => `${n} active module${n > 1 ? 's' : ''}`,
   save: 'Save',
   addSeatsTitle: 'Add employees',
-  addSeatsIntro: 'Increase your authorized employee quota via a secure Stripe payment. Each additional seat is billed at your plan\'s overage rate. Once the payment is validated, the matching employees can be created without further confirmation.',
+  addSeatsIntro: 'Increase your authorized employee quota. The number chosen below is applied immediately to your subscription (prorated Stripe adjustment). Each additional seat is billed at your plan\'s overage rate; the matching employees can then be created without further confirmation.',
   overageRateForPack: (name) => `Overage rate · Pack ${name}`,
   perMonthPerEmployee: '/ month / employee',
   seatsToAdd: 'Seats to add',
   estimatedMonthlyExtra: 'Estimated monthly extra cost',
-  addSeatsFootnote: 'You finalize the number of employees and the payment on the secure Stripe page. Seats are credited to your account automatically, with no double-counting.',
-  continueOnStripe: 'Continue on Stripe →',
+  addSeatsFootnote: 'The quantity is adjusted immediately on your subscription (Stripe proration), with no extra payment page. Seats are credited to your account automatically, with no double-counting.',
+  confirmAddSeats: 'Confirm →',
+  processing: 'Processing…',
 };
 
 const LANG: Record<Lang, Dict> = { fr: FR, en: EN };
-
-// Payment Links Stripe dédiés « Collaborateur supplémentaire pack {plan} » (mensuel : 4,90 /
-// 6,90 / 9,90 € selon le pack). Acheter via ce lien crée un abonnement Stripe distinct pour
-// les sièges, rattaché au tenant via ?client_reference_id={slug} → le webhook incrémente
-// Tenant.LinkPurchasedSeats (relève le seuil d'overage, facturation séparée du user_supp du pack).
-const SEAT_PAYMENT_LINKS: Record<string, string> = {
-  Starter: 'https://buy.stripe.com/4gMeV67Cl2JbaNFgc90000h',
-  Standard: 'https://buy.stripe.com/9B6dR2aOx0B31d5gc90000j',
-  Premium: 'https://buy.stripe.com/14A6oAf4N97zaNF3pn0000i',
-};
 
 export default function MonAbonnementPage() {
   // navigate sert encore au redirect post-réactivation (finishSuccess → /dashboard).
@@ -687,26 +678,13 @@ export default function MonAbonnementPage() {
   // Map addons localisée (clé backend → { label, description, priceMonthlyEur }) dans la
   // langue courante. Remplace ADDON_LABELS (FR-only) pour tout libellé affiché.
   const addonLabels = getAddonLabels(lang);
-  const { isAdmin, isManager, refreshAuth, userName, isTrialing, trialDaysRemaining, planCode, planFeatures, addons } = useAuth();
+  const { isAdmin, isManager, refreshAuth, userName, isTrialing, trialDaysRemaining, addons } = useAuth();
   const canManage = isAdmin || isManager;
 
-  // Liste des features TRUE à afficher comme "modules débloqués" dans la carte récap.
-  // Filtrée sur FEATURE_LABELS pour exclure les flags techniques non user-facing
-  // (deviceTrustEnforced & co.) et garantir un libellé propre pour chacune.
-  const activeFeatureKeys = (Object.keys(FEATURE_ICONS) as (keyof PlanFeatures)[])
-    .filter((k) => Boolean(planFeatures?.[k]));
   // Addons reconnus du catalogue (filtre défensif contre des valeurs serveur inattendues).
+  // Conservé : alimente le reçu de facture (InvoiceReceipt) plus bas.
   const subscribedAddons = (addons ?? []).filter((a) => addonLabels[a] != null);
 
-  // Un module est « inclus dans le pack » si sa feature est active dans planFeatures
-  // SANS qu'un addon souscrit en soit la cause — donc fournie par le pack lui-même
-  // (ex. Premium inclut ragAi, customBranding…). Ces modules s'affichent « inclus /
-  // actif » (interrupteur verrouillé) au lieu d'être proposés à l'achat.
-  const moduleIsIncludedByPack = (m: ModuleDef): boolean => {
-    if (!m.feature || !planFeatures?.[m.feature]) return false;
-    if (m.addonKey && subscribedAddons.includes(m.addonKey)) return false;
-    return true;
-  };
   // Prénom uniquement pour personnaliser le bandeau trial (« Mohamed, il vous reste… »).
   // userName est « Prénom Nom » concaténé côté serveur (Utiprn + Utinom).
   const firstName = (userName ?? '').trim().split(/\s+/)[0] || null;
@@ -767,37 +745,28 @@ export default function MonAbonnementPage() {
     setAddSeatsError(null);
     setAddSeatsDialogOpen(true);
   };
-  // L'ajout de collaborateurs passe désormais par le Payment Link Stripe dédié
-  // (openSeatStripeLink), et non plus par l'API /billing/add-seats : le client choisit la
-  // quantité et paie sur la page Stripe hébergée ; le webhook crédite les sièges au tenant
-  // (LinkPurchasedSeats). Le curseur ci-dessous ne sert plus qu'à simuler le coût mensuel.
-
-  // Dialog "Gérer mes modules optionnels" : ouvert depuis la carte "Vos modules actifs".
-  // L'activation d'un module est UNIQUEMENT payante via Stripe (bouton « Ajouter via Stripe »
-  // → Payment Link du module ; le webhook checkout.session.completed crédite l'accès au
-  // tenant). Plus d'activation gratuite : ce dialog n'écrit plus dans Tenant.Addons via
-  // /billing/addons — il affiche l'état courant et redirige vers le paiement Stripe.
-  const [addonsDialogOpen, setAddonsDialogOpen] = useState(false);
-  const openAddonsDialog = () => setAddonsDialogOpen(true);
-  // Total mensuel des modules optionnels ACTIFS (souscrits via Stripe), à titre informatif
-  // en pied de dialog. Les modules inclus dans le pack ne sont pas comptés (déjà couverts).
-  const activeModulesMonthlyTotal = subscribedAddons.reduce((sum, k) => sum + (addonLabels[k]?.priceMonthlyEur ?? 0), 0);
-
-  // Ouvre le Payment Link Stripe d'un module en y injectant ?client_reference_id={slug}
-  // pour que le webhook checkout.session.completed rattache l'achat au tenant courant.
-  // Le slug vient de /billing/subscription (info.slug), avec repli sur localStorage.
-  const openModuleStripeLink = (link: string) => {
-    const slug = info?.slug || (typeof window !== 'undefined' ? window.localStorage.getItem('tenantSlug') : '') || '';
-    const url = slug ? `${link}?client_reference_id=${encodeURIComponent(slug)}` : link;
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  // Ouvre le Payment Link « Collaborateur supplémentaire » du pack courant. Le client choisit
-  // la quantité sur la page Stripe ; le webhook crédite les sièges au tenant (LinkPurchasedSeats).
-  const seatLink = SEAT_PAYMENT_LINKS[info?.plan?.code || info?.planCode || ''];
-  const openSeatStripeLink = () => {
-    if (!seatLink) { setAddSeatsError(d.noSeatLink); return; }
-    openModuleStripeLink(seatLink);
+  // SEC/UX — Le pré-achat de sièges est RELIÉ au curseur : POST /billing/add-seats avec la
+  // quantité choisie ajuste la quantité user_supp de l'abonnement Stripe (prorata immédiat),
+  // SANS nouvelle page de paiement ni Payment Link statique. (Un Stripe Payment Link n'accepte
+  // PAS de quantité en paramètre d'URL — d'où l'usage de l'API qui pousse la quantité.) Le
+  // serveur enregistre le floor de sièges pré-achetés (extra_seats_purchased) pour qu'ils ne
+  // soient jamais déduits par la sync quotidienne.
+  const [addSeatsSubmitting, setAddSeatsSubmitting] = useState(false);
+  const confirmAddSeats = async () => {
+    setAddSeatsError(null);
+    setAddSeatsSubmitting(true);
+    try {
+      await apiInstance.post('/billing/add-seats', { count: addSeatsCount });
+      await fetchInfo({ silent: true });
+      setAddSeatsDialogOpen(false);
+    } catch (e: any) {
+      setAddSeatsError(
+        e?.response?.data?.error
+        || (lang === 'fr' ? "Erreur lors de l'ajout de collaborateurs." : 'Failed to add employees.')
+      );
+    } finally {
+      setAddSeatsSubmitting(false);
+    }
   };
 
   const fetchInfo = async (opts: { silent?: boolean } = {}): Promise<SubscriptionInfo | null> => {
@@ -1401,18 +1370,6 @@ export default function MonAbonnementPage() {
                     {d.addEmployee}
                   </Button>
                   <Button
-                    variant="contained"
-                    onClick={openAddonsDialog}
-                    startIcon={<ExtensionIcon />}
-                    sx={{
-                      textTransform: 'none', fontWeight: 700, borderRadius: '12px', px: 2.5,
-                      background: 'linear-gradient(135deg,#8b46f0,#6d28d9)', boxShadow: '0 8px 18px -8px rgba(124,58,237,.6)',
-                      '&:hover': { background: 'linear-gradient(135deg,#7d3ae0,#5f23c2)' },
-                    }}
-                  >
-                    {d.manageModules}
-                  </Button>
-                  <Button
                     variant="outlined"
                     onClick={() => setChangePlanOpen(true)}
                     sx={{
@@ -1439,132 +1396,9 @@ export default function MonAbonnementPage() {
         );
       })()}
 
-      {/* ─── Modules actifs ────────────────────────────────────────────────────
-          Récapitulatif des fonctionnalités débloquées par le pack ET par les
-          addons souscrits au signup (cf. Tenant.Addons CSV). Source de vérité :
-          /me → planFeatures (flags fusionnés via GetEffectiveFeatures) + addons
-          (liste brute des modules souscrits en plus du pack). Les deux sont
-          affichés distinctement pour que l'admin voie ce qui vient du pack vs
-          ce qui a été activé en plus à la souscription.
-      */}
-      {planFeatures && (
-        <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: '20px', border: '1px solid #e2e8f0', mb: 3 }}>
-          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-            <Box sx={{
-              width: 48, height: 48, borderRadius: '12px', bgcolor: '#eef2f8',
-              color: '#0040a1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <CheckCircleIcon />
-            </Box>
-            <Box>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {d.yourActiveModules}
-              </Typography>
-              <Typography sx={{ fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
-                {d.featuresUnlocked(activeFeatureKeys.length)}
-                {subscribedAddons.length > 0 && (
-                  <Typography component="span" sx={{ fontSize: 13, fontWeight: 600, color: '#7c3aed', ml: 1 }}>
-                    {d.additionalModulesInline(subscribedAddons.length)}
-                  </Typography>
-                )}
-              </Typography>
-            </Box>
-          </Stack>
-
-          {/* Bloc "Inclus dans votre pack" — affiche toutes les features actives, qu'elles
-              viennent du pack ou d'un addon (les flags sont déjà mergés côté backend via
-              GetEffectiveFeatures). C'est la vue "ce à quoi j'ai accès aujourd'hui". */}
-          <Box sx={{ mb: subscribedAddons.length > 0 ? 3 : 0 }}>
-            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1.5 }}>
-              {d.includedInPack(planCode ?? null)}
-            </Typography>
-            {activeFeatureKeys.length === 0 ? (
-              <Typography sx={{ fontSize: 13, color: '#94a3b8' }}>
-                {d.noModuleYet}
-              </Typography>
-            ) : (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {activeFeatureKeys.map((k) => {
-                  const icon = FEATURE_ICONS[k];
-                  const label = d.featureLabels[k as FeatureKey];
-                  // Skip rendering if no label is defined (safety fallback)
-                  if (!icon || !label) {
-                    console.warn(`Missing label for feature: ${k}`);
-                    return null;
-                  }
-                  return (
-                    <Chip
-                      key={k}
-                      label={`${icon} ${label}`}
-                      sx={{
-                        bgcolor: '#eff6ff', color: '#1e40af', fontWeight: 600,
-                        borderRadius: '10px', border: '1px solid #bfdbfe',
-                        '& .MuiChip-label': { px: 1.5 },
-                      }}
-                    />
-                  );
-                })}
-              </Box>
-            )}
-          </Box>
-
-          {/* Bloc "Modules additionnels" — affiché uniquement si le tenant a souscrit
-              des addons en plus du pack (cf. Tenant.Addons CSV). Distinction visuelle
-              en violet pour ne pas confondre avec les modules natifs du pack. */}
-          {subscribedAddons.length > 0 && (
-            <Box>
-              <Divider sx={{ mb: 2.5 }} />
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
-                <ExtensionIcon sx={{ fontSize: 18, color: '#7c3aed' }} />
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#7c3aed' }}>
-                  {d.additionalModulesSubscribed}
-                </Typography>
-              </Stack>
-              <Stack spacing={1.5}>
-                {subscribedAddons.map((a) => {
-                  const meta = addonLabels[a];
-                  return (
-                    <Box
-                      key={a}
-                      sx={{
-                        p: 1.75, bgcolor: '#faf5ff', borderRadius: '12px',
-                        border: '1px solid #e9d5ff',
-                      }}
-                    >
-                      <Typography sx={{ fontWeight: 700, color: '#6d28d9', fontSize: 14 }}>
-                        {meta.label}
-                      </Typography>
-                      <Typography sx={{ fontSize: 12.5, color: '#7c3aed', mt: 0.25, lineHeight: 1.45 }}>
-                        {meta.description}
-                      </Typography>
-                    </Box>
-                  );
-                })}
-              </Stack>
-            </Box>
-          )}
-
-          {canManage && (
-            <Box sx={{ mt: 3, pt: 2, borderTop: '1px dashed #e2e8f0', display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-              <Button
-                variant="contained"
-                onClick={openAddonsDialog}
-                startIcon={<ExtensionIcon />}
-                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px', bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' } }}
-              >
-                {d.manageOptionalModules}
-              </Button>
-              <Button
-                variant="text"
-                onClick={() => setChangePlanOpen(true)}
-                sx={{ textTransform: 'none', fontWeight: 700, color: '#0040a1' }}
-              >
-                {d.changePlan}
-              </Button>
-            </Box>
-          )}
-        </Paper>
-      )}
+      {/* Section « modules optionnels » retirée de la page d'abonnement (carte « Vos modules
+          actifs » + popup « Gérer mes modules optionnels »). La gestion/souscription des
+          modules ne se fait plus ici. */}
 
       <StorageUsageCard onUpgradeClick={() => setChangePlanOpen(true)} />
 
@@ -1805,150 +1639,6 @@ export default function MonAbonnementPage() {
         cycle={devisDialog?.cycle ?? 'monthly'}
       />
 
-      {/* ─── Dialog "Gérer mes modules optionnels" ───────────────────────────
-          Vitrine + souscription PAYANTE des modules optionnels. L'activation se fait
-          UNIQUEMENT via Stripe (bouton « Ajouter via Stripe » → Payment Link du module) :
-          le webhook checkout.session.completed → ApplyCheckoutSubscriptionAsync crédite
-          l'addon au tenant (Tenant.Addons), puis /me recharge planFeatures et la sidebar.
-          Les interrupteurs sont en LECTURE SEULE (statut d'activation), il n'y a plus
-          d'activation gratuite ni d'écriture via PUT /billing/addons.
-      */}
-      <Dialog
-        open={addonsDialogOpen}
-        onClose={() => setAddonsDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: '16px' } }}
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
-          <ExtensionIcon sx={{ color: '#7c3aed' }} />
-          <Typography component="span" sx={{ fontSize: 18, fontWeight: 800 }}>
-            {d.manageOptionalModules}
-          </Typography>
-        </DialogTitle>
-        <DialogContent dividers sx={{ p: 0 }}>
-          <Typography sx={{ px: 3, pt: 2, pb: 1, fontSize: 13, color: '#64748b' }}>
-            {d.optionalModulesIntro}
-          </Typography>
-          <Stack divider={<Divider />}>
-            {MODULE_CATALOG.map((m) => {
-              // Inclus par le pack → coché + verrouillé (pas re-facturé). Sinon « actif »
-              // seulement si l'addon a été souscrit via Stripe (présent dans Tenant.Addons).
-              const included = moduleIsIncludedByPack(m);
-              const checked = included || (m.addonKey ? subscribedAddons.includes(m.addonKey) : false);
-              const note = mNote(m, lang);
-              return (
-                <Stack
-                  key={m.label}
-                  direction="row"
-                  alignItems="center"
-                  spacing={2}
-                  sx={{
-                    px: 3, py: 2,
-                    bgcolor: checked ? '#F3EEFE' : 'transparent',
-                    opacity: checked ? 1 : 0.85,
-                    transition: 'background-color 0.15s',
-                  }}
-                >
-                  {/* Interrupteur en LECTURE SEULE : reflète l'état d'activation (inclus dans
-                      le pack ou souscrit via Stripe). L'activation se fait via « Ajouter via
-                      Stripe » ci-contre — aucune activation gratuite depuis cet interrupteur. */}
-                  <Switch
-                    checked={checked}
-                    disabled
-                    sx={{
-                      '& .MuiSwitch-switchBase.Mui-checked': { color: '#7C3AED' },
-                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#7C3AED', opacity: 1 },
-                    }}
-                  />
-                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Stack direction="row" alignItems="center" spacing={1} sx={{ flexWrap: 'wrap' }}>
-                      <Typography sx={{ fontWeight: 700, color: '#0F1B33', fontSize: 14 }}>
-                        {mLabel(m, lang)}
-                      </Typography>
-                      {included && (
-                        <Chip
-                          size="small"
-                          label={d.includedInPackChip}
-                          sx={{ height: 18, fontSize: 10.5, fontWeight: 700, bgcolor: '#E7F6ED', color: '#15803d' }}
-                        />
-                      )}
-                    </Stack>
-                    <Typography sx={{ fontSize: 12, color: '#6A7691', lineHeight: 1.45, mt: 0.25 }}>
-                      {mDesc(m, lang)}{note ? ` · ${note}` : ''}
-                    </Typography>
-                  </Box>
-                  {/* Prix MENSUEL uniquement. Barré si inclus (déjà couvert par le pack).
-                      Module « Sur devis » non inclus → on affiche « Sur devis » au lieu d'un tarif. */}
-                  <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                    {m.quoteOnly && !included ? (
-                      <Typography sx={{ fontWeight: 800, fontSize: 14, color: '#14346B' }}>
-                        {d.onQuote}
-                      </Typography>
-                    ) : (
-                      <Typography sx={{
-                        fontWeight: 800, fontSize: 15,
-                        color: included ? '#15803d' : '#7C3AED',
-                        textDecoration: included ? 'line-through' : 'none',
-                      }}>
-                        +{m.priceMonthlyEur}€
-                        <Typography component="span" sx={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
-                          {' '}{d.perMonth}
-                        </Typography>
-                      </Typography>
-                    )}
-                    {/* Souscription payante via le Payment Link Stripe du module (essai inclus
-                        côté Stripe). Affiché quand le module n'est pas déjà inclus/souscrit et
-                        qu'un lien existe — l'achat est rattaché au tenant via client_reference_id. */}
-                    {m.stripeLink && !included && !checked && (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => openModuleStripeLink(m.stripeLink!)}
-                        sx={{
-                          mt: 0.75, textTransform: 'none', fontWeight: 700, fontSize: 12,
-                          borderRadius: '8px', py: 0.25, px: 1.25, minWidth: 0,
-                          color: '#7C3AED', borderColor: '#d8b4fe', '&:hover': { borderColor: '#7C3AED', bgcolor: '#faf5ff' },
-                        }}
-                      >
-                        {d.addViaStripe}
-                      </Button>
-                    )}
-                  </Box>
-                </Stack>
-              );
-            })}
-          </Stack>
-          {/* Impact en direct (variante C) — mensuel uniquement */}
-          <Box sx={{ px: 3, py: 2, bgcolor: '#EEF3FB', borderTop: '1px solid #DCE6F6' }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography sx={{ fontSize: 13, color: '#6A7691' }}>
-                {d.invoiceImpact}
-              </Typography>
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography sx={{ fontWeight: 800, color: '#14346B', fontSize: 19, fontVariantNumeric: 'tabular-nums' }}>
-                  {activeModulesMonthlyTotal > 0 ? '+' : ''}{eur(activeModulesMonthlyTotal, d.locale)} {d.perMonthHt}
-                </Typography>
-                <Typography sx={{ fontSize: 11.5, color: '#7C3AED', fontWeight: 700 }}>
-                  {d.modulesActiveCount(subscribedAddons.length)}
-                </Typography>
-              </Box>
-            </Stack>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button
-            variant="contained"
-            onClick={() => setAddonsDialogOpen(false)}
-            sx={{
-              textTransform: 'none', fontWeight: 700, borderRadius: '10px',
-              bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' },
-            }}
-          >
-            {d.close}
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* ─── Dialog "Ajouter des collaborateurs" ────────────────────────────────
           Pré-achat de N sièges supplémentaires depuis la page abonnement (sans
@@ -2047,19 +1737,19 @@ export default function MonAbonnementPage() {
           >
             {d.cancel}
           </Button>
-          {/* Le paiement passe par le Payment Link Stripe dédié (et non l'API /billing/add-seats) :
-              la quantité se choisit sur Stripe, le webhook crédite les sièges (LinkPurchasedSeats). */}
+          {/* La quantité du curseur est ENVOYÉE à Stripe via POST /billing/add-seats :
+              ajustement de l'abonnement (prorata immédiat), sans page de paiement externe. */}
           <Button
             variant="contained"
-            onClick={() => { openSeatStripeLink(); setAddSeatsDialogOpen(false); }}
-            disabled={!seatLink}
+            onClick={confirmAddSeats}
+            disabled={addSeatsSubmitting || !info?.hasActiveStripeSubscription}
             startIcon={<GroupAddIcon />}
             sx={{
               textTransform: 'none', fontWeight: 700, borderRadius: '10px',
               bgcolor: '#635BFF', '&:hover': { bgcolor: '#4f46e5' },
             }}
           >
-            {d.continueOnStripe}
+            {addSeatsSubmitting ? d.processing : d.confirmAddSeats}
           </Button>
         </DialogActions>
       </Dialog>

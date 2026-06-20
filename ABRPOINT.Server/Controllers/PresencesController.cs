@@ -367,6 +367,10 @@ namespace ABRPOINT.Server.Controllers
         [CanGetEtatPeriodique]
         public async Task<IActionResult> GetEmpEtatPeriodique(string soccod,string empcod)
         {
+            // Isolation par site (IDOR) : l'empcod vient de la route. Un manager ne doit pas
+            // consulter les pointages d'un employé d'un autre site (admin = tout, self = soi).
+            if (!await SiteAccess.CallerCanAccessEmployeeAsync(_db, soccod, empcod, SiteAccess.CallerUticod(HttpContext)))
+                return Forbid();
             IEnumerable<Presence> result = await _presenceRepository.GetEmpEtatPeriodiqueAsync(soccod,empcod);
             return Ok(result);
         }
@@ -376,6 +380,9 @@ namespace ABRPOINT.Server.Controllers
         {
             try
             {
+                // Isolation par site (IDOR) — cf. GetEmpEtatPeriodique ci-dessus.
+                if (!await SiteAccess.CallerCanAccessEmployeeAsync(_db, soccod, empcod, SiteAccess.CallerUticod(HttpContext)))
+                    return Forbid();
                 IEnumerable<PresenceDto> result = await _presenceRepository.GetEmpEtatPeriodiqueAsync(soccod, empcod, dateDebut, dateFin);
                 return Ok(result);
             }

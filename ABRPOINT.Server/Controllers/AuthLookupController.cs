@@ -166,8 +166,11 @@ public class AuthLookupController : ControllerBase
             }
 
             var resetCode = RandomNumberGenerator.GetInt32(100000, 1000000).ToString("D6");
-            user.UtiResetCode = resetCode;
+            // SEC (#13) — on stocke le HASH du code (jamais le clair) ; le code en clair n'existe
+            // que dans l'email ci-dessous. Compteur de tentatives remis à 0 pour ce nouveau code.
+            user.UtiResetCode = Helpers.ResetSecretHelper.Hash(resetCode);
             user.UtiResetCodeExpiry = DateTime.UtcNow.AddMinutes(15);
+            user.UtiResetAttempts = 0;
             await tdb.SaveChangesAsync(ct);
 
             var displayName = string.IsNullOrWhiteSpace(user.Utiprn) ? user.Utinom ?? email : $"{user.Utiprn} {user.Utinom}";
@@ -245,12 +248,33 @@ public class AuthLookupController : ControllerBase
 
             await using var tdb = CreateTenantDb(tenantDbName);
             var user = await tdb.Utilisateurs.FirstOrDefaultAsync(u => u.Utimail != null && u.Utimail.ToLower() == email, ct);
-            if (user is null || user.UtiResetCode != code || !user.UtiResetCodeExpiry.HasValue || user.UtiResetCodeExpiry < DateTime.UtcNow)
+            // Message générique constant (anti-énumération) pour tous les cas d'échec.
+            if (user is null || string.IsNullOrEmpty(user.UtiResetCode)
+                || !user.UtiResetCodeExpiry.HasValue || user.UtiResetCodeExpiry < DateTime.UtcNow)
                 return BadRequest(new { message = "Code invalide ou expiré." });
+
+            // SEC (#13) — Cap de tentatives par compte : au-delà de 5 essais, on invalide le code
+            // (indépendamment de l'IP) → un OTP 6 chiffres devient infaisable à brute-forcer.
+            if ((user.UtiResetAttempts ?? 0) >= Helpers.ResetSecretHelper.MaxAttempts)
+            {
+                user.UtiResetCode = null;
+                user.UtiResetCodeExpiry = null;
+                await tdb.SaveChangesAsync(ct);
+                return BadRequest(new { message = "Code invalide ou expiré." });
+            }
+
+            // Vérification à temps constant (BCrypt) du hash stocké.
+            if (!Helpers.ResetSecretHelper.Verify(user.UtiResetCode, code))
+            {
+                user.UtiResetAttempts = (user.UtiResetAttempts ?? 0) + 1;
+                await tdb.SaveChangesAsync(ct);
+                return BadRequest(new { message = "Code invalide ou expiré." });
+            }
 
             user.Utimps = BCrypt.Net.BCrypt.HashPassword(newPassword);
             user.UtiResetCode = null;
             user.UtiResetCodeExpiry = null;
+            user.UtiResetAttempts = 0;
             await tdb.SaveChangesAsync(ct);
 
             return Ok(new { message = "Mot de passe réinitialisé avec succès." });

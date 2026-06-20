@@ -208,6 +208,12 @@ public static class BaseDataSchemaMigrator
         await AddColumnIfMissingAsync(db, "utilisateur", "uti_email_verif_expiry", "TIMESTAMP NULL", ct);
         await AddColumnIfMissingAsync(db, "utilisateur", "uti_email_verif_attempts", "INTEGER NULL", ct);
 
+        // SEC (#13) — Reset/setup password : compteur d'échecs de vérification du secret stocké
+        // (désormais BCrypt-hashé) dans la colonne legacy UtiResetCode. Au-delà de 5 essais le
+        // code est invalidé, indépendamment de l'IP → brute-force d'un OTP 6 chiffres infaisable.
+        // Cf. Utilisateur.UtiResetAttempts / ResetSecretHelper.
+        await AddColumnIfMissingAsync(db, "utilisateur", "uti_reset_attempts", "INTEGER NULL", ct);
+
         // OTP de signature électronique (2026-06, Phase 3) : stockage dédié pour l'OTP
         // demandé au moment de signer (niveau de garantie « avancé »), distinct de la vérif
         // email du signup. BCrypt-hashé, expiry court, anti-bruteforce. Cf. SignatureOtpService.

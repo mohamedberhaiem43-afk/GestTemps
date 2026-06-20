@@ -292,7 +292,7 @@ namespace ABRPOINT.Server.Repository
             throw new NotImplementedException();
         }
 
-        public async Task<bool> UpdateUserAsync(UtilisateurUpdate utilisateur, string? soccod = null, string? sitcod = null, string? sercod = null)
+        public async Task<bool> UpdateUserAsync(UtilisateurUpdate utilisateur, string? soccod = null, string? sitcod = null, string? sercod = null, bool allowPrivilegedFields = false)
         {
             try
             {
@@ -310,22 +310,32 @@ namespace ABRPOINT.Server.Repository
                 if (utilisateur.Utilisateur.Utinom  != null) existing.Utinom  = utilisateur.Utilisateur.Utinom;
                 if (utilisateur.Utilisateur.Utiprn  != null) existing.Utiprn  = utilisateur.Utilisateur.Utiprn;
                 if (utilisateur.Utilisateur.Utimail != null) existing.Utimail = utilisateur.Utilisateur.Utimail;
-                if (!string.IsNullOrWhiteSpace(utilisateur.Utilisateur.Utiactif))
-                    existing.Utiactif = utilisateur.Utilisateur.Utiactif;
-                if (!string.IsNullOrWhiteSpace(utilisateur.Utilisateur.Utirole))
+
+                // 🔒 Champs PRIVILÉGIÉS (activation du compte, rôle RBAC, flag admin legacy).
+                // Ils ne sont écrits QUE si l'appelant est explicitement autorisé à les modifier
+                // (endpoints [Admin] : update-user / update-role). Le chemin self-service
+                // (update-profile) appelle cette méthode avec allowPrivilegedFields=false :
+                // sans cette garde, un simple employé pouvait poster {"Utirole":"Administrator"}
+                // sur son propre profil et s'auto-promouvoir admin du tenant (mass assignment).
+                if (allowPrivilegedFields)
                 {
-                    existing.Utirole = utilisateur.Utilisateur.Utirole;
-                    // Utiadm est DÉRIVÉ du rôle (source de vérité), pas du flag envoyé par
-                    // le front. Sans ça, un changement de rôle vers "Administrator" pouvait
-                    // laisser Utiadm='0' (le front ne cochait l'admin que pour le libellé
-                    // exact "Administrator") → /me renvoyait isAdmin=false et l'utilisateur
-                    // restait bloqué sur la vue "simple employé" malgré son nouveau rôle.
-                    existing.Utiadm = ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(existing.Utirole)
-                        ? "1" : "0";
-                }
-                else if (!string.IsNullOrWhiteSpace(utilisateur.Utilisateur.Utiadm))
-                {
-                    existing.Utiadm = utilisateur.Utilisateur.Utiadm;
+                    if (!string.IsNullOrWhiteSpace(utilisateur.Utilisateur.Utiactif))
+                        existing.Utiactif = utilisateur.Utilisateur.Utiactif;
+                    if (!string.IsNullOrWhiteSpace(utilisateur.Utilisateur.Utirole))
+                    {
+                        existing.Utirole = utilisateur.Utilisateur.Utirole;
+                        // Utiadm est DÉRIVÉ du rôle (source de vérité), pas du flag envoyé par
+                        // le front. Sans ça, un changement de rôle vers "Administrator" pouvait
+                        // laisser Utiadm='0' (le front ne cochait l'admin que pour le libellé
+                        // exact "Administrator") → /me renvoyait isAdmin=false et l'utilisateur
+                        // restait bloqué sur la vue "simple employé" malgré son nouveau rôle.
+                        existing.Utiadm = ABRPOINT.Server.Authorization.PermissionCatalog.IsAdminRole(existing.Utirole)
+                            ? "1" : "0";
+                    }
+                    else if (!string.IsNullOrWhiteSpace(utilisateur.Utilisateur.Utiadm))
+                    {
+                        existing.Utiadm = utilisateur.Utilisateur.Utiadm;
+                    }
                 }
 
                 // Recovery : éditer/enregistrer un utilisateur depuis la page admin

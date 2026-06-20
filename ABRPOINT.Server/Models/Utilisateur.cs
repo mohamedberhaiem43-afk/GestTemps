@@ -49,6 +49,17 @@ public partial class Utilisateur : BaseEntity
     public DateTime? UtiResetCodeExpiry { get; set; }
 
     /// <summary>
+    /// SEC (#13) — Compteur d'échecs de vérification consécutifs du secret de reset/setup
+    /// (hash BCrypt dans <c>UtiResetCode</c>). Au-delà de <c>ResetSecretHelper.MaxAttempts</c>
+    /// (5), le code est invalidé : l'utilisateur doit relancer un « mot de passe oublié ».
+    /// Neutralise le brute-force en ligne d'un OTP 6 chiffres indépendamment de l'IP.
+    /// Remis à 0 à chaque émission d'un nouveau code. Colonne ajoutée par
+    /// <c>BaseDataSchemaMigrator</c> (uti_reset_attempts).
+    /// </summary>
+    [Column("uti_reset_attempts")]
+    public int? UtiResetAttempts { get; set; }
+
+    /// <summary>
     /// Compteur d'échecs de login consécutifs (reset à 0 après une connexion réussie).
     /// Sert au backoff progressif : 3 échecs → lock 30s, 5 → 5min, 10 → 1h. Le rate
     /// limiter `auth-login` par IP reste actif en parallèle — ces deux mesures sont
