@@ -3,7 +3,7 @@
     "name": "Concorde Workly",
     "slug": "concorde-workly",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "userInterfaceStyle": "light",
     "icon": "./assets/logo_concorde_workly_dark.png",
     "splash": {
@@ -28,9 +28,12 @@
       "networkSecurityConfig": "./assets/network_security_config.xml"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.concorde.workly",
       "infoPlist": {
+        "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait"
+        ],
         "NSFaceIDUsageDescription": "Concorde Workly utilise Face ID pour sécuriser l'accès à vos données RH et déverrouiller l'application rapidement et en toute confidentialité.",
         "NSCameraUsageDescription": "Concorde Workly accède à l'appareil photo pour vous permettre de photographier vos justificatifs de notes de frais et votre signature.",
         "NSPhotoLibraryUsageDescription": "Concorde Workly accède à vos photos pour vous permettre d'attacher des justificatifs à vos demandes (frais, autorisations, missions).",

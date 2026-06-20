@@ -213,7 +213,10 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#001a41" />
+      {/* Pas de backgroundColor : déprécié sous Android 15 (edge-to-edge) et sans
+          effet quand la barre de statut est transparente. barStyle suffit pour
+          forcer les icônes claires sur le fond bleu du login. */}
+      <StatusBar barStyle="light-content" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}

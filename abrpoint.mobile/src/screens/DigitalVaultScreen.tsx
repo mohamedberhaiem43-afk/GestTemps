@@ -468,7 +468,7 @@ export default function DigitalVaultScreen({ navigation, route }: any) {
           <MaterialCommunityIcons name="folder-account" size={24} color={COLORS.primaryContainer} />
           <Text style={[styles.navLabel, { color: COLORS.primaryContainer }]}>{t('vault.navVault')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Authorization')}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('SignatureInbox')}>
           <MaterialCommunityIcons name="draw-pen" size={24} color="#94a3b8" />
           <Text style={styles.navLabel}>{t('vault.navSign')}</Text>
         </TouchableOpacity>

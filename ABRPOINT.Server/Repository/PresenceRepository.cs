@@ -958,8 +958,8 @@ namespace ABRPOINT.Server.Repository
                             isRepos = await _parametreRepository.IsReposAsync(soccod, date, presence.Codposte);
 
                         ArrondiParam? arrondiparams = await _parametreRepository.GetEtatPeriodiqueParamAsync(soccod);
-                        presence.Arrondi = arrondiparams.Arrondi;
-                        presence.Arrhsup = arrondiparams.Arrhsup;
+                        presence.Arrondi = arrondiparams?.Arrondi;
+                        presence.Arrhsup = arrondiparams?.Arrhsup;
 
                         if (isPreRepos || isRepos)
                         {
