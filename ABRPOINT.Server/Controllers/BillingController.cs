@@ -758,6 +758,21 @@ public class BillingController : ControllerBase
                 overageRatePerSeat = result.OverageRatePerSeat,
             });
         }
+        catch (Stripe.StripeException sx)
+        {
+            // Endpoint réservé Admin/Manager : on remonte le motif Stripe EXACT (code + message)
+            // pour permettre l'auto-diagnostic du billing sans accès aux logs serveur. Ces
+            // messages portent sur la config de facturation (prix/mode/devise), pas sur des PII.
+            _log.LogError(sx,
+                "Échec achat sièges (Stripe) pour {Slug} (delta={Delta}) : type={Type} code={Code} param={Param} msg={Message}",
+                slug, req.Count, sx.StripeError?.Type, sx.StripeError?.Code, sx.StripeError?.Param, sx.Message);
+            return StatusCode(502, new
+            {
+                error = $"Stripe a refusé l'ajout de sièges : {sx.Message}",
+                code = sx.StripeError?.Code,
+                param = sx.StripeError?.Param,
+            });
+        }
         catch (Exception ex)
         {
             _log.LogError(ex, "Échec achat sièges supplémentaires pour {Slug} (delta={Delta}).", slug, req.Count);

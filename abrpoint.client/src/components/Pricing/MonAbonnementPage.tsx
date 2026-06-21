@@ -297,8 +297,7 @@ interface Dict {
   seatsToAdd: string;
   estimatedMonthlyExtra: string;
   addSeatsFootnote: string;
-  confirmAddSeats: string;
-  processing: string;
+  continueOnStripe: string;
 }
 
 const FR: Dict = {
@@ -472,14 +471,13 @@ const FR: Dict = {
   modulesActiveCount: (n) => `${n} module${n > 1 ? 's' : ''} actif${n > 1 ? 's' : ''}`,
   save: 'Enregistrer',
   addSeatsTitle: 'Ajouter des collaborateurs',
-  addSeatsIntro: 'Augmentez votre quota de collaborateurs autorisés. Le nombre choisi ci-dessous est appliqué immédiatement à votre abonnement (ajustement Stripe au prorata). Chaque siège supplémentaire est facturé au tarif d\'overage de votre pack ; les collaborateurs correspondants pourront ensuite être créés sans confirmation supplémentaire.',
+  addSeatsIntro: 'Augmentez votre quota de collaborateurs autorisés via un paiement Stripe sécurisé. Chaque siège supplémentaire est facturé au tarif d\'overage de votre pack. Une fois le paiement validé, les collaborateurs correspondants pourront être créés sans confirmation supplémentaire.',
   overageRateForPack: (name) => `Tarif overage Pack ${name}`,
   perMonthPerEmployee: '/ mois / collaborateur',
   seatsToAdd: 'Sièges à ajouter',
   estimatedMonthlyExtra: 'Surcoût mensuel estimé',
-  addSeatsFootnote: 'La quantité est ajustée immédiatement sur votre abonnement (prorata Stripe), sans page de paiement supplémentaire. Les sièges sont crédités à votre compte automatiquement, sans double-comptage.',
-  confirmAddSeats: 'Confirmer l\'ajout →',
-  processing: 'Traitement…',
+  addSeatsFootnote: 'Vous finalisez le nombre de collaborateurs et le paiement sur la page Stripe sécurisée. Les sièges sont crédités à votre compte automatiquement, sans double-comptage.',
+  continueOnStripe: 'Continuer sur Stripe →',
 };
 
 const EN: Dict = {
@@ -653,17 +651,26 @@ const EN: Dict = {
   modulesActiveCount: (n) => `${n} active module${n > 1 ? 's' : ''}`,
   save: 'Save',
   addSeatsTitle: 'Add employees',
-  addSeatsIntro: 'Increase your authorized employee quota. The number chosen below is applied immediately to your subscription (prorated Stripe adjustment). Each additional seat is billed at your plan\'s overage rate; the matching employees can then be created without further confirmation.',
+  addSeatsIntro: 'Increase your authorized employee quota via a secure Stripe payment. Each additional seat is billed at your plan\'s overage rate. Once the payment is validated, the matching employees can be created without further confirmation.',
   overageRateForPack: (name) => `Overage rate · Pack ${name}`,
   perMonthPerEmployee: '/ month / employee',
   seatsToAdd: 'Seats to add',
   estimatedMonthlyExtra: 'Estimated monthly extra cost',
-  addSeatsFootnote: 'The quantity is adjusted immediately on your subscription (Stripe proration), with no extra payment page. Seats are credited to your account automatically, with no double-counting.',
-  confirmAddSeats: 'Confirm →',
-  processing: 'Processing…',
+  addSeatsFootnote: 'You finalize the number of employees and the payment on the secure Stripe page. Seats are credited to your account automatically, with no double-counting.',
+  continueOnStripe: 'Continue on Stripe →',
 };
 
 const LANG: Record<Lang, Dict> = { fr: FR, en: EN };
+
+// Payment Links Stripe dédiés « Collaborateur supplémentaire pack {plan} » (mensuel : 4,90 /
+// 6,90 / 9,90 € selon le pack). Acheter via ce lien crée un abonnement Stripe distinct pour
+// les sièges, rattaché au tenant via ?client_reference_id={slug} → le webhook incrémente
+// Tenant.LinkPurchasedSeats (relève le seuil d'overage, facturation séparée du user_supp du pack).
+const SEAT_PAYMENT_LINKS: Record<string, string> = {
+  Starter: 'https://buy.stripe.com/4gMeV67Cl2JbaNFgc90000h',
+  Standard: 'https://buy.stripe.com/9B6dR2aOx0B31d5gc90000j',
+  Premium: 'https://buy.stripe.com/14A6oAf4N97zaNF3pn0000i',
+};
 
 export default function MonAbonnementPage() {
   // navigate sert encore au redirect post-réactivation (finishSuccess → /dashboard).
@@ -736,7 +743,8 @@ export default function MonAbonnementPage() {
   // supplémentaires sans passer par la page de création employé. Chaque siège
   // pré-acheté est facturé via Stripe user_supp au tarif d'overage du pack. Les
   // employés correspondants peuvent être créés plus tard sans nouvelle confirmation.
-  // Cf. POST /billing/add-seats côté backend (BillingController.AddSeats).
+  // L'achat passe par le Payment Link Stripe dédié (openSeatStripeLink) : la quantité
+  // se choisit sur la page Stripe, le webhook crédite les sièges (Tenant.LinkPurchasedSeats).
   const [addSeatsDialogOpen, setAddSeatsDialogOpen] = useState(false);
   const [addSeatsCount, setAddSeatsCount] = useState<number>(1);
   const [addSeatsError, setAddSeatsError] = useState<string | null>(null);
@@ -745,28 +753,21 @@ export default function MonAbonnementPage() {
     setAddSeatsError(null);
     setAddSeatsDialogOpen(true);
   };
-  // SEC/UX — Le pré-achat de sièges est RELIÉ au curseur : POST /billing/add-seats avec la
-  // quantité choisie ajuste la quantité user_supp de l'abonnement Stripe (prorata immédiat),
-  // SANS nouvelle page de paiement ni Payment Link statique. (Un Stripe Payment Link n'accepte
-  // PAS de quantité en paramètre d'URL — d'où l'usage de l'API qui pousse la quantité.) Le
-  // serveur enregistre le floor de sièges pré-achetés (extra_seats_purchased) pour qu'ils ne
-  // soient jamais déduits par la sync quotidienne.
-  const [addSeatsSubmitting, setAddSeatsSubmitting] = useState(false);
-  const confirmAddSeats = async () => {
-    setAddSeatsError(null);
-    setAddSeatsSubmitting(true);
-    try {
-      await apiInstance.post('/billing/add-seats', { count: addSeatsCount });
-      await fetchInfo({ silent: true });
-      setAddSeatsDialogOpen(false);
-    } catch (e: any) {
-      setAddSeatsError(
-        e?.response?.data?.error
-        || (lang === 'fr' ? "Erreur lors de l'ajout de collaborateurs." : 'Failed to add employees.')
-      );
-    } finally {
-      setAddSeatsSubmitting(false);
-    }
+  // L'ajout de collaborateurs passe par le Payment Link Stripe dédié au pack (et non par
+  // l'API /billing/add-seats qui mute l'abonnement existant et échoue côté Stripe) : le
+  // client choisit la quantité et paie sur la page Stripe hébergée ; le webhook crédite les
+  // sièges au tenant (LinkPurchasedSeats). Le curseur ci-dessous sert à estimer le coût mensuel.
+  // NB : un Payment Link n'accepte pas de quantité en paramètre d'URL — la quantité se choisit
+  // sur la page Stripe.
+  const openModuleStripeLink = (link: string) => {
+    const slug = info?.slug || (typeof window !== 'undefined' ? window.localStorage.getItem('tenantSlug') : '') || '';
+    const url = slug ? `${link}?client_reference_id=${encodeURIComponent(slug)}` : link;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+  const seatLink = SEAT_PAYMENT_LINKS[info?.plan?.code || info?.planCode || ''];
+  const openSeatStripeLink = () => {
+    if (!seatLink) { setAddSeatsError(d.noSeatLink); return; }
+    openModuleStripeLink(seatLink);
   };
 
   const fetchInfo = async (opts: { silent?: boolean } = {}): Promise<SubscriptionInfo | null> => {
@@ -1642,11 +1643,10 @@ export default function MonAbonnementPage() {
 
       {/* ─── Dialog "Ajouter des collaborateurs" ────────────────────────────────
           Pré-achat de N sièges supplémentaires depuis la page abonnement (sans
-          passer par /dashboard/profil-employe). À la confirmation : appel
-          POST /billing/add-seats qui pousse user_supp dans Stripe + stocke le
-          floor dans la metadata `extra_seats_purchased`. La sync quotidienne
-          (EmployeeBillingSyncService) respecte ce floor donc les sièges payés
-          d'avance ne sont jamais déduits.
+          passer par /dashboard/profil-employe). À la confirmation : ouverture du
+          Payment Link Stripe dédié au pack (la quantité se choisit sur la page
+          Stripe) ; le webhook crédite les sièges au tenant (LinkPurchasedSeats).
+          Le curseur ci-dessous sert à estimer le surcoût mensuel.
       */}
       <Dialog
         open={addSeatsDialogOpen}
@@ -1737,19 +1737,19 @@ export default function MonAbonnementPage() {
           >
             {d.cancel}
           </Button>
-          {/* La quantité du curseur est ENVOYÉE à Stripe via POST /billing/add-seats :
-              ajustement de l'abonnement (prorata immédiat), sans page de paiement externe. */}
+          {/* Le paiement passe par le Payment Link Stripe dédié : la quantité se choisit sur la
+              page Stripe hébergée, le webhook crédite les sièges au tenant (LinkPurchasedSeats). */}
           <Button
             variant="contained"
-            onClick={confirmAddSeats}
-            disabled={addSeatsSubmitting || !info?.hasActiveStripeSubscription}
+            onClick={() => { openSeatStripeLink(); setAddSeatsDialogOpen(false); }}
+            disabled={!seatLink}
             startIcon={<GroupAddIcon />}
             sx={{
               textTransform: 'none', fontWeight: 700, borderRadius: '10px',
               bgcolor: '#635BFF', '&:hover': { bgcolor: '#4f46e5' },
             }}
           >
-            {addSeatsSubmitting ? d.processing : d.confirmAddSeats}
+            {d.continueOnStripe}
           </Button>
         </DialogActions>
       </Dialog>
