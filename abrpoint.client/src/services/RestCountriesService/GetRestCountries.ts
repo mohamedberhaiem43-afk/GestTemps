@@ -1,30 +1,38 @@
-import axios from 'axios';
-import { RestCountry, RestCountryRaw } from '../../models/RestCountry';
+import { RestCountry } from '../../models/RestCountry';
+import { COUNTRIES_DATA, CountryDatum } from './countriesData';
 
-const REST_COUNTRIES_URL =
-  'https://restcountries.com/v3.1/all?fields=name,translations,cca2,cca3,flags,capital,region,subregion,population';
+// ─────────────────────────────────────────────────────────────────────────────
+// Source des pays : liste statique embarquée (countriesData.ts) — PLUS d'appel à
+// restcountries.com. L'API v3.1 a été dépréciée (réponse d'erreur + redirection
+// qui casse le preflight CORS du navigateur), ce qui vidait toutes les listes de
+// pays de l'app (fiche employé, signup, base de données Pays).
+// Les drapeaux restent servis à la demande par flagcdn.com via les <img> des
+// composants : l'affichage d'une image n'est pas soumis à la politique CORS, donc
+// aucune dépendance réseau bloquante ne subsiste pour peupler la liste.
+// ─────────────────────────────────────────────────────────────────────────────
 
-const restCountriesAxios = axios.create({ withCredentials: false });
+const FLAG_BASE = 'https://flagcdn.com';
 
-const mapCountry = (raw: RestCountryRaw): RestCountry => ({
-  cca2: raw.cca2,
-  cca3: raw.cca3,
-  nameCommon: raw.name?.common ?? '',
-  nameFr: raw.translations?.fra?.common ?? raw.name?.common ?? '',
-  flagPng: raw.flags?.png ?? '',
-  flagSvg: raw.flags?.svg ?? '',
-  flagAlt: raw.flags?.alt ?? raw.name?.common ?? '',
-  capital: raw.capital?.[0] ?? '',
-  region: raw.region ?? '',
-  subregion: raw.subregion ?? '',
-  population: raw.population ?? 0,
-});
-
-const getAll = async (): Promise<RestCountry[]> => {
-  const { data } = await restCountriesAxios.get<RestCountryRaw[]>(REST_COUNTRIES_URL);
-  return data
-    .map(mapCountry)
-    .sort((a, b) => a.nameFr.localeCompare(b.nameFr, 'fr'));
+const mapCountry = (c: CountryDatum): RestCountry => {
+  const code = c.cca2.toLowerCase();
+  return {
+    cca2: c.cca2,
+    cca3: c.cca3,
+    nameCommon: c.nameCommon,
+    nameFr: c.nameFr,
+    flagPng: `${FLAG_BASE}/w80/${code}.png`,
+    flagSvg: `${FLAG_BASE}/${code}.svg`,
+    flagAlt: c.nameFr,
+    capital: '',
+    region: '',
+    subregion: '',
+    population: 0,
+  };
 };
+
+// Conserve une signature asynchrone : useGetRestCountries (react-query) l'utilise
+// comme queryFn et le reste de l'app n'a pas à changer.
+const getAll = async (): Promise<RestCountry[]> =>
+  COUNTRIES_DATA.map(mapCountry).sort((a, b) => a.nameFr.localeCompare(b.nameFr, 'fr'));
 
 export default { getAll };

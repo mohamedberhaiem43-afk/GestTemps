@@ -43,7 +43,7 @@ import { useAuth } from '../helper/AuthProvider';
 import SuccessAnimation from '../helper/SuccessAnimation';
 import OnboardingNextStepHint from '../Dashboard/OnboardingNextStepHint';
 import Employe from '../../models/Employe';
-import { PHONE_COUNTRIES, parsePhone, formatPhone } from '../Inputs/PhoneInput';
+import { PHONE_COUNTRIES, parsePhone, formatPhone, DEFAULT_DIAL } from '../Inputs/PhoneInput';
 import apiInstance from '../API/apiInstance';
 import useGetDirectionLibs from '../../hooks/directionHooks/useGetDirectionLibs';
 import useGetFonctionsLibs from '../../hooks/fonctionHooks/useGetFonctionsLibs';
@@ -415,6 +415,13 @@ const EmployeModernInner = () => {
     const [pendingContractEmpcod, setPendingContractEmpcod] = useState<string | null>(null);
     const [docAnchorEl, setDocAnchorEl] = useState<null | HTMLElement>(null);
     const [formData, setFormData] = useState<Employe>(getDefaultEmployeData(soccod || '', sitcod || ''));
+    // Indicatifs téléphone maintenus à part : formatPhone() renvoie "" quand le numéro
+    // est vide, donc l'indicatif choisi ne peut PAS être dérivé du seul formData (il
+    // retomberait sur +33 tant qu'aucun chiffre n'est saisi). On le mémorise ici pour
+    // que le sélecteur conserve la valeur choisie. cf. handlePhoneDial / handlePhoneNumber.
+    const [phoneDial, setPhoneDial] = useState<{ emptel: string; empmob: string }>({
+        emptel: DEFAULT_DIAL, empmob: DEFAULT_DIAL,
+    });
     const [scanOpen, setScanOpen] = useState(false);
     const [empHoraires, setEmpHoraires] = useState<any[]>([]);
 
@@ -457,6 +464,18 @@ const EmployeModernInner = () => {
             setFormData(p => ({ ...p, sercod: mySercod }));
         }
     }, [restrictToOwnService, mySercod, formData.sercod]);
+
+    // Resynchronise les indicatifs téléphone au chargement d'une fiche (changement
+    // d'empcod) : on relit l'indicatif réellement stocké dans la valeur. Garde
+    // l'indicatif choisi par l'utilisateur intact pendant l'édition (l'effet ne se
+    // redéclenche pas sur la saisie, seulement quand on bascule de collaborateur).
+    useEffect(() => {
+        setPhoneDial({
+            emptel: parsePhone(formData.emptel || '').dial,
+            empmob: parsePhone(formData.empmob || '').dial,
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [formData.empcod]);
 
     const toMap = (raw: any): Record<string, string> => {
         if (!raw || typeof raw !== 'object') return {};
@@ -736,18 +755,26 @@ const EmployeModernInner = () => {
     const handleSelect = (name: string) => (event: any) =>
         setFormData(prev => ({ ...prev, [name]: event.target.value }));
 
-    // Met à jour un champ téléphone (emptel/empmob) en recombinant indicatif + numéro
-    // dans la chaîne unique stockée en base (cf. PhoneInput).
-    const handlePhoneField = (name: 'emptel' | 'empmob', dial: string, num: string) =>
+    // Changement d'indicatif : on mémorise l'indicatif choisi dans phoneDial (sinon il
+    // serait perdu tant que le numéro est vide, formatPhone() renvoyant "") et on
+    // recombine avec le numéro courant dans la chaîne unique stockée en base.
+    const handlePhoneDial = (name: 'emptel' | 'empmob', dial: string) => {
+        setPhoneDial(prev => ({ ...prev, [name]: dial }));
+        const num = parsePhone(formData[name] || '').number;
         setFormData(prev => ({ ...prev, [name]: formatPhone(dial, num) }));
+    };
+
+    // Saisie du numéro : on recombine avec l'indicatif mémorisé (phoneDial).
+    const handlePhoneNumber = (name: 'emptel' | 'empmob', num: string) =>
+        setFormData(prev => ({ ...prev, [name]: formatPhone(phoneDial[name], num) }));
 
     // Sélecteur d'indicatif rendu en startAdornment, sans bordure, pour épouser fieldStyle.
-    const dialAdornment = (name: 'emptel' | 'empmob', dial: string, num: string) => (
+    const dialAdornment = (name: 'emptel' | 'empmob') => (
         <Select
-            value={dial}
+            value={phoneDial[name]}
             variant="standard"
             disableUnderline
-            onChange={(e) => handlePhoneField(name, e.target.value, num)}
+            onChange={(e) => handlePhoneDial(name, e.target.value)}
             sx={{ mr: 1, fontSize: 13, '& .MuiSelect-select': { py: 0, pr: '20px !important' } }}
             renderValue={(d) => {
                 const c = PHONE_COUNTRIES.find((x) => x.dial === d);
@@ -1389,17 +1416,17 @@ const EmployeModernInner = () => {
                                         <Box>
                                             <Typography sx={labelStyle}>{t('employe.phone')}</Typography>
                                             <TextField value={parsePhone(formData.emptel || '').number}
-                                                onChange={(e) => handlePhoneField('emptel', parsePhone(formData.emptel || '').dial, e.target.value)}
+                                                onChange={(e) => handlePhoneNumber('emptel', e.target.value)}
                                                 size="small" fullWidth sx={fieldStyle}
-                                                InputProps={{ startAdornment: dialAdornment('emptel', parsePhone(formData.emptel || '').dial, parsePhone(formData.emptel || '').number) }}
+                                                InputProps={{ startAdornment: dialAdornment('emptel') }}
                                                 placeholder={t('employe.field.phonePlaceholder')} />
                                         </Box>
                                         <Box>
                                             <Typography sx={labelStyle}>{t('employe.field.mobile')}</Typography>
                                             <TextField value={parsePhone(formData.empmob || '').number}
-                                                onChange={(e) => handlePhoneField('empmob', parsePhone(formData.empmob || '').dial, e.target.value)}
+                                                onChange={(e) => handlePhoneNumber('empmob', e.target.value)}
                                                 size="small" fullWidth sx={fieldStyle}
-                                                InputProps={{ startAdornment: dialAdornment('empmob', parsePhone(formData.empmob || '').dial, parsePhone(formData.empmob || '').number) }}
+                                                InputProps={{ startAdornment: dialAdornment('empmob') }}
                                                 placeholder={t('employe.field.phonePlaceholder')} />
                                         </Box>
                                     </Box>
