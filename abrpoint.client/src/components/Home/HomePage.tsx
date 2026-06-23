@@ -948,7 +948,7 @@ export default function HomePage() {
               onClick={() => navigate(lang === 'en' ? '/en/roi' : '/roi')}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-                background: 'linear-gradient(135deg,#0040A1,#2DD4BF)', color: '#fff',
+                background: '#0040A1', color: '#fff',
                 border: 'none', borderRadius: 999, padding: '12px 26px',
                 fontSize: 14.5, fontWeight: 700, letterSpacing: '.01em',
                 boxShadow: '0 6px 20px rgba(0,64,161,.28)',
@@ -982,7 +982,7 @@ export default function HomePage() {
           </div>
         </div>
         <div className="hero-right">
-          <video className="hero-video-box" src="/vide_o_finale_.mp4" controls muted loop playsInline autoPlay />
+          <video className="hero-video-box" src="/demo-concorde-workforce.mp4" controls muted loop playsInline autoPlay />
         </div>
       </section>
 
