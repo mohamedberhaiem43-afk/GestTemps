@@ -205,7 +205,7 @@ namespace ABRPOINT.Server.Services
       <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" border=""0"">
         <tr>
           <td valign=""top"" width=""50%"" align=""center"" style=""padding:8px;font-family:'Helvetica Neue',Arial,sans-serif;"">
-            <div style=""font-size:13px;font-weight:800;color:#0d1f3c;margin-bottom:8px;"">🤖 Android</div>
+            <div style=""font-size:13px;font-weight:800;color:#0d1f3c;margin-bottom:8px;"">Android</div>
             <a href=""{androidHref}"" style=""text-decoration:none;"">
               <img src=""{androidQr}"" alt=""QR code — télécharger l'APK Android"" width=""132"" height=""132"" style=""display:block;margin:0 auto 10px;border:1px solid #c7d8ff;border-radius:10px;background:#ffffff;"" />
             </a>
@@ -215,7 +215,7 @@ namespace ABRPOINT.Server.Services
             </a>
           </td>
           <td valign=""top"" width=""50%"" align=""center"" style=""padding:8px;font-family:'Helvetica Neue',Arial,sans-serif;"">
-            <div style=""font-size:13px;font-weight:800;color:#0d1f3c;margin-bottom:8px;"">🍎 iPhone / iPad</div>
+            <div style=""font-size:13px;font-weight:800;color:#0d1f3c;margin-bottom:8px;"">iPhone / iPad</div>
             <a href=""{iosHref}"" style=""text-decoration:none;"">
               <img src=""{iosQr}"" alt=""QR code — télécharger sur l'App Store"" width=""132"" height=""132"" style=""display:block;margin:0 auto 10px;border:1px solid #c7d8ff;border-radius:10px;background:#ffffff;"" />
             </a>

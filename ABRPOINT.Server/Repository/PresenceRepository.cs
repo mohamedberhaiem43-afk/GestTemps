@@ -287,7 +287,15 @@ namespace ABRPOINT.Server.Repository
                 presence.Preretams = retard.Item8;
                 presence.Preretamsup = retard.Item9;
 
-                if (presence.Codposte != null)
+                // Salarié SANS classe horaire : Codposte peut être une chaîne VIDE ("")
+                // (et non null) selon la fiche employé — `!= null` laissait alors passer le
+                // bloc, qui appelle plus bas GetJourHeures/CalculateHeureSuppOptimise →
+                // GetPoste(soccod, "") qui LÈVE ArgumentException (cf. PosteRepository), d'où
+                // un 500 "contactez votre administrateur" au pointage. On exige donc un code
+                // poste réellement renseigné : sans planning, ces métriques valent 0 de toute
+                // façon (l'employé est traité "hors planning") et seront recalculées par le
+                // batch d'optimisation. Le pointage lui-même est ainsi toujours enregistré.
+                if (!string.IsNullOrWhiteSpace(presence.Codposte))
                 {
                     var empparam = await _employeRepository.GetEmpparam(presence.Soccod, presence.Empcod, (DateTime)presence.Dmdate, presence.Codposte);
                     presenceDto = _mapper.Map<PresenceDto>(presence);
@@ -380,7 +388,10 @@ namespace ABRPOINT.Server.Repository
                 dbpresence.Presortamidiup = timeStr;
             }
             var presenceDto = _mapper.Map<PresenceDto>(dbpresence);
-            if (dbpresence.Codposte != null)
+            // Même garde qu'à la création : Codposte vide ("") → on saute les calculs liés au
+            // planning (GetPoste("") lèverait ArgumentException → 500 au pointage de sortie d'un
+            // salarié sans classe horaire). Cf. CreateNewPresence.
+            if (!string.IsNullOrWhiteSpace(dbpresence.Codposte))
             {
                 var empparam = await _employeRepository.GetEmpparam(presenceDto.Soccod, presenceDto.Empcod, (DateTime)presenceDto.Dmdate, dbpresence.Codposte);
                 dbpresence.Tothre = await CalcHreTravOpt(presenceDto, poste, empparam);

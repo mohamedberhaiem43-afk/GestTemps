@@ -1,0 +1,15 @@
+{
+  "uticod": "U001",
+  "utilib": "Admin Démo",
+  "soclib": "Société Démo",
+  "utiadm": "1",
+  "isManager": true,
+  "isEmp": false,
+  "requires2fa": false,
+  "utiimg": null,
+  "socimg": null,
+  "societe": {
+    "soccod": "S001",
+    "sitcod": "SITE01"
+  }
+}

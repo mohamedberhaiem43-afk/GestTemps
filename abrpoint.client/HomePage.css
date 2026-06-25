@@ -55,7 +55,7 @@
 .hp2 .ti{color:#16a34a;font-weight:800;margin-right:5px;}
 .hp2 .tsep{width:1px;height:14px;background:var(--outline-v);}
 .hp2 .hero-right{display:flex;align-items:center;justify-content:center;}
-.hp2 .hero-video-box{width:100%;border-radius:20px;background:linear-gradient(135deg,#1e293b,#0040a1);height:400px;object-fit:cover;box-shadow:0 24px 60px rgba(0,64,161,.18);border:1px solid rgba(255,255,255,.1);}
+.hp2 .hero-video-box{width:100%;border-radius:20px;background:linear-gradient(135deg,#1e293b,#0040a1);height:440px;object-fit:cover;box-shadow:0 24px 60px rgba(0,64,161,.18);border:1px solid rgba(255,255,255,.1);margin-top:8%}
 
 /* PROMO FONDATEUR NAVY */
 .hp2 .promo{padding:0 32px 56px;display:flex;justify-content:center;}

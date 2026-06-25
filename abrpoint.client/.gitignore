@@ -13,6 +13,11 @@ dist
 dist-ssr
 *.local
 
+# Cypress (artefacts de run — les specs/fixtures/support sont versionnés)
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
