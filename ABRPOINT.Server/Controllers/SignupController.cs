@@ -594,10 +594,12 @@ public class SignupController : ControllerBase
             var trialEndStr = tenant.TrialEndsAt?.ToLocalTime().ToString("d MMMM yyyy",
                 new System.Globalization.CultureInfo("fr-FR")) ?? "";
             var safeTrialEnd = System.Net.WebUtility.HtmlEncode(trialEndStr);
-            // Lien de téléchargement de l'app mobile : destination publique FIXE (cf.
-            // Download:PageUrl) — surtout PAS dérivée de RootDomain qui peut valoir localhost
-            // hors prod → lien cassé dans l'email (https://localhost/download).
-            var downloadUrl = _cfg["Download:PageUrl"] ?? "https://concorde-work-force.com/download";
+            // Liens de téléchargement DIRECT de l'app mobile (+ QR code) : Android via
+            // /api/download/android (302 → APK, télécharge le .apk directement), iOS via la
+            // fiche App Store. Destinations publiques FIXES — surtout PAS dérivées de RootDomain
+            // qui peut valoir localhost hors prod → lien cassé dans l'email.
+            var androidApkUrl = _cfg["Download:AndroidDirectUrl"] ?? "https://concorde-work-force.com/api/download/android";
+            var iosAppStoreUrl = _cfg["Download:IosAppStoreUrl"] ?? "https://apps.apple.com/us/app/concorde-workly/id6780909371";
 
             var planLabel = string.IsNullOrWhiteSpace(req.PlanCode) ? "Essai 30 jours"
                 : char.ToUpper(req.PlanCode.Trim()[0]) + req.PlanCode.Trim()[1..].ToLower();
@@ -655,7 +657,7 @@ public class SignupController : ControllerBase
                 "<li>Invitez vos premiers collaborateurs depuis <em>Gestion des employés</em>.</li>" +
                 "<li>Téléchargez l'application mobile pour pointer en déplacement.</li>" +
                 "</ol>" +
-                Services.EmailTemplates.MobileAppCard(downloadUrl) +
+                Services.EmailTemplates.MobileAppCard(androidApkUrl, iosAppStoreUrl) +
                 "<p style=\"margin-top:24px;\">Une question ? Répondez simplement à cet email — notre équipe support vous accompagne pendant toute la durée de votre essai et au-delà.</p>" +
                 "<p style=\"margin-top:18px;\">Bienvenue à bord,<br/><strong>L'équipe Concorde Workforce</strong></p>";
 

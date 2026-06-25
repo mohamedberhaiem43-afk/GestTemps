@@ -242,12 +242,19 @@ namespace ABRPOINT.Server.Services
             return $"https://{rootDomain}/login";
         }
 
-        private string BuildDownloadUrl()
+        private string BuildAndroidApkUrl()
         {
-            // Page publique de téléchargement de l'app mobile — destination FIXE (Download:PageUrl),
-            // indépendante de Hosting:RootDomain (qui peut valoir localhost en dev/staging → lien
-            // cassé https://localhost/download dans l'email du nouvel utilisateur).
-            return _configuration["Download:PageUrl"] ?? "https://concorde-work-force.com/download";
+            // Lien DIRECT de téléchargement de l'APK Android (+ QR code dans l'email) : /api/download/android
+            // 302-redirige vers l'APK, donc le clic/scan télécharge le .apk sans passer par la page /download.
+            // Destination FIXE (Download:AndroidDirectUrl), indépendante de Hosting:RootDomain (localhost en
+            // dev/staging → lien cassé dans l'email du nouvel utilisateur).
+            return _configuration["Download:AndroidDirectUrl"] ?? "https://concorde-work-force.com/api/download/android";
+        }
+
+        private string BuildIosAppStoreUrl()
+        {
+            // Lien direct vers la fiche App Store (iOS), + QR code dans l'email.
+            return _configuration["Download:IosAppStoreUrl"] ?? "https://apps.apple.com/us/app/concorde-workly/id6780909371";
         }
 
         private string BuildSetupPasswordUrl(string email, string token)
@@ -297,7 +304,7 @@ namespace ABRPOINT.Server.Services
                 EmailTemplates.StatusBanner(
                     "Conseil sécurité : changez votre mot de passe provisoire dès votre première connexion.",
                     EmailTemplates.StatusKind.Warning) +
-                EmailTemplates.MobileAppCard(BuildDownloadUrl()) +
+                EmailTemplates.MobileAppCard(BuildAndroidApkUrl(), BuildIosAppStoreUrl()) +
                 "<p style=\"margin-top:24px;\">À très vite,<br/><strong>L'équipe Concorde Workforce</strong></p>";
 
             var subject = "Bienvenue sur Concorde Workforce — vos identifiants";
@@ -331,7 +338,7 @@ namespace ABRPOINT.Server.Services
                 EmailTemplates.StatusBanner(
                     "Ce lien est personnel et expire dans 7 jours. Si vous n'êtes pas à l'origine de cette création, ignorez simplement cet email.",
                     EmailTemplates.StatusKind.Warning) +
-                EmailTemplates.MobileAppCard(BuildDownloadUrl()) +
+                EmailTemplates.MobileAppCard(BuildAndroidApkUrl(), BuildIosAppStoreUrl()) +
                 "<p style=\"margin-top:24px;\">À très vite,<br/><strong>L'équipe Concorde Workforce</strong></p>";
 
             var subject = "Bienvenue sur Concorde Workforce — définissez votre mot de passe";
