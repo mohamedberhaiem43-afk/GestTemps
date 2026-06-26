@@ -17,7 +17,7 @@ const ContactSalesPage: React.FC = () => {
   const [contactName, setContactName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [headcount, setHeadcount] = useState('200-500');
+  const [headcount, setHeadcount] = useState('301-500');
   const [needs, setNeeds] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -218,9 +218,14 @@ const ContactSalesPage: React.FC = () => {
                       onChange={(e) => setHeadcount(e.target.value)}
                       className="w-full px-4 py-3 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-on-surface font-medium"
                     >
-                      <option>50-200</option>
-                      <option>200-500</option>
-                      <option>500-1000</option>
+                      <option>1-19</option>
+                      <option>20-30</option>
+                      <option>31-50</option>
+                      <option>51-100</option>
+                      <option>101-150</option>
+                      <option>151-300</option>
+                      <option>301-500</option>
+                      <option>501-1000</option>
                       <option>1000+</option>
                     </select>
                   </div>

@@ -1421,7 +1421,7 @@ export default function HomePage() {
                 <div className="form-field"><label>{d.flEmail}</label><input name="email" type="email" placeholder="marie.dupont@entreprise.fr" /></div>
                 <div className="form-field"><label>{d.flEnt}</label><input name="entreprise" type="text" placeholder={d.flEnt} /></div>
                 <div className="form-field"><label>{d.flEmp}</label>
-                  <select name="effectif" defaultValue=""><option value="" disabled>{d.flEmpSel}</option><option>1 – 10</option><option>11 – 50</option><option>51 – 200</option><option>201 – 500</option><option>+500</option></select>
+                  <select name="effectif" defaultValue=""><option value="" disabled>{d.flEmpSel}</option><option>1-19</option><option>20-30</option><option>31-50</option><option>51-100</option><option>101-150</option><option>151-300</option><option>301-500</option><option>501-1000</option><option>1000+</option></select>
                 </div>
                 <div className="form-field"><label>{d.flObj}</label>
                   <select name="objet" defaultValue=""><option value="" disabled>{d.flObjSel}</option><option>{d.flObjDemo}</option><option>{d.flObjEnt}</option><option>{d.flObjRec}</option><option>{d.flObjAut}</option></select>
