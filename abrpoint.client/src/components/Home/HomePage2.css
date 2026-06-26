@@ -362,7 +362,7 @@
 .hp2 .dl-stores{display:flex;flex-direction:column;gap:12px;flex:none;}
 .hp2 .dl-stores .store-btn{background:var(--on);color:#fff;border:none;min-width:208px;}
 .hp2 .dl-stores .store-icon{background:rgba(255,255,255,.15);}
-@media(max-width:700px){.hp2 .dl-feats{grid-template-columns:1fr;}.hp2 .dl-stores{flex-direction:row;flex-wrap:wrap;}}
+@media(max-width:700px){.hp2 .dl-feats{grid-template-columns:1fr;}.hp2 .dl-stores{flex-direction:column;flex:1 1 100%;width:100%;}.hp2 .dl-stores .store-btn{width:100%;min-width:0;justify-content:flex-start;}}
 
 /* PRICING — grille 3 colonnes (la 4e carte Enterprise est sortie en panneau dédié) */
 .hp2 .pricing-grid-3{grid-template-columns:repeat(3,minmax(0,1fr));max-width:1100px;}

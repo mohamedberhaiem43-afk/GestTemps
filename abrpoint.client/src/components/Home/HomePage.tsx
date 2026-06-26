@@ -687,15 +687,10 @@ const IOS_APP_STORE_URL = 'https://apps.apple.com/us/app/concorde-workly/id67809
 // Enterprise Plus n'a pas de pack (tarification sur devis → section contact).
 type PaidPack = 'starter' | 'standard' | 'premium';
 
-// NB : la table « Modules optionnels » (OPTIONAL_MODULE_LINKS) a été retirée de la home
-// et de la page Services & accompagnement (2026-06).
-// Payment Links des services ponctuels (ordre = dict.serviceItems).
-const SERVICE_LINKS = [
-  'https://buy.stripe.com/3cI14g7Cl4RjaNF9NL0000d', // Formation administrateurs (visio) — 290 €
-  'https://buy.stripe.com/aFa3coe0J97zcVN3pn0000e', // Accompagnement Expert (visio) — 190 €
-  'https://buy.stripe.com/3cI00c6yhbfH8Fxgc90000f', // Accompagnement demi-journée — 490 €
-  'https://buy.stripe.com/dRmcMY5udabDaNF1hf0000g', // Journée complète d'accompagnement — 890 €
-];
+// NB : les Payment Links des services ponctuels + la table « Modules sur devis »
+// ne sont plus sur la landing publique ; ils ont été déplacés dans la popup
+// Espace client (components/Services/ServicesAccompagnementModal), ouverte après
+// connexion via le menu avatar (2026-06).
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -785,17 +780,6 @@ export default function HomePage() {
     }
     navigate(`/dashboard/mon-abonnement?changePlan=${pack}&cycle=${billingCycle}`);
   };
-  // Ouvre un Payment Link Stripe d'un module / service. On y injecte client_reference_id
-  // (slug du tenant) quand il est disponible pour rattacher l'achat au bon tenant côté
-  // webhook. `requireTenant` = true pour les modules qui débloquent des fonctionnalités
-  // (il FAUT un compte pour les rattacher → visiteur anonyme redirigé vers l'inscription) ;
-  // false pour les services ponctuels (formation/accompagnement), ouverts directement.
-  const openStripeLink = (url: string, requireTenant: boolean) => {
-    const slug = (typeof window !== 'undefined' && window.localStorage.getItem('tenantSlug')) || '';
-    if (requireTenant && (!isAuthenticated || !slug)) { goToSignup(); return; }
-    const full = slug ? `${url}?client_reference_id=${encodeURIComponent(slug)}` : url;
-    window.open(full, '_blank', 'noopener,noreferrer');
-  };
   // Envoi DIRECT du formulaire de contact via /contact/support (plus de redirection
   // vers /contact-sales). On lit les champs via FormData (name=...). Entreprise et
   // effectif sont repliés dans le corps du message pour garder le contexte côté support.
@@ -877,16 +861,6 @@ export default function HomePage() {
   ];
 
   const stepNum = activeStep + 1;
-
-  // Styles partagés des nouvelles sections (modules optionnels / services / sur devis).
-  const secHeading: React.CSSProperties = { fontFamily: 'inherit', fontSize: 18, fontWeight: 800, color: '#0040a1', letterSpacing: '.06em', textTransform: 'uppercase', textAlign: 'center', margin: '0 0 8px' };
-  const secSub: React.CSSProperties = { textAlign: 'center', color: '#64748b', maxWidth: 720, margin: '0 auto 28px', fontSize: 15, lineHeight: 1.55 };
-  const tblWrap: React.CSSProperties = { overflowX: 'auto', border: '2px solid #0040A1', borderRadius: 14, background: '#fff', boxShadow: '0 6px 22px rgba(15,23,42,.06)' };
-  const tbl: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', fontSize: 14 };
-  const thS: React.CSSProperties = { padding: '14px 16px', textAlign: 'left', fontWeight: 700, color: '#0f172a', background: '#f7f9fb', borderBottom: '2px solid #e5e7eb' };
-  const tdS: React.CSSProperties = { padding: '14px 16px', color: '#334155', borderBottom: '1px solid #e5e7eb', verticalAlign: 'top', lineHeight: 1.5 };
-  const addBtnS: React.CSSProperties = { background: 'linear-gradient(135deg,#0040a1,#0056d2)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 18px', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,64,161,.22)' };
-  const quoteBtnS: React.CSSProperties = { background: 'transparent', color: '#0040a1', border: '1.5px solid #0040a1', borderRadius: 9, padding: '9px 18px', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' };
 
   return (
     <div className="hp2">
@@ -1280,67 +1254,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* SERVICES + MODULES SUR DEVIS (la table « Modules optionnels » a été retirée — 2026-06).
-            Services : bouton « Ajouter » → Payment Link Stripe (prestation ponctuelle, ouvert
-            directement ; client_reference_id ajouté si un tenant est connu).
-            Sur devis : bouton « Demander un devis » → section contact (formulaire). */}
-        <div style={{ maxWidth: 1100, margin: '56px auto 0' }}>
-          <div>
-            <h3 style={secHeading}>{d.svcTitle}</h3>
-            <p style={secSub}>{d.svcSub}</p>
-            <div style={tblWrap}>
-              <table style={tbl}>
-                <thead>
-                  <tr>
-                    <th style={thS}>{d.svcCol}</th>
-                    <th style={thS}>{d.descCol}</th>
-                    <th style={{ ...thS, whiteSpace: 'nowrap' }}>{d.tarifCol}</th>
-                    <th style={{ ...thS, textAlign: 'center' }} aria-label={d.addBtn} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.serviceItems.map((s, i) => (
-                    <tr key={s.name}>
-                      <td style={{ ...tdS, fontWeight: 700, color: '#0f172a' }}>{s.name}</td>
-                      <td style={tdS}>{s.desc}</td>
-                      <td style={{ ...tdS, fontWeight: 700, color: '#0040a1', whiteSpace: 'nowrap' }}>{s.price}</td>
-                      <td style={{ ...tdS, textAlign: 'center' }}>
-                        <button type="button" style={addBtnS} onClick={() => openStripeLink(SERVICE_LINKS[i], false)}>{d.addBtn}</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div style={{ marginTop: 56 }}>
-            <h3 style={secHeading}>{d.quoteTitle}</h3>
-            <p style={secSub}>{d.quoteSub}</p>
-            <div style={tblWrap}>
-              <table style={tbl}>
-                <thead>
-                  <tr>
-                    <th style={thS}>{d.modCol}</th>
-                    <th style={thS}>{d.descCol}</th>
-                    <th style={{ ...thS, textAlign: 'center' }} aria-label={d.quoteBtn} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.quoteModules.map((q) => (
-                    <tr key={q.name}>
-                      <td style={{ ...tdS, fontWeight: 700, color: '#0f172a' }}>{q.name}</td>
-                      <td style={tdS}>{q.desc}</td>
-                      <td style={{ ...tdS, textAlign: 'center' }}>
-                        <button type="button" style={quoteBtnS} onClick={() => scrollToId('contact')}>{d.quoteBtn}</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* COMPARATIF */}

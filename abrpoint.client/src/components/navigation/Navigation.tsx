@@ -23,6 +23,7 @@ import TrialBanner from '../helper/TrialBanner';
 import PageFade from '../helper/animations/PageFade';
 import CommandPalette from '../helper/CommandPalette/CommandPalette';
 import UnifiedAssistantHub from '../helper/Chatbot/UnifiedAssistantHub';
+import ServicesAccompagnementModal, { SERVICES_MODAL_EVENT } from '../Services/ServicesAccompagnementModal';
 
 const FilialeModern = React.lazy(() => import('../DonneeDeBase/Filiale/FilialeModern'));
 const FonctionModern = React.lazy(() => import('../DonneeDeBase/Fonction/FonctionModern'));
@@ -104,6 +105,10 @@ const FormationsPage = React.lazy(() => import('../Support/FormationsPage'));
 const CoachingPage = React.lazy(() => import('../Support/CoachingPage'));
 const PackMiseEnPlacePage = React.lazy(() => import('../Support/PackMiseEnPlacePage'));
 const ContactPage = React.lazy(() => import('../Support/ContactPage'));
+// Documentation : centre d'aide in-app. Hub (/dashboard/documentation) + articles
+// (/dashboard/documentation/<slug>) — contenu bilingue local (cf. Documentation/docsContent).
+const DocumentationPage = React.lazy(() => import('../Documentation/DocumentationPage'));
+const DocArticlePage = React.lazy(() => import('../Documentation/DocArticlePage'));
 // Pages légales : les versions HTML ont été supprimées (2026-06). Les routes
 // /cgu, /mentions-legales et /confidentialite redirigent désormais vers le PDF
 // officiel correspondant (cf. LegalPdfRedirect). Import non lazy : composant trivial.
@@ -593,7 +598,12 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
   const { t } = useTranslation();
   let content: React.ReactNode;
 
-  switch (pathname) {
+  // Documentation — le hub a une route fixe (gérée dans le switch ci-dessous) ;
+  // les articles ont des slugs data-driven (/dashboard/documentation/<slug>) qu'on
+  // ne peut pas tous énumérer, donc on les intercepte ici avant le switch.
+  if (pathname.startsWith('/dashboard/documentation/')) {
+    content = <DocArticlePage slug={pathname.slice('/dashboard/documentation/'.length)} />;
+  } else switch (pathname) {
     // Landing publique : nouvelle homepage marketing (HomePage). PricingPage reste
     // accessible via /dashboard/pricing pour les utilisateurs authentifiés qui veulent
     // changer de plan, mais la racine '/' sert désormais la maquette commerciale.
@@ -681,6 +691,7 @@ function DemoPageContent({ pathname }: DemoPageContentProps) {
     case '/dashboard/factures-concorde': content = <FacturesConcordePage />; break;
     case '/dashboard/devis-pack': content = <DevisPackPage />; break;
     case '/upgrade': content = <PlanUpgradePage />; break;
+    case '/dashboard/documentation': content = <DocumentationPage />; break;
     case '/dashboard/support': content = <SupportPage />; break;
     case '/dashboard/support/faq': content = <FAQPage />; break;
     case '/dashboard/support/formations': content = <FormationsPage />; break;
@@ -869,6 +880,17 @@ function makeToolbarActions(
           <MenuItem onClick={handleProfile}>
             <ListItemIcon><User size={22} /></ListItemIcon>
             <ListItemText primary={t('navigation.myProfile')} primaryTypographyProps={{ fontSize: '13px', fontWeight: 600 }} />
+          </MenuItem>
+          {/* Ouvre la popup « Nos services & accompagnement » (services ponctuels +
+              modules sur devis). Pattern évènementiel identique à cookie-consent:open. */}
+          <MenuItem onClick={() => { handleClose(); window.dispatchEvent(new CustomEvent(SERVICES_MODAL_EVENT)); }}>
+            <ListItemIcon><Sparkles size={22} /></ListItemIcon>
+            <ListItemText
+              primary={t('navigation.servicesAndSupport', 'Nos services & accompagnement')}
+              secondary={t('navigation.servicesAndSupportHint', 'Formation, accompagnement & modules')}
+              primaryTypographyProps={{ fontSize: '13px', fontWeight: 600 }}
+              secondaryTypographyProps={{ fontSize: '11px' }}
+            />
           </MenuItem>
           <MenuItem onClick={handleDownloadApp}>
             <ListItemIcon><Smartphone size={22} /></ListItemIcon>
@@ -1264,6 +1286,9 @@ function DashboardLayoutAccount(_props: DemoProps) {
   }, [authReady]);
 
   const footerItems: FooterItem[] = [
+    // Documentation — centre d'aide in-app, accessible à tout utilisateur connecté
+    // (la catégorie Admin/RH y est filtrée côté page via isManagementView).
+    { label: t('navigation.documentation', 'Documentation'), href: '/dashboard/documentation', icon: BookOpen },
     // 2026-05-26 — Le libellé Support est suffixé "★ Prioritaire" quand l'addon
     // supportPrioritaire est souscrit (PlanCatalog.GetEffectiveFeatures →
     // PlanFeatures.PrioritySupport). Visibilité immédiate pour l'utilisateur
@@ -1492,6 +1517,10 @@ function DashboardLayoutAccount(_props: DemoProps) {
         onClose={() => setPaletteOpen(false)}
         navigation={NAVIGATION}
       />
+      {/* Popup « Nos services & accompagnement » — ouverte via le menu avatar
+          (évènement cw:open-services). Montée ici pour rester disponible quelle
+          que soit la page du dashboard. */}
+      <ServicesAccompagnementModal />
     </>
   );
 }
