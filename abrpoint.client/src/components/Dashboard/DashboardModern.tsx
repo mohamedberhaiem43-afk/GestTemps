@@ -184,16 +184,18 @@ type WidgetKey =
   | 'genderDonut'   // donut effectif H / F
   | 'renewals';     // panel renouvellements
 
-const ALL_WIDGETS: { key: WidgetKey; label: string }[] = [
-  { key: 'recap', label: 'Récapitulatif des tâches' },
-  { key: 'kpis', label: 'Indicateurs clés (KPI)' },
-  { key: 'totalEmployees', label: 'Effectif total' },
-  { key: 'ongoingLeaves', label: 'Congés en cours' },
-  { key: 'contractAlerts', label: 'Alertes contrat' },
-  { key: 'evolution', label: '📈 Évolution des Présences et Heures Travaillées' },
-  { key: 'absences', label: 'Absences récentes' },
-  { key: 'genderDonut', label: 'Répartition Hommes / Femmes' },
-  { key: 'renewals', label: 'Prochains renouvellements' },
+// Défini au niveau module (hors composant) → on stocke la CLÉ i18n et on traduit
+// au rendu avec t(w.labelKey), faute d'accès au hook useTranslation ici.
+const ALL_WIDGETS: { key: WidgetKey; labelKey: string }[] = [
+  { key: 'recap', labelKey: 'dashboard.widgets.recap' },
+  { key: 'kpis', labelKey: 'dashboard.widgets.kpis' },
+  { key: 'totalEmployees', labelKey: 'dashboard.widgets.totalEmployees' },
+  { key: 'ongoingLeaves', labelKey: 'dashboard.widgets.ongoingLeaves' },
+  { key: 'contractAlerts', labelKey: 'dashboard.widgets.contractAlerts' },
+  { key: 'evolution', labelKey: 'dashboard.widgets.evolution' },
+  { key: 'absences', labelKey: 'dashboard.widgets.absences' },
+  { key: 'genderDonut', labelKey: 'dashboard.widgets.genderDonut' },
+  { key: 'renewals', labelKey: 'dashboard.widgets.renewals' },
 ];
 
 const DEFAULT_VISIBILITY: Record<WidgetKey, boolean> = {
@@ -758,7 +760,7 @@ function DashboardModernAdmin() {
           {/* Bouton Actions rapides : raccourcis vers les écrans les plus
               utilisés (créer un employé, courrier, demande, etc.) sans
               avoir à parcourir le menu latéral. */}
-          <Tooltip title="Actions rapides">
+          <Tooltip title={t('dashboard.quickActions')}>
             <Button
               startIcon={<BoltIcon />}
               variant="contained"
@@ -770,10 +772,10 @@ function DashboardModernAdmin() {
                 '&:hover': { background: 'linear-gradient(135deg, #d97706 0%, #ea580c 100%)' },
               }}
             >
-              Actions rapides
+              {t('dashboard.quickActions')}
             </Button>
           </Tooltip>
-          <Tooltip title="Personnaliser le tableau de bord">
+          <Tooltip title={t('dashboard.customizeTooltip')}>
             <Button
               startIcon={<TuneIcon />}
               variant="outlined"
@@ -784,7 +786,7 @@ function DashboardModernAdmin() {
                 '&:hover': { borderColor: '#0040a1', background: 'rgba(0,64,161,0.04)' },
               }}
             >
-              Personnaliser
+              {t('dashboard.customize')}
             </Button>
           </Tooltip>
           {/* Le bouton "Exporter le rapport" a été déplacé dans la barre de filtres
@@ -809,15 +811,15 @@ function DashboardModernAdmin() {
       >
         <Box sx={{ px: 2, py: 1, background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' }}>
           <Typography sx={{ fontSize: 11, fontWeight: 800, color: '#92400e', letterSpacing: 0.5 }}>
-            ⚡ ACTIONS RAPIDES
+            ⚡ {t('dashboard.quickActionsHeader')}
           </Typography>
         </Box>
         <Divider />
         <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/profil-employe?new=true'); }}>
           <ListItemIcon><PersonAddIcon fontSize="small" sx={{ color: '#0040a1' }} /></ListItemIcon>
           <ListItemText
-            primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Ajouter un collaborateur</Typography>}
-            secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Créer une fiche employé</Typography>}
+            primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>{t('dashboard.qaAddEmployee')}</Typography>}
+            secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{t('dashboard.qaAddEmployeeSub')}</Typography>}
           />
         </MenuItem>
         {/* Gérer les contrats — gated contractManagement (aligné sur la sidebar). */}
@@ -825,8 +827,8 @@ function DashboardModernAdmin() {
           <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/contrat'); }}>
             <ListItemIcon><DescriptionIcon fontSize="small" sx={{ color: '#005136' }} /></ListItemIcon>
             <ListItemText
-              primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Gérer les contrats</Typography>}
-              secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Nouveau contrat ou avenant</Typography>}
+              primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>{t('dashboard.qaManageContracts')}</Typography>}
+              secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{t('dashboard.qaManageContractsSub')}</Typography>}
             />
           </MenuItem>
         )}
@@ -835,8 +837,8 @@ function DashboardModernAdmin() {
           <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/courriers'); }}>
             <ListItemIcon><ArticleIcon fontSize="small" sx={{ color: '#6d28d9' }} /></ListItemIcon>
             <ListItemText
-              primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Générer un courrier</Typography>}
-              secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Attestation, lettre, avenant…</Typography>}
+              primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>{t('dashboard.qaGenerateLetter')}</Typography>}
+              secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{t('dashboard.qaGenerateLetterSub')}</Typography>}
             />
           </MenuItem>
         )}
@@ -844,8 +846,8 @@ function DashboardModernAdmin() {
         <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/etat-periodique'); }}>
           <ListItemIcon><EditCalendarIcon fontSize="small" sx={{ color: '#b45309' }} /></ListItemIcon>
           <ListItemText
-            primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Saisir un pointage</Typography>}
-            secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Corriger entrée/sortie</Typography>}
+            primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>{t('dashboard.qaEnterClocking')}</Typography>}
+            secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{t('dashboard.qaEnterClockingSub')}</Typography>}
           />
         </MenuItem>
         {/* Téléverser un document — gated digitalVault (même feature que le coffre-fort). */}
@@ -853,8 +855,8 @@ function DashboardModernAdmin() {
           <MenuItem onClick={() => { setQuickAnchor(null); navigate('/dashboard/documents'); }}>
             <ListItemIcon><UploadFileIcon fontSize="small" sx={{ color: '#0e7490' }} /></ListItemIcon>
             <ListItemText
-              primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>Téléverser un document</Typography>}
-              secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Convention, règlement, accord</Typography>}
+              primary={<Typography sx={{ fontSize: 13, fontWeight: 700 }}>{t('dashboard.qaUploadDocument')}</Typography>}
+              secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{t('dashboard.qaUploadDocumentSub')}</Typography>}
             />
           </MenuItem>
         )}
@@ -879,7 +881,7 @@ function DashboardModernAdmin() {
         >
           <PlaylistAddCheckIcon sx={{ color: '#0040a1', fontSize: 20 }} />
           <Typography sx={{ fontSize: 12, fontWeight: 800, color: '#0040a1', letterSpacing: 0.5, mr: 1 }}>
-            À FAIRE AUJOURD'HUI
+            {t('dashboard.recapTitle')}
           </Typography>
           {(() => {
             const items: Array<{ label: string; color: string; bg: string; onClick?: () => void; emoji?: string }> = [];
@@ -895,7 +897,7 @@ function DashboardModernAdmin() {
             const pendingLeaves = planAllows('leaveManagement') ? (demandesData?.length ?? 0) : 0;
             if (pendingLeaves > 0) {
               items.push({
-                label: `${pendingLeaves} demande(s) de congé à valider`,
+                label: t('dashboard.recapPendingLeaves', { count: pendingLeaves }),
                 color: '#92400e', bg: '#fef3c7', emoji: '📋',
                 onClick: () => setOpenCongeDialog(true),
               });
@@ -909,13 +911,13 @@ function DashboardModernAdmin() {
             }).length;
             if (urgentContracts > 0) {
               items.push({
-                label: `${urgentContracts} contrat(s) expirent dans 7 jours`,
+                label: t('dashboard.recapContractsUrgent', { count: urgentContracts }),
                 color: '#991b1b', bg: '#fee2e2', emoji: '⚠️',
                 onClick: () => setOpenContractDialog(true),
               });
             } else if (contractsForRecap.length > 0) {
               items.push({
-                label: `${contractsForRecap.length} contrat(s) à renouveler ce mois`,
+                label: t('dashboard.recapContractsRenew', { count: contractsForRecap.length }),
                 color: '#92400e', bg: '#fef3c7', emoji: '📝',
                 onClick: () => setOpenContractDialog(true),
               });
@@ -924,7 +926,7 @@ function DashboardModernAdmin() {
             const lateCount = dashboardData?.nombreEmployesEnRetard ?? 0;
             if (lateCount > 0) {
               items.push({
-                label: `${lateCount} employé(s) en retard`,
+                label: t('dashboard.recapLate', { count: lateCount }),
                 color: '#991b1b', bg: '#fee2e2', emoji: '⏰',
               });
             }
@@ -932,7 +934,7 @@ function DashboardModernAdmin() {
             const incompletePointages = pointagesData?.length ?? 0;
             if (incompletePointages > 0) {
               items.push({
-                label: `${incompletePointages} pointage(s) incomplet(s)`,
+                label: t('dashboard.recapIncomplete', { count: incompletePointages }),
                 color: '#6d28d9', bg: '#ede9fe', emoji: '🔍',
                 onClick: () => setOpenPointageDialog(true),
               });
@@ -941,7 +943,7 @@ function DashboardModernAdmin() {
             const absences = dashboardData?.totalAbsences ?? 0;
             if (absences > 0) {
               items.push({
-                label: `${absences} absence(s) du jour`,
+                label: t('dashboard.recapAbsences', { count: absences }),
                 color: '#0040a1', bg: '#dae2ff', emoji: '👤',
               });
             }
@@ -949,7 +951,7 @@ function DashboardModernAdmin() {
             // Télétravail — chip gated leaveManagement (le télétravail vit sous ce pack).
             if (planAllows('leaveManagement') && teletravailToday > 0) {
               items.push({
-                label: `${teletravailToday} en télétravail`,
+                label: t('dashboard.recapTeletravail', { count: teletravailToday }),
                 color: '#9d174d', bg: '#fce7f3', emoji: '🏠',
               });
             }
@@ -957,7 +959,7 @@ function DashboardModernAdmin() {
             if (items.length === 0) {
               return (
                 <Chip
-                  label="✅ Tout est à jour — aucune action urgente"
+                  label={`✅ ${t('dashboard.recapAllClear')}`}
                   size="small"
                   sx={{ background: '#dcfce7', color: '#166534', fontWeight: 700, fontSize: 12 }}
                 />
@@ -1410,7 +1412,7 @@ function DashboardModernAdmin() {
         PaperProps={{ sx: { borderRadius: '16px' } }}
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, color: '#0040a1' }}>
-          <TuneIcon /> Personnaliser
+          <TuneIcon /> {t('dashboard.customize')}
           <Box sx={{ flex: 1 }} />
           <IconButton size="small" onClick={() => setOpenCustomize(false)}>
             <CloseIcon />
@@ -1418,8 +1420,7 @@ function DashboardModernAdmin() {
         </DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Choisissez les éléments à afficher dans votre tableau de bord. Vos préférences
-            sont sauvegardées automatiquement.
+            {t('dashboard.customizeDesc')}
           </Typography>
           <Stack spacing={1}>
             {ALL_WIDGETS.map((w) => (
@@ -1432,7 +1433,7 @@ function DashboardModernAdmin() {
                     color="primary"
                   />
                 }
-                label={<Typography sx={{ fontSize: 14, fontWeight: 600 }}>{w.label}</Typography>}
+                label={<Typography sx={{ fontSize: 14, fontWeight: 600 }}>{t(w.labelKey)}</Typography>}
                 sx={{ m: 0, justifyContent: 'space-between', width: '100%' }}
                 labelPlacement="start"
               />
@@ -1444,14 +1445,14 @@ function DashboardModernAdmin() {
               onClick={resetWidgets}
               sx={{ textTransform: 'none', color: '#737785' }}
             >
-              Réinitialiser
+              {t('dashboard.reset')}
             </Button>
             <Button
               variant="contained"
               onClick={() => setOpenCustomize(false)}
               sx={{ textTransform: 'none', fontWeight: 700, background: '#0040a1' }}
             >
-              Fermer
+              {t('dashboard.close')}
             </Button>
           </Box>
         </DialogContent>

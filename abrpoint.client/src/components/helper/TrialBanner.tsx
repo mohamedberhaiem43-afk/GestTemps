@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import { Sparkles } from 'lucide-react';
+import { useTranslation, Trans } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import apiInstance from '../API/apiInstance';
@@ -18,6 +19,7 @@ import { buildPackPaymentLink, normalizePackKey, type BillingCycle } from '../Pr
  */
 const TrialBanner = () => {
   const { isTrialing, trialDaysRemaining, planLimits, planCode, isAdmin, isManager } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   // Infos d'abonnement nécessaires pour ouvrir le BON Payment Link du pack en essai
@@ -50,12 +52,12 @@ const TrialBanner = () => {
 
   const daysLabel =
     trialDaysRemaining == null
-      ? 'Essai gratuit en cours'
+      ? t('dashboard.trialBanner.inProgress')
       : trialDaysRemaining <= 0
-        ? 'Votre essai gratuit a expiré'
+        ? t('dashboard.trialBanner.expired')
         : trialDaysRemaining === 1
-          ? 'Dernier jour de votre essai gratuit'
-          : `Il vous reste ${trialDaysRemaining} jours d'essai gratuit`;
+          ? t('dashboard.trialBanner.lastDay')
+          : t('dashboard.trialBanner.daysRemaining', { count: trialDaysRemaining });
 
   // Bannière trial : on reflète les limites + le périmètre fonctionnel du PACK
   // CHOISI par le tenant (Starter / Standard / Premium). Avant le fix 2026-05-18,
@@ -70,16 +72,16 @@ const TrialBanner = () => {
   // est limité à une seule filiale alors que la matrice MultiSociete=true le permet).
   const maxSocRaw = planLimits?.maxSocietes;
   const societeLabel = maxSocRaw == null
-    ? 'sociétés/filiales illimitées'
-    : `${maxSocRaw} société/filiale`;
+    ? t('dashboard.trialBanner.societeUnlimited')
+    : t('dashboard.trialBanner.societeCount', { count: maxSocRaw });
   // Tagline courte du pack — miroir condensé des descriptions PricingPage.tsx :
   //   Starter  → pointage simple sans workflow RH avancé
   //   Standard → suite complète mobile + paie, sans IA ni multi-filiales
   //   Premium  → tous les modules (états, multi-filiales, IA, sécurité renforcée)
   const packTagline: Record<typeof packName, string> = {
-    Starter: 'pointage simple, sans workflow RH avancé',
-    Standard: 'mobile, congés, signature, coffre — sans IA ni multi-filiales',
-    Premium: 'tous les modules : états, multi-filiales, IA, sécurité renforcée',
+    Starter: t('dashboard.trialBanner.taglineStarter'),
+    Standard: t('dashboard.trialBanner.taglineStandard'),
+    Premium: t('dashboard.trialBanner.taglinePremium'),
   };
 
   // « Passer au plan payant » : ouvre directement le Payment Link Stripe du pack en cours
@@ -113,7 +115,16 @@ const TrialBanner = () => {
       <Typography sx={{ fontSize: 13, fontWeight: 700, flex: 1 }}>
         {daysLabel}
         <Box component="span" sx={{ fontWeight: 500, ml: 1 }}>
-          — Pack <strong style={{ fontWeight: 700 }}>{packName}</strong> (essai) : jusqu'à {maxEmp} collaborateur{maxEmp > 1 ? 's' : ''}, {societeLabel}, {packTagline[packName]}.
+          <Trans
+            i18nKey="dashboard.trialBanner.summary"
+            values={{
+              pack: packName,
+              employees: t('dashboard.trialBanner.employeesCount', { count: maxEmp }),
+              societe: societeLabel,
+              tagline: packTagline[packName],
+            }}
+            components={{ b: <strong style={{ fontWeight: 700 }} /> }}
+          />
         </Box>
       </Typography>
       {/* 2026-06 — Le CTA ouvre directement le Payment Link Stripe du pack en cours d'essai
@@ -136,7 +147,7 @@ const TrialBanner = () => {
           '&:hover': { bgcolor: '#003080' },
         }}
       >
-        Passer au plan payant
+        {t('dashboard.trialBanner.upgrade')}
       </Button>
     </Box>
   );
