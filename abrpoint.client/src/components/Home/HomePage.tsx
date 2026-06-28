@@ -664,7 +664,7 @@ function renderComparisonCell(value: CompCell): React.ReactNode {
 
 // Logo embarqué en base64 dans la maquette → on réutilise l'asset public existant.
 const LOGO_SRC = '/concorde-workly-light.jpg';
-const DOWNLOAD_URL = 'https://concorde-work-force.com/download';
+const DOWNLOAD_URL = 'https://play.google.com/store/apps/details?id=com.concorde.workly';
 // Téléchargement DIRECT de l'APK Android : /api/download/android fait un 302 vers
 // l'artefact EAS (cf. Download:ApkUrl côté serveur) → le clic télécharge le .apk
 // sans passer par la page intermédiaire /download. L'attribut `download` côté <a>
